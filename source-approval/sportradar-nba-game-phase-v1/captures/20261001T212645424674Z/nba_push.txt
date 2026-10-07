@@ -1,0 +1,342 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+Push Feeds
+For AI agents: visit https://developer.sportradar.com/basketball/llms.txt for an index of all pages formatted in Markdown and endpoints in OpenAPI. Append .md to any documentation page URL to get its markdown version.
+Jump to Content
+Integration Guides
+Reference Docs
+Getting Started
+Insights
+Images and Editorials
+Widgets
+Odds
+Broadcast
+SPORTS API
+Aussie Rules
+Badminton
+Bandy
+Baseball
+Basketball
+Cricket
+Darts
+Field Hockey
+Football
+Futsal
+Golf
+Handball
+Hockey
+MMA
+Racing
+Rugby
+Snooker
+Soccer
+Squash
+Table Tennis
+Tennis
+Volleyball
+More Sports
+sportradar-updates
+sportradar-thirdparty
+Global Basketball v1
+v3 APIs
+v4 APIs
+v5 APIs
+v7 APIs
+Current versions
+Coverage Matrix
+Documentation
+Change Log
+Log In
+Contact Us
+Integration Guides
+Coverage Matrix
+Documentation
+Change Log
+Log In
+Contact Us
+Basketball
+Current versions
+Integration Guides
+Push Feeds
+Push Feeds
+NBA Integration Guide
+Overview
+NBA API Basics
+Game Status Workflow
+ID Handling
+Update Frequencies
+Push Feeds
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters and Player Statuses
+Splits
+Seasonal Statistics (Player & Team)
+Playoffs and Tournaments
+NBA Draft
+Daily Change Log
+Historical Data
+NBA Reference Docs
+WNBA Integration Guide
+Overview
+WNBA API Basics
+Game Status Workflow
+ID Handling
+Update Frequencies
+Push Feeds
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters and Player Statuses
+Seasonal Statistics (Player & Team)
+Playoffs and Tournaments
+Daily Change Log
+Historical Data
+WNBA Reference Docs
+Unrivaled Integration Guide
+Overview
+Unrivaled API Basics
+Competition Format
+Game Status Workflow
+ID Handling
+Update Frequencies
+Integration Scenarios
+Monitoring Schedules
+Tracking Live Games
+Accessing Roster and Player Details
+Tracking Data Adjustments and Updates
+Unrivaled Reference Docs
+NCAAMB Integration Guide
+Overview
+NCAAMB API Basics
+Game Status Workflow
+ID Handling
+Update Frequencies
+Push Feeds
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters
+Seasonal Statistics (Player & Team)
+March Madness (NCAAM Division I Tournament)
+March Madness Concepts
+Conference Tournaments
+Daily Change Log
+Historical Data
+NCAAMB Reference Docs
+NCAAWB Integration Guide
+Overview
+NCAAWB API Basics
+Game Status Workflow
+ID Handling
+Update Frequencies
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters
+Seasonal Statistics (Player & Team)
+March Madness (NCAAW Division I Tournament)
+March Madness Concepts
+Conference Tournaments
+Daily Change Log
+Historical Data
+NCAAWB Reference Docs
+Additional Material
+Account Setup
+Account Maintenance
+Doc Navigation
+Simulations
+G League Integration Guide
+Overview
+G League API Basics
+G League Fundamentals
+Game Status Workflow
+ID Handling
+Update Frequencies
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters and Player Statuses
+Playoffs and Tournaments
+Monitoring Data Changes
+Historical Data
+G League Reference Docs
+Push Feeds
+With our
+RESTful
+endpoints, you'll make API requests when you want to receive new data. But our Push feeds allow you to open a connection with a single call to receive continuous live updates. Once open, the connection stays open until you close it or it drops.
+Thus, Push feeds are an efficient option to retrieve live NBA game data. You need not worry about API pull frequency, but need only to "listen" for game updates.
+RESTful & Push
+Each Push update comes in the form of a JSON payload, which will mimic the structure of a similar RESTful NBA API endpoint. Game payloads are delivered for
+changes to events and statistics
+, but
+not game status updates
+.
+Below are the Push endpoints alongside their RESTful counterparts.
+Push Feed
+RESTful Counterpart
+Push Events
+Game Play-by-Play
+Push Statistics
+Game Summary
+Push Draft Picks
+Draft Summary
+Push Draft Trades
+Trades
+Push Clock
+n/a
+It's important to note that our Push service is not meant to replace our RESTful API, but to complement it. Push does not provide a "stateful session". There is no memory or method to access data sent previously. If you are disconnected from a Push session, use the corresponding RESTful API feed to catch up or recover from the disconnection. For example, if you experience a disconnection from a game while using
+Push Events
+, request the RESTful
+Game Play-by-Play
+endpoint to capture the plays missed during the disconnection.
+Additionally, it is important to note that Push feeds correlate to RESTful endpoints, but are not necessarily at 1:1 parity for all NBA data. For a complete NBA experience, you will need to make use of RESTful endpoints.
+Access
+NBA Push feeds are an add-on service, and unavailable in the self-issued NBA trial within
+your account
+. Reach out to a
+sales representative
+for trial access.
+🔐
+NBA Push feeds are available for Sportradar
+Realtime
+customers only
+Make a Request
+Each Push feed starts with a URL request, as with our other RESTful API endpoints.
+NBA Push Feed Syntax
+curl -L -X GET 'https://api.sportradar.com/nba/{access_level}/stream/{language_code}/{push_feed}/subscribe' \ -H 'x-api-key: {your_api_key}'
+When constructed, the above call opens up an HTTP redirect connection, returning all Push data for the requested feed. Set
+access_level
+to match your API key:
+production
+for a Realtime production key, or
+trial
+for a push trial issued by your sales representative. To filter results to a smaller data set, include an optional query string.
+There are no restrictions on the number of connections you may have open. Feel free to filter requests to individual games and close the connections when games complete, or keep a single unfiltered connection open indefinitely.
+Visit the feed
+endpoints pages
+for complete syntax instructions.
+Filtering
+By default, a Push feed will provide all data available. For example, a
+Push Events
+connection would stream
+all
+NBA games in progress to your application. If needed, you can filter the data returned by including
+query strings
+.
+For example, let's say you want to restrict your connection to one NBA game in progress. Construct your call as normal and add the game id to the query string with the
+match
+parameter, prefixed with
+sd:match:
+.
+Here's an example:
+NBA Push Events Sample Request
+curl -L -X GET 'https://api.sportradar.com/nba/trial/stream/en/events/subscribe?&match=sd:match:76b2e680-7da7-461f-95ad-e7c34dbc4c56' \ -H 'x-api-key: {your_api_key}'
+Visit the feed
+endpoints pages
+for complete query string syntax instructions.
+Technical Requirements
+To accept data from our Push feeds, ensure that your application can:
+Follow an HTTP redirect, or use the location provided in the feed's header within one minute of your initial request.
+Accept HTTP data transfer encoded as chunked.
+Payloads
+Our Push services are delivered by HTTP Streaming with chunked encoding, also commonly called
+HTTP Chunked
+. The streaming of data is based on long HTTP response. Chunked streaming allows you to act on the chunks immediately instead of waiting or requesting a full file.
+When new feed content is available, the server pushes that information out to your client. When no new information is available on a feed, a heartbeat message is sent every 5 seconds to keep the connection active.
+Messages are delivered in JSON format only.
+Heartbeat Sample (Push Events)
+{ "heartbeat":{ "interval":5000 } }{ "heartbeat":{ "interval":5000 } }{ "heartbeat":{ "interval":5000 } }{ "payload":{ "game":{ "id":"d210697f-172d-4e1c-953b-596a4d5a4a34", "status":"inprogress", "coverage":"full", "reference":"0022300517", "scheduled":"2024-01-11T00:00:00+00:00", "sr_id":"sr:match:43066279", "home":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "points":114, "bonus":false, "remaining_timeouts":2, "sr_id":"sr:team:3422" }, "away":{ "name":"Timberwolves", "market":"Minnesota", "reference":"1610612750", "id":"583eca2f-fb46-11e1-82cb-f4ce4684ea4c", "points":117, "bonus":false, "remaining_timeouts":2, "sr_id":"sr:team:3426" } }, "event":{ "id":"8d698fa2-7292-44d2-b7ab-f05b4c4016ee", "event_type":"rebound", "number":618, "sequence":1704940358800, "clock":"3:30", "clock_decimal":"3:30", "updated":"2024-01-11T02:32:39Z", "wall_clock":"2024-01-11T02:32:38Z", "created":"2024-01-11T02:32:39Z", "description":"Al Horford offensive rebound", "home_points":114, "away_points":117, "attribution":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "team_basket":"right", "sr_id":"sr:team:3422" }, "location":{ "coord_x":1030, "coord_y":342, "action_area":"inthepaint" }, "possession":{ "name":"Celtics", "market":"Boston", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422" }, "period":{ "id":"fb961edf-514e-4d12-a119-50a62c3f68ab", "number":1, "sequence":5, "type":"overtime" }, "on_court":{ "home":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422", "players":[ { "full_name":"Derrick White", "jersey_number":"9", "reference":"1628401", "id":"9bcd5cff-4a1c-4454-89b6-a5899b0c6bcc", "sr_id":"sr:player:1142550" }, { "full_name":"Jrue Holiday", "jersey_number":"4", "reference":"201950", "id":"65700e81-3aa0-49a9-8a94-004f2cfb64e5", "sr_id":"sr:player:607876" }, { "full_name":"Al Horford", "jersey_number":"42", "reference":"201143", "id":"cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9", "sr_id":"sr:player:607754" }, { "full_name":"Jaylen Brown", "jersey_number":"7", "reference":"1627759", "id":"ffc5579c-783f-4d62-80ab-3c3dcb05a27d", "sr_id":"sr:player:996297" }, { "full_name":"Jayson Tatum", "jersey_number":"0", "reference":"1628369", "id":"98136da3-452f-49dc-a794-1ee9c76443f2", "sr_id":"sr:player:1141196" } ] }, "away":{ "name":"Timberwolves", "market":"Minnesota", "reference":"1610612750", "id":"583eca2f-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3426", "players":[ { "full_name":"Karl-Anthony Towns", "jersey_number":"32", "reference":"1626157", "id":"ab532a66-9314-4d57-ade7-bb54a70c65ad", "sr_id":"sr:player:852120" }, { "full_name":"Nickeil Alexander-Walker", "jersey_number":"9", "reference":"1629638", "id":"d3d0ab55-b939-47b3-af27-77cdf85d7956", "sr_id":"sr:player:1307780" }, { "full_name":"Naz Reid", "jersey_number":"11", "reference":"1629675", "id":"823b2161-0c34-494c-9d7c-b438152f4f4d", "sr_id":"sr:player:1796560" }, { "full_name":"Kyle Anderson", "jersey_number":"1", "reference":"203937", "id":"2e49c27a-06c5-4c4a-87fd-69840b783947", "sr_id":"sr:player:608000" }, { "full_name":"Anthony Edwards", "jersey_number":"5", "reference":"1630162", "id":"d0c7135a-1aea-40cb-ba20-df656de71749", "sr_id":"sr:player:1876136" } ] } }, "statistics":[ { "type":"rebound", "rebound_type":"offensive", "team":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422" }, "player":{ "full_name":"Al Horford", "jersey_number":"42", "reference":"201143", "id":"cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9", "sr_id":"sr:player:607754" } } ] } }, "locale":"en", "metadata":{ "league":"NBA", "match":"sd:match:d210697f-172d-4e1c-953b-596a4d5a4a34,sr:match:43066279", "status":"inprogress", "team":"sd:team:583eccfa-fb46-11e1-82cb-f4ce4684ea4c,sr:team:3422", "players":"sd:player:9bcd5cff-4a1c-4454-89b6-a5899b0c6bcc,sd:player:65700e81-3aa0-49a9-8a94-004f2cfb64e5,sd:player:cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9,sd:player:ffc5579c-783f-4d62-80ab-3c3dcb05a27d,sd:player:98136da3-452f-49dc-a794-1ee9c76443f2,sd:player:ab532a66-9314-4d57-ade7-bb54a70c65ad,sd:player:d3d0ab55-b939-47b3-af27-77cdf85d7956,sd:player:823b2161-0c34-494c-9d7c-b438152f4f4d,sd:player:2e49c27a-06c5-4c4a-87fd-69840b783947,sd:player:d0c7135a-1aea-40cb-ba20-df656de71749", "event_type":"rebound", "event_category":"shot", "locale":"en", "operation":"update", "version":"v7" } }{ "heartbeat":{ "interval":5000 } }
+Disconnections
+Should you cease to receive heartbeat messages, or are disconnected from the Push service for any reason, re-connect using your same initial request.
+Metadata
+Each payload includes a metadata header message. The metadata includes information on the type of payload, as well as possible filtering options, saving processing and integration time.
+Metadata Sample (Push Events - Rebound)
+Metadata Sample (Push Statistics - Player Update)
+{ "locale":"en", "metadata":{ "league":"NBA", "match":"sd:match:d210697f-172d-4e1c-953b-596a4d5a4a34,sr:match:43066279", "status":"inprogress", "team":"sd:team:583eccfa-fb46-11e1-82cb-f4ce4684ea4c,sr:team:3422", "players":"sd:player:9bcd5cff-4a1c-4454-89b6-a5899b0c6bcc,sd:player:65700e81-3aa0-49a9-8a94-004f2cfb64e5,sd:player:cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9,sd:player:ffc5579c-783f-4d62-80ab-3c3dcb05a27d,sd:player:98136da3-452f-49dc-a794-1ee9c76443f2,sd:player:ab532a66-9314-4d57-ade7-bb54a70c65ad,sd:player:d3d0ab55-b939-47b3-af27-77cdf85d7956,sd:player:823b2161-0c34-494c-9d7c-b438152f4f4d,sd:player:2e49c27a-06c5-4c4a-87fd-69840b783947,sd:player:d0c7135a-1aea-40cb-ba20-df656de71749", "event_type":"rebound", "event_category":"shot", "locale":"en", "operation":"update", "version":"v7" } }
+{ "locale":"en", "metadata":{ "league":"NBA", "match":"sd:match:70490127-6b79-4a2f-bb66-e5cba771e32f,sr:match:43066287", "player":"sd:player:4d7cb358-0fec-482f-9f57-92c39e8bf214,sr:player:607910", "status":"inprogress", "stats_type":"player", "locale":"en", "operation":"update", "version":"v7" } }
+Comma delimited values in the header are interpreted as an array of values.
+Team Array
+Game Array
+"team":"sd:team:583eccfa-fb46-11e1-82cb-f4ce4684ea4c,sr:team:3422"
+"sd:match:d210697f-172d-4e1c-953b-596a4d5a4a34,sr:match:43066279",
+Visit the
+Endpoints
+documentation for each feed to view all available
+data points
+.
+Samples
+Code Samples
+To best utilize Push feeds, see the below code samples in Ruby and Java. These provide an example of a method to consume the feeds. Using these samples will output the feeds content to STDOUT.
+For Java, we have also provided a
+Stream Client
+to assist your integration.
+Note: In the provided Java sample, replace "URL GOES HERE" with the desired Push feed URL.
+Ruby
+Java
+require 'httpclient' module Sportradar module HTTP module Stream class Client attr_reader :url, :logger def initialize(url, api_key, logger) @url = url @logger = logger @api_key = api_key @client = ::HTTPClient.new(agent_name: 'SportsData/1.0') end def start @thread ||= Thread.new do logger.debug "Starting loop" headers = { 'x-api-key' => @api_key } @client.get_content(url, header: headers, follow_redirect: true) do |chunk| @publisher.publish(::JSON.parse(chunk)) if @publisher end logger.debug "finished loop" end end def stop @thread.terminate if @thread end end end end end
+package com.sportradar.http.stream.client; import java.io.BufferedReader; import java.io.InputStreamReader; import java.net.HttpURLConnection; import java.net.URL; public class StreamClient { private Thread streamThread; private volatile boolean running = false; private String apiKey; public void setApiKey(String apiKey) { this.apiKey = apiKey; } public void stream(String serviceUrl, Handler handler) { running = true; streamThread = new Thread(() -> { try { URL url = new URL(serviceUrl); HttpURLConnection connection = (HttpURLConnection) url.openConnection(); connection.setRequestMethod("GET"); connection.setRequestProperty("User-Agent", "SportsData/1.0"); if (apiKey != null && !apiKey.isEmpty()) { connection.setRequestProperty("x-api-key", apiKey); } try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) { String line; while (running && (line = reader.readLine()) != null) { if (!line.trim().isEmpty()) { handler.handle(line); } } } } catch (Exception e) { e.printStackTrace(); } }); streamThread.start(); } public void terminate() { running = false; if (streamThread != null) { streamThread.interrupt(); } } }
+Data Samples
+Download sample Push data
+covering a complete game.
+Simulations
+Use our
+API Simulations
+to open up a continuous Push simulation of a game. This lets you experience and analyze our data without having to wait for a real game to take place.
+ID Updates
+All updates to the Push feeds are categorized as an
+update
+or a
+delete
+. These will be found within
+metadata.operation
+.
+Updates may be the creation of an event or an update of information to a previous event.
+When you receive an event with the same ID as an event that has been previously consumed, it is best practice to replace the data from the previous message with the data consumed in the most recent message.
+Update Payload (Push Events)
+Delete Payload (Push Events)
+{ "payload":{ "game":{ "id":"d210697f-172d-4e1c-953b-596a4d5a4a34", "status":"inprogress", "coverage":"full", "reference":"0022300517", "scheduled":"2024-01-11T00:00:00+00:00", "sr_id":"sr:match:43066279", "home":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "points":114, "bonus":false, "remaining_timeouts":2, "sr_id":"sr:team:3422" }, "away":{ "name":"Timberwolves", "market":"Minnesota", "reference":"1610612750", "id":"583eca2f-fb46-11e1-82cb-f4ce4684ea4c", "points":117, "bonus":false, "remaining_timeouts":2, "sr_id":"sr:team:3426" } }, "event":{ "id":"8d698fa2-7292-44d2-b7ab-f05b4c4016ee", "event_type":"rebound", "number":618, "sequence":1704940358800, "clock":"3:30", "clock_decimal":"3:30", "updated":"2024-01-11T02:32:39Z", "wall_clock":"2024-01-11T02:32:38Z", "created":"2024-01-11T02:32:39Z", "description":"Al Horford offensive rebound", "home_points":114, "away_points":117, "attribution":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "team_basket":"right", "sr_id":"sr:team:3422" }, "location":{ "coord_x":1030, "coord_y":342, "action_area":"inthepaint" }, "possession":{ "name":"Celtics", "market":"Boston", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422" }, "period":{ "id":"fb961edf-514e-4d12-a119-50a62c3f68ab", "number":1, "sequence":5, "type":"overtime" }, "on_court":{ "home":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422", "players":[ { "full_name":"Derrick White", "jersey_number":"9", "reference":"1628401", "id":"9bcd5cff-4a1c-4454-89b6-a5899b0c6bcc", "sr_id":"sr:player:1142550" }, { "full_name":"Jrue Holiday", "jersey_number":"4", "reference":"201950", "id":"65700e81-3aa0-49a9-8a94-004f2cfb64e5", "sr_id":"sr:player:607876" }, { "full_name":"Al Horford", "jersey_number":"42", "reference":"201143", "id":"cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9", "sr_id":"sr:player:607754" }, { "full_name":"Jaylen Brown", "jersey_number":"7", "reference":"1627759", "id":"ffc5579c-783f-4d62-80ab-3c3dcb05a27d", "sr_id":"sr:player:996297" }, { "full_name":"Jayson Tatum", "jersey_number":"0", "reference":"1628369", "id":"98136da3-452f-49dc-a794-1ee9c76443f2", "sr_id":"sr:player:1141196" } ] }, "away":{ "name":"Timberwolves", "market":"Minnesota", "reference":"1610612750", "id":"583eca2f-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3426", "players":[ { "full_name":"Karl-Anthony Towns", "jersey_number":"32", "reference":"1626157", "id":"ab532a66-9314-4d57-ade7-bb54a70c65ad", "sr_id":"sr:player:852120" }, { "full_name":"Nickeil Alexander-Walker", "jersey_number":"9", "reference":"1629638", "id":"d3d0ab55-b939-47b3-af27-77cdf85d7956", "sr_id":"sr:player:1307780" }, { "full_name":"Naz Reid", "jersey_number":"11", "reference":"1629675", "id":"823b2161-0c34-494c-9d7c-b438152f4f4d", "sr_id":"sr:player:1796560" }, { "full_name":"Kyle Anderson", "jersey_number":"1", "reference":"203937", "id":"2e49c27a-06c5-4c4a-87fd-69840b783947", "sr_id":"sr:player:608000" }, { "full_name":"Anthony Edwards", "jersey_number":"5", "reference":"1630162", "id":"d0c7135a-1aea-40cb-ba20-df656de71749", "sr_id":"sr:player:1876136" } ] } }, "statistics":[ { "type":"rebound", "rebound_type":"offensive", "team":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422" }, "player":{ "full_name":"Al Horford", "jersey_number":"42", "reference":"201143", "id":"cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9", "sr_id":"sr:player:607754" } } ] } }, "locale":"en", "metadata":{ "league":"NBA", "match":"sd:match:d210697f-172d-4e1c-953b-596a4d5a4a34,sr:match:43066279", "status":"inprogress", "team":"sd:team:583eccfa-fb46-11e1-82cb-f4ce4684ea4c,sr:team:3422", "players":"sd:player:9bcd5cff-4a1c-4454-89b6-a5899b0c6bcc,sd:player:65700e81-3aa0-49a9-8a94-004f2cfb64e5,sd:player:cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9,sd:player:ffc5579c-783f-4d62-80ab-3c3dcb05a27d,sd:player:98136da3-452f-49dc-a794-1ee9c76443f2,sd:player:ab532a66-9314-4d57-ade7-bb54a70c65ad,sd:player:d3d0ab55-b939-47b3-af27-77cdf85d7956,sd:player:823b2161-0c34-494c-9d7c-b438152f4f4d,sd:player:2e49c27a-06c5-4c4a-87fd-69840b783947,sd:player:d0c7135a-1aea-40cb-ba20-df656de71749", "event_type":"rebound", "event_category":"shot", "locale":"en", "operation":"update", "version":"v7" } }{ "payload":{ "game":{ "id":"38dced31-027d-405d-ba37-f3ce9a6eefc5", "status":"inprogress", "coverage":"full", "reference":"0022300525", "scheduled":"2024-01-11T01:30:00+00:00", "sr_id":"sr:match:43066295", "home":{ "name":"Warriors", "market":"Golden State", "reference":"1610612744", "id":"583ec825-fb46-11e1-82cb-f4ce4684ea4c", "points":51, "bonus":true, "remaining_timeouts":5, "sr_id":"sr:team:3428" }, "away":{ "name":"Pelicans", "market":"New Orleans", "reference":"1610612740", "id":"583ecc9a-fb46-11e1-82cb-f4ce4684ea4c", "points":67, "bonus":true, "remaining_timeouts":5, "sr_id":"sr:team:5539" } }, "event":{ "id":"d71b8ec9-bb77-4a72-864c-1cd668b4b941", "event_type":"turnover", "turnover_type":"Out of Bounds", "number":290, "sequence":1704940232300, "clock":"3:50", "clock_decimal":"3:50", "updated":"2024-01-11T02:32:42Z", "wall_clock":"2024-01-11T02:30:32Z", "created":"2024-01-11T02:30:34Z", "description":"Dyson Daniels turnover (out of bounds bad pass)", "home_points":51, "away_points":67, "attribution":{ "name":"Pelicans", "market":"New Orleans", "reference":"1610612740", "id":"583ecc9a-fb46-11e1-82cb-f4ce4684ea4c", "team_basket":"left", "sr_id":"sr:team:5539" }, "location":{ "coord_x":95, "coord_y":277, "action_area":"inthepaint" }, "possession":{ "name":"Warriors", "market":"Golden State", "id":"583ec825-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3428" }, "period":{ "id":"ae00d73d-7373-41c9-9df9-3efc908f7fa8", "number":2, "sequence":2, "type":"quarter" }, "on_court":{ "home":{ "name":"Warriors", "market":"Golden State", "reference":"1610612744", "id":"583ec825-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3428", "players":[ { "full_name":"Cory Joseph", "jersey_number":"1", "reference":"202709", "id":"5769354c-0661-4ac7-86e5-3fd51506df36", "sr_id":"sr:player:608010" }, { "full_name":"Kevon Looney", "jersey_number":"5", "reference":"1626172", "id":"ebb50069-6fdf-4c07-9a21-a63d5c814536", "sr_id":"sr:player:852188" }, { "full_name":"Andrew Wiggins", "jersey_number":"22", "reference":"203952", "id":"77c425f0-0fce-4fab-bd1e-c915c8fb5bc7", "sr_id":"sr:player:607676" }, { "full_name":"Stephen Curry", "jersey_number":"30", "reference":"201939", "id":"8ec91366-faea-4196-bbfd-b8fab7434795", "sr_id":"sr:player:608110" }, { "full_name":"Moses Moody", "jersey_number":"4", "reference":"1630541", "id":"a316cf6a-693d-4c6a-b0d9-ebf80e73e832", "sr_id":"sr:player:2077831" } ] }, "away":{ "name":"Pelicans", "market":"New Orleans", "reference":"1610612740", "id":"583ecc9a-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:5539", "players":[ { "full_name":"Zion Williamson", "jersey_number":"1", "reference":"1629627", "id":"5cc51c05-06f5-4ae4-89a4-1d329fbbcdfb", "sr_id":"sr:player:1770164" }, { "full_name":"Herbert Jones", "jersey_number":"5", "reference":"1630529", "id":"66b88001-06c2-4f4a-9825-b6e0cc1df6cc", "sr_id":"sr:player:1296160" }, { "full_name":"Jonas Valanciunas", "jersey_number":"17", "reference":"202685", "id":"c8788ad2-89f7-4ec9-a22b-dcaf6190889b", "sr_id":"sr:player:607970" }, { "full_name":"Brandon Ingram", "jersey_number":"14", "reference":"1627742", "id":"8082841d-e516-43c6-a81b-7987fa321acd", "sr_id":"sr:player:996321" }, { "full_name":"Dyson Daniels", "jersey_number":"11", "reference":"1630700", "id":"358fb074-ac1b-45a6-bf54-46c30534786e", "sr_id":"sr:player:2299167" } ] } }, "statistics":[ { "type":"turnover", "team":{ "name":"Pelicans", "market":"New Orleans", "reference":"1610612740", "id":"583ecc9a-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:5539" }, "player":{ "full_name":"Dyson Daniels", "jersey_number":"11", "reference":"1630700", "id":"358fb074-ac1b-45a6-bf54-46c30534786e", "sr_id":"sr:player:2299167" } } ] } }, "locale":"en", "metadata":{ "league":"NBA", "match":"sd:match:38dced31-027d-405d-ba37-f3ce9a6eefc5,sr:match:43066295", "status":"inprogress", "team":"sd:team:583ecc9a-fb46-11e1-82cb-f4ce4684ea4c,sr:team:5539", "players":"sd:player:5769354c-0661-4ac7-86e5-3fd51506df36,sd:player:ebb50069-6fdf-4c07-9a21-a63d5c814536,sd:player:77c425f0-0fce-4fab-bd1e-c915c8fb5bc7,sd:player:8ec91366-faea-4196-bbfd-b8fab7434795,sd:player:a316cf6a-693d-4c6a-b0d9-ebf80e73e832,sd:player:5cc51c05-06f5-4ae4-89a4-1d329fbbcdfb,sd:player:66b88001-06c2-4f4a-9825-b6e0cc1df6cc,sd:player:c8788ad2-89f7-4ec9-a22b-dcaf6190889b,sd:player:8082841d-e516-43c6-a81b-7987fa321acd,sd:player:358fb074-ac1b-45a6-bf54-46c30534786e", "event_type":"turnover", "event_category":"turnover", "locale":"en", "operation":"update", "version":"v7" } }
+{ "payload":{ "game":{ "id":"d210697f-172d-4e1c-953b-596a4d5a4a34", "status":"inprogress", "coverage":"full", "reference":"0022300517", "scheduled":"2024-01-11T00:00:00+00:00", "sr_id":"sr:match:43066279", "home":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "points":114, "bonus":false, "remaining_timeouts":2, "sr_id":"sr:team:3422" }, "away":{ "name":"Timberwolves", "market":"Minnesota", "reference":"1610612750", "id":"583eca2f-fb46-11e1-82cb-f4ce4684ea4c", "points":117, "bonus":false, "remaining_timeouts":2, "sr_id":"sr:team:3426" } }, "event":{ "id":"8d698fa2-7292-44d2-b7ab-f05b4c4016ee", "event_type":"rebound", "number":618, "sequence":1704940358800, "clock":"3:30", "clock_decimal":"3:30", "updated":"2024-01-11T02:32:39Z", "wall_clock":"2024-01-11T02:32:38Z", "created":"2024-01-11T02:32:39Z", "description":"Al Horford offensive rebound", "home_points":114, "away_points":117, "attribution":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "team_basket":"right", "sr_id":"sr:team:3422" }, "location":{ "coord_x":1030, "coord_y":342, "action_area":"inthepaint" }, "possession":{ "name":"Celtics", "market":"Boston", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422" }, "period":{ "id":"fb961edf-514e-4d12-a119-50a62c3f68ab", "number":1, "sequence":5, "type":"overtime" }, "on_court":{ "home":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422", "players":[ { "full_name":"Derrick White", "jersey_number":"9", "reference":"1628401", "id":"9bcd5cff-4a1c-4454-89b6-a5899b0c6bcc", "sr_id":"sr:player:1142550" }, { "full_name":"Jrue Holiday", "jersey_number":"4", "reference":"201950", "id":"65700e81-3aa0-49a9-8a94-004f2cfb64e5", "sr_id":"sr:player:607876" }, { "full_name":"Al Horford", "jersey_number":"42", "reference":"201143", "id":"cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9", "sr_id":"sr:player:607754" }, { "full_name":"Jaylen Brown", "jersey_number":"7", "reference":"1627759", "id":"ffc5579c-783f-4d62-80ab-3c3dcb05a27d", "sr_id":"sr:player:996297" }, { "full_name":"Jayson Tatum", "jersey_number":"0", "reference":"1628369", "id":"98136da3-452f-49dc-a794-1ee9c76443f2", "sr_id":"sr:player:1141196" } ] }, "away":{ "name":"Timberwolves", "market":"Minnesota", "reference":"1610612750", "id":"583eca2f-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3426", "players":[ { "full_name":"Karl-Anthony Towns", "jersey_number":"32", "reference":"1626157", "id":"ab532a66-9314-4d57-ade7-bb54a70c65ad", "sr_id":"sr:player:852120" }, { "full_name":"Nickeil Alexander-Walker", "jersey_number":"9", "reference":"1629638", "id":"d3d0ab55-b939-47b3-af27-77cdf85d7956", "sr_id":"sr:player:1307780" }, { "full_name":"Naz Reid", "jersey_number":"11", "reference":"1629675", "id":"823b2161-0c34-494c-9d7c-b438152f4f4d", "sr_id":"sr:player:1796560" }, { "full_name":"Kyle Anderson", "jersey_number":"1", "reference":"203937", "id":"2e49c27a-06c5-4c4a-87fd-69840b783947", "sr_id":"sr:player:608000" }, { "full_name":"Anthony Edwards", "jersey_number":"5", "reference":"1630162", "id":"d0c7135a-1aea-40cb-ba20-df656de71749", "sr_id":"sr:player:1876136" } ] } }, "statistics":[ { "type":"rebound", "rebound_type":"offensive", "team":{ "name":"Celtics", "market":"Boston", "reference":"1610612738", "id":"583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id":"sr:team:3422" }, "player":{ "full_name":"Al Horford", "jersey_number":"42", "reference":"201143", "id":"cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9", "sr_id":"sr:player:607754" } } ] } }, "locale":"en", "metadata":{ "league":"NBA", "match":"sd:match:d210697f-172d-4e1c-953b-596a4d5a4a34,sr:match:43066279", "status":"inprogress", "team":"sd:team:583eccfa-fb46-11e1-82cb-f4ce4684ea4c,sr:team:3422", "players":"sd:player:9bcd5cff-4a1c-4454-89b6-a5899b0c6bcc,sd:player:65700e81-3aa0-49a9-8a94-004f2cfb64e5,sd:player:cf3a87ec-c2f7-42e8-9698-6f8b2ba916a9,sd:player:ffc5579c-783f-4d62-80ab-3c3dcb05a27d,sd:player:98136da3-452f-49dc-a794-1ee9c76443f2,sd:player:ab532a66-9314-4d57-ade7-bb54a70c65ad,sd:player:d3d0ab55-b939-47b3-af27-77cdf85d7956,sd:player:823b2161-0c34-494c-9d7c-b438152f4f4d,sd:player:2e49c27a-06c5-4c4a-87fd-69840b783947,sd:player:d0c7135a-1aea-40cb-ba20-df656de71749", "event_type":"rebound", "event_category":"shot", "locale":"en", "operation":"delete", "version":"v7" } }
+Endpoint Docs
+Visit the links below for syntax structure, data samples, and data dictionaries for all NBA Push feeds.
+Push Events
+- Provides detailed, real-time information on every live game event.
+Push Statistics
+- Provides detailed, real-time game stats at the team and player level for all live games.
+Push Draft Picks
+- Provides pre-draft pick order with real-time (push enabled) pick selections during the draft.
+Push Draft Trades
+- Provides summary details of all in-draft trades in real-time.
+Push Clock
+- Provides real-time NBA game clock updates, providing access to live game timing information.
+Updated
+about 1 month ago
+Update Frequencies
+Integration Scenarios
+Did this page help you?
+Yes
+No
+RESTful & Push
+Access
+Make a Request
+Filtering
+Technical Requirements
+Payloads
+Disconnections
+Metadata
+Samples
+Code Samples
+Data Samples
+Simulations
+ID Updates
+Endpoint Docs
+© Sportradar AG, St. Gallen, Switzerland
+Privacy Policy
+|
+Terms and Conditions
+|
+Contact Us

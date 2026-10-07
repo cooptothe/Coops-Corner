@@ -1,0 +1,147 @@
+{
+  "format": "corner.source_review.capture/1",
+  "started_at": "2026-10-01T21:26:45.424658Z",
+  "finished_at": "2026-10-01T21:26:50.467321Z",
+  "plan_sha256": "d5df69c15c155bd09795e5fb809a5da6732a6319dd98d17e6969ba6fa01639d5",
+  "capture_script_sha256": "bad524c8116779ca5b55c6c1db24daa40992057d9823cf5d28e82a886820e6fa",
+  "retention_helper_sha256": "cd81521bcb101c52ac02bc7435b5ca5b4d2ebce2393736a4f0f05ed31f5ddf80",
+  "evidence_class": "published_documentation_not_live_game_evidence",
+  "sources": [
+    {
+      "id": "nba_status_workflow",
+      "url": "https://developer.sportradar.com/basketball/docs/nba-ig-game-status-workflow",
+      "purpose": "Published phase semantics, coverage differences, delays and rescheduling; not a latency guarantee",
+      "requested_at": "2026-10-01T21:26:45.428412Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:26:47.946498Z",
+      "http_status": 200,
+      "final_url": "https://developer.sportradar.com/basketball/docs/nba-ig-game-status-workflow",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 21:26:48 GMT",
+        "Cache-Control": "s-maxage=1800, stale-if-error=900",
+        "Vary": "Accept, Accept-Encoding",
+        "Content-Language": "en"
+      },
+      "body_file": "nba_status_workflow.body",
+      "body_bytes": 1063245,
+      "body_sha256": "72eadb019e4c9c50937e623912077061899ce2f13cd176ef8bd2f054de2af5ea",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "nba_status_workflow.txt",
+      "text_sha256": "4b3ad8bc65ee187bf7dd19cc4b351e443807df469787a46a76e3f001e9cff0f8",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "nba_status_workflow.links.json",
+      "links_sha256": "52ae46de102c4034c004f95e61d9b59045e90939f9e9e5034eb665dd80cd55d6"
+    },
+    {
+      "id": "nba_play_by_play",
+      "url": "https://developer.sportradar.com/basketball/reference/nba-play-by-play",
+      "purpose": "Candidate v8 game endpoint and cache behavior; not status verification time",
+      "requested_at": "2026-10-01T21:26:45.429253Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:26:48.376570Z",
+      "http_status": 200,
+      "final_url": "https://developer.sportradar.com/basketball/reference/nba-play-by-play",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 21:26:48 GMT",
+        "Cache-Control": "s-maxage=1800, stale-if-error=900",
+        "Vary": "Accept, Accept-Encoding",
+        "Content-Language": "en"
+      },
+      "body_file": "nba_play_by_play.body",
+      "body_bytes": 1945120,
+      "body_sha256": "9212e32b3d4c0e5579a25e1a69fcfc0418e2ad76f6b9f7dea9c37ebb6eb91f5a",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "nba_play_by_play.txt",
+      "text_sha256": "1cdf9fe435f60156275834f955ff46bfdd92963ca1db9f8e3d4ad7a80506aa81",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "nba_play_by_play.links.json",
+      "links_sha256": "bd90e00c167c6272c4656647ba04ce30dfe9fce8a43f8aff6d2aabe64bcb8562"
+    },
+    {
+      "id": "account_access",
+      "url": "https://developer.sportradar.com/getting-started/docs/your-account",
+      "purpose": "General trial/production access description; not proof of our entitlement or permitted use",
+      "requested_at": "2026-10-01T21:26:45.429975Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:26:48.179627Z",
+      "http_status": 200,
+      "final_url": "https://developer.sportradar.com/getting-started/docs/your-account",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 21:26:48 GMT",
+        "Cache-Control": "s-maxage=1800, stale-if-error=900",
+        "Vary": "Accept, Accept-Encoding",
+        "Content-Language": "en"
+      },
+      "body_file": "account_access.body",
+      "body_bytes": 929224,
+      "body_sha256": "65eb4f290d97a16b78c2a0d07bd4bbb8aa8b5d7a66598117747b8c9de3e8804a",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "account_access.txt",
+      "text_sha256": "5aa4cb114dc837c1ff24750eb9afc252306c0be01968dfc788aa8bcf170ea5fe",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "account_access.links.json",
+      "links_sha256": "0c18f16933704cd7219247c1d7f4b31609bc1fb62e86d4fb269a140656728395"
+    },
+    {
+      "id": "nba_push",
+      "url": "https://developer.sportradar.com/basketball/docs/nba-ig-push",
+      "purpose": "Adverse transport limitation: push events/statistics do not substitute for status updates",
+      "requested_at": "2026-10-01T21:26:47.981158Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:26:50.432990Z",
+      "http_status": 200,
+      "final_url": "https://developer.sportradar.com/basketball/docs/nba-ig-push",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 21:26:51 GMT",
+        "Cache-Control": "s-maxage=1800, stale-if-error=900",
+        "Vary": "Accept, Accept-Encoding",
+        "Content-Language": "en"
+      },
+      "body_file": "nba_push.body",
+      "body_bytes": 1137091,
+      "body_sha256": "e9e8e823db8df26e78856b9f19833e843b4b5fe107284afdd141cc0a4625e675",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "nba_push.txt",
+      "text_sha256": "06f46d46462282a0cfc5f3e48b14990b23c061b19947874dedebe63847f140e9",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "nba_push.links.json",
+      "links_sha256": "d5f1ea5ac3b23c40d75efea29cf0ab5aa5f3b16dcb96040fbffd93a18ae04bb5"
+    }
+  ]
+}

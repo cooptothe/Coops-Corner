@@ -1,0 +1,13 @@
+{
+  "format": "corner.outbound_clarification/1",
+  "status": "prepared_not_yet_sent",
+  "from_address": "edcooper.dev@gmail.com",
+  "to": "customerservice@pinnacle.com",
+  "subject": "NBA moneyline event 1633801637: product identity and interruption rules",
+  "payload": {
+    "mime_type": "text/html",
+    "body": {
+      "content": "<div style=\"white-space:pre-wrap;font-family:Arial,sans-serif\">Hello Pinnacle team,\n\nPlease route this to the team authorized to identify the product and interpret its controlling rules. This is a data-applicability inquiry, not a wager dispute or a claim that I have placed a bet.\n\nThe Odds API event 26b036ff107f3c658258eaf4a6f26228, Boston Celtics at Detroit Pistons, provider scheduled start 2026-10-20T19:00:00Z; captured 2026-10-02T11:40:12Z.\nThe provider's Pinnacle sid is 1633801637:\nhttps://www.pinnacle.com/en/basketball/nba/boston-celtics-vs-detroit-pistons/1633801637/\nCeltics decimal 2.12; Pistons decimal 1.79; market key h2h.\nMarket and outcome source IDs were null. We are not assuming the Louisiana jurisdiction of our target sportsbook applies to Pinnacle.\n\n1. Which exact entity/regional product, NBA market title and governing rules revision do this source ID/link denote? Confirm full-game scope and overtime inclusion, effective period and any market-specific overrides. What evidence is needed if an event ID alone is insufficient?\n2. Does the published 12-hour non-start cutoff apply to this particular offering? Are there NBA or market-specific exceptions?\n3. How does the rule voiding NBA game-period bets below 43 completed minutes interact with the general completion window at exactly 43 minutes and thereafter, including overtime? What controls tied/untied interruptions, abandonment and later resumption?\n4. For every non-decisive branch, is the entire original stake returned with zero net win/loss after any fees? Please identify controlling clauses and result-correction/finality rules.\n\nThis is a limited applicability review: matching two prices or overtime inclusion is not enough if the decisive-settlement conditioning differs from another book. Please identify the authorized responding team and retained governing documents.\n\nThank you,\nEdward Cooper</div>"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "format": "corner.outbound_clarification/1",
+  "status": "prepared_not_yet_sent",
+  "from_address": "edcooper.dev@gmail.com",
+  "to": "support@novig.co",
+  "subject": "Exact NBA Winner product behind The Odds API novig source: rules and FVS",
+  "payload": {
+    "mime_type": "text/html",
+    "body": {
+      "content": "<div style=\"white-space:pre-wrap;font-family:Arial,sans-serif\">Hello Novig team,\n\nPlease route this to the team authorized to identify the product and interpret its controlling rules. This is a data-applicability inquiry, not a wager dispute or a claim that I have placed a bet.\n\nWe are reviewing The Odds API's basketball_nba / novig / h2h source. Our October 2 requests at 11:12:08Z and 11:40:12Z both returned NBA events but no Novig quote. We therefore have no Novig source ID to supply yet; this is not a claim that you lack an NBA product. We have asked The Odds API for availability and product mapping.\n\n1. Which exact NBA full-game Winner offering, entity/product variant and governing contract/rules revision, if any, is distributed through that source? Can you verify the feed mapping, or specify the source identifiers needed before it can be established?\n2. For that exact offering, does Fair Value Settlement apply? Please provide the NBA-specific contract, effective period and any overrides rather than a different sport's contract.\n3. How do non-start, interruption/abandonment and unresolved/tied outcomes settle under that contract? For each non-decisive branch, is the payout a full entry-cost return or a valuation, and can it create non-zero net gain/loss after fees?\n\nWe have retained public FVS guidance, but have not assumed it governs the exact ingested product. If it does and non-decisive returns can be non-zero, our current conditional-EV model cannot simply treat those returns as zero-return invalidation.\n\nPlease identify the responding product/rules team and controlling revisions. If mapping cannot be established without a live quote first, please say so.\n\nThank you,\nEdward Cooper</div>"
+    }
+  }
+}

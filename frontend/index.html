@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>The Corner — Betting workspace</title>
+  <meta name="theme-color" content="#b51c2a">
+  <link rel="icon" href="/assets/corner-logo.png" type="image/png">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/betting.css">
+  <link rel="stylesheet" href="/corner.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to workspace</a>
+  <aside class="sidebar" aria-label="Workspace navigation">
+    <a class="brand" href="#positive_ev" aria-label="The Corner — Positive EV"><img src="/assets/corner-logo.png" alt="Coop's Corner" width="170" height="170"><span class="brand-name">The Corner<span class="brand-sub">Sports market intelligence</span></span></a>
+    <div class="workspace-label"><span class="workspace-dot"></span> LOCAL WORKSPACE <span class="version">01</span></div>
+    <nav>
+      <p class="nav-label">FIND AN EDGE</p>
+      <a href="#positive_ev" data-view="positive_ev"><span class="nav-icon">↗</span>Positive EV</a>
+      <a href="#arbitrage" data-view="arbitrage"><span class="nav-icon">⇄</span>Arbitrage</a>
+      <a href="#middle" data-view="middle"><span class="nav-icon">⋈</span>Middles</a>
+      <a href="#low_hold" data-view="low_hold"><span class="nav-icon">≋</span>Low hold</a>
+      <p class="nav-label second">EXPLORE & CALCULATE</p>
+      <a href="#games" data-view="games"><span class="nav-icon">▦</span>Games & odds</a>
+      <a href="#promo" data-view="promo"><span class="nav-icon">◇</span>Promo converter</a>
+    </nav>
+    <div class="sidebar-foot"><span class="status-dot" id="status-dot"></span><span id="connection">Connecting to local API</span><small>Fixture environment · No live execution</small><a href="/docs" target="_blank" rel="noopener">API documentation ↗</a></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><span class="breadcrumb">Workspace <span>/</span> <strong id="crumb">Positive EV</strong></span><div class="top-actions"><span class="fixture-badge">◇ &nbsp; Fixture mode</span><button id="refresh" class="button secondary small"><span aria-hidden="true">↻</span> Reload snapshot</button></div></header>
+    <div class="safety-banner"><span aria-hidden="true">ⓘ</span><span><strong>Demo workspace.</strong> Synthetic prices for exploration. No live bets or production-authorized opportunities.</span></div>
+    <main id="main" tabindex="-1">
+      <section class="corner-banner" aria-label="The Corner community">
+        <img src="/assets/corner-banner.png" alt="Coop's Corner" width="1500" height="500" fetchpriority="high">
+        <div class="corner-banner-copy"><p>THE COMMUNITY. THE INTELLIGENCE. THE EDGE.</p><h2>Your edge. Your Corner.</h2><span>Compare the market. Understand the payoff.</span></div>
+      </section>
+      <div id="global-error" role="alert" hidden></div>
+      <div class="page-heading"><div><p class="eyebrow">THE MARKET, IN FOCUS</p><h1 id="title">Positive EV</h1><p id="subtitle" class="subtitle">Compare offered odds with a complete reference-book estimate.</p></div><span class="heading-mark" aria-hidden="true">↗</span></div>
+      <div id="view"><div class="loading" role="status"><span class="spinner"></span>Loading your workspace…</div></div>
+      <footer class="page-footer"><span id="snapshot-caption">Connecting…</span><span>Exact inputs. Transparent calculations.</span></footer>
+    </main>
+  </div>
+  <dialog id="detail" aria-labelledby="detail-title"><div class="dialog-header"><div><p class="eyebrow" id="detail-eyebrow">CALCULATION DETAILS</p><h2 id="detail-title">Details</h2></div><button id="close-detail" class="icon-button" aria-label="Close details">×</button></div><div id="detail-body"></div></dialog>
+  <noscript>This workspace requires JavaScript. The local API remains available at /docs.</noscript>
+</body>
+</html>

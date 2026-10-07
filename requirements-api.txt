@@ -1,0 +1,6 @@
+# Optional local frontend API; install independently of database dependencies.
+fastapi==0.142.2
+pydantic==2.13.5
+starlette==1.7.0
+uvicorn==0.54.0
+httpx==0.28.1

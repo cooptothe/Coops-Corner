@@ -1,0 +1,38 @@
+{
+  "format": "corner.conditional_settlement_investigation/1",
+  "dossier_id": "pinnacle-nba-fullgame-conditional-v1",
+  "review_date": "2026-10-01",
+  "reviewer": {"kind": "assistant_engineering_review", "production_approval_authority": false},
+  "decision": "insufficient_evidence",
+  "reason_code": "offering_applicability_and_interruption_contract_unproven",
+  "calculation_basis_under_review": "decisive_settlement_conditional",
+  "requested_assertion_class": "decisive_two_way",
+  "production_admissible": false,
+  "authorized_assertion_classes": [],
+  "runtime_policy_grants": [],
+  "executable": false,
+  "candidate_scope": {
+    "sportsbook": "Pinnacle", "competition": "NBA", "market": "moneyline",
+    "scope": "full_game", "selection_structure": "two_way", "quote_phase": "pregame",
+    "rules_jurisdiction": null, "provider_product_binding": null,
+    "canonical_market_id": null, "canonical_sportsbook_id": null,
+    "actual_offering_binding": null, "current_provider_availability_verified": false
+  },
+  "source_bundle": [
+    {"source_id": "pinnacle_rules", "capture": "20261001T214305078414Z", "sha256": "63d6432114be131dfbab98baf91f8777a98549221a59c288fa76916c3d8303fd"},
+    {"source_id": "pinnacle_terms", "capture": "20261001T214305078414Z", "sha256": "75a6dad38d00466b3c5a51c090597da00583140e521a103ceb9bce3057ef9347"}
+  ],
+  "evidence_inventory": {
+    "public_sources_retained": true, "complete_applicable_rules_universe": false,
+    "operator_clarifications": [], "observed_real_settlement_incidents": [],
+    "missing": ["provider quote to regional product mapping", "actual market title and overrides", "governing rules effective period", "NBA interruption interaction clarification", "complete per-branch economics and conditioning comparison"]
+  },
+  "governing_effective_from": null,
+  "governing_effective_until": null,
+  "approved_conditioning_contract": null,
+  "approved_invalidation_behavior": null,
+  "compatibility_with_target_and_other_reference": "not_established",
+  "adverse_review_cases": ["42_59_vs_exactly_43_minutes", "tied_late_interruption", "overtime_interruption", "delayed_start", "resumption_after_completion_window", "venue_change", "forfeit", "format_change", "result_correction"],
+  "provider_contacted": false,
+  "new_review_revision_required_for_approval": true
+}

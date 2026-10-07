@@ -1,0 +1,6 @@
+[
+  {"sport":"basketball","league":"nba","interval":3,"clock_model":"countdown"},
+  {"sport":"football","league":"nfl","interval":3,"clock_model":"countdown"},
+  {"sport":"hockey","league":"nhl","interval":5,"clock_model":"countdown"},
+  {"sport":"soccer","league":"usa.1","interval":10,"clock_model":"countup"}
+]

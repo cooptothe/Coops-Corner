@@ -1,0 +1,13 @@
+{
+  "format": "corner.outbound_clarification/1",
+  "status": "prepared_not_yet_sent",
+  "from_address": "edcooper.dev@gmail.com",
+  "to": "support@sportradar.com",
+  "subject": "NBA phase authority: positive status verification and permitted access",
+  "payload": {
+    "mime_type": "text/html",
+    "body": {
+      "content": "<div style=\"white-space:pre-wrap;font-family:Arial,sans-serif\">Hello Sportradar team,\n\nPlease route this to your NBA API and access/licensing teams. We are investigating NBA game-level status as phase evidence for The Corner, a sports-odds analytical project. This is an inquiry only, not authorization to purchase a subscription.\n\n1. Under the relevant NBA game-feed version, what does scheduled or created positively establish? Can either persist after jump ball during delayed processing, collection failure or partial coverage? Which signal records when phase itself was last positively verified, rather than when a response/cache/statistic was updated?\n2. How should clients detect stale status, coverage loss, conflicting schedule/game endpoints and delayed starts? Is any transition-latency/validity bound operationally or contractually supported, and with what exceptions?\n3. Which live NBA entitlement permits this analytical use and retention of raw transitions, HTTP metadata and derived judgments for internal replay/audit? Is trial data equivalent for phase semantics, or are there coverage/scrambling restrictions?\n4. Please identify the governing product/API version, documentation/contract revisions, responding team and change-notification mechanism. If no fresh-verification signal or defensible latency bound exists, please state that limitation explicitly.\n\nAccess and applicability have not yet been established. We will not infer pregame authority from a future start time or a cache interval. No API keys are requested by email.\n\nThank you,\nEdward Cooper</div>"
+    }
+  }
+}

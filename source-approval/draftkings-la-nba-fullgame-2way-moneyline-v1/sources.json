@@ -1,0 +1,11 @@
+{
+  "format": "corner.source_review.capture_plan/1",
+  "sources": [
+    {"id": "la_statute", "url": "https://legis.la.gov/Legis/Law.aspx?d=1239437", "purpose": "RS 27:607(C), regulatory context, not proof of approval of a specific rules revision"},
+    {"id": "dk_la_terms", "url": "https://sportsbook.draftkings.com/legal/la-terms-of-use", "purpose": "Louisiana applicability and incorporated rule locations"},
+    {"id": "dk_general_rules", "url": "https://sportsbook.draftkings.com/help/general-betting-rules/general-rules", "purpose": "Governing general rules candidate; jurisdiction and content must be reviewed"},
+    {"id": "dk_market_rules", "url": "https://sportsbook.draftkings.com/help/general-betting-rules/market-rules", "purpose": "Moneyline market definition and overrides candidate"},
+    {"id": "dk_basketball_rules", "url": "https://sportsbook.draftkings.com/help/sport-rules/basketball", "purpose": "Basketball-specific overrides candidate; URL is a discovery candidate, not evidence of applicability"},
+    {"id": "nba_rule_5", "url": "https://official.nba.com/rule-no-5-scoring-and-timing/", "purpose": "Section IV overtime; competition rules, not sportsbook settlement authority"}
+  ]
+}

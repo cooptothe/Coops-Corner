@@ -1,0 +1,9 @@
+{
+  "format": "corner.source_review.capture_plan/1",
+  "sources": [
+    {"id": "novig_settlement", "url": "https://support.novig.com/en/articles/10336135-how-settlement-works-grading-disputes-and-voided-trades", "purpose": "Published grading, void/push economics and contract-reference chain"},
+    {"id": "novig_fvs", "url": "https://support.novig.com/en/articles/16163706-what-is-fair-value-settlement-fvs", "purpose": "Adverse economic branch: fair-value settlement is not stake refund"},
+    {"id": "novig_contracts", "url": "https://support.novig.com/en/articles/16083642-contracts", "purpose": "Contract inventory; determine whether exact NBA full-game winner contract is actually linked"},
+    {"id": "novig_product", "url": "https://support.novig.com/en/articles/15124242-rules-legal-restrictions-compliance", "purpose": "Operator-stated product identity and governing rulebook/member agreement links; not independent regulatory verification"}
+  ]
+}

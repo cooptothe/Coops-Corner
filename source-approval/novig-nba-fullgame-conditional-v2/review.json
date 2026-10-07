@@ -1,0 +1,46 @@
+{
+  "format": "corner.conditional_settlement_investigation/1",
+  "dossier_id": "novig-nba-fullgame-conditional-v2",
+  "review_date": "2026-10-01",
+  "reviewer": {"kind": "assistant_engineering_review", "production_approval_authority": false},
+  "previous_review": {"path": "../novig-nba-fullgame-conditional-v1/review.json", "sha256": "b4df1584c0c70f8ecdc13488067afa141a1f8fa1c1d1a25c0172f35cd893b028", "role": "historical_fvs_concern_retained_not_rewritten"},
+  "decision": "insufficient_evidence",
+  "reason_code": "brand_exchange_mapping_confirmed_exact_nba_contract_binding_unproven",
+  "calculation_basis_under_review": "decisive_settlement_conditional",
+  "requested_assertion_class": "decisive_two_way",
+  "production_admissible": false,
+  "authorized_assertion_classes": [],
+  "runtime_policy_grants": [],
+  "executable": false,
+  "candidate_scope": {
+    "sportsbook": "Novig", "competition": "NBA", "market": "moneyline",
+    "scope": "full_game", "selection_structure": "two_way", "quote_phase": "pregame",
+    "rules_jurisdiction": null, "provider_product_binding": null,
+    "canonical_market_id": null, "canonical_sportsbook_id": null,
+    "actual_offering_binding": null, "current_provider_availability_verified": false
+  },
+  "source_bundle": [
+    {"source_id": "odds_api_bookmakers", "capture": "20261001T220120133044Z", "sha256": "a584fa89af44cc65c584111364cbd879ede6796b5fb1d7e49f92ac6f362fb763"},
+    {"source_id": "odds_api_v4", "capture": "20261001T220120133044Z", "sha256": "0f733b857e2de1bf4d71a182f12cd74a8c170a9ab6164fdd36ce63d36ce1733e"},
+    {"source_id": "novig_sports", "capture": "20261001T220120133044Z", "sha256": "6c7e7844f6090b2d56e9bedc4b7536406024f48df76d3e18fa901d40954cde18"},
+    {"source_id": "novig_contracts", "capture": "20261001T220120133044Z", "sha256": "02fa962dafce00a92eac0d6e6c6aad8c2fbf5e63104614e50dc9389b9c863a34"}
+  ],
+  "public_directory_mapping": {"provider": "The Odds API", "bookmaker_key": "novig", "region": "us_ex", "linked_site": "https://www.novig.us/", "establishes_exact_contract": false},
+  "evidence_inventory": {
+    "public_sources_retained": true, "complete_applicable_rules_universe": false,
+    "operator_clarifications": [], "observed_real_settlement_incidents": [],
+    "missing": ["current subscribed NBA response", "source-market-to-contract mapping", "exact NBA Winner contract and governing revision", "effective applicability period", "FVS applicability confirmation", "quote/fee transformation semantics"]
+  },
+  "public_fvs_applies_to_exact_candidate_quote": null,
+  "nba_contract_found_in_retained_index": false,
+  "absence_from_index_proves_no_nba_product": false,
+  "governing_effective_from": null,
+  "governing_effective_until": null,
+  "approved_conditioning_contract": null,
+  "approved_invalidation_behavior": null,
+  "compatibility_with_target_and_other_reference": "not_established",
+  "provider_contacted": false,
+  "live_api_called": false,
+  "reference_scope_changed": false,
+  "new_review_revision_required_for_approval": true
+}

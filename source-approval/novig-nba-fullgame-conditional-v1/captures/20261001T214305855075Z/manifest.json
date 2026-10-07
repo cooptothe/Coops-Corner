@@ -1,0 +1,143 @@
+{
+  "format": "corner.source_review.capture/1",
+  "started_at": "2026-10-01T21:43:05.855060Z",
+  "finished_at": "2026-10-01T21:43:06.839764Z",
+  "plan_sha256": "083d29d8569dbf63a06fa14d0a73e4ad6693314c4fd906767b9968b417a25dc4",
+  "capture_script_sha256": "5525e7f58d0a2b4a8088137aa6c2e37ce185610d8d7522c8372622ab9a8e95f5",
+  "retention_helper_sha256": "cd81521bcb101c52ac02bc7435b5ca5b4d2ebce2393736a4f0f05ed31f5ddf80",
+  "evidence_class": "public_documents_not_offering_or_applicability_proof",
+  "sources": [
+    {
+      "id": "novig_settlement",
+      "url": "https://support.novig.com/en/articles/10336135-how-settlement-works-grading-disputes-and-voided-trades",
+      "purpose": "Published grading, void/push economics and contract-reference chain",
+      "requested_at": "2026-10-01T21:43:05.869076Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:43:06.423696Z",
+      "http_status": 200,
+      "final_url": "https://support.novig.com/en/articles/10336135-how-settlement-works-grading-disputes-and-voided-trades",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 21:43:06 GMT",
+        "Cache-Control": "max-age=0, private, must-revalidate",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "novig_settlement.body",
+      "body_bytes": 77995,
+      "body_sha256": "9ba9c77fc08a08b47feda1bc44fd28d472f4728c8ed93c01fce5f4fb0ef15a94",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "novig_settlement.txt",
+      "text_sha256": "6778db4e19aab4f60a3671aa24be2b99009a32f9c0d7dce0e12627beadfd5a37",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "novig_settlement.links.json",
+      "links_sha256": "99ff949926baaec0691342f900aaee062195b13891987af4f21e6aab15283623"
+    },
+    {
+      "id": "novig_fvs",
+      "url": "https://support.novig.com/en/articles/16163706-what-is-fair-value-settlement-fvs",
+      "purpose": "Adverse economic branch: fair-value settlement is not stake refund",
+      "requested_at": "2026-10-01T21:43:05.869938Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:43:06.443146Z",
+      "http_status": 200,
+      "final_url": "https://support.novig.com/en/articles/16163706-what-is-fair-value-settlement-fvs",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 21:43:07 GMT",
+        "Cache-Control": "max-age=0, private, must-revalidate",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "novig_fvs.body",
+      "body_bytes": 94984,
+      "body_sha256": "4370eb360eaca2790b5edc27cf9120c982124b3827968bc4e35cf674500baef6",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "novig_fvs.txt",
+      "text_sha256": "1d13c030dca1cd51fa4bc565d0125c46d397c005053a323cb207ec4cb9ceb2bf",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "novig_fvs.links.json",
+      "links_sha256": "6493725df05aebfeb3538a2a79a3776497a660d0eaac7384e8292c89845414b0"
+    },
+    {
+      "id": "novig_contracts",
+      "url": "https://support.novig.com/en/articles/16083642-contracts",
+      "purpose": "Contract inventory; determine whether exact NBA full-game winner contract is actually linked",
+      "requested_at": "2026-10-01T21:43:05.870427Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:43:06.440761Z",
+      "http_status": 200,
+      "final_url": "https://support.novig.com/en/articles/16083642-contracts",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 21:43:06 GMT",
+        "Cache-Control": "max-age=0, private, must-revalidate",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "novig_contracts.body",
+      "body_bytes": 99980,
+      "body_sha256": "c6b3200086fd0b4c3e133fcad55aea9b8306c88f676e279e1bfd4a95b3281e60",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "novig_contracts.txt",
+      "text_sha256": "20b5fd86d3c1c44f16ed4b1b93fdb3198d318a04966519645373563f360e13cb",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "novig_contracts.links.json",
+      "links_sha256": "4c20252c724c8ae2f3e1e138ddb55504f593209d70e90e0030b8a17763c413a5"
+    },
+    {
+      "id": "novig_product",
+      "url": "https://support.novig.com/en/articles/15124242-rules-legal-restrictions-compliance",
+      "purpose": "Operator-stated product identity and governing rulebook/member agreement links; not independent regulatory verification",
+      "requested_at": "2026-10-01T21:43:06.475928Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:43:06.820708Z",
+      "http_status": 200,
+      "final_url": "https://support.novig.com/en/articles/15124242-rules-legal-restrictions-compliance",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 21:43:07 GMT",
+        "Cache-Control": "max-age=0, private, must-revalidate",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "novig_product.body",
+      "body_bytes": 73828,
+      "body_sha256": "ff33f9fd4dfe3e81cbce7dff73d199437baac87d45a739eb350876f037b8b17d",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "novig_product.txt",
+      "text_sha256": "de89ebcfd79965972ff1b8223a8ba1e2163ba19ebec7f86668f9bb4d6b6c5905",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "novig_product.links.json",
+      "links_sha256": "d55052d27d88df0129a7e2aae4f7b8a623f6bac8155b37c3f1553d18ab66e598"
+    }
+  ]
+}

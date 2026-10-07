@@ -1,0 +1,17 @@
+{
+  "format": "corner.source_review.adverse_cases/1",
+  "all_cases_hypothetical": true,
+  "cases": [
+    {"id": "normal_overtime", "given": "NBA game normally completes after overtime", "expected": "winner_possible_but_does_not_prove_all_settlement_branches_no_push", "sources": ["nba_rule_5", "dk_la_basketball_json"]},
+    {"id": "tied_late_interruption", "given": {"score": [100, 100], "regulation_minutes_remaining": "2", "interrupted": true, "concluded_within_applicable_window": false, "unconditionally_determined_winner": false}, "expected": "deny_no_push_approval", "reason": "last_play_tied_statistics_plus_two_selection_push_rule", "sources": ["dk_la_basketball_json", "dk_la_general_json", "dk_la_market_json"]},
+    {"id": "five_minute_boundary", "given": "Exactly five regulation minutes remain at interruption", "expected": "early_branch_not_late_branch", "sources": ["dk_la_basketball_json"]},
+    {"id": "postseason_window", "given": "Postseason interrupted game remains unresolved after two but before four calendar days", "expected": "do_not_substitute_regular_season_window_or_48_hour_ttl", "sources": ["dk_la_basketball_json"]},
+    {"id": "cancellation", "given": "Game canceled under applicable cancellation rule", "expected": "void_refund_is_not_a_loss_and_not_itself_a_tie_push", "sources": ["dk_la_general_json"]},
+    {"id": "title_override", "given": "Provider says h2h but actual offered title/scope is not retained", "expected": "applicability_unproven_no_positive_assertion", "sources": ["dk_la_general_json"]},
+    {"id": "wrong_jurisdiction", "given": "Generic rules URL renders another state's content", "expected": "do_not_admit_for_Louisiana", "sources": ["dk_la_general_json", "dk_la_terms"]},
+    {"id": "empty_shell", "given": "HTTP 200 rules page contains navigation but no substantive rules", "expected": "capture_is_not_complete_rule_authority", "sources": ["dk_general_rules", "dk_market_rules", "dk_basketball_rules"]},
+    {"id": "changed_rules", "given": "A later capture has a different rule bundle digest", "expected": "new_review_required_no_in_place_replacement_or_inherited_approval", "sources": ["dk_la_general_json"]},
+    {"id": "unproven_effective_date", "given": "CMS updated_at and Last-Modified exist but governing effective date is not established", "expected": "do_not_invent_legal_applicability_window", "sources": ["dk_la_general_json", "dk_la_basketball_json"]},
+    {"id": "source_integrity_failure", "given": "Retained bytes differ from their recorded digest", "expected": "validation_error_not_unknown_or_approval", "sources": ["dk_la_general_json", "dk_la_basketball_json"]}
+  ]
+}

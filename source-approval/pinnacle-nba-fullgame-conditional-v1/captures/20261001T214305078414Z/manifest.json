@@ -1,0 +1,77 @@
+{
+  "format": "corner.source_review.capture/1",
+  "started_at": "2026-10-01T21:43:05.078399Z",
+  "finished_at": "2026-10-01T21:43:05.639187Z",
+  "plan_sha256": "003b28fa635e1bf001999912fc79af6870e775447fa47f3db8860ba52ecfeb92",
+  "capture_script_sha256": "5525e7f58d0a2b4a8088137aa6c2e37ce185610d8d7522c8372622ab9a8e95f5",
+  "retention_helper_sha256": "cd81521bcb101c52ac02bc7435b5ca5b4d2ebce2393736a4f0f05ed31f5ddf80",
+  "evidence_class": "public_documents_not_offering_or_applicability_proof",
+  "sources": [
+    {
+      "id": "pinnacle_rules",
+      "url": "https://www.pinnacle.com/en/future/betting-rules/",
+      "purpose": "General precedence, game-duration/interruption/draw rules, basketball overtime; applicability to provider offering unproven",
+      "requested_at": "2026-10-01T21:43:05.100970Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:43:05.592670Z",
+      "http_status": 200,
+      "final_url": "https://www.pinnacle.com/en/future/betting-rules/",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": "119592",
+        "Date": "Thu, 01 Oct 2026 21:43:06 GMT",
+        "Cache-Control": "private"
+      },
+      "body_file": "pinnacle_rules.body",
+      "body_bytes": 119592,
+      "body_sha256": "63d6432114be131dfbab98baf91f8777a98549221a59c288fa76916c3d8303fd",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "pinnacle_rules.txt",
+      "text_sha256": "5cf8092a27529dd6ca61952ae0c5c2f0d74c87011dd194004572db891236c672",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "pinnacle_rules.links.json",
+      "links_sha256": "f678e7dc244fb5e652fee0bddde9bf34821914b0174e81b307f667f9ed87e8ed"
+    },
+    {
+      "id": "pinnacle_terms",
+      "url": "https://www.pinnacle.com/en/future/termsandconditions/anjouan",
+      "purpose": "Public terms revision/product identity and restrictions; not assumed to govern the Odds API quote",
+      "requested_at": "2026-10-01T21:43:05.101785Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T21:43:05.614406Z",
+      "http_status": 200,
+      "final_url": "https://www.pinnacle.com/en/future/termsandconditions/anjouan",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": "94527",
+        "Date": "Thu, 01 Oct 2026 21:43:06 GMT",
+        "Cache-Control": "private"
+      },
+      "body_file": "pinnacle_terms.body",
+      "body_bytes": 94527,
+      "body_sha256": "75a6dad38d00466b3c5a51c090597da00583140e521a103ceb9bce3057ef9347",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "pinnacle_terms.txt",
+      "text_sha256": "be65285ca141f14363f03b87603febd8a0f6b8d7f783bab3120da4fa72abe751",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "pinnacle_terms.links.json",
+      "links_sha256": "0b730dc7941f78b624d403395b4eccf15e944ce8e58d256cf935ce5b6732c973"
+    }
+  ]
+}

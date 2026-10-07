@@ -1,0 +1,42 @@
+{
+  "format": "corner.conditional_settlement_investigation/1",
+  "dossier_id": "draftkings-la-nba-fullgame-conditional-v2",
+  "review_date": "2026-10-02",
+  "review_phase": "opened_evidence_collection",
+  "decision": "insufficient_evidence",
+  "reason_code": "actual_offering_revision_and_nondecisive_branches_unresolved",
+  "reviewer": {"kind": "assistant_engineering_review", "production_approval_authority": false},
+  "calculation_basis_under_review": "decisive_settlement_conditional",
+  "requested_assertion_class": "decisive_two_way",
+  "production_admissible": false,
+  "executable": false,
+  "authorized_assertion_classes": [],
+  "runtime_policy_grants": [],
+  "historical_review": {
+    "path": "../draftkings-la-nba-fullgame-2way-moneyline-v1/review.json",
+    "sha256": "5ac54b9e958a8f0f6ba51f88902d5d3b7bf33a1b2468ec28beabc49093fe3fbe",
+    "decision_preserved": "rejected",
+    "semantic_reinterpretation_permitted": false,
+    "use": "background_retained_source_inventory_and_unresolved_branch_only"
+  },
+  "candidate_scope": {
+    "sportsbook": "DraftKings", "jurisdiction_sought": "US-LA", "competition": "NBA",
+    "market": "moneyline", "scope": "full_game", "selection_structure": "two_way",
+    "provider_product_binding": null, "actual_offering_binding": null
+  },
+  "governing_effective_from": null,
+  "governing_effective_until": null,
+  "decisive_structure_approved": false,
+  "push_behavior_established": false,
+  "actual_tied_interruption_settlement_established": false,
+  "approved_conditioning_contract": null,
+  "approved_invalidation_behavior": null,
+  "compatibility_with_target_and_other_reference": "not_established",
+  "evidence_inventory": {
+    "complete_applicable_rules_universe": false,
+    "new_operator_evidence": [],
+    "missing": ["actual Louisiana quote/product mapping", "governing effective rules revision", "tied late-interruption controlling rule", "per-branch stake-return and fee economics", "complete reference conditioning compatibility"]
+  },
+  "provider_contacted": false,
+  "new_review_revision_required_for_approval": true
+}

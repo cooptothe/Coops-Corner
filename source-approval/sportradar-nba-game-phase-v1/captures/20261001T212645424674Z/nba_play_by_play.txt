@@ -1,0 +1,1955 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+Game Play-by-Play
+For AI agents: visit https://developer.sportradar.com/basketball/llms.txt for an index of all pages formatted in Markdown and endpoints in OpenAPI. Append .md to any documentation page URL to get its markdown version.
+Jump to Content
+Integration Guides
+Reference Docs
+Getting Started
+Insights
+Images and Editorials
+Widgets
+Odds
+Broadcast
+SPORTS API
+Aussie Rules
+Badminton
+Bandy
+Baseball
+Basketball
+Cricket
+Darts
+Field Hockey
+Football
+Futsal
+Golf
+Handball
+Hockey
+MMA
+Racing
+Rugby
+Snooker
+Soccer
+Squash
+Table Tennis
+Tennis
+Volleyball
+More Sports
+sportradar-updates
+sportradar-thirdparty
+Global Basketball v1
+v3 APIs
+v4 APIs
+v5 APIs
+v7 APIs
+Current versions
+Coverage Matrix
+Documentation
+Change Log
+Log In
+Contact Us
+Reference Docs
+Coverage Matrix
+Documentation
+Change Log
+Log In
+Contact Us
+Basketball
+Current versions
+Reference Docs
+Game Play-by-Play
+Intro
+Basketball API Overview
+NBA
+NBA Overview
+NBA Integration Guide
+NBA Statistics Summary
+Endpoints
+Awards List
+get
+Daily Change Log
+get
+Daily Injuries
+get
+Daily Schedule
+get
+Daily Transfers
+get
+Free Agents
+get
+Game Boxscore
+get
+Game Play-by-Play
+get
+Game Summary
+get
+Injuries
+get
+League Hierarchy
+get
+League Leaders
+get
+Player Profile
+get
+Rankings
+get
+Schedule
+get
+Seasonal Awards
+get
+Seasonal Statistics
+get
+Seasons
+get
+Series Schedule
+get
+Series Statistics
+get
+Splits (Game)
+get
+Splits (Hierarchy)
+get
+Splits (In-game)
+get
+Splits (Schedule)
+get
+Standings
+get
+Team Depth Chart
+get
+Team Profile
+get
+Teams
+get
+Draft Endpoints
+Draft Summary
+get
+Prospects
+get
+Team Draft Picks
+get
+Top Prospects
+get
+Trades
+get
+Push Feeds
+Push Clock
+Push Draft Picks
+Push Draft Trades
+Push Events
+Push Statistics
+NBA Change Log
+Change Log Archive
+Simulations
+NBA FAQs
+WNBA
+WNBA Overview
+WNBA Integration Guide
+WNBA Statistics Summary
+Endpoints
+Awards List
+get
+Daily Change Log
+get
+Daily Injuries
+get
+Daily Schedule
+get
+Daily Transfers
+get
+Free Agents
+get
+Game Boxscore
+get
+Game Play-by-Play
+get
+Game Summary
+get
+Injuries
+get
+League Hierarchy
+get
+League Leaders
+get
+Player Profile
+get
+Rankings
+get
+Schedule
+get
+Seasonal Awards
+get
+Seasonal Statistics
+get
+Seasons
+get
+Series Schedule
+get
+Series Statistics
+get
+Standings
+get
+Team Profile
+get
+Teams
+get
+Push Feeds
+Push Clock
+Push Events
+Push Statistics
+WNBA Change Log
+Simulations
+WNBA FAQs
+NCAA Men's Basketball
+NCAA Men's Basketball Overview
+NCAAMB Integration Guide
+NCAAMB Statistics Summary
+Endpoints
+Awards List
+get
+Daily Change Log
+get
+Daily Schedule
+get
+Daily Transfers
+get
+Game Boxscore
+get
+Game Play-by-Play
+get
+Game Summary
+get
+League Hierarchy
+get
+League Leaders
+get
+NET Rankings
+get
+Player Profile
+get
+Rankings (By Week)
+get
+Rankings (Current Week)
+get
+RPI Rankings
+get
+Schedule
+get
+Seasonal Awards
+get
+Seasonal Statistics
+get
+Seasons
+get
+Standings
+get
+Team Profile
+get
+Teams
+get
+Tournament List
+get
+Tournament Schedule
+get
+Tournament Statistics
+get
+Tournament Summary
+get
+Transfer Portal
+get
+Push Feeds
+Push Events
+Push Statistics
+NCAAMB Change Log
+Change Log Archive
+Simulations
+NCAAMB FAQs
+NCAA Women's Basketball
+NCAA Women's Basketball Overview
+NCAAWB Integration Guide
+NCAAWB Statistics Summary
+Endpoints
+Awards List
+get
+Daily Change Log
+get
+Daily Schedule
+get
+Game Boxscore
+get
+Game Play-by-Play
+get
+Game Summary
+get
+League Hierarchy
+get
+League Leaders
+get
+Player Profile
+get
+Rankings (By Week)
+get
+Rankings (Current Week)
+get
+RPI Rankings
+get
+Schedule
+get
+Seasonal Awards
+get
+Seasonal Statistics
+get
+Seasons
+get
+Standings
+get
+Team Profile
+get
+Teams
+get
+Tournament List
+get
+Tournament Schedule
+get
+Tournament Statistics
+get
+Tournament Summary
+get
+Transfer Portal
+get
+Push Feeds
+Push Events
+Push Statistics
+NCAAWB Change Log
+Change Log Archive
+Simulations
+NCAAWB FAQs
+NBA G League
+NBA G League Overview
+NBA G League Statistics Summary
+G League Integration Guide
+Endpoints
+Daily Change Log
+get
+Daily Schedule
+get
+Daily Transfers
+get
+Free Agents
+get
+Game Boxscore
+get
+Game Play-by-Play
+get
+Game Summary
+get
+League Hierarchy
+get
+League Leaders
+get
+Player Profile
+get
+Rankings
+get
+Schedule
+get
+Seasonal Statistics
+get
+Seasons
+get
+Series Schedule
+get
+Series Statistics
+get
+Standings
+get
+Team Profile
+get
+Teams
+get
+Push Feeds
+Push Clock
+Push Events
+Push Statistics
+NBA G League Change Log
+Change Log Archive
+Simulations
+NBA G League FAQs
+Global Basketball
+Global Basketball Overview
+OpenAPI Spec
+Global Basketball Stats Summary
+Endpoints
+Competition Info
+get
+Competition Seasons
+get
+Competitions
+get
+Competitor Profile
+get
+Competitor Summaries
+get
+Competitor vs Competitor
+get
+Daily Summaries
+get
+Live Summaries
+get
+Live Timelines
+get
+Live Timelines Delta
+get
+Mapping Feeds
+Competitor Mappings
+get
+Competitor Merge Mappings
+get
+Player Mappings
+get
+Player Merge Mappings
+get
+Season Mappings
+get
+Sport Event Mappings
+get
+Player Profile
+get
+Season Competitors
+get
+Season Info
+get
+Season Lineups
+get
+Season Links
+get
+Season Players
+get
+Season Probabilities
+get
+Season Standings
+get
+Season Summaries
+get
+Seasonal Competitor Statistics
+get
+Seasons
+get
+Sport Event Lineups
+get
+Sport Event Summary
+get
+Sport Event Timeline
+get
+Sport Events Created
+get
+Sport Events Removed
+get
+Sport Events Updated
+get
+Push Feeds
+Push Events
+Push Statistics
+Probabilities Feeds
+Live Probabilities
+get
+Season Outright Probabilities
+get
+Sport Event Probabilities
+get
+Sport Event Upcoming Probabilities
+get
+Timeline Probabilities
+get
+Global Basketball Change Log
+Global Basketball FAQs
+Synergy Basketball API
+Synergy Basketball Overview
+Endpoints
+Competitions
+Competitions
+get
+Games
+Games
+get
+Deleted Games
+get
+Play By Plays
+Play-by-Plays
+get
+Play Type Stats
+Play Type Stats (Player)
+get
+Play Type Stats (Team)
+get
+Player Careers
+Player Career (Player Id)
+get
+Player Career (Career Id)
+get
+Player Careers
+get
+Players
+Players by Game
+get
+Players by Team
+get
+Possession Events
+Events by Game
+get
+Events by Team
+get
+Events by Player
+get
+Possession Reports
+Team Possessions by Game
+get
+Player Possessions by Season
+get
+Team Possessions by Season
+get
+Team Lineup Possessions by Season
+get
+Possessions by Season
+get
+Seasons
+Seasons
+get
+Teams
+Teams
+get
+Advanced Endpoints
+Player Comparables
+Player Comparables
+get
+Player Impact Stats
+Player Impact Stats
+get
+Player Projections
+Player Projections
+get
+Player Roles
+Player Roles
+get
+Possession Events Advanced
+Events by Game
+get
+Events by Team
+get
+Events by Player
+get
+Stat Comparison Groups
+Stat Comparison Groups
+get
+Team Adjusted Stats
+Team Adjusted Stats
+get
+Synergy Basketball Change Log
+Synergy Basketball FAQs
+Unrivaled
+Unrivaled Overview
+Unrivaled Stats Summary
+Endpoints
+Daily Change Log
+get
+Daily Injuries
+get
+Daily Schedule
+get
+Daily Transfers
+get
+Game Boxscore
+get
+Game Play-by-Play
+get
+Game Summary
+get
+Injuries
+get
+League Hierarchy
+get
+League Leaders
+get
+Player Profile
+get
+Rankings
+get
+Schedule
+get
+Seasonal Statistics
+get
+Seasons
+get
+Series Schedule
+get
+Series Statistics
+get
+Standings
+get
+Team Profile
+get
+Teams
+get
+Tournament List
+get
+Tournament Schedule
+get
+Tournament Summary
+get
+Unrivaled Change Log
+Unrivaled FAQs
+Game Play-by-Play
+get
+https://api.sportradar.com/nba
+/
+{access_level}
+/v8/
+{language_code}
+/games/
+{game_id}
+/pbp.
+{format}
+NBA Game Play-by-Play
+Detailed, real-time information on every team possession and game event.
+Recent Requests
+Log in to see full request history
+Time
+Status
+User Agent
+Retrieving recent requests…
+Loading
+Loading…
+⏱️
+Update Frequency
+TTL / Cache:
+60 seconds when a game is in
+scheduled
+status
+3 seconds when a game moves to
+inprogress
+600 seconds when a game moves to
+closed
+4 hours when seven days have passed since
+closed
+Data Updates:
+Realtime
+📘
+Tracking Live Games
+Learn how to use the Game Play-by-Play feed to capture every possession and game event in real time in our
+Live Game Updates
+integration scenario.
+Data Points
+Season
+Attribute
+Parent Element
+Type
+Description
+id
+game
+-
+season
+GUID
+Unique season ID
+ex.
+583eca2f-fb46-11e1-82cb-f4ce4684ea4c
+name
+game
+-
+season
+String
+Name of the season
+ex.
+Post-season
+type
+game
+-
+season
+String
+Type of the season
+PRE
+(Preseason),
+REG
+(Regular Season),
+IST
+(In-Season Tournament),
+PIT
+(Play-In Tournament),
+PST
+(Postseason)
+year
+game
+-
+season
+Integer
+Year of the season
+Boxscore
+Attribute
+Parent Element
+Type
+Description
+attendance
+game
+Integer
+Attendance of a game
+ex.
+19079
+lead_changes
+game
+Integer
+Number of lead changes in a game
+times_tied
+game
+Integer
+Number of times tied in a game
+lead_changes
+game
+-
+quarter
+/
+overtime
+-
+scoring
+Integer
+Number of lead changes in a quarter
+times_tied
+game
+-
+quarter
+/
+overtime
+-
+scoring
+Integer
+Number of times tied in a quarter
+id
+overtime
+GUID
+Unique ID of overtime
+ex.
+1c2463d7-43ec-4b83-a29c-d66087d8e8df
+number
+overtime
+Integer
+Overtime number
+sequence
+overtime
+Integer
+Period sequence number (The first overtime sequence would be
+5
+)
+quarter
+game
+Integer
+Quarter number of the game
+id
+quarter
+GUID
+Unique ID of a quarter
+ex.
+47091cc4-08c2-4f83-9d8d-59c3c85e1725
+number
+quarter
+Integer
+Quarter number
+Game
+Attribute
+Parent Element
+Type
+Description
+alias
+away
+String
+Abbreviation of the away team
+ex.
+MEM
+(Memphis)
+id
+away
+GUID
+Unique ID of the away team
+ex.
+583eca88-fb46-11e1-82cb-f4ce4684ea4c
+away_team
+game
+GUID
+Unique ID of the away team
+ex.
+583eca88-fb46-11e1-82cb-f4ce4684ea4c
+name
+away
+String
+Team name of the away team
+ex.
+Memphis Grizzlies
+reference
+away
+String
+League reference ID of the away team
+ex.
+1610612750
+remaining_timeouts
+away
+Integer
+Remaining timeouts for the away team
+sr_id
+away
+GUID
+Unique Sportradar ID of the away team
+ex.
+sr:team:3415
+entry_mode
+game
+String
+Type of data entry for the game
+WEBSOCKET
+(Connected to NBA's socket connection),
+HTTP
+(Connected to NBA's HTTP service),
+LDE
+(Live Data Entry by Sportradar)
+clock
+game
+String
+Clock value of the game
+ex.
+12:37
+clock_decimal
+game
+String
+Clock value in decimal form when the game clock is under 1:00. Otherwise it displays the same value as
+clock
+ex.
+00:21.70
+coverage
+game
+String
+Coverage level of a game
+full
+,
+extended_boxscore
+duration
+game
+String
+Duration of a game
+ex.
+2:26
+id
+game
+GUID
+Unique ID of a game
+ex.
+1f730a9a-8221-48ff-a259-ac2103fb58b0
+inseason_tournament
+game
+Boolean
+Signifies a game is part of the In-Season Tournament
+parent_id
+game
+GUID
+Standard parent ID of a game. Use this ID to group events (like the All-Star game) across seasons
+ex.
+e4986bda-2f75-4228-8295-44b2449088b1
+quarter
+game
+Integer
+Current quarter of a game
+reference
+game
+String
+League reference ID of a game
+ex.
+1610612758
+sr_id
+game
+GUID
+Unique Sportradar ID of a game
+ex.
+sr:match:35431817
+status
+game
+String
+The status of a game
+scheduled
+,
+created
+,
+inprogress
+,
+halftime
+,
+complete
+,
+closed
+,
+cancelled
+,
+delayed
+,
+postponed
+,
+time-tbd
+,
+if-necessary
+,
+unnecessary
+See our
+FAQ
+for game status definitions
+title
+game
+String
+Title of a game
+ex.
+Game 3
+alias
+home
+String
+Abbreviation of the home team
+ex.
+GSW
+(Golden State)
+id
+home
+GUID
+Unique ID of the home team
+ex.
+583ec825-fb46-11e1-82cb-f4ce4684ea4c
+home_team
+game
+GUID
+Unique ID of the home team
+ex.
+583ec825-fb46-11e1-82cb-f4ce4684ea4c
+name
+home
+String
+Team name of the home team
+ex.
+Golden State Warriors
+reference
+home
+String
+League reference ID of the home team
+ex.
+1610612750
+remaining_timeouts
+home
+Integer
+Remaining timeouts for the home team
+sr_id
+home
+GUID
+Unique Sportradar ID of the home team
+ex.
+sr:team:3428
+neutral_site
+game
+Boolean
+Signifies a game played at a neutral venue
+scheduled
+game
+dateTime
+Scheduled date and time of a game
+ex.
+2025-10-21T23:30:00+00:00
+away
+game
+-
+time_zones
+String
+Time zone of the away team
+ex.
+US/Pacific
+home
+game
+-
+time_zones
+String
+Time zone of the home team
+ex.
+US/Eastern
+venue
+game
+-
+time_zones
+String
+Time zone of the venue
+ex.
+US/Eastern
+track_on_court
+game
+Boolean
+Signifies a game with tracking of players on the court.
+When true, a
+lineupchange
+event type,
+on_court
+player for Play-by-Play events, and an
+on_court
+indicator in Game Summary are provided
+Broadcast
+Attribute
+Parent Element
+Type
+Description
+channel
+broadcast
+String
+Name of a game's broadcast channel
+ex.
+649
+locale
+broadcast
+String
+Signifies the locale of a broadcast
+ex.
+Home
+,
+Away
+,
+National
+network
+broadcast
+String
+Name of a game's broadcast network
+ex.
+ESPN
+type
+broadcast
+String
+Type of broadcast
+ex.
+TV
+Team Records
+Team win-loss data is added
+after
+a game moves to
+closed
+status. It is not present prior to or during a game.
+Attribute
+Parent Element
+Type
+Description
+losses
+team
+-
+record
+Integer
+Number of team losses year-to-date after a game
+wins
+team
+-
+record
+Integer
+Number of team wins year-to-date after a game
+Play-by-Play - Attribution & Possession
+Attribution is the team associated with the play-by-play event (i.e. the statistic associated with it). Possession is the team who currently has the possession of the ball as a result of that play-by-play event.
+Attribute
+Parent Element
+Type
+Description
+id
+event
+-
+attribution
+GUID
+Unique ID of a team
+ex.
+583ed0ac-fb46-11e1-82cb-f4ce4684ea4c
+market
+event
+-
+attribution
+String
+Market name of a team
+ex.
+Sacramento
+name
+event
+-
+attribution
+String
+Team name
+ex.
+Kings
+reference
+event
+-
+attribution
+String
+League reference ID of a team
+ex.
+1610612750
+sr_id
+event
+-
+attribution
+GUID
+Unique Sportradar ID of a team
+ex.
+sr:team:3415
+team_basket
+event
+-
+attribution
+String
+The basket the offensive team is shooting at in the arena. Direction is based on the TV broadcast's perspective.
+left
+,
+right
+id
+event
+-
+possession
+GUID
+Unique ID of a team
+ex.
+583ed0ac-fb46-11e1-82cb-f4ce4684ea4c
+market
+event
+-
+possession
+String
+Market name of a team
+ex.
+Sacramento
+name
+event
+-
+possession
+String
+Team name
+ex.
+Kings
+reference
+event
+-
+possession
+String
+League reference ID of a team
+ex.
+1610612750
+sr_id
+event
+-
+possession
+GUID
+Unique Sportradar ID of a team
+ex.
+sr:team:3415
+team_basket
+event
+-
+possession
+String
+The basket the offensive team is shooting at in the arena. Direction is based on the TV broadcast's perspective.
+left
+,
+right
+Play-by-Play - Home/Away Teams
+Attribute
+Parent Element
+Type
+Description
+alias
+scoring
+/
+quarter
+-
+away
+String
+Abbreviation of the away team
+ex.
+MEM
+(Memphis)
+bonus
+scoring
+/
+quarter
+-
+away
+Boolean
+Signifies a team is in the bonus
+points
+scoring
+-
+away
+Integer
+Total points for the away team
+points
+quarter
+-
+away
+Integer
+Points in a quarter for the away team
+id
+scoring
+/
+quarter
+-
+away
+GUID
+Unique ID of the away team
+ex.
+583ed0ac-fb46-11e1-82cb-f4ce4684ea4c
+market
+scoring
+/
+quarter
+-
+away
+String
+Market name of the away team
+ex.
+Sacramento
+name
+scoring
+/
+quarter
+-
+away
+String
+Away team name
+ex.
+Kings
+reference
+scoring
+/
+quarter
+-
+away
+String
+League reference ID of the away team
+ex.
+1610612750
+sr_id
+scoring
+/
+quarter
+-
+away
+GUID
+Unique Sportradar ID of the away team
+ex.
+sr:team:3415
+alias
+scoring
+/
+quarter
+-
+home
+String
+Abbreviation of the home team
+ex.
+MEM
+(Memphis)
+bonus
+scoring
+/
+quarter
+-
+home
+Boolean
+Signifies a team is in the bonus
+points
+scoring
+-
+home
+Integer
+Total points for the home team
+points
+quarter
+-
+home
+Integer
+Points in a quarter for the home team
+id
+scoring
+/
+quarter
+-
+home
+GUID
+Unique ID of the home team
+ex.
+583ed0ac-fb46-11e1-82cb-f4ce4684ea4c
+market
+scoring
+/
+quarter
+-
+home
+String
+Market name of the home team
+ex.
+Sacramento
+name
+scoring
+/
+quarter
+-
+home
+String
+Home team name
+ex.
+Kings
+reference
+scoring
+/
+quarter
+-
+home
+String
+League reference ID of the home team
+ex.
+1610612750
+sr_id
+scoring
+/
+quarter
+-
+home
+GUID
+Unique Sportradar ID of the home team
+ex.
+sr:team:3415
+Play-by-Play - Event
+Attribute
+Parent Element
+Type
+Description
+clock_decimal
+event
+String
+Clock value in decimal form when the game clock is under 1:00. Otherwise it displays the same value as
+clock
+ex.
+00:21.70
+attempt
+event
+String
+Text description of a free throw attempt
+ex.
+1 of 2
+or
+2 of 2
+away_points
+event
+Integer
+Total points for the away team after an event
+clock
+event
+String
+Clock value of an event
+ex.
+12:37
+description
+event
+String
+Text description of an event
+ex.
+Kevon Looney makes two point jump shot (Klay Thompson assists)
+event_type
+event
+String
+Type of event
+ex.
+turnover
+or
+rebound
+See our
+FAQ
+for a complete list of types
+free_throw_type
+event
+String
+Type of free throw
+ex.
+regular
+,
+technical
+,
+flagrant
+,
+clear path
+home_points
+event
+Integer
+Total points for the home team after an event
+id
+event
+GUID
+Unique ID of an event
+ex.
+b9feda23-c03f-4304-afa4-06d7dc830651
+action_area
+event
+-
+location
+String
+Action area of an event
+underbasket
+,
+inthepaint
+,
+insiderightwing
+,
+insideright
+,
+insidecenter
+,
+insideleft
+,
+insideleftwing
+,
+outsideright
+,
+outsidecenter
+,
+outsideleft
+,
+outsideleftwing
+,
+backcourt
+See our
+FAQ
+for detailed plot points of our action areas
+coord_x
+event
+-
+location
+Integer
+X coordinate of an event. The court we use is 1128 by 600; the scale is in inches.
+coord_y
+event
+-
+location
+Integer
+Y coordinate of an event. The court we use is 1128 by 600; the scale is in inches.
+number
+event
+Integer
+Sequential number of an event in a game
+qualifier
+events
+-
+qualifiers
+-
+qualifier
+String
+Additional descriptor of a play-by-play event type.
+Appears only in JSON format
+2ndchance
+,
+fastbreak
+,
+fromturnover
+,
+defensivegoaltending
+,
+pointsinthepaint
+,
+team
+,
+deadball
+,
+1freethrow
+,
+2freethrow
+,
+mandatory
+rescinded
+event
+Boolean
+Signifies a technical foul (
+event_type="technicalfoul"
+) has been rescinded by the league when
+true
+sequence
+event
+Integer
+UNIX timestamp of the wall clock value. Use this value to help sequence play-by-play events (smallest to largest sequence number).
+ex.
+1678835426293
+turnover_type
+event
+String
+Type of turnover
+ex.
+Traveling
+or
+Lane Violation
+See our
+FAQ
+for a complete list of types
+created
+event
+dateTime
+Timestamp of the creation of an event
+ex.
+2025-10-21T23:30:00+00:00
+updated
+event
+dateTime
+Timestamp of the last update to an event
+ex.
+2025-10-21T23:30:00+00:00
+wall_clock
+event
+dateTime
+Timestamp in UTC when the on-venue statistician began entry of a play-by-play event.
+ex.
+2025-10-21T23:30:00+00:00
+Play-by-Play - Play Participants & Stats
+Attribute
+Parent Element
+Type
+Description
+id
+event
+-
+statistics
+-
+team
+GUID
+Unique ID of a team
+ex.
+583ed0ac-fb46-11e1-82cb-f4ce4684ea4c
+market
+event
+-
+statistics
+-
+team
+String
+Market name of a team
+ex.
+Sacramento
+name
+event
+-
+statistics
+-
+team
+String
+Team name
+ex.
+Kings
+reference
+event
+-
+statistics
+-
+team
+String
+League reference ID of a team
+ex.
+1610612750
+sr_id
+event
+-
+statistics
+-
+team
+GUID
+Unique Sportradar ID of a team
+ex.
+sr:team:3415
+full_name
+event
+-
+statistics
+-
+player
+String
+Full name of a player
+ex.
+Stephen Curry
+id
+event
+-
+statistics
+-
+player
+GUID
+Unique player ID
+ex.
+8ec91366-faea-4196-bbfd-b8fab7434795
+jersey_number
+event
+-
+statistics
+-
+player
+String
+Number of a player's jersey
+reference
+event
+-
+statistics
+-
+player
+String
+League reference ID of a player
+ex.
+1626157
+sr_id
+event
+-
+statistics
+-
+player
+GUID
+Unique Sportradar ID of a player
+ex.
+sr:player:608110
+made
+event
+-
+statistics
+-
+fieldgoal
+Boolean
+Signifies a made basket
+points
+event
+-
+statistics
+-
+fieldgoal
+Integer
+Number of points scored for an event
+rebound_type
+event
+-
+statistics
+-
+rebound
+String
+Rebound type
+defensive
+,
+offensive
+shot_distance
+event
+-
+statistics
+-
+fieldgoal
+Decimal
+Shot distance in feet from the basket
+ex.
+2.37
+shot_type
+event
+-
+statistics
+-
+fieldgoal
+String
+Shot type
+jump shot
+,
+layup
+,
+dunk
+,
+hook
+,
+tip
+shot_type_desc
+event
+-
+statistics
+-
+fieldgoal
+String
+Text description of a shot type
+ex.
+driving
+or
+alley-oop
+See our
+FAQ
+for a complete list of descriptions
+three_point_shot
+event
+-
+statistics
+-
+fieldgoal
+Boolean
+Signifies a 3-point attempt
+made
+event
+-
+statistics
+-
+freethrow
+Boolean
+Signifies a made free throw
+points
+event
+-
+statistics
+-
+freethrow
+Integer
+Number of points scored for a free throw
+free_throw_type
+event
+-
+statistics
+-
+freethrow
+String
+Type of free throw
+ex.
+regular
+,
+technical
+,
+flagrant
+,
+clear path
+Play-by-Play - On Court Participants
+Attribute
+Parent Element
+Type
+Description
+full_name
+event
+-
+on_court
+-
+player
+String
+Full name of a player
+ex.
+Stephen Curry
+id
+event
+-
+on_court
+-
+player
+GUID
+Unique player ID
+ex.
+8ec91366-faea-4196-bbfd-b8fab7434795
+jersey_number
+event
+-
+on_court
+-
+player
+String
+Number of a player's jersey
+reference
+event
+-
+on_court
+-
+player
+String
+League reference ID of a player
+ex.
+1626157
+sr_id
+event
+-
+on_court
+-
+player
+GUID
+Unique Sportradar ID of a player
+ex.
+sr:player:608110
+id
+ƒ
+event
+-
+on_court
+-
+home
+/
+away
+GUID
+Unique ID of a team
+ex.
+583ed0ac-fb46-11e1-82cb-f4ce4684ea4c
+market
+event
+-
+on_court
+-
+home
+/
+away
+String
+Market name of a team
+ex.
+Sacramento
+name
+event
+-
+on_court
+-
+home
+/
+away
+String
+Team name
+ex.
+Kings
+reference
+event
+-
+on_court
+-
+home
+/
+away
+String
+League reference ID of a team
+ex.
+1610612750
+sr_id
+event
+-
+on_court
+-
+home
+/
+away
+GUID
+Unique Sportradar ID of a team
+ex.
+sr:team:3415
+Path Params
+access_level
+string
+enum
+required
+Defaults to trial
+The access level of your API key
+trial
+,
+production
+trial
+production
+Allowed:
+trial
+production
+language_code
+string
+enum
+required
+Defaults to en
+2-letter code for supported languages
+br
+(Brazilian Portuguese),
+de
+(German),
+el
+(Greek),
+en
+(English),
+es
+(Spanish),
+fr
+(French),
+id
+(Indonesian),
+it
+(Italian),
+ja
+(Japanese),
+ko
+(Korean),
+ru
+(Russian),
+tl
+(Tagalog),
+tr
+(Turkish),
+zh
+(simplified Chinese)
+br
+de
+el
+en
+es
+fr
+id
+it
+ja
+ko
+ru
+tl
+tr
+zh
+Show 14 enum values
+game_id
+string
+required
+Defaults to 36497a74-1b93-4891-9312-3c30c60986f5
+Unique Id of a game, found in a Schedule endpoint.
+Example:
+36497a74-1b93-4891-9312-3c30c60986f5
+format
+string
+enum
+required
+Defaults to json
+Format returned
+json
+,
+xml
+json
+xml
+Allowed:
+json
+xml
+Response
+200
+200
+Updated
+2 months ago
+Game Boxscore
+Game Summary
+Did this page help you?
+Yes
+No
+Language
+Shell
+Node
+Ruby
+PHP
+Python
+Credentials
+Header
+Header
+Loading
+Loading…
+Response
+Click
+Try It!
+to start a request and see the response here!
+Or choose an example:
+application/json
+200
+-
+Result
+Updated
+2 months ago
+Game Boxscore
+Game Summary
+Did this page help you?
+Yes
+No
+© Sportradar AG, St. Gallen, Switzerland
+Privacy Policy
+|
+Terms and Conditions
+|
+Contact Us

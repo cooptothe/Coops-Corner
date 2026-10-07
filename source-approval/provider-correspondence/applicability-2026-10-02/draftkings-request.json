@@ -1,0 +1,13 @@
+{
+  "format": "corner.outbound_clarification/1",
+  "status": "prepared_not_yet_sent",
+  "from_address": "edcooper.dev@gmail.com",
+  "to": "sportsbook@draftkings.com",
+  "subject": "Louisiana NBA moneyline: applicability of event 34510070 and governing rules",
+  "payload": {
+    "mime_type": "text/html",
+    "body": {
+      "content": "<div style=\"white-space:pre-wrap;font-family:Arial,sans-serif\">Hello DraftKings team,\n\nPlease route this to the team authorized to identify the product and interpret its controlling rules. This is a data-applicability inquiry, not a wager dispute or a claim that I have placed a bet.\n\nThe Odds API event 26b036ff107f3c658258eaf4a6f26228, Boston Celtics at Detroit Pistons, provider scheduled start 2026-10-20T19:00:00Z; captured 2026-10-02T11:40:12Z.\nThe feed identifies DraftKings event 34510070:\nhttps://sportsbook.draftkings.com/event/34510070\nCeltics outcome sid: 0ML85841510_3 (decimal 2.05).\nPistons outcome sid: 0ML85841510_1 (decimal 1.80).\nThe provider market key is h2h; its market-level sid is null. We do not assume the generic link establishes a Louisiana offering.\n\n1. Can these identifiers be bound to your Louisiana NBA full-game two-way moneyline product? Identify the exact market title/scope, governing house/sport/market rules revision, effective period and any title/bet-slip overrides. If these identifiers are insufficient, what additional evidence is required?\n2. For this exact offering, what rules govern a delayed start and interruption? Does the calendar-day non-start window in the retained Louisiana rules apply, or is there a narrower offering-specific override?\n3. If a late interrupted game is deemed concluded using last-play statistics and that score is tied, is the moneyline pushed/refunded, voided, held, or settled otherwise? Which rule controls the interaction with the two-selection tie provision?\n4. For each non-decisive branch, is the full original stake returned with zero net win/loss after fees? Please distinguish label from economic treatment.\n\nWe are reviewing compatibility with reference prices whose published rules may have different non-start windows. We cannot treat different decisive-settlement conditions as equivalent. Please identify the responding team and controlling documents; an inability to bind this quote is useful evidence.\n\nThank you,\nEdward Cooper</div>"
+    }
+  }
+}

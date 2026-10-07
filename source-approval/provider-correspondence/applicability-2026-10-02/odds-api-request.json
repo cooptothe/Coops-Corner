@@ -1,0 +1,27 @@
+{
+  "format": "corner.outbound_clarification/1",
+  "status": "prepared_not_yet_sent",
+  "from_address": "edcooper.dev@gmail.com",
+  "to": "team@the-odds-api.com",
+  "subject": "Re: Novig NBA h2h availability and exact source-product mapping",
+  "payload": {
+    "mime_type": "multipart/mixed",
+    "parts": [
+      {
+        "mime_type": "text/html",
+        "body": {
+          "content": "<div style=\"white-space:pre-wrap;font-family:Arial,sans-serif\">Hello,\n\nA follow-up with concrete source identifiers for two other books in the same proposed analytical set.\n\nOne request at 2026-10-02T11:40:12Z to /v4/sports/basketball_nba/odds/ used bookmakers=draftkings,pinnacle,novig; markets=h2h; oddsFormat=decimal; dateFormat=iso; includeLinks=true; includeSids=true. Authentication is omitted. HTTP 200 returned 44 events with 44 DraftKings and 12 Pinnacle complete two-team markets, but no Novig markets.\n\nThe Odds API event 26b036ff107f3c658258eaf4a6f26228, Boston Celtics at Detroit Pistons, provider scheduled start 2026-10-20T19:00:00Z; captured 2026-10-02T11:40:12Z.\nDraftKings bookmaker sid: 34510070; https://sportsbook.draftkings.com/event/34510070\nDraftKings outcome sids: Celtics 0ML85841510_3; Pistons 0ML85841510_1.\nPinnacle bookmaker sid: 1633801637; https://www.pinnacle.com/en/basketball/nba/boston-celtics-vs-detroit-pistons/1633801637/\nBoth market-level sids were null; Pinnacle outcome sids were also null.\n\n1. What exactly do these IDs/links identify: event, market, selection, jurisdiction-specific product, or a generic brand offering? Are they stable across regional products and rules revisions?\n2. Does the DraftKings source establish Louisiana product applicability? If not, what separate evidence is needed? Which Pinnacle entity/regional product supplies this quote?\n3. Does h2h here unambiguously identify NBA full-game moneyline including overtime, and how can we obtain the precise operator market title, contract ID and any overrides when the market sid is null?\n4. Can you establish a governing rules revision from the source metadata, or must each operator do so? Please make any identity information your feed does not preserve explicit.\n5. Novig is still absent in this expanded request. Please include this in the earlier availability/source-product inquiry; we have not substituted another reference.\n\nThe attached JSON is a derivative containing the two relevant bookmaker objects and their pointers into the retained raw payload, not the full response. Full raw response SHA-256: 5c511830ed84155624d36e8865da4097551e4a709854e858c88119560c4ee034 (36,779 bytes). No credentials are attached.\n\nThank you,\nEdward Cooper</div>"
+        }
+      },
+      {
+        "mime_type": "text/plain",
+        "filename": "selected-source-objects.json",
+        "content_disposition": "attachment",
+        "body": {
+          "content": "[\n  {\n    \"bookmaker_key\": \"draftkings\",\n    \"json_pointer\": \"/0/bookmakers/0/markets/0\",\n    \"event_id\": \"26b036ff107f3c658258eaf4a6f26228\",\n    \"commence_time\": \"2026-10-20T19:00:00Z\",\n    \"home_team\": \"Detroit Pistons\",\n    \"away_team\": \"Boston Celtics\",\n    \"outcome_count\": 2,\n    \"two_team_prices_present\": true,\n    \"full_bookmaker_object\": {\n      \"key\": \"draftkings\",\n      \"title\": \"DraftKings\",\n      \"last_update\": \"2026-10-02T11:39:30Z\",\n      \"link\": \"https://sportsbook.draftkings.com/event/34510070\",\n      \"sid\": \"34510070\",\n      \"markets\": [\n        {\n          \"key\": \"h2h\",\n          \"last_update\": \"2026-10-02T11:39:30Z\",\n          \"link\": null,\n          \"sid\": null,\n          \"outcomes\": [\n            {\n              \"name\": \"Boston Celtics\",\n              \"price\": 2.05,\n              \"link\": \"https://sportsbook.draftkings.com/?outcomes=0ML85841510_3\",\n              \"sid\": \"0ML85841510_3\"\n            },\n            {\n              \"name\": \"Detroit Pistons\",\n              \"price\": 1.8,\n              \"link\": \"https://sportsbook.draftkings.com/?outcomes=0ML85841510_1\",\n              \"sid\": \"0ML85841510_1\"\n            }\n          ]\n        }\n      ]\n    }\n  },\n  {\n    \"bookmaker_key\": \"pinnacle\",\n    \"json_pointer\": \"/0/bookmakers/1/markets/0\",\n    \"event_id\": \"26b036ff107f3c658258eaf4a6f26228\",\n    \"commence_time\": \"2026-10-20T19:00:00Z\",\n    \"home_team\": \"Detroit Pistons\",\n    \"away_team\": \"Boston Celtics\",\n    \"outcome_count\": 2,\n    \"two_team_prices_present\": true,\n    \"full_bookmaker_object\": {\n      \"key\": \"pinnacle\",\n      \"title\": \"Pinnacle\",\n      \"last_update\": \"2026-10-02T11:40:03Z\",\n      \"link\": \"https://www.pinnacle.com/en/basketball/nba/boston-celtics-vs-detroit-pistons/1633801637/\",\n      \"sid\": \"1633801637\",\n      \"markets\": [\n        {\n          \"key\": \"h2h\",\n          \"last_update\": \"2026-10-02T11:40:03Z\",\n          \"link\": null,\n          \"sid\": null,\n          \"outcomes\": [\n            {\n              \"name\": \"Boston Celtics\",\n              \"price\": 2.12,\n              \"link\": null,\n              \"sid\": null\n            },\n            {\n              \"name\": \"Detroit Pistons\",\n              \"price\": 1.79,\n              \"link\": null,\n              \"sid\": null\n            }\n          ]\n        }\n      ]\n    }\n  }\n]"
+        }
+      }
+    ]
+  },
+  "reply_message_id": "1a0fc5a5f3eecb6b"
+}

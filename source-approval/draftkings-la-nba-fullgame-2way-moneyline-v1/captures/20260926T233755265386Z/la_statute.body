@@ -1,0 +1,347 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<!-- Use IE 9 Standards mode because IE 10 does not play well with imagebuttons -->
+<meta http-equiv="x-ua-compatible" content="IE=9" />
+
+<head><link href="App_Themes/Legis/jplayer_skin.css" type="text/css" rel="stylesheet" /><link href="App_Themes/Legis/Legis.css" type="text/css" rel="stylesheet" /><link href="App_Themes/Legis/nav.css" type="text/css" rel="stylesheet" /><link href="App_Themes/Legis/vertnav.css" type="text/css" rel="stylesheet" /><link href="App_Themes/Legis/video-js.css" type="text/css" rel="stylesheet" /><link href="App_Themes/Legis/Legis.css?v=260311" rel="stylesheet" type="text/css" /><link href="App_Themes/Legis/nav.css?v=260311" rel="stylesheet" type="text/css" /><link href="App_Themes/Legis/vertnav.css" rel="stylesheet" type="text/css" /><link rel="shortcut icon" href="App_Themes/Legis/Images/State.ico" /><title>
+	Louisiana Laws - Louisiana State Legislature
+</title>
+     <style type="text/css">
+p
+{
+	margin-top: 0px;
+	margin-bottom: 1px
+}
+
+#divLaw
+{
+	font-family: "Times New Roman", serif;
+	font-size: 12pt;
+	font-weight: normal;
+	font-style: normal
+}
+</style>
+<style type="text/css">
+	.ctl00_MainMenu_0 { background-color:white;visibility:hidden;display:none;position:absolute;left:0px;top:0px; }
+	.ctl00_MainMenu_1 { text-decoration:none; }
+	.ctl00_MainMenu_2 {  }
+	.ctl00_MainMenu_3 {  }
+	.ctl00_MainMenu_4 {  }
+	.ctl00_MainMenu_5 {  }
+	.ctl00_MainMenu_6 {  }
+
+</style></head>
+
+<body id="body">
+    <form name="aspnetForm" method="post" action="./Law.aspx?d=1239437" id="aspnetForm">
+<div>
+<input type="hidden" name="__LASTFOCUS" id="__LASTFOCUS" value="" />
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKMjEwMDg0OTIxNQ9kFgJmD2QWBAIBD2QWAgIKD2QWAgIBDxYCHgRUZXh0BcsBPHN0eWxlIHR5cGU9InRleHQvY3NzIj4NCnANCnsNCgltYXJnaW4tdG9wOiAwcHg7DQoJbWFyZ2luLWJvdHRvbTogMXB4DQp9DQoNCiNkaXZMYXcNCnsNCglmb250LWZhbWlseTogIlRpbWVzIE5ldyBSb21hbiIsIHNlcmlmOw0KCWZvbnQtc2l6ZTogMTJwdDsNCglmb250LXdlaWdodDogbm9ybWFsOw0KCWZvbnQtc3R5bGU6IG5vcm1hbA0KfQ0KPC9zdHlsZT5kAgMPZBYEAgUPPCsADQEMPCsACgIDFCsAAmQUKwADZBQrAAIWBB8ABRQyMDI2IFJlZ3VsYXIgU2Vzc2lvbh4HVG9vbFRpcAUodmlldyBiaWxscyBmcm9tIHRoZSAyMDI2IFJlZ3VsYXIgU2Vzc2lvbmRkBBQrAAJkFCsAA2QUKwACFgQfAAUUMjAyNiBSZWd1bGFyIFNlc3Npb24fAQUvdmlldyBzZXNzaW9uIGluZm8gZnJvbSB0aGUgMjAyNiBSZWd1bGFyIFNlc3Npb25kZGQCBw9kFgICAw9kFgJmD2QWAgIBD2QWBgIDDw8WAh8ABQlSUyAyNzo2MDdkZAIHDw8WAh4LTmF2aWdhdGVVcmwFGX4vTGF3UHJpbnQuYXNweD9kPTEyMzk0MzdkZAINDw8WAh8ABfk0PGRpdiBpZD0iV1BNYWluRG9jIj4NCjxwIHN0eWxlPSJ0ZXh0LWFsaWduOiBjZW50ZXIiPjxzcGFuIHN0eWxlPSJmb250LWZhbWlseTogJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIj48c3BhbiBzdHlsZT0iZm9udC1zaXplOiAxMnB0Ij5QQVJUIElJSS4gV0FHRVJJTkc8L3NwYW4+PC9zcGFuPjwvcD4NCjxwIHN0eWxlPSJ0ZXh0LWFsaWduOmxlZnQ7IHRleHQtaW5kZW50OiAtMC41aW47IG1hcmdpbi1sZWZ0OiAwLjVpbiI+PHNwYW4gc3R5bGU9ImZvbnQtZmFtaWx5OiAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiPjxzcGFuIHN0eWxlPSJmb250LXNpemU6IDEycHQiPiZzZWN0OzYwNy4gIE9wZXJhdG9yczsgc3BvcnRzIGxvdW5nZSByZXF1aXJlZDsgcmVzcG9uc2liaWxpdGllczsgcG9vbGluZzwvc3Bhbj48L3NwYW4+PC9wPg0KPHAgc3R5bGU9InRleHQtYWxpZ246bGVmdCI+PHNwYW4gc3R5bGU9ImZvbnQtZmFtaWx5OiAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiPjxzcGFuIHN0eWxlPSJmb250LXNpemU6IDEycHQiPjxzcGFuPiYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOzwvc3Bhbj5BLigxKSAgQW4gb3BlcmF0b3IgbWF5IGNvbmR1Y3Qgc3BvcnRzIHdhZ2VyaW5nIGluIHBlcnNvbiBvciB2aWEgYSBzcG9ydHMgd2FnZXJpbmcNCm1lY2hhbmlzbSBsb2NhdGVkIG9uIGl0cyBwcmVtaXNlcyBvciB0aHJvdWdoIGEgd2Vic2l0ZSBvciBtb2JpbGUgYXBwbGljYXRpb24uPC9zcGFuPjwvc3Bhbj48L3A+DQo8cCBzdHlsZT0idGV4dC1hbGlnbjpsZWZ0Ij48c3BhbiBzdHlsZT0iZm9udC1mYW1pbHk6ICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiI+PHNwYW4gc3R5bGU9ImZvbnQtc2l6ZTogMTJwdCI+PHNwYW4+JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7PC9zcGFuPigyKSAgRWFjaCBsaWNlbnNlZSBzaGFsbCBob3VzZSBpdHMgcmV0YWlsIHNwb3J0cyBib29rIGluIGEgc3BvcnRzIHdhZ2VyaW5nIGxvdW5nZSBvbiBpdHMNCnByZW1pc2VzIHdoaWNoIHNoYWxsIGJlIHJlc3RyaWN0ZWQgdG8gcGF0cm9ucyB3aG8gYXJlIHR3ZW50eS1vbmUgeWVhcnMgb2YgYWdlIG9yIG9sZGVyIGFuZA0Kc2hhbGwgY29uZm9ybSB0byBhbGwgcmVxdWlyZW1lbnRzIGNvbmNlcm5pbmcgc3F1YXJlIGZvb3RhZ2UsIGRlc2lnbiwgZXF1aXBtZW50LCBzZWN1cml0eQ0KbWVhc3VyZXMsIGFuZCByZWxhdGVkIG1hdHRlcnMgd2hpY2ggdGhlIGJvYXJkIHNoYWxsIHByZXNjcmliZSBieSBydWxlLjwvc3Bhbj48L3NwYW4+PC9wPg0KPHAgc3R5bGU9InRleHQtYWxpZ246bGVmdCI+PHNwYW4gc3R5bGU9ImZvbnQtZmFtaWx5OiAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiPjxzcGFuIHN0eWxlPSJmb250LXNpemU6IDEycHQiPjxzcGFuPiYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOzwvc3Bhbj5CLiAgQW4gb3BlcmF0b3Igc2hhbGwgZXN0YWJsaXNoIGFuZCBkaXNwbGF5IHRoZSBvZGRzIGF0IHdoaWNoIHdhZ2VycyBtYXkgYmUgcGxhY2VkDQpvbiBzcG9ydHMgZXZlbnRzLiBObyBvcGVyYXRvciBzaGFsbCBhY2NlcHQgYSB3YWdlciBpbiBwZXJzb24sIHZpYSBhIHNwb3J0cyB3YWdlcmluZw0KbWVjaGFuaXNtLCBvciB0aHJvdWdoIGEgd2Vic2l0ZSBvciBtb2JpbGUgYXBwbGljYXRpb24gdW5sZXNzIHRoZSB3YWdlcmluZyBwcm9wb3NpdGlvbiBpcw0KcG9zdGVkIGJ5IGVsZWN0cm9uaWMgb3IgbWFudWFsIG1lYW5zLjwvc3Bhbj48L3NwYW4+PC9wPg0KPHAgc3R5bGU9InRleHQtYWxpZ246bGVmdCI+PHNwYW4gc3R5bGU9ImZvbnQtZmFtaWx5OiAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiPjxzcGFuIHN0eWxlPSJmb250LXNpemU6IDEycHQiPjxzcGFuPiYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOzwvc3Bhbj5DLiAgQW4gb3BlcmF0b3Igc2hhbGwgYWRvcHQgY29tcHJlaGVuc2l2ZSBydWxlcywgd2hpY2ggc2hhbGwgYmUgYXBwcm92ZWQgYnkgdGhlDQpib2FyZCwgZ292ZXJuaW5nIHNwb3J0cyB3YWdlcmluZyB0cmFuc2FjdGlvbnMgd2l0aCBpdHMgcGF0cm9ucy4gVGhlIHJ1bGVzIHNoYWxsIHNwZWNpZnkgdGhlDQphbW91bnQgdG8gYmUgcGFpZCBvbiB3aW5uaW5nIHdhZ2VycyBhbmQgdGhlIGVmZmVjdCBvZiBzY2hlZHVsZSBjaGFuZ2VzLiBUaGUgcnVsZXMsIHRvZ2V0aGVyDQp3aXRoIGFueSBvdGhlciBpbmZvcm1hdGlvbiB0aGUgYm9hcmQgZGVlbXMgYXBwcm9wcmlhdGUsIHNoYWxsIGJlIGNvbnNwaWN1b3VzbHkgZGlzcGxheWVkDQppbiB0aGUgZXN0YWJsaXNobWVudCwgcG9zdGVkIGVsZWN0cm9uaWNhbGx5IG9uIGFueSBzcG9ydHMgd2FnZXJpbmcgbWVjaGFuaXNtLCB3ZWJzaXRlLCBvcg0KbW9iaWxlIGFwcGxpY2F0aW9uLCBhbmQgaW5jbHVkZWQgaW4gdGhlIHRlcm1zIGFuZCBjb25kaXRpb25zIG9mIHRoZSBzcG9ydHMgd2FnZXJpbmcgYWNjb3VudA0Kc3lzdGVtLjwvc3Bhbj48L3NwYW4+PC9wPg0KPHAgc3R5bGU9InRleHQtYWxpZ246bGVmdCI+PHNwYW4gc3R5bGU9ImZvbnQtZmFtaWx5OiAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiPjxzcGFuIHN0eWxlPSJmb250LXNpemU6IDEycHQiPjxzcGFuPiYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOzwvc3Bhbj5ELiAgQW4gb3BlcmF0b3Igc2hhbGwgbWFpbnRhaW4gcmVjb3JkcyBvZiBzcG9ydHMgd2FnZXJpbmcgYWN0aXZpdGllcyBhbmQgb3BlcmF0aW9ucw0KaW4gYWNjb3JkYW5jZSB3aXRoIHJ1bGVzIGFuZCByZWd1bGF0aW9ucyBvZiB0aGUgYm9hcmQgYW5kIGZvbGxvdyBmZWRlcmFsIGFudGktbW9uZXkNCmxhdW5kZXJpbmcgc3RhbmRhcmRzIGluIHRoZSBkYXktdG8tZGF5IG9wZXJhdGlvbnMgb2YgaXRzIGJ1c2luZXNzLjwvc3Bhbj48L3NwYW4+PC9wPg0KPHAgc3R5bGU9InRleHQtYWxpZ246bGVmdCI+PHNwYW4gc3R5bGU9ImZvbnQtZmFtaWx5OiAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiPjxzcGFuIHN0eWxlPSJmb250LXNpemU6IDEycHQiPjxzcGFuPiYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOzwvc3Bhbj5FLiAgRWFjaCBvcGVyYXRvciBzaGFsbCBkZXNpZ25hdGUgb25lIG9yIG1vcmUga2V5IGVtcGxveWVlcyB3aG8gc2hhbGwgYmUgcmVzcG9uc2libGUNCmZvciB0aGUgb3BlcmF0aW9uIG9mIHRoZSBzcG9ydHMgYm9vay48L3NwYW4+PC9zcGFuPjwvcD4NCjxwIHN0eWxlPSJ0ZXh0LWFsaWduOmxlZnQiPjxzcGFuIHN0eWxlPSJmb250LWZhbWlseTogJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIj48c3BhbiBzdHlsZT0iZm9udC1zaXplOiAxMnB0Ij48c3Bhbj4mIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDs8L3NwYW4+Ri4gIEFsbCB3YWdlcnMgb24gc3BvcnRzIGV2ZW50cyBhdXRob3JpemVkIHB1cnN1YW50IHRvIHRoaXMgQ2hhcHRlciBzaGFsbCBiZSBpbml0aWF0ZWQsDQpyZWNlaXZlZCwgYW5kIG90aGVyd2lzZSBtYWRlIHdpdGhpbiB0aGUgc3RhdGUgdW5sZXNzIG90aGVyd2lzZSBkZXRlcm1pbmVkIGJ5IHRoZSBib2FyZCBpbg0KYWNjb3JkYW5jZSB3aXRoIGFwcGxpY2FibGUgZmVkZXJhbCBhbmQgc3RhdGUgbGF3cyBhbmQgcmVndWxhdGlvbnMuIENvbnNpc3RlbnQgd2l0aCB0aGUNClVubGF3ZnVsIEludGVybmV0IEdhbWJsaW5nIEVuZm9yY2VtZW50IEFjdCBvZiAyMDA2LCAzMSBVLlMuQy4gNTM2MSBldCBzZXEuLCB0aGUNCmludGVybWVkaWF0ZSByb3V0aW5nIG9mIGVsZWN0cm9uaWMgZGF0YSByZWxhdGluZyB0byBhIGxhd2Z1bCBpbnRyYXN0YXRlIHdhZ2VyIGF1dGhvcml6ZWQgYnkgdGhpcw0KQ2hhcHRlciBzaGFsbCBub3QgZGV0ZXJtaW5lIHRoZSBsb2NhdGlvbiBvciBsb2NhdGlvbnMgaW4gd2hpY2ggdGhlIHdhZ2VyIGlzIGluaXRpYXRlZCwgcmVjZWl2ZWQsDQpvciBvdGhlcndpc2UgbWFkZS48L3NwYW4+PC9zcGFuPjwvcD4NCjxwIHN0eWxlPSJ0ZXh0LWFsaWduOmxlZnQiPjxzcGFuIHN0eWxlPSJmb250LWZhbWlseTogJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIj48c3BhbiBzdHlsZT0iZm9udC1zaXplOiAxMnB0Ij48c3Bhbj4mIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDs8L3NwYW4+Ry4gIEFuIG9wZXJhdG9yIG1heSBwb29sIHdhZ2VycyB3aXRoIHBlcnNvbnMgd2hvIGFyZSBub3QgcGh5c2ljYWxseSBwcmVzZW50IGluIHRoaXMNCnN0YXRlIGlmIHRoZSBib2FyZCBkZXRlcm1pbmVzIHRoYXQgdGhpcyB3YWdlcmluZyBpcyBub3QgaW5jb25zaXN0ZW50IHdpdGggdGhlIGxhdyBvZiB0aGlzIHN0YXRlDQpvciBhbnkgZmVkZXJhbCBsYXcsIGluY2x1ZGluZyB0aGUgbGF3IG9mIGFueSBmb3JlaWduIG5hdGlvbiBpbiB3aGljaCB0aGUgcGVyc29uIGlzIGxvY2F0ZWQsIG9yDQp0aGF0IHRoZSB3YWdlcmluZyBpcyBjb25kdWN0ZWQgcHVyc3VhbnQgdG8gYSByZWNpcHJvY2FsIGFncmVlbWVudCB0byB3aGljaCB0aGUgc3RhdGUgaXMgYSBwYXJ0eQ0KdGhhdCBpcyBub3QgaW5jb25zaXN0ZW50IHdpdGggZmVkZXJhbCBsYXcuPC9zcGFuPjwvc3Bhbj48L3A+DQo8cCBzdHlsZT0idGV4dC1hbGlnbjpsZWZ0Ij48c3BhbiBzdHlsZT0iZm9udC1mYW1pbHk6ICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiI+PHNwYW4gc3R5bGU9ImZvbnQtc2l6ZTogMTJwdCI+PHNwYW4+JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7PC9zcGFuPkguKDEpICBBIHNwb3J0cyB3YWdlcmluZyBsaWNlbnNlZSBhbmQgaXRzIHJldGFpbCBzcG9ydHMgd2FnZXJpbmcgb3BlcmF0b3IgbWF5IGNvbnRyYWN0DQp3aXRoIGFuIG9mZnRyYWNrIHdhZ2VyaW5nIGZhY2lsaXR5IGxpY2Vuc2VlIGFzIGRlZmluZWQgaW4gUi5TLiA0OjIxMSB0byBjb25kdWN0IHJhY2Vob3JzZQ0Kd2FnZXJpbmcgaW4gaXRzIHNwb3J0cyBib29rIGxvdW5nZSBpZiB0aGUgdGVybXMgb2YgdGhlIGFncmVlbWVudCBoYXZlIGJlZW4gYXBwcm92ZWQgYnkgdGhlDQpib2FyZCBhbmQgdGhlIExvdWlzaWFuYSBTdGF0ZSBSYWNpbmcgQ29tbWlzc2lvbiBhcyByZXF1aXJlZCBieSBSLlMuIDQ6MjEzKEIpIGFuZCB0aGUNCnBhcmktbXV0dWVsIHdhZ2VyaW5nIGlzIGNvbmR1Y3RlZCBpbiBhY2NvcmRhbmNlIHdpdGggdGhlIGFncmVlbWVudC48L3NwYW4+PC9zcGFuPjwvcD4NCjxwIHN0eWxlPSJ0ZXh0LWFsaWduOmxlZnQiPjxzcGFuIHN0eWxlPSJmb250LWZhbWlseTogJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIj48c3BhbiBzdHlsZT0iZm9udC1zaXplOiAxMnB0Ij48c3Bhbj4mIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDsmIzE2MDs8L3NwYW4+KDIpICBBIHNwb3J0cyB3YWdlcmluZyBsaWNlbnNlZSB0aGF0IGlzIGFuIGFzc29jaWF0aW9uIGFzIGRlZmluZWQgaW4gUi5TLiA0OjE0MyBhbmQgaXMNCmFsc28gdGhlIGhvbGRlciBvZiBhIGxpY2Vuc2UgYXMgZGVmaW5lZCBpbiBSLlMuIDI3OjM1MyBhbmQgcHJvdmlkZWQgZm9yIGluIENoYXB0ZXIgNyBvZiB0aGlzDQpUaXRsZSBtYXkgY29uZHVjdCBwYXJpLW11dHVlbCB3YWdlcmluZyBpbiBpdHMgcmV0YWlsIHNwb3J0cyBib29rIGxvdW5nZSBpZiB0aGUgcGFyaS1tdXR1ZWwNCndhZ2VyaW5nIGlzIGNvbmR1Y3RlZCBpbiBhY2NvcmRhbmNlIHdpdGggYSBib2FyZCBhbmQgTG91aXNpYW5hIFN0YXRlIFJhY2luZyBDb21taXNzaW9uDQphcHByb3ZlZCBwbGFuIG9mIG9wZXJhdGlvbiBhcyByZXF1aXJlZCBpbiBSLlMuIDQ6MjEzKEMpLjwvc3Bhbj48L3NwYW4+PC9wPg0KPHAgc3R5bGU9InRleHQtYWxpZ246bGVmdCI+PHNwYW4gc3R5bGU9ImZvbnQtZmFtaWx5OiAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiPjxzcGFuIHN0eWxlPSJmb250LXNpemU6IDEycHQiPjxzcGFuPiYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOyYjMTYwOzwvc3Bhbj4oMykgIFRoZSBib2FyZCBtYXkgcmVjb25zaWRlciBhbmQgd2l0aGRyYXcgaXRzIGFwcHJvdmFsIG9mIGFuIGFncmVlbWVudCBvciBwbGFuIG9mDQpvcGVyYXRpb24gdXBvbiBhIGZpbmRpbmcgb2Ygbm9uY29tcGxpYW5jZSB3aXRoIHRoZSB0ZXJtcyBvZiB0aGUgYWdyZWVtZW50IG9yIHBsYW4uPC9zcGFuPjwvc3Bhbj48L3A+DQo8cCBzdHlsZT0idGV4dC1hbGlnbjpsZWZ0Ij48c3BhbiBzdHlsZT0iZm9udC1mYW1pbHk6ICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiI+PHNwYW4gc3R5bGU9ImZvbnQtc2l6ZTogMTJwdCI+PHNwYW4+JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7JiMxNjA7PC9zcGFuPkFjdHMgMjAyMSwgTm8uIDQ0MCwgJnNlY3Q7MSwgZWZmLiBKdWx5IDEsIDIwMjE7IEFjdHMgMjAyMiwgTm8uIDUzMCwgJnNlY3Q7MiwgZWZmLiBKdW5lIDE2LCAyMDIyLjwvc3Bhbj48L3NwYW4+PC9wPg0KPC9kaXY+ZGRkOiC2MtLeqq8Y9OfszZecMptr8bcAqOzd6IQRq/ulhGo=" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['aspnetForm'];
+if (!theForm) {
+    theForm = document.aspnetForm;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="/Legis/WebResource.axd?d=5jDUB5FcgRu9gm4gBt1u1KsFLqzVpd0jMIO5iA68CJBuA_vcd-39cRr8vbawEAdmi5popG5R3ZBpCjX6-vmt2udWlEvp-Tm-y6Kw6RtbHZo1&amp;t=639190664600000000" type="text/javascript"></script>
+
+
+<script src="/Legis/ScriptResource.axd?d=SlCipsbTae1WCWiVjwMDiiAYpppFY4kto1oYBBVLn0Y1AkoLPsyY0T_tzzSPT_y4JUJp2A4Sq0bTCH_-TbF203_cIUYJNaQ_nghyyxt5b_HBHwbPtvXbqhrDCphxn3JXj2Crb1KEaNJKClCt9NO4bg2&amp;t=ffffffff9fe38677" type="text/javascript"></script>
+<script src="/Legis/ScriptResource.axd?d=diSgN70uE7PSlGIF-M7i9qiTH7Hn8WERt3qVXrpsChyhwSmuCy3EWh-YFo7L_cBuAJ4YcawKHSP-2pg2Kqh6WY2nOgnCNMJSxH3TREZxenLGzm7En73sqv0D_Q1S4z3wu1PKZ6PeIDSorVFZNOT0FsnVAyciY0uWz0iuvKDViUQkpXyAUPNiQ1YiucARyLuZ0&amp;t=ffffffffbec1863d" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof(Sys) === 'undefined') throw new Error('ASP.NET Ajax client-side framework failed to load.');
+//]]>
+</script>
+
+<script src="/Legis/ScriptResource.axd?d=aD-qBI-kRxqsdNU3xdB71n0pQQIe-BUCPRu-BOosiVY6rFHnCVhDb3R1W3ZHBv-NvpDQgfLzxPNUVAkEGUS1AM5RQE-pAco2Lkuwwrd0zW4fQxStpUhAKKKz8bohmqxcehxNzBIGQdOu2JpxtxMlrxqIIQaqhGP3rbwOPnzvxlqq1PTVN3tKZqLVL_irQfCz0&amp;t=ffffffffbec1863d" type="text/javascript"></script>
+<script src="/Legis/WebResource.axd?d=ldl8T4tUYAiaEMUJC38vfFUY2CTNW0B4XPbye4Thi9T0QGDytwRLDyvOfP5GA67lCUlU6JhIWBi1nNSlAfi0WXm0ymct97GojM1nRV0UIxs1&amp;t=639190664600000000" type="text/javascript"></script>
+<div>
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="CA718867" />
+	<input type="hidden" name="__PREVIOUSPAGE" id="__PREVIOUSPAGE" value="IC9RfIqMKIr8YKWfmi8YlVHYKlNCDJ3VPq1DpBySwfr1SHF9xOeDM7SAgOKrKtTfh9HKtvv4UaBaDrwGNyAmJoqIWCNFDdtj5uDsp3jA27w1" />
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAAde5BWcymxoLA7wQORiq3yOYXJkOI8VUNRJGIDSh8aWfYqAW3xu4/gyrrnr7w7P4UQAkrSJzmPIcvSM0n+EBX5jjGi2W7BaOM8F8JUyquCx+RjueC3ukxlPrGXEILDMh8A7EdKuIVcmvdcbbrnNKXHFvG8/PAwKUyk4ISSqxaaTnJT2+m6xk8762b51ZIWqz4M=" />
+</div>
+        <div id="bg"></div>
+        <nav id="LegisMasterDiv" style="margin-left:0%; margin-right:0%">
+            <div id="ctl00_PanelUnknownUser" class="LoginLink" style="height:160px;text-align:right;">
+	
+                <br />
+                <a id="ctl00_LinkBtnLogin" class="LoginLink" href="javascript:WebForm_DoPostBackWithOptions(new WebForm_PostBackOptions(&quot;ctl00$LinkBtnLogin&quot;, &quot;&quot;, false, &quot;&quot;, &quot;Login.aspx&quot;, false, true))">Login</a> &nbsp;&nbsp;&nbsp;&nbsp;       
+                <a id="ctl00_LinkBtnSignUp" class="LoginLink" href="javascript:WebForm_DoPostBackWithOptions(new WebForm_PostBackOptions(&quot;ctl00$LinkBtnSignUp&quot;, &quot;&quot;, false, &quot;&quot;, &quot;NewUser.aspx&quot;, false, true))">Sign-Up</a>&nbsp;&nbsp;                                          
+            
+</div>
+            
+
+            <a href="#ctl00_MainMenu_SkipLink"><img alt="Skip Navigation Links" src="/Legis/WebResource.axd?d=9dRXm_2hH9Tre_DnPjqfcn65FFHj8DUuXqVRtz_zag39ullvw0q6guAM4ZFsnXHFEq6mGtXywrbQHS8tDVVVxjHIwF9HCr7852nH8bqvaiI1&amp;t=639190664600000000" width="0" height="0" style="border-width:0px;" /></a><table id="ctl00_MainMenu" class="MainMenuStatic ctl00_MainMenu_5 ctl00_MainMenu_2" cellpadding="0" cellspacing="0" border="0">
+	<tr>
+		<td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="back to the home page" id="ctl00_MainMenun0"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="Home.aspx">Home</a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td><td style="width:0px;"></td><td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="View / search LA laws" id="ctl00_MainMenun1"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="LawSearch.aspx">Laws</a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td><td style="width:0px;"></td><td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" id="ctl00_MainMenun2"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="BillSearch.aspx?sid=last">Bills</a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td><td style="width:0px;"></td><td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" id="ctl00_MainMenun3"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="SessionInfo/SessionInfo.aspx?sid=last">Sessions</a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td><td style="width:0px;"></td><td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="House home page" id="ctl00_MainMenun4"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="https://house.louisiana.gov" target="_blank">House</a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td><td style="width:0px;"></td><td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="Senate home page" id="ctl00_MainMenun5"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="https://senate.la.gov" target="_blank">Senate</a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td><td style="width:0px;"></td><td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" id="ctl00_MainMenun6"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="Committees.aspx?c=H">Committees</a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td><td style="width:0px;"></td><td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" id="ctl00_MainMenun7"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="Bios.aspx?cid=H">Legislators</a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td><td style="width:0px;"></td><td onmouseover="Menu_HoverStatic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="Manage your own &quot;tracking list&quot; of bills" id="ctl00_MainMenun8"><table class="ctl00_MainMenu_4" cellpadding="0" cellspacing="0" border="0" width="100%">
+			<tr>
+				<td><a class="ctl00_MainMenu_1 ctl00_MainMenu_3" href="MyLegis.aspx"><noBR>My Legis</noBR></a></td>
+			</tr>
+		</table></td><td style="width:0px;"></td>
+	</tr>
+</table><div id="ctl00_MainMenun2Items" class="ctl00_MainMenu_0 MainMenuDynamic ctl00_MainMenu_6">
+	<table border="0" cellpadding="0" cellspacing="0">
+		<tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="view bills from the 2026 Regular Session" id="ctl00_MainMenun9">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="BillSearch.aspx?sid=current">2026 Regular Session</a></td>
+				</tr>
+			</table></td>
+		</tr><tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="view bills from other sessions" id="ctl00_MainMenun10">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="BillSearch.aspx">Other Sessions</a></td>
+				</tr>
+			</table></td>
+		</tr>
+	</table><div class="ctl00_MainMenu_0" id="ctl00_MainMenun2ItemsUp" onmouseover="PopOut_Up(this)" onmouseout="PopOut_Stop(this)" style="text-align:center;">
+		<img src="/Legis/WebResource.axd?d=ipjuTCqW9PLszAb4R023pfK-fxiRaVaxIm_qOvWhTbdyQ6jpjljh_7EOUjyKS80gMCr4hnLRisFrzkORm0mYpzIikuCtpmxgJA8MwtktdjU1&amp;t=639190664600000000" alt="Scroll up" />
+	</div><div class="ctl00_MainMenu_0" id="ctl00_MainMenun2ItemsDn" onmouseover="PopOut_Down(this)" onmouseout="PopOut_Stop(this)" style="text-align:center;">
+		<img src="/Legis/WebResource.axd?d=zY31a2t2Ehewqi_SuWrMmHzmJ6NGTWXsuYqKKC1JSvgabSu4aroPE9KKWHs9jAm_z0vIwjGlfHRigpXHw7bFSbALLWiG7DibaJi3S1ZdhT41&amp;t=639190664600000000" alt="Scroll down" />
+	</div>
+</div><div id="ctl00_MainMenun3Items" class="ctl00_MainMenu_0 MainMenuDynamic ctl00_MainMenu_6">
+	<table border="0" cellpadding="0" cellspacing="0">
+		<tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="view session info from the 2026 Regular Session" id="ctl00_MainMenun11">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="SessionInfo/SessionInfo.aspx?sid=current">2026 Regular Session</a></td>
+				</tr>
+			</table></td>
+		</tr><tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="view info from other sessions" id="ctl00_MainMenun12">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="SessionInfo/SessionInfo.aspx">Other Sessions</a></td>
+				</tr>
+			</table></td>
+		</tr>
+	</table><div class="ctl00_MainMenu_0" id="ctl00_MainMenun3ItemsUp" onmouseover="PopOut_Up(this)" onmouseout="PopOut_Stop(this)" style="text-align:center;">
+		<img src="/Legis/WebResource.axd?d=ipjuTCqW9PLszAb4R023pfK-fxiRaVaxIm_qOvWhTbdyQ6jpjljh_7EOUjyKS80gMCr4hnLRisFrzkORm0mYpzIikuCtpmxgJA8MwtktdjU1&amp;t=639190664600000000" alt="Scroll up" />
+	</div><div class="ctl00_MainMenu_0" id="ctl00_MainMenun3ItemsDn" onmouseover="PopOut_Down(this)" onmouseout="PopOut_Stop(this)" style="text-align:center;">
+		<img src="/Legis/WebResource.axd?d=zY31a2t2Ehewqi_SuWrMmHzmJ6NGTWXsuYqKKC1JSvgabSu4aroPE9KKWHs9jAm_z0vIwjGlfHRigpXHw7bFSbALLWiG7DibaJi3S1ZdhT41&amp;t=639190664600000000" alt="Scroll down" />
+	</div>
+</div><div id="ctl00_MainMenun6Items" class="ctl00_MainMenu_0 MainMenuDynamic ctl00_MainMenu_6">
+	<table border="0" cellpadding="0" cellspacing="0">
+		<tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="Info. about House committees" id="ctl00_MainMenun13">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="Committees.aspx?c=H">House Committees</a></td>
+				</tr>
+			</table></td>
+		</tr><tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="Info. about Senate committees" id="ctl00_MainMenun14">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="Committees.aspx?c=S">Senate Committees</a></td>
+				</tr>
+			</table></td>
+		</tr><tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="Info. about miscellaneous legislative committees" id="ctl00_MainMenun15">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="Committees.aspx?c=M">Miscellaneous Committees</a></td>
+				</tr>
+			</table></td>
+		</tr><tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="Scheduled committee meetings" id="ctl00_MainMenun16">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="ByCmte.aspx">Scheduled Meetings</a></td>
+				</tr>
+			</table></td>
+		</tr>
+	</table><div class="ctl00_MainMenu_0" id="ctl00_MainMenun6ItemsUp" onmouseover="PopOut_Up(this)" onmouseout="PopOut_Stop(this)" style="text-align:center;">
+		<img src="/Legis/WebResource.axd?d=ipjuTCqW9PLszAb4R023pfK-fxiRaVaxIm_qOvWhTbdyQ6jpjljh_7EOUjyKS80gMCr4hnLRisFrzkORm0mYpzIikuCtpmxgJA8MwtktdjU1&amp;t=639190664600000000" alt="Scroll up" />
+	</div><div class="ctl00_MainMenu_0" id="ctl00_MainMenun6ItemsDn" onmouseover="PopOut_Down(this)" onmouseout="PopOut_Stop(this)" style="text-align:center;">
+		<img src="/Legis/WebResource.axd?d=zY31a2t2Ehewqi_SuWrMmHzmJ6NGTWXsuYqKKC1JSvgabSu4aroPE9KKWHs9jAm_z0vIwjGlfHRigpXHw7bFSbALLWiG7DibaJi3S1ZdhT41&amp;t=639190664600000000" alt="Scroll down" />
+	</div>
+</div><div id="ctl00_MainMenun7Items" class="ctl00_MainMenu_0 MainMenuDynamic ctl00_MainMenu_6">
+	<table border="0" cellpadding="0" cellspacing="0">
+		<tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="Info about the LA State Representatives" id="ctl00_MainMenun17">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="Bios.aspx?cid=H">Representatives</a></td>
+				</tr>
+			</table></td>
+		</tr><tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" title="Info about LA State Senators" id="ctl00_MainMenun18">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="Bios.aspx?cid=S">Senators</a></td>
+				</tr>
+			</table></td>
+		</tr><tr onmouseover="Menu_HoverDynamic(this)" onmouseout="Menu_Unhover(this)" onkeyup="Menu_Key(this)" id="ctl00_MainMenun19">
+			<td><table cellpadding="0" cellspacing="0" border="0" width="100%">
+				<tr>
+					<td style="width:100%;"><a class="ctl00_MainMenu_1" href="Caucuses.aspx">Caucuses and Delegations</a></td>
+				</tr>
+			</table></td>
+		</tr>
+	</table><div class="ctl00_MainMenu_0" id="ctl00_MainMenun7ItemsUp" onmouseover="PopOut_Up(this)" onmouseout="PopOut_Stop(this)" style="text-align:center;">
+		<img src="/Legis/WebResource.axd?d=ipjuTCqW9PLszAb4R023pfK-fxiRaVaxIm_qOvWhTbdyQ6jpjljh_7EOUjyKS80gMCr4hnLRisFrzkORm0mYpzIikuCtpmxgJA8MwtktdjU1&amp;t=639190664600000000" alt="Scroll up" />
+	</div><div class="ctl00_MainMenu_0" id="ctl00_MainMenun7ItemsDn" onmouseover="PopOut_Down(this)" onmouseout="PopOut_Stop(this)" style="text-align:center;">
+		<img src="/Legis/WebResource.axd?d=zY31a2t2Ehewqi_SuWrMmHzmJ6NGTWXsuYqKKC1JSvgabSu4aroPE9KKWHs9jAm_z0vIwjGlfHRigpXHw7bFSbALLWiG7DibaJi3S1ZdhT41&amp;t=639190664600000000" alt="Scroll down" />
+	</div>
+</div><a id="ctl00_MainMenu_SkipLink"></a>
+            
+         
+        </nav>
+        <!-- 
+        <br /><br /> 
+        -->
+
+        <main>
+        
+    <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('ctl00$PageBody$ScriptManager1', 'aspnetForm', ['tctl00$PageBody$UpdatePanelLawDoc',''], [], [], 90, 'ctl00');
+//]]>
+</script>
+ 
+    <div id="ctl00_PageBody_UpdatePanelLawDoc">
+	
+            <div id="ctl00_PageBody_divLaw" style="margin:30px 50px 0px 250px;">
+                <div style="text-align:center; margin-right:150px; white-space:nowrap;">
+                    <input type="submit" name="ctl00$PageBody$ButtonPrevious" value=" &lt; " id="ctl00_PageBody_ButtonPrevious" title="view previous" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <span id="ctl00_PageBody_LabelName" class="title" style="font-size:Large;">RS 27:607</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <input type="submit" name="ctl00$PageBody$ButtonNext" value=" > " id="ctl00_PageBody_ButtonNext" title="view next" />
+                </div>
+                <br />
+                <div style="text-align:right;">
+                    <a id="ctl00_PageBody_linkPrint" title="Printable Version" href="LawPrint.aspx?d=1239437" target="_blank"><img title="Printable Version" src="App_Themes/Legis/Images/print.gif" alt="" style="border-width:0px;" /></a>
+                    &nbsp;&nbsp;
+                </div>
+                
+                <input type="hidden" name="ctl00$PageBody$HiddenDocId" id="ctl00_PageBody_HiddenDocId" value="1239437" />
+                <input type="hidden" name="ctl00$PageBody$HiddenDocIndex" id="ctl00_PageBody_HiddenDocIndex" />
+                  
+                <div style="padding:10px 10px 10px 10px; background-color:White;">
+                   <span id="ctl00_PageBody_LabelDocument"><div id="WPMainDoc">
+<p style="text-align: center"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt">PART III. WAGERING</span></span></p>
+<p style="text-align:left; text-indent: -0.5in; margin-left: 0.5in"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt">&sect;607.  Operators; sports lounge required; responsibilities; pooling</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>A.(1)  An operator may conduct sports wagering in person or via a sports wagering
+mechanism located on its premises or through a website or mobile application.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>(2)  Each licensee shall house its retail sports book in a sports wagering lounge on its
+premises which shall be restricted to patrons who are twenty-one years of age or older and
+shall conform to all requirements concerning square footage, design, equipment, security
+measures, and related matters which the board shall prescribe by rule.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>B.  An operator shall establish and display the odds at which wagers may be placed
+on sports events. No operator shall accept a wager in person, via a sports wagering
+mechanism, or through a website or mobile application unless the wagering proposition is
+posted by electronic or manual means.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>C.  An operator shall adopt comprehensive rules, which shall be approved by the
+board, governing sports wagering transactions with its patrons. The rules shall specify the
+amount to be paid on winning wagers and the effect of schedule changes. The rules, together
+with any other information the board deems appropriate, shall be conspicuously displayed
+in the establishment, posted electronically on any sports wagering mechanism, website, or
+mobile application, and included in the terms and conditions of the sports wagering account
+system.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>D.  An operator shall maintain records of sports wagering activities and operations
+in accordance with rules and regulations of the board and follow federal anti-money
+laundering standards in the day-to-day operations of its business.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>E.  Each operator shall designate one or more key employees who shall be responsible
+for the operation of the sports book.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>F.  All wagers on sports events authorized pursuant to this Chapter shall be initiated,
+received, and otherwise made within the state unless otherwise determined by the board in
+accordance with applicable federal and state laws and regulations. Consistent with the
+Unlawful Internet Gambling Enforcement Act of 2006, 31 U.S.C. 5361 et seq., the
+intermediate routing of electronic data relating to a lawful intrastate wager authorized by this
+Chapter shall not determine the location or locations in which the wager is initiated, received,
+or otherwise made.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>G.  An operator may pool wagers with persons who are not physically present in this
+state if the board determines that this wagering is not inconsistent with the law of this state
+or any federal law, including the law of any foreign nation in which the person is located, or
+that the wagering is conducted pursuant to a reciprocal agreement to which the state is a party
+that is not inconsistent with federal law.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>H.(1)  A sports wagering licensee and its retail sports wagering operator may contract
+with an offtrack wagering facility licensee as defined in R.S. 4:211 to conduct racehorse
+wagering in its sports book lounge if the terms of the agreement have been approved by the
+board and the Louisiana State Racing Commission as required by R.S. 4:213(B) and the
+pari-mutuel wagering is conducted in accordance with the agreement.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>(2)  A sports wagering licensee that is an association as defined in R.S. 4:143 and is
+also the holder of a license as defined in R.S. 27:353 and provided for in Chapter 7 of this
+Title may conduct pari-mutuel wagering in its retail sports book lounge if the pari-mutuel
+wagering is conducted in accordance with a board and Louisiana State Racing Commission
+approved plan of operation as required in R.S. 4:213(C).</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>(3)  The board may reconsider and withdraw its approval of an agreement or plan of
+operation upon a finding of noncompliance with the terms of the agreement or plan.</span></span></p>
+<p style="text-align:left"><span style="font-family: 'Times New Roman', serif"><span style="font-size: 12pt"><span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>Acts 2021, No. 440, &sect;1, eff. July 1, 2021; Acts 2022, No. 530, &sect;2, eff. June 16, 2022.</span></span></p>
+</div></span>
+                </div>
+            </div>
+            
+             
+            
+                     
+        
+</div> 
+
+        </main>
+
+        <footer style="text-align:center;font-size:small">
+             If you experience any technical difficulties navigating this website, <a style="font-size:small; font-weight:bold" href="mailto:weblegis@legis.la.gov">contact the webmaster.</a> 
+             <br/>P.O. Box 94062 (900 North Third Street) Baton Rouge, Louisiana  70804-9062
+        </footer>
+       <br />
+   
+
+<script type="text/javascript">
+//<![CDATA[
+var ctl00_MainMenu_Data = new Object();
+ctl00_MainMenu_Data.disappearAfter = 500;
+ctl00_MainMenu_Data.horizontalOffset = 0;
+ctl00_MainMenu_Data.verticalOffset = 0;
+ctl00_MainMenu_Data.iframeUrl = '/Legis/WebResource.axd?d=CMNSuYt9E0qEVKpGd6C2Mk8gw3o6qYsjFl0U13GSZOFThGLKC8twmARquGB9ruSUoczZtvlPGM3pB_hD5taFEIl2zIK5z9kNCvFYrFVVJZg1&t=639190664600000000';
+WebForm_AutoFocus('ctl00_PageBody_ButtonNext');//]]>
+</script>
+</form>
+</body>
+</html>

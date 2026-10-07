@@ -1,0 +1,16 @@
+/venv/
+/.venv/
+/.venv-api/
+.env
+session.json
+line_cache.json
+ev_bets.csv
+__pycache__/
+*.pyc
+/web/node_modules/
+/web/.next/
+/web/*.tsbuildinfo
+/.tools/
+/server/target/
+
+/retained/

@@ -1,0 +1,9 @@
+{
+  "format": "corner.source_review.capture_plan/1",
+  "sources": [
+    {"id": "odds_api_bookmakers", "url": "https://the-odds-api.com/sports-odds-data/bookmaker-apis.html", "purpose": "Provider key/region/destination mapping; does not prove current NBA offering or settlement contract"},
+    {"id": "odds_api_v4", "url": "https://the-odds-api.com/liveapi/guides/v4/", "purpose": "Source IDs and link capture options, conditional on provider availability; no API request executed"},
+    {"id": "novig_sports", "url": "https://support.novig.com/en/articles/10336189-what-sports-are-available-on-novig", "purpose": "Published NBA Winner coverage claim, not the NBA contract terms"},
+    {"id": "novig_contracts", "url": "https://support.novig.com/en/articles/16083642-contracts", "purpose": "New retained index inspection for exact NBA winner contract; WNBA cannot substitute"}
+  ]
+}

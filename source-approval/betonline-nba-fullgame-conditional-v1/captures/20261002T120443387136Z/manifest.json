@@ -1,0 +1,138 @@
+{
+  "format": "corner.source_review.capture/1",
+  "started_at": "2026-10-02T12:04:43.387120Z",
+  "finished_at": "2026-10-02T12:04:43.758567Z",
+  "plan_sha256": "e68beb03213446b37e6083019806287833143fec581c44f7ed1c4ab8fccd1d5e",
+  "capture_script_sha256": "b49306b15d29d81da201a1b721d032acdc1e96b7a2c331ed87c12ad13185f588",
+  "retention_helper_sha256": "cd81521bcb101c52ac02bc7435b5ca5b4d2ebce2393736a4f0f05ed31f5ddf80",
+  "tls_trust_store": {
+    "name": "certifi",
+    "version": "2026.05.20",
+    "ca_bundle_sha256": "7cef540c6af3bf0a3c7d0070bd3fd7aae34f8aa805b408d1c27a01c8aeb305df",
+    "certificate_verification": true,
+    "hostname_verification": true
+  },
+  "evidence_class": "public_documents_not_offering_or_applicability_proof",
+  "sources": [
+    {
+      "id": "betonline_basketball",
+      "url": "https://help.betonline.ag/en/articles/185180-basketball-rules",
+      "purpose": "NBA game duration, overtime, suspension and scheduled date/location rules; exact offering applicability unproven",
+      "requested_at": "2026-10-02T12:04:43.400383Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": {
+        "name": "certifi",
+        "version": "2026.05.20",
+        "ca_bundle_sha256": "7cef540c6af3bf0a3c7d0070bd3fd7aae34f8aa805b408d1c27a01c8aeb305df",
+        "certificate_verification": true,
+        "hostname_verification": true
+      },
+      "received_at": "2026-10-02T12:04:43.724918Z",
+      "http_status": 403,
+      "final_url": "https://help.betonline.ag/en/articles/185180-basketball-rules",
+      "response_headers": {
+        "Content-Type": "text/html; charset=UTF-8",
+        "Date": "Fri, 02 Oct 2026 12:04:43 GMT",
+        "Cache-Control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+        "Vary": "accept-encoding"
+      },
+      "body_file": "betonline_basketball.body",
+      "body_bytes": 544633,
+      "body_sha256": "11339c757d7ce2b0f7141e43efe33509c5279025f644f03adcff121651ad1a15",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "betonline_basketball.txt",
+      "text_sha256": "14934e780e1d235c77da8c7e075b6ba5f6a6c8a9bfe5e5a6c2a4c76c682ea281",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "betonline_basketball.links.json",
+      "links_sha256": "87e66a74c299d319764885989155ca0d70cf3900e7751d0006558e31afd11d86"
+    },
+    {
+      "id": "betonline_general",
+      "url": "https://www.betonline.ag/rules",
+      "purpose": "Governing public rules, postponement and unresolved-case fallback; not assumed to establish exact quote applicability",
+      "requested_at": "2026-10-02T12:04:43.401256Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": {
+        "name": "certifi",
+        "version": "2026.05.20",
+        "ca_bundle_sha256": "7cef540c6af3bf0a3c7d0070bd3fd7aae34f8aa805b408d1c27a01c8aeb305df",
+        "certificate_verification": true,
+        "hostname_verification": true
+      },
+      "received_at": "2026-10-02T12:04:43.724114Z",
+      "http_status": 403,
+      "final_url": "https://www.betonline.ag/rules",
+      "response_headers": {
+        "Content-Type": "text/html; charset=UTF-8",
+        "Date": "Fri, 02 Oct 2026 12:04:43 GMT",
+        "Cache-Control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+        "Vary": "accept-encoding"
+      },
+      "body_file": "betonline_general.body",
+      "body_bytes": 544633,
+      "body_sha256": "761ef085770f6f1ea9dba53c7a2df527c94ae7b44743da32f9cf3f132fbfbf01",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "betonline_general.txt",
+      "text_sha256": "14934e780e1d235c77da8c7e075b6ba5f6a6c8a9bfe5e5a6c2a4c76c682ea281",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "betonline_general.links.json",
+      "links_sha256": "87e66a74c299d319764885989155ca0d70cf3900e7751d0006558e31afd11d86"
+    },
+    {
+      "id": "odds_api_bookmakers",
+      "url": "https://the-odds-api.com/sports-odds-data/bookmaker-apis.html",
+      "purpose": "Provider bookmaker key and public brand link; not governing contract proof",
+      "requested_at": "2026-10-02T12:04:43.401579Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": {
+        "name": "certifi",
+        "version": "2026.05.20",
+        "ca_bundle_sha256": "7cef540c6af3bf0a3c7d0070bd3fd7aae34f8aa805b408d1c27a01c8aeb305df",
+        "certificate_verification": true,
+        "hostname_verification": true
+      },
+      "received_at": "2026-10-02T12:04:43.620893Z",
+      "http_status": 200,
+      "final_url": "https://the-odds-api.com/sports-odds-data/bookmaker-apis.html",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": "128754",
+        "Date": "Fri, 02 Oct 2026 12:04:43 GMT",
+        "ETag": "\"7fc23c8af3f8e83725ac8a30f7e9b8135f4e87788b13c477fe22813cb4f8d3db\"",
+        "Last-Modified": "Wed, 30 Sep 2026 02:33:23 GMT",
+        "Cache-Control": "max-age=3600",
+        "Vary": "x-fh-requested-host, accept-encoding"
+      },
+      "body_file": "odds_api_bookmakers.body",
+      "body_bytes": 128754,
+      "body_sha256": "a584fa89af44cc65c584111364cbd879ede6796b5fb1d7e49f92ac6f362fb763",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "odds_api_bookmakers.txt",
+      "text_sha256": "b22a91e13311fdb96f091294b6c4aa101dcb40dfe65760bd93a92c144575c9db",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "odds_api_bookmakers.links.json",
+      "links_sha256": "63b3177414c7360e03ec69caa92f9fedf029576554347e9e0b5882fb8764f2e1"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "format": "corner.source_approval_review/1",
+  "dossier_id": "draftkings-la-nba-fullgame-2way-moneyline-v1",
+  "reviewed_at": "2026-09-26T23:46:37.000000Z",
+  "reviewer": {"kind": "assistant_engineering_review", "production_approval_authority": false},
+  "decision": "rejected",
+  "requested_assertion_class": "no_push_two_way",
+  "reason_code": "late_interruption_tie_push_path_not_excluded",
+  "conclusion_kind": "conservative_cross_document_inference",
+  "observed_real_settlement_incident": false,
+  "production_admissible": false,
+  "authorized_assertion_classes": [],
+  "runtime_policy_grants": [],
+  "interpretation_file": "settlement-interpretation.json",
+  "adverse_cases_file": "adverse-cases.json",
+  "source_bundle": [
+    {"source_id": "la_statute", "capture": "20260926T233755265386Z", "sha256": "7fff0b75a03a73d9fd00bcf4d9b20dc27d6af93fce9ff247c6dde8795536543b", "use": "jurisdictional_context_not_revision_approval"},
+    {"source_id": "dk_la_terms", "capture": "20260926T233755265386Z", "sha256": "0d7455c9af866a0c64ab749d1ddc2b28912e44c153762af7580ad3741836dafa", "use": "terms_rules_relationship"},
+    {"source_id": "nba_rule_5", "capture": "20260926T233755265386Z", "sha256": "061c74ce2a810790dcb62ed1a89c24ac0ebde96258f36b96eb145917f3e3bfb8", "use": "ordinary_competition_completion_only"},
+    {"source_id": "dk_la_general_json", "capture": "20260926T234325857765Z", "sha256": "5a637a738116b074b008eb70dac4cac803600b3db9ef138824fcdfd621b701c5", "use": "jurisdiction_precedence_and_settlement"},
+    {"source_id": "dk_la_market_json", "capture": "20260926T234325857765Z", "sha256": "425e391b7912d6af15e4cf6ac1a46bf33dcfe67d96295f90f0ac8ecb7c816da5", "use": "two_way_market_definition"},
+    {"source_id": "dk_la_basketball_json", "capture": "20260926T234325857765Z", "sha256": "34bf5d8306a44c63a5ac0057682fb580ff932c2b77c91fa518c0a0a5126610b7", "use": "sport_specific_overrides"},
+    {"source_id": "dk_la_sports_index_json", "capture": "20260926T234325857765Z", "sha256": "990ff37cc114c92a5edef8d651284a22279c31a306c53dc806a6c249cf69b5e7", "use": "navigation_identity_only"}
+  ],
+  "excluded_substantive_sources": [
+    {"source_id": "dk_general_rules", "reason": "retained_html_is_page_shell"},
+    {"source_id": "dk_market_rules", "reason": "retained_html_is_page_shell"},
+    {"source_id": "dk_basketball_rules", "reason": "retained_html_is_page_shell"}
+  ],
+  "completeness": {
+    "retained": ["Louisiana statute", "Louisiana terms", "Louisiana general rules", "Louisiana market rules", "Louisiana basketball rules", "NBA overtime rule", "sport navigation index"],
+    "reviewed_adverse_areas": ["rule precedence", "title/bet-slip overrides", "tie/push", "cancellation", "interruption", "postponement", "participation/forfeit", "format/venue changes", "resettlement", "void provisions"],
+    "production_applicability_complete": false,
+    "unresolved": [
+      "Legal effective period of the exact retained rules bundle is unproven; CMS timestamps are not effective dates.",
+      "Specific regulator approval of this revision is not evidenced by the general statutory requirement.",
+      "No actual offered market title/bet-slip or jurisdiction-qualified provider quote is bound.",
+      "Canonical production UUIDs and jurisdiction enforcement in validator/capture bindings are unresolved.",
+      "Written operator clarification excluding the tied late-interruption push path has not been obtained."
+    ]
+  },
+  "future_approval_requirements": {
+    "new_review_required": true,
+    "grant_identity_must_bind": ["complete source digests", "jurisdiction", "bookmaker", "competition", "market and scope", "governing revision/applicability window", "validator and admissibility policy revisions", "review authority"],
+    "withdrawal_triggers": ["source revision changes", "new contradictory admissible evidence", "missing required source", "scope or jurisdiction mismatch", "applicability expires or cannot be verified", "source reliability withdrawn"],
+    "withdrawal_behavior": "Explicitly record withdrawal/suspension; prevent future positive assertions; preserve historical evidence and approvals; require a new review to resume.",
+    "current_review_expires_into_approval": false
+  }
+}

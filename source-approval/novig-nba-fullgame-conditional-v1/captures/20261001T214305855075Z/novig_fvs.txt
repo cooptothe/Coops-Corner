@@ -1,0 +1,106 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+What is Fair Value Settlement (FVS)? | Novig Help Center
+Skip to main content
+Search for articles...
+All Collections
+Trading and Winning
+What is Fair Value Settlement (FVS)?
+What is Fair Value Settlement (FVS)?
+Updated over a month ago
+Table of contents
+Fair Value Settlement (FVS)
+is how Novig resolves a contract when a market can no longer produce a real YES or NO outcome. Instead of cancelling the contract, Novig settles it at the price the market was trading at immediately before the disrupting news became known.
+Key fact: FVS is a settlement, not a refund.
+The payout is based on what the contract was worth right before the disruption — not on the price the customer originally paid to enter.
+When does Fair Value Settlement apply?
+FVS applies when either of these is true:
+The contract would otherwise settle to
+Void
+(meaning the outcome can no longer be determined), or
+The contract's terms specifically call for settlement at fair value.
+Common situations that trigger FVS:
+Trigger
+Example
+Player scratched or ruled out
+A player prop is listed, then the player is ruled out before the event starts
+Contest suspended or abandoned
+Weather, power failure, or a safety stoppage ends the contest early and it's never resumed
+Contest never starts
+The event is cancelled or postponed past the contract's window
+Outcome can't be verified
+The result the contract depends on can't be confirmed from an approved source
+Example: a player is scratched before the game
+This is the most common FVS scenario.
+Situation:
+A player prop is trading. One hour before the game starts, the player is ruled out.
+What happens, step by step:
+The prop can no longer produce a YES or NO result, so it heads to Void.
+Void triggers FVS.
+Novig sets the
+Reference Time
+— the moment the market's value gets frozen. This is normally the earlier of: (a) the first public report of the scratch, or (b) the moment Novig halted trading in that contract.
+Novig looks at the
+30 minutes of trading immediately before
+the Reference Time. This is called the
+Calculation Window
+.
+Novig calculates the
+Fair Value Price
+from that window and settles both sides of the contract.
+Worked example
+(Settlement Value = $1.00 per contract):
+Market: "Player A to score Over 24.5 points"
+Scratch first reported at 6:12 PM → Reference Time = 6:12 PM
+Calculation Window = 5:42 PM–6:12 PM
+Independent commercial markets, with margin removed: $0.44 and $0.46
+Novig's own bid/ask midpoint, time-weighted across the window: $0.45
+Fair Value Price = $0.45
+Customer
+Entry price
+FVS payout
+Result
+Bought YES at $0.52
+$0.52
+$0.45
+Loses $0.07/contract
+Bought NO at $0.48
+$0.48
+$0.55 ($1.00 − $0.45)
+Gains $0.07/contract
+The core takeaway:
+the customer is paid what their position was actually worth right before the disruption — which can be more or less than what they paid.
+How does the payout work?
+Once a Fair Value Price is determined:
+YES holders receive:
+the Fair Value Price, per contract
+NO holders receive:
+Settlement Value minus the Fair Value Price, per contract
+This payout replaces whatever the contract would otherwise have paid out.
+Timing, publication, and finality
+Timing:
+Novig determines the Fair Value Price no later than the day after the contract's Expiration Date — unless the Market Outcome Review Process has been initiated, in which case that process's timeline applies instead.
+Publication:
+Novig publishes the Fair Value Price and a summary of how it was calculated on its website, and keeps a record of the data used, any exclusions applied, and the calculation itself.
+Finality:
+Novig's Fair Value Price determination is final.
+Frequently asked questions
+Why didn't I just get my money back?
+Because the market still had a determinable value at the moment things changed. Fair Value Settlement pays out what your position was actually worth right before the news broke, rather than unwinding the trade as if it never happened. Depending on which side you held and where the price was, that can be more or less than what you paid.
+The player was ruled out — shouldn't this be voided?
+Void is the trigger, not the final outcome. When a contract would settle to Void, the Fair Value Settlement Rule takes over and settles it at the pre-news market price instead.
+Can I dispute the Fair Value Price?
+Fair Value determinations are final. If the dispute is actually about how the underlying market outcome was determined (not the price), that's a separate process: the Market Outcome Review Process.
+Related Articles
+What is Novig?
+How Settlement Works — Grading, Disputes, and Voided Trades
+How does settlement work?
+How Novig calculates the Fair Value Price
+How Parlay Legs Settle
+Did this answer your question?
+Disappointed Reaction
+😞
+Neutral Reaction
+😐
+Smiley Reaction
+😃
+Table of contents

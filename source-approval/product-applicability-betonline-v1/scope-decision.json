@@ -1,0 +1,23 @@
+{
+  "format": "corner.research_scope_decision/1",
+  "decision_date": "2026-10-02",
+  "scope_id": "nba-draftkings-la-pinnacle-betonline-research-v1",
+  "authority": "explicit_user_instruction_in_this_conversation",
+  "authorization_text": "we can replace no vig with betonline for this instance.",
+  "purpose": "this production-evidence approval attempt only",
+  "target": {"bookmaker_key": "draftkings", "jurisdiction_sought": "US-LA"},
+  "required_references": ["pinnacle", "betonlineag"],
+  "competition": "NBA",
+  "market": "full_game_two_way_moneyline",
+  "minimum_complete_reference_books": 2,
+  "calculation_basis": "decisive_settlement_conditional",
+  "previous_reference_candidate": "novig",
+  "novig_disposition": "deferred_not_rejected",
+  "settlement_approval_granted": false,
+  "phase_approval_granted": false,
+  "production_admissible": false,
+  "runtime_generations_modified": false,
+  "existing_frozen_commands_modified": false,
+  "automatic_fallback_permitted": false,
+  "emailing_permitted": false
+}

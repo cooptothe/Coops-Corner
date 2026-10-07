@@ -1,0 +1,9 @@
+{
+  "format": "corner.source_review.capture_plan/1",
+  "sources": [
+    {"id": "nba_status_workflow", "url": "https://developer.sportradar.com/basketball/docs/nba-ig-game-status-workflow", "purpose": "Published phase semantics, coverage differences, delays and rescheduling; not a latency guarantee"},
+    {"id": "nba_play_by_play", "url": "https://developer.sportradar.com/basketball/reference/nba-play-by-play", "purpose": "Candidate v8 game endpoint and cache behavior; not status verification time"},
+    {"id": "account_access", "url": "https://developer.sportradar.com/getting-started/docs/your-account", "purpose": "General trial/production access description; not proof of our entitlement or permitted use"},
+    {"id": "nba_push", "url": "https://developer.sportradar.com/basketball/docs/nba-ig-push", "purpose": "Adverse transport limitation: push events/statistics do not substitute for status updates"}
+  ]
+}

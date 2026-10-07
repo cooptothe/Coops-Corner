@@ -1,0 +1,385 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+Game Status Workflow
+For AI agents: visit https://developer.sportradar.com/basketball/llms.txt for an index of all pages formatted in Markdown and endpoints in OpenAPI. Append .md to any documentation page URL to get its markdown version.
+Jump to Content
+Integration Guides
+Reference Docs
+Getting Started
+Insights
+Images and Editorials
+Widgets
+Odds
+Broadcast
+SPORTS API
+Aussie Rules
+Badminton
+Bandy
+Baseball
+Basketball
+Cricket
+Darts
+Field Hockey
+Football
+Futsal
+Golf
+Handball
+Hockey
+MMA
+Racing
+Rugby
+Snooker
+Soccer
+Squash
+Table Tennis
+Tennis
+Volleyball
+More Sports
+sportradar-updates
+sportradar-thirdparty
+Global Basketball v1
+v3 APIs
+v4 APIs
+v5 APIs
+v7 APIs
+Current versions
+Coverage Matrix
+Documentation
+Change Log
+Log In
+Contact Us
+Integration Guides
+Coverage Matrix
+Documentation
+Change Log
+Log In
+Contact Us
+Basketball
+Current versions
+Integration Guides
+Game Status Workflow
+Game Status Workflow
+NBA Integration Guide
+Overview
+NBA API Basics
+Game Status Workflow
+ID Handling
+Update Frequencies
+Push Feeds
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters and Player Statuses
+Splits
+Seasonal Statistics (Player & Team)
+Playoffs and Tournaments
+NBA Draft
+Daily Change Log
+Historical Data
+NBA Reference Docs
+WNBA Integration Guide
+Overview
+WNBA API Basics
+Game Status Workflow
+ID Handling
+Update Frequencies
+Push Feeds
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters and Player Statuses
+Seasonal Statistics (Player & Team)
+Playoffs and Tournaments
+Daily Change Log
+Historical Data
+WNBA Reference Docs
+Unrivaled Integration Guide
+Overview
+Unrivaled API Basics
+Competition Format
+Game Status Workflow
+ID Handling
+Update Frequencies
+Integration Scenarios
+Monitoring Schedules
+Tracking Live Games
+Accessing Roster and Player Details
+Tracking Data Adjustments and Updates
+Unrivaled Reference Docs
+NCAAMB Integration Guide
+Overview
+NCAAMB API Basics
+Game Status Workflow
+ID Handling
+Update Frequencies
+Push Feeds
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters
+Seasonal Statistics (Player & Team)
+March Madness (NCAAM Division I Tournament)
+March Madness Concepts
+Conference Tournaments
+Daily Change Log
+Historical Data
+NCAAMB Reference Docs
+NCAAWB Integration Guide
+Overview
+NCAAWB API Basics
+Game Status Workflow
+ID Handling
+Update Frequencies
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters
+Seasonal Statistics (Player & Team)
+March Madness (NCAAW Division I Tournament)
+March Madness Concepts
+Conference Tournaments
+Daily Change Log
+Historical Data
+NCAAWB Reference Docs
+Additional Material
+Account Setup
+Account Maintenance
+Doc Navigation
+Simulations
+G League Integration Guide
+Overview
+G League API Basics
+G League Fundamentals
+Game Status Workflow
+ID Handling
+Update Frequencies
+Integration Scenarios
+Schedules
+Live Game Updates
+Standings and Rankings
+Rosters and Player Statuses
+Playoffs and Tournaments
+Monitoring Data Changes
+Historical Data
+G League Reference Docs
+Game Status Workflow
+Intro
+An NBA game travels through many statuses in its lifecycle. Leverage the game
+status
+to inform on the appropriate endpoint to retrieve.
+Game status is available in every
+Schedule
+and
+Game
+endpoint. To retrieve a game's initial status and schedule information it would be most appropriate to request the
+Schedule
+or
+Daily Schedule
+endpoints.
+Schedule Snippet (XML)
+Schedule Snippet (JSON)
+<game id="a06b10fa-fd80-4058-9e0a-d3d1d69cb6f1" status="scheduled" coverage="full" scheduled="2024-10-22T23:30:00Z" track_on_court="true" sr_id="sr:match:52631111" reference="0022400061" home_team="583eccfa-fb46-11e1-82cb-f4ce4684ea4c" away_team="583ec70e-fb46-11e1-82cb-f4ce4684ea4c">
+{ "games": [ { "id": "a06b10fa-fd80-4058-9e0a-d3d1d69cb6f1", "status": "scheduled", "coverage": "full", "scheduled": "2024-10-22T23:30:00Z", "track_on_court": true, "sr_id": "sr:match:52631111", "reference": "0022400061", "time_zones": { "venue": "US/Eastern", "home": "US/Eastern", "away": "US/Eastern" }, "venue": { "id": "7d69b080-91ca-53c9-9302-45c1a72c5549", "name": "TD Garden", "capacity": 18624, "address": "100 Legends Way", "city": "Boston", "state": "MA", "zip": "02114", "country": "USA", "sr_id": "sr:venue:5940", "location": { "lat": "42.366303", "lng": "-71.062228" } }, "broadcasts": [ { "network": "TNT", "type": "TV", "locale": "National", "channel": "245" } ], "home": { "name": "Boston Celtics", "alias": "BOS", "id": "583eccfa-fb46-11e1-82cb-f4ce4684ea4c", "sr_id": "sr:team:3422", "reference": "1610612738" }, "away": { "name": "New York Knicks", "alias": "NYK", "id": "583ec70e-fb46-11e1-82cb-f4ce4684ea4c", "sr_id": "sr:team:3421", "reference": "1610612752" } } ] }
+Coverage Levels
+We provide two different levels of detail to ensure maximum coverage. We combine coverage levels with the correct feeds to ensure you are getting the most comprehensive data offering in the most efficient manner possible. Full coverage is available for all regular and postseason games. Most preseason games will also have full coverage, though in some rare cases extended boxscore may be used.
+Full
+– We provide live play-by-play coverage for the entire game. We provide updated scores and time remaining as well as team- and player-level data in near real time.
+Extended Boxscore
+– We provide scores, time remaining, and team leaders (assists, points, and rebounds), in a timely manner, as the game progresses. We provide team- and player-level data for the game within 30 minutes of the official results being posted.
+🏀
+Preseason Coverage Note:
+Preseason coverage of NBA games may vary. Some games may be
+extended boxscore
+coverage due to on-venue data-entry being unavailable.
+API data latency will vary compared to regular season games, due to collection and processing differences. Preseason games serve as a testing ground, often resulting in changes and adjustments to data collection methods. As a result, data updates may not be as timely or consistent as the regular season.
+Game Status Definitions
+Below are each of the valid game statuses you can expect to see in the NBA API. Reference these definitions for precise detail on what each game state signifies.
+scheduled
+- The game is scheduled to occur.
+created
+– The game has been created and we have begun logging information.
+inprogress
+– The game is in progress.
+halftime
+- The game is currently at halftime.
+complete
+– The game is over, but stat validation is not complete.
+closed
+– The game is over and the stats have been validated.
+cancelled
+– The game has been cancelled. No makeup game will be played as a result.
+delayed
+– The start of the game is currently delayed or the game has gone from in progress to delayed for some reason.
+postponed
+– The game has been postponed, to be made up at another day and time. Once the makeup game is announced, a new game and ID will be created and scheduled on the announced makeup date.
+time-tbd
+– The game has been scheduled, but a time has yet to be announced.
+if-necessary
+– The game will be scheduled if it is required.
+unnecessary
+– The series game was scheduled to occur, but will not take place due to one team clinching the series early.
+Game Workflows
+See the below diagrams for common game status flows, with context around each update.
+Standard Game
+Below is the flow for a typical NBA game from
+scheduled
+to
+closed
+.
+Standard Game Flow
+scheduled to closed, with what each move signals
+Pregame
+scheduled
+The game is scheduled to occur, with a determined date and time. Status appears in every schedule and game feed.
+Preload
+created
+Game data (rosters, officials, and more) pre-loads, and each team's roster is applied to the game. Game starters (starters="true") display about 45 minutes before the start of the game; player participation (played="true") updates for starters before the game, and for other players as they appear in the game.
+Jump ball
+inprogress
+Set after the jump ball. Poll the game feeds for realtime updates; game feeds can reach inprogress before the schedule feeds, whose status updates on a timer.
+Break
+halftime
+The game is at halftime.
+Second half
+inprogress
+Play resumes at the beginning of the second half.
+Final score
+complete
+The game is over and the score is correct; all other game statistics are reviewed and verified in the post-game verification process.
+Validated
+closed
+All stats are validated. Post-game verification covers player and team statistics, game attendance and duration, and referees. Adjustments can still land after closed; follow the Daily Change Log.
+complete marks the game over with the score correct; closed marks every stat validated.
+Time-TBD
+Below is the flow of a
+time-tbd
+game. Once this game reaches
+scheduled
+status it follows the
+Standard Game
+flow.
+Time TBD
+a placeholder status that resolves to scheduled
+No time yet
+time-tbd
+The game has been scheduled, but a time has yet to be announced.
+Resolved
+scheduled
+A determined date and time are announced, and the status appears in every schedule and game feed.
+Once the game reaches scheduled, it follows the Standard Game flow.
+Delayed
+Below is the flow of a
+delayed
+game.
+A game can be delayed before it starts or during play. Once a delayed game moves to
+inprogress
+it follows the
+Standard Game
+flow.
+Delayed Game
+a hold before or during play; the game keeps its ID
+Held up
+scheduled
+inprogress
+A delay can begin before or during a game: the start of a scheduled game is held up, or a game already in progress is interrupted.
+On hold
+delayed
+The game is delayed. It keeps its game ID and stays on the schedule and game feeds in delayed status; keep polling for the next status change.
+Resumed
+inprogress
+Play begins, or picks up where it left off, under the same game ID, and the game continues through the Standard Game flow.
+Not played
+postponed
+If the game cannot continue that day, it moves to postponed. Once the makeup game is announced, a new game and ID are created and scheduled on the announced makeup date.
+Delayed is a holding status, not an end state: the game returns to inprogress under the same game ID or moves on to postponed.
+Postponed
+Below is the flow of a
+postponed
+game.
+Once a new game is created in
+scheduled
+status, it follows the
+Standard Game
+flow.
+Postponed Game
+the makeup arrives as a new game ID
+On the books
+scheduled
+The game is scheduled to occur, with a determined date and time. Status appears in every schedule and game feed.
+Pushed
+postponed
+The game will be made up at another day and time. Once the makeup game is announced, a new game and ID are created and scheduled on the announced makeup date; request the schedule feeds regularly to identify makeup games.
+Rescheduled
+scheduled
+A new game, with a new game ID, is created in scheduled status when a determined date and time are announced. The postponed and rescheduled game IDs are not linked within the API.
+The original entry keeps the postponed status; the makeup game follows the Standard Game flow under its new ID.
+Cancelled
+Below is the flow of a
+cancelled
+game.
+A cancelled game will remain in
+cancelled
+status. See game
+5126d64c-1865-4ef6-87ce-e64ec9581e1b
+as an example.
+Cancelled Game
+a terminal status with no makeup game
+On the books
+scheduled
+The game is scheduled to occur, with a determined date and time. Status appears in every schedule and game feed.
+Called off
+cancelled
+The game has been cancelled, and no makeup game will be played.
+Cancelled is terminal: the game remains in cancelled status.
+Game State Samples
+Click the links below for sample data of Game feeds by game state.
+scheduled
+created
+inprogress
+closed
+🏀
+Simulations
+We would also suggest using our
+Simulations
+to view each of these game states and test your integration.
+Weekly Data Entry
+This section provides important NBA data update timings for schedules, statistics, rankings, depth charts, and more.
+The daily data entry workflow is the same every day of the week:
+Final game times set for the day's games (10am CT)
+Game stats validated and moved to
+closed
+status (60 minutes after the game goes final)
+Rankings updated (60 minutes after the last game goes final)
+Seasonal stats validation (all day)
+Injuries (all day)
+Transactions (all day)
+Transactions and injuries are monitored and updated throughout the day, using a combination of official and reliable sources.
+Important Dates
+The NBA schedule becomes available in mid-August. Game times and dates are initially validated two weeks before the game and confirmed on the day of the game.
+Updated
+about 1 month ago
+NBA API Basics
+ID Handling
+Did this page help you?
+Yes
+No
+Intro
+Game Status Definitions
+Game Workflows
+Standard Game
+Time-TBD
+Delayed
+Postponed
+Cancelled
+Game State Samples
+Weekly Data Entry
+Important Dates
+© Sportradar AG, St. Gallen, Switzerland
+Privacy Policy
+|
+Terms and Conditions
+|
+Contact Us

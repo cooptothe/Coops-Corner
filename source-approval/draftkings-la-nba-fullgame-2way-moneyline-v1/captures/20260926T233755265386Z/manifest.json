@@ -1,0 +1,211 @@
+{
+  "format": "corner.source_review.capture/1",
+  "started_at": "2026-09-26T23:37:55.265369Z",
+  "finished_at": "2026-09-26T23:37:56.637854Z",
+  "plan_sha256": "a3acdc2efc7c233b5937812ec20052dd3d0c331347301309eb8dfee82fc5b00d",
+  "capture_script_sha256": "acbae78e00b6cf5180f22033dfa2c54c29d47e69051f3883f31810f9446cf76e",
+  "sources": [
+    {
+      "id": "la_statute",
+      "url": "https://legis.la.gov/Legis/Law.aspx?d=1239437",
+      "purpose": "RS 27:607(C), regulatory context, not proof of approval of a specific rules revision",
+      "requested_at": "2026-09-26T23:37:55.267024Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:37:55.514634Z",
+      "http_status": 200,
+      "final_url": "https://legis.la.gov/Legis/Law.aspx?d=1239437",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": "36943",
+        "Date": "Sat, 26 Sep 2026 23:37:54 GMT",
+        "Cache-Control": "private"
+      },
+      "body_file": "la_statute.body",
+      "body_bytes": 36943,
+      "body_sha256": "7fff0b75a03a73d9fd00bcf4d9b20dc27d6af93fce9ff247c6dde8795536543b",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "la_statute.txt",
+      "text_sha256": "3f1ad9123ae9007cbe835efc61b79c00d000cbab0350dfbbc4990bcdeec1b9fa",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "la_statute.links.json",
+      "links_sha256": "d6fef7525241b5d7abaacd6ed8b9aeb3ce8631033dd80ecb791a12304b28d1b2"
+    },
+    {
+      "id": "dk_la_terms",
+      "url": "https://sportsbook.draftkings.com/legal/la-terms-of-use",
+      "purpose": "Louisiana applicability and incorporated rule locations",
+      "requested_at": "2026-09-26T23:37:55.268497Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:37:55.793366Z",
+      "http_status": 200,
+      "final_url": "https://sportsbook.draftkings.com/legal/la-terms-of-use",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Sat, 26 Sep 2026 23:37:55 GMT",
+        "ETag": "W/\"7a1e2-GdA56hw0ZsNRYdkL4Gu3If0APDQ\"",
+        "Cache-Control": "no-store",
+        "Vary": "origin"
+      },
+      "body_file": "dk_la_terms.body",
+      "body_bytes": 500310,
+      "body_sha256": "0d7455c9af866a0c64ab749d1ddc2b28912e44c153762af7580ad3741836dafa",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "dk_la_terms.txt",
+      "text_sha256": "df3f76677001eb9dd1b921af7bc0fb6f9751c11788e662c0c0882af0cf6931ee",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "dk_la_terms.links.json",
+      "links_sha256": "7755fe5fc414ba7a040df6831d38f157503b23d8d83a756d22372084c59ae767"
+    },
+    {
+      "id": "dk_general_rules",
+      "url": "https://sportsbook.draftkings.com/help/general-betting-rules/general-rules",
+      "purpose": "Governing general rules candidate; jurisdiction and content must be reviewed",
+      "requested_at": "2026-09-26T23:37:55.268938Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:37:55.758174Z",
+      "http_status": 200,
+      "final_url": "https://sportsbook.draftkings.com/help/general-betting-rules/general-rules",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Sat, 26 Sep 2026 23:37:55 GMT",
+        "ETag": "W/\"70110-5EoA8HyZnFYiCIWDAS6QhcYV+WU\"",
+        "Cache-Control": "no-store",
+        "Vary": "origin"
+      },
+      "body_file": "dk_general_rules.body",
+      "body_bytes": 459140,
+      "body_sha256": "310e55fda707e4047e4434f96658013ae85fb89c9a1f400bbe300b1f9ece40e9",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "dk_general_rules.txt",
+      "text_sha256": "b4209ff271059f3ffe42d9a2dc5161964831ed392d4650f4058f46f7ba3e03f4",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "dk_general_rules.links.json",
+      "links_sha256": "5026ca70d3f5ef6ea430b8c3789d7d45c8b5838e94786bbbfd341572faa30933"
+    },
+    {
+      "id": "dk_market_rules",
+      "url": "https://sportsbook.draftkings.com/help/general-betting-rules/market-rules",
+      "purpose": "Moneyline market definition and overrides candidate",
+      "requested_at": "2026-09-26T23:37:55.532777Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:37:55.903027Z",
+      "http_status": 200,
+      "final_url": "https://sportsbook.draftkings.com/help/general-betting-rules/market-rules",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Sat, 26 Sep 2026 23:37:55 GMT",
+        "ETag": "W/\"700f4-UDmWcWPwI4FNMfR6p4RJksjZAvA\"",
+        "Cache-Control": "no-store",
+        "Vary": "origin"
+      },
+      "body_file": "dk_market_rules.body",
+      "body_bytes": 459112,
+      "body_sha256": "b1f903e6d3738b5d6007cba91a8f8dfe54ac84b71da1cd9bee18fefedf691fc9",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "dk_market_rules.txt",
+      "text_sha256": "b4209ff271059f3ffe42d9a2dc5161964831ed392d4650f4058f46f7ba3e03f4",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "dk_market_rules.links.json",
+      "links_sha256": "5026ca70d3f5ef6ea430b8c3789d7d45c8b5838e94786bbbfd341572faa30933"
+    },
+    {
+      "id": "dk_basketball_rules",
+      "url": "https://sportsbook.draftkings.com/help/sport-rules/basketball",
+      "purpose": "Basketball-specific overrides candidate; URL is a discovery candidate, not evidence of applicability",
+      "requested_at": "2026-09-26T23:37:55.786158Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:37:56.347803Z",
+      "http_status": 200,
+      "final_url": "https://sportsbook.draftkings.com/help/sport-rules/basketball",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Sat, 26 Sep 2026 23:37:56 GMT",
+        "ETag": "W/\"6f911-CiMzni1AVkKSBXIcUgubWkOX/mo\"",
+        "Cache-Control": "no-store",
+        "Vary": "origin"
+      },
+      "body_file": "dk_basketball_rules.body",
+      "body_bytes": 457093,
+      "body_sha256": "43c222ad0f6260eb1198f47d6e08caa96f274ebd1f6949617ae2bb2c9fd17a7e",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "dk_basketball_rules.txt",
+      "text_sha256": "3ea259e624b9733af3e4d8b700c51462813bca3d391ed63b729e4dc6d9bc71d0",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "dk_basketball_rules.links.json",
+      "links_sha256": "c4217963f08cd69cdd409ee76689d5ae38ed8e10338c0e0ecc15041af31b054a"
+    },
+    {
+      "id": "nba_rule_5",
+      "url": "https://official.nba.com/rule-no-5-scoring-and-timing/",
+      "purpose": "Section IV overtime; competition rules, not sportsbook settlement authority",
+      "requested_at": "2026-09-26T23:37:55.821955Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:37:56.604755Z",
+      "http_status": 200,
+      "final_url": "https://official.nba.com/rule-no-5-scoring-and-timing/",
+      "response_headers": {
+        "Content-Type": "text/html; charset=UTF-8",
+        "Date": "Sat, 26 Sep 2026 23:37:56 GMT",
+        "Cache-Control": "max-age=0, no-cache, no-store",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "nba_rule_5.body",
+      "body_bytes": 128906,
+      "body_sha256": "061c74ce2a810790dcb62ed1a89c24ac0ebde96258f36b96eb145917f3e3bfb8",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "nba_rule_5.txt",
+      "text_sha256": "e5d1f2a5ea1c97176fec9f3a23a2b3c372b1f3d8a457394e61f5c7ca4a847b79",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "nba_rule_5.links.json",
+      "links_sha256": "5ef69b112ca27ccc8870c23077835879ae093adbce7618d0d6159dfcbe48ce5f"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "format": "corner.candidate_quote_capture/1",
+  "requested_at": "2026-10-02T12:03:12.455505Z",
+  "endpoint": "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/",
+  "public_parameters": {
+    "bookmakers": "draftkings,pinnacle,betonlineag",
+    "markets": "h2h",
+    "oddsFormat": "decimal",
+    "dateFormat": "iso",
+    "includeLinks": "true",
+    "includeSids": "true"
+  },
+  "credential_retained": false,
+  "redirects_allowed": false,
+  "automatic_retries": 0,
+  "production_admissible": false,
+  "messages_sent": false,
+  "status": "candidate_quotes_retained",
+  "received_headers_at": "2026-10-02T12:03:12.923086Z",
+  "http_status": 200,
+  "response_headers": {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "36779",
+    "date": "Fri, 02 Oct 2026 12:03:12 GMT",
+    "x-requests-remaining": "497",
+    "x-requests-last": "1",
+    "x-requests-used": "3"
+  },
+  "received_body_at": "2026-10-02T12:03:12.942734Z",
+  "body_sha256": "07ac1832c51d1eedc4032cf38dd7f47270872b7f3711fd485b71b79acc4bc663",
+  "body_bytes": 36779,
+  "raw_body_representation": "HTTP_entity_bytes_without_transfer_framing",
+  "finished_at": "2026-10-02T12:03:12.943387Z",
+  "summary_sha256": "afbc7a665262bcf4a7098b56ec25123a48f32bc0b9683774ed702b36c9aa283d",
+  "capture_script_sha256": "4d01450a0538b4e29bc4e1061261af6f0334069d8145e7294cf01651ee20c7e8"
+}

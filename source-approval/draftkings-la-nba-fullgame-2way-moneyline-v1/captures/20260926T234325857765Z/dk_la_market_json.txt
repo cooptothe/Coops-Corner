@@ -1,0 +1,267 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+JSON PATH $/locale
+en-us
+JSON PATH $/uid
+blt4884ae0fd6967250
+JSON PATH $/created_at
+2022-01-27T15:22:41.637Z
+JSON PATH $/created_by
+bltfcd61704a4b01873
+JSON PATH $/rich_text_editor
+BET TYPES AND MARKET RULES
+2-Way Point Spread Markets and 2-Way Handicap Markets
+Point Spread Markets
+and
+Handicap Markets
+facilitate betting on whether the chosen outcome will win by more, or lose by less, than a specific number of points as stated for the bet. “Tie” or “Draw” are not offered as Selections for
+2-Way Point Spread Markets
+or
+2-Way Handicap Markets
+. If a whole number is offered as the point spread or handicap, bets will be settled as Push if the outcome bet on is tied after the point spread or handicap for the bet has been applied.
+3-Way Point Spread Markets and 3-Way Handicap Markets
+In
+3-Way Point Spread Markets
+and
+3-Way Handicap Markets
+, “Tie” or “Draw” is offered as a Selection in addition to Selections on “+” point spread or handicap and “-” point spread or handicap. Bets on “Tie” or “Draw” as Selections in
+3-Way Point Spread Markets
+and
+3-Way Handicap Markets
+will be settled as won if the outcome bet on is a tie or draw after the point spread or handicap for the bet has been applied, and bets on all other Selections, other than “Tie” or “Draw” will be settled as lost.
+2-Way Moneyline Markets
+2-Way Moneyline Markets
+allow bets to be placed on which Selection will win the specific Event, but “Draw” or “Tie” is not offered as a Selection. If the Selections tie, bets will be settled as Push.
+3-Way Moneyline Markets
+3-Way Moneyline Markets
+allow bets to be placed on which Selection will win the Event or if there will be a tie or draw in the Event.
+3-Way Moneyline Markets
+are sometimes referred to as Match Bets, Win-Draw-Win, 1X2, Match Result (Regulation Time), or 60 Minute Line in Hockey.
+Total Points Markets, Total Goals Markets, and Total Runs Markets
+Total Points Markets
+, which may also be referred to as
+Total Goals Markets
+or
+Total Runs Markets
+, depending on the sport, is a 2-Way market based on the total number of points, or goals, or runs, depending on the sport, scored in the applicable Event. The "
+Total
+" is set for the bet at a specific number with Selections for the bet as either “Over” or “Under” the Total number specified for the bet. If the total points, goals, or runs, as applicable, scored in the Event is equal to the specified Total for the bet, then the bet will be settled as Push.
+Totals Points Markets
+can also be set on any number of stated outcomes (for example only, Team Total Goals 1st Period, Team Total Corners – 1st Half, Rebounds O/U).
+Milestone Markets
+Milestone Markets
+offer prop bets that are settled based on the Selection (for example only
+,
+a team or individual player) achieving the applicable statistic specified for the bet during the Event. For example only, Player A to score 30+ Points during Basketball Game B. If the Selection achieves the statistic specified for the bet during the Event, the bet is settled as won, and if the Selection does not achieve the statistic specified for the bet during the Event, the bet is settled as lost.
+Futures Markets
+Futures Market
+refers to any one of the following:
+A market that is settled based on multiple Games (for example only, the champion of a basketball league, most home runs in baseball season, name the finalists of the championship game, the conference to win the championship of a league) or multiple rounds of a Competition (for example only, top goal scorer for a multi-round soccer tournament, winner of a college basketball championship multi-round tournament);
+A market that is settled based on the finishing positions of a field of more than two participants or teams, in each case, competing against each other as opponents in a single Game (including, but not limited to a single race). Examples include, but are not limited to:
+the winner of a women’s 400 meter hurdles race with 10 runners;
+Archer A to place in top three of an archery contest with 10 archers;
+Swimmer A to place in the top two of a four by 100 meter freestyle swimming relay with five teams;
+the winner of a discus contest with nine throwers;
+Driver A to place in the top three of a grand prix motor race with 20 drivers; and
+the winner of a gymnastics meet with four teams.
+For clarity, individual team members that do not compete against each other will be considered one opponent in the field of a Game (for example only, a doubles tennis match is a Game with a field of two opponents even though there are four tennis players in the match).
+A market that is settled on the outcome of a draft (for example only, the first pick in a football draft, an over/under bet on Player A to be drafted in the top 10 of a basketball draft) or an award (for example only
+,
+most valuable player or best picture); or
+A market marked as “Futures” on the DraftKings Platform, displayed on the DraftKings Platform under a “Futures” tab, or listed in these Rules under a “Futures” heading or sub-heading.
+If a
+Futures Market
+is left open for betting by DraftKings and the Selections for such
+Futures Market
+has been reduced to only two remaining Selections, the market will still be classified as a
+Futures Market
+even if DraftKings offers other non-
+Futures Market
+betting on such Game (for example only, a
+Moneyline Market
+or
+Point Spread Market
+on the single game). A
+Moneyline Market
+,
+Mythical Market
+, and
+Virtual Market
+are not a
+Futures Market
+.
+Grouped Markets
+Grouped Markets
+(for example only, Top American Golfer in The Masters) combine multiple individual participants in an Event into a “group” that will be specified for the bet. Bets are placed on a Selection within the group, and settlement is determined based only on the statistics of the individual participants in the group, not on any statistics of individuals outside of the group. For example only, in a
+Grouped Market
+with Golfer A, Golfer B, and Golfer C, a bet on which golfer in the group will have the most birdies in a round will be settled only on which of Golfer A, Golfer B, or Golfer C has the most birdies out of the group of Golfer A, Golfer B, and Golfer C in the round. If two or more Selections within a group tie or draw for the applicable statistic, Dead Heat Reduction rules apply. Bets on a
+Grouped Market
+will be voided if one or more of the Selections listed at the time the bet was accepted by DraftKings does not Participate in the applicable Event. If a participant who is not a Selection, at the time the bet was accepted by DraftKings, finishes with the highest or best official result, all bets for such market will be settled as lost.
+Virtual Markets, Mythical Markets, Cross-Sport(s) Markets, and Last Longer Markets
+Virtual Markets
+and
+Mythical Markets
+are offered on Selections within the same sport that do not compete directly against each other in a single Game by comparing the statistics of each Selection from different Games.
+Cross-Sport(s) Markets
+are offered on Selections from different sports by comparing statistics of each Selection from their different sports (for example only, Soccer Player A to score more goals in their soccer Game than Hockey Player B scores in their hockey game).
+Last Longer Markets
+settle based on which Selection will progress further in the Event. If there is a draw or tie between winning Selections, bets will be settled as Push. If all Selections listed for a bet, at the time the bet was accepted by DraftKings, do not Participate in the Event, the bet will be voided. If an applicable Event does not reach its intended, natural, or normal end, bets on these markets for such Event will be voided.
+Fantasy Points Markets
+Fantasy Points Markets
+will be settled using DraftKings’ official “Classic” fantasy contest scoring rules as stipulated in the DraftKings Daily Fantasy Rules and Scoring in effect at the time the bet is accepted by DraftKings. For a breakdown of DraftKings’ official “Classic” fantasy contest scoring rules, visit DraftKings’ Daily Fantasy Rules and Scoring (available by clicking
+HERE
+).
+Correct Score Markets
+Selections for the bet are possible scores for an Event (for example only
+,
+Correct Score of Game, Correct Score of 2nd Half of Game). A bet will not be voided solely because the correct score is not listed as a Selection at the time the bet was accepted by DraftKings.
+Odd/Even Markets
+Settlement is based on whether the number of the outcome or statistic bet on in the Event is an even or odd number. For settlement purposes, 0 is an even number.
+Half Time/Regulation Time Markets and Half Time/Full Time Markets
+The bet is a 2-part bet on (i) which team will be leading at half time of the Game or if the teams will be tied at half time of the Game and (ii) which team will be leading at the end of regulation Game time or full time of the Game or if the teams will be tied at the end of regulation Game time or full time of the Game. For example only, if at half time in a basketball Game, the score is 45-45 and the Game Concludes at the end of regulation Game time with the away team winning by a score of 101-103, bets on the Selection “Tie/Away Team” will be settled as won, and bets on all other Selections will be settled as lost.
+Specified Timeframe Markets and Result Markets
+Bets on
+Specified Timeframe Markets
+(for example only, quarter, period, half time, rest of game) are settled based only on the statistics accumulated during the timeframe specified for the bet. Settlement does not take into account any statistics from before or after the specified time period.
+Race to ‘X’ Markets
+Bets are on the 1st player or team to reach the statistical outcome specified for the bet (for example only, Race to X Points, Race to X Goals). If the bet specifies a time frame (or any other period restriction), the bet will not include any other statistics from before or after the applicable time frame for settlement purposes. If “No team” or “No player” is offered as a Selection for a bet at the time the bet was accepted by DraftKings, bets on the Selection “No team” or “No player” will be settled as won if none of the players or teams listed as Selections reach the relevant statistic. If “No team” or “No player” is not offered as a Selection for a bet at the time the bet was accepted by DraftKings, and none of the Selections reach the relevant statistic, the bet will be settled as Push.
+1st Outcome Markets and Next Outcome Markets
+1st outcome or next outcome refers to which player or team during the Event will achieve the 1st statistic specified for the bet (for example only, Winner of Point 1) or achieve the next statistic specified for the bet (for example only, Scorer of Goal 3). Settlement will not include any statistics occurring prior to or after the Event specified for the bet. If the applicable statistical outcome is not achieved during the Event specified for the bet, the bet will be settled as Push. For
+Team to Score 1st and Win Markets
+, if no goals or points are scored in the Game, such bets will be voided.
+To Win from Behind Markets
+“Win From Behind” means that a player or team wins the Game after being down at least one goal, run, or point, as applicable for the relevant sport, at any time during the applicable Game.
+To Go the Distance Markets
+“To Go the Distance" means the full number of rounds for the fight that are officially announced or scheduled for the fight at the time the bet was accepted by DraftKings are completed regardless of which fighter wins the fight. If the official number of rounds for the fight was not announced or scheduled at the time the bet was accepted by DraftKings, the number of rounds for the fight first announced or scheduled by the fight’s official governing body shall be deemed the fight’s official number of rounds at the time the bet was accepted by DraftKings placed for purposes of this paragraph.
+Wire to Wire Winner Markets
+“Wire to Wire” means: (i) for a Game, a player or team is leading at the end of each scheduled period of play in a Game (for example only, a period in hockey, a quarter in football, a full inning in baseball, halftime of the Game) and at the end of regulation Game time, and (ii) for Competitions, a player or team leads or is tied at the end of each scheduled period of play in each Game that is part of the Competition and is declared the winner of the Competition.
+Awards Markets
+For
+Awards Markets
+(for example only, Most Valuable Player, Player of the Match, Top Scorer, Rookie of the Year, Wooden Spoon), settlement is based on the earlier of: (i) the award winner announced at the applicable official award ceremony presentation; or (ii) the award winner announced by the award’s official governing body. If there is no official award ceremony presentation, the award winner will be the winner specified by the award’s official governing body. Bets will not be re-settled due to any subsequent disqualifications, protests, or amendments. If two or more recipients win the applicable award, Dead Heat Reduction rules will apply. If the winner of the applicable award is not listed as a Selection for the bet at the time the bet was accepted by DraftKings, such bet will be settled as lost. If the award bet on is not awarded, bets on such award will be voided.
+Parlay Markets
+A “
+Parlay
+” is a bet with two or more legs and requires every leg to be settled as won in order for the Parlay to be settled as won. A Parlay shall not be voided solely due to a leg of that Parlay being voided or settled as Push. If any leg(s) in a Parlay are voided or settled as Push, the Parlay will be reduced by the number of leg(s) that are voided or settled as Push, and the odds for the parlay will be recalculated based on the remaining legs. For example only, if you bet a 4-leg parlay, and two legs of the Parlay are voided or settled as Push, the Parlay will become a 2-leg Parlay. If any leg(s) of a Parlay are voided or settled as Push, the entire stake amount will not be returned, and instead, the entire stake amount will remain on the Parlay with the remaining number of legs. If all legs of a Parlay are either voided or settled as Push, the entire Parlay shall be voided.
+Round Robin Markets
+A “
+Round Robin
+” is a bet on a group of Parlays, where the group of Parlays is automatically created to cover every possible combination of Parlays, based on the bets and the number of Parlay legs the customer chooses for the Round Robin. For example only, in a Round Robin where the customer chooses three different teams to win their Game (Team A to win its Game, Team B to win its Game, and Team C to win its Game) and selects a 2-leg Round Robin, the Round Robin would consist of three Parlays, (1) a Parlay of Team A to win its Game and Team B to win its Game; (2) a Parlay of Team A to win its Game and Team C to win its Game; and (3) a Parlay of Team B to win its Game and Team C to win its Game. Each Parlay that is part of the Round Robin does not have to be settled as won for the Round Robin to be settled as won. The Round Robin is settled based on the number of Parlays within the Round Robin that win, even if all of the Parlays within the Round Robin do not win.
+Same Game Parlay Markets
+A “
+Same Game Parlay
+” is a Parlay with each leg being from the same Event. A Same Game Parlay will only be settled as won if all the legs in the Same Game Parlay are settled as won, with the exception of any legs that are voided or settled as Push. A Same Game Parlay shall remain valid notwithstanding a leg of that Same Game Parlay being voided or settled as Push. If a Same Game Parlay contains leg(s) that are voided or settled as Push, the Same Game Parlay will be reduced by the number of leg(s) that were voided or settled as Push, and the Same Game Parlay will be repriced based on the remaining legs at the odds that were available on the DraftKings Platform at the time the Same Game Parlay was placed. If leg(s) of a Same Game Parlay are voided or settled as Push, the entire stake amount will not be returned and instead will remain on the Parlay with the remaining number of legs. If all legs of a Same Game Parlay are either voided or settled as Push, the entire Same Game Parlay shall be voided.
+Progressive Parlay
+A “
+Progressive Parlay
+” is a type of Parlay bet where a customer chooses three or more legs and can still receive a pay out on the Progressive Parlay even if leg(s) of the Progressive Parlay are settled as lost. The number of legs within a Progressive Parlay that can be settled as lost and still have the Progressive Parlay pay out is dependent on the total number of legs in the Progressive Parlay. Similarly, the potential returns for a Progressive Parlay are dependent on the number of legs in the Progressive Parlay. The full breakdown of the Progressive Parlay pay table, including, but not limited to, the number of losing legs the Progressive Parlay may have, is available in the bet slip. If any leg(s) in a Progressive Parlay are voided or settled as Push, the Progressive Parlay will be reduced by the number of leg(s) that are voided or settled as Push, and the odds for the Progressive Parlay will be updated based on the remaining legs. For example only, if a Progressive Parlay was placed with five legs, and two of the legs were voided or settled as Push, then the Progressive Parlay would become a 3-leg Progressive Parlay. If leg(s) of a Progressive Parlay are voided or settled as Push, the entire stake amount will not be returned, and instead, will remain on the Parlay with the remaining number of legs. If the number of legs voided or settled as Push results in there being two or fewer legs in a Progressive Parlay, then the whole Progressive Parlay will be voided, irrespective of the settlement of the other legs in the Progressive Parlay.
+Teaser
+A “
+Teaser
+” is a basketball or football Parlay bet where the customer can adjust the point spread and totals line in their favor by choosing a fixed number of points such that the customer gets more points for the point spread when betting on the underdog, fewer points on the point spread when betting on the favorite, a higher totals line when betting on the under, and a lower totals line when betting on the over. A “
+Regular Teaser
+” for basketball is two to six teams selected, adjusting the point spread or totals line by four, 4.5, or five points, and for football is two to six teams selected, adjusting the point spread or totals line by six, 6.5, or seven points. A “
+Super Teaser
+” for basketball is three teams selected with the point spread or totals line adjusted by eight points, and for football is three teams selected with the point spread or totals line adjusted by 10 points. A “
+Monster Teaser”
+for basketball is four teams selected with the point spread or totals line adjusted by 10 points, and for football is four teams selected with the point spread or totals line adjusted by 13 points. All legs in the Teaser must be successful for the Teaser to be settled as won. For a Regular Teaser with two or more teams that does not have a losing leg, if a leg in the Regular Teaser is voided or settled as Push, the Regular Teaser will drop to the next level down. For example only, for a 3-team Regular Teaser where one leg is settled as Push and no legs are settled as lost, the Regular Teaser will drop down to be a 2-team Regular Teaser and will be at the odds for a 2 team Regular Teaser. A leg settled as voided or Push in a 2 team Regular Teaser (including those that have dropped down to a 2 team Regular Teaser), without a leg being settled as lost, will result in the Regular Teaser being “no action”, and the bet stake will be refunded. If a leg in a Super or Monster Teaser is settled as voided (for clarity, a leg settled as Push is not considered a voided leg in a Super or Monster Teaser), the Super or Monster Teaser will be settled as “no action”, and the bet stake will be refunded, irrespective of the settlement of the other legs in the Super or Monster Teaser. If a leg in a Super or Monster Teaser is settled as Push, without a leg in a Super or Monster Teaser being settled as voided, the Super or Monster Teaser will be settled as lost.
+Teasers are only allowed on Pre-Match basketball and football Games. The different types of Teasers for each of the two sports are as follows:
+Basketball Regular Teasers: the number of teams and the number of points selected determines the odds for the bet, in accordance with the below table:
+4 Point Adjustment
+4.5 Point Adjustment
+5 Point Adjustment
+2 Teams
+-110 (1.91 decimal odds)
+-120 (1.83 decimal odds)
+-130 (1.70 decimal odds)
+3 Teams
++170 (2.70 decimal odds)
++150 (2.50 decimal odds)
++130 (2.30 decimal odds)
+4 Teams
++290 (3.90 decimal odds)
++240 (3.40 decimal odds)
++190 (2.90 decimal odds)
+5 Teams
++450 (5.50 decimal odds)
++400 (5.00 decimal odds)
++350 (4.50 decimal odds)
+6 Teams
++650 (7.50 decimal odds)
++550 (6.50 decimal odds)
++450 (5.50 decimal odds)
+Basketball Super Teasers: the odds of a Basketball Super Teaser are -120 (1.83 in decimal odds).
+Basketball Monster Teasers: the odds of a Basketball Monster Teaser are -120 (1.83 in decimal odds).
+National Football League (“NFL”) Football Regular Teasers: the number of teams and the number of points selected determines the odds for the bet, in accordance with the below table:
+6 Point Adjustment
+6.5 Point Adjustment
+7 Point Adjustment
+2 Teams
+-135 (1.74 decimal odds)
+-143 (1.70 decimal odds)
+-150 (1.67 decimal odds)
+3 Teams
++140 (2.40 decimal odds)
++130 (2.30 decimal odds)
++120 (2.20 decimal odds)
+4 Teams
++240 (3.40 decimal odds)
++200 (3.00 decimal odds)
++180 (2.80 decimal odds)
+5 Teams
++333 (4.33 decimal odds)
++290 (3.90 decimal odds)
++250 (3.50 decimal odds)
+6 Teams
++500 (6.00 decimal odds)
++400 (5.00 decimal odds)
++350 (4.50 decimal odds)
+NFL Football Super Teasers: the odds of a Football Super Teaser are -143 (1.70 in decimal odds).
+NFL Football Monster Teasers: the odds of a Football Monster Teaser are -165 (1.61 in decimal odds).
+For all NFL Football Super and Monster Teasers bets, any bet that results in a tie or Push will be settled as lost.
+Any teaser containing both NFL and National Collegiate Athletic Association (“NCAA”) football Selections will default to the lower-priced odds based on the number of teams and point adjustment selected. For example only, a 6 point adjustment 2 team teaser containing football teams from the NFL and NCAA will be priced at -135 (1.74 decimal odds) where 6 point 2 team NFL Football teasers are priced at -135 and 6 point 2 team NCAA Football teasers are priced at -115.
+Any bet that contains both NFL and NCAA Football Selections must apply the same point adjustment to all Selections. Mixed point adjustments (for example only, a 6 point NFL Football Selection combined with a 7 point NCAA Football Selection) are not permitted.
+NCAA Football Regular Teasers: the number of teams and the number of points selected determines the odds for the bet, in accordance with the below table:
+6 Point Adjustment
+6.5 Point Adjustment
+7 Point Adjustment
+2 Teams
+-115 (1.87 decimal odds)
+-120 (1.83 decimal odds)
+-125 (1.80 decimal odds)
+3 Teams
++160 (2.60 decimal odds)
++150 (2.50 decimal odds)
++140 (2.40 decimal odds)
+4 Teams
++260 (3.60 decimal odds)
++240 (3.40 decimal odds)
++230 (3.30 decimal odds)
+5 Teams
++475 (5.75 decimal odds)
++425 (5.25 decimal odds)
++380 (4.80 decimal odds)
+6 Teams
++750 (8.50 decimal odds)
++650 (7.50 decimal odds)
++600 (7.00 decimal odds)
+NCAA Football Super Teasers: The odds of a NCAA Football Super Teaser are -110 (1.91 in decimal odds).
+NCAA Football Monster Teasers: The odds of a NCAA Football Monster Teaser are -120 (1.83 in decimal odds).
+For all NCAA Super and Monster Teaser bets, any bet that results in a Tie or Push will be settled as lost.
+JSON PATH $/site_experience/selected_site_experience
+US-LA-SB_ent
+JSON PATH $/title
+Market Rules - LA
+JSON PATH $/updated_at
+2026-07-10T05:51:32.492Z
+JSON PATH $/updated_by
+bltf5901f9d2208db70
+JSON PATH $/url
+marketRules
+JSON PATH $/publish_details/environment
+blt34aae3d8a3f5c8c8
+JSON PATH $/publish_details/locale
+en-us
+JSON PATH $/publish_details/time
+2026-08-26T10:30:39.304Z
+JSON PATH $/publish_details/user
+bltf5901f9d2208db70

@@ -1,0 +1,8 @@
+{
+  "format": "corner.source_review.capture_plan/1",
+  "sources": [
+    {"id": "betonline_basketball", "url": "https://help.betonline.ag/en/articles/185180-basketball-rules", "purpose": "NBA game duration, overtime, suspension and scheduled date/location rules; exact offering applicability unproven"},
+    {"id": "betonline_general", "url": "https://www.betonline.ag/rules", "purpose": "Governing public rules, postponement and unresolved-case fallback; not assumed to establish exact quote applicability"},
+    {"id": "odds_api_bookmakers", "url": "https://the-odds-api.com/sports-odds-data/bookmaker-apis.html", "purpose": "Provider bookmaker key and public brand link; not governing contract proof"}
+  ]
+}

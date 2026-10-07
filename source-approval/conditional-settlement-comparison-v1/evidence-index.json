@@ -1,0 +1,97 @@
+{
+  "format": "corner.retained_settlement_comparison/1",
+  "review_date": "2026-10-02",
+  "review_kind": "local_retained_evidence_analysis",
+  "candidate_scope": {
+    "competition": "NBA",
+    "market": "full_game_two_way_moneyline",
+    "target": "DraftKings Louisiana",
+    "references": [
+      "Pinnacle",
+      "Novig"
+    ]
+  },
+  "decision": "insufficient_evidence",
+  "production_admissible": false,
+  "executable": false,
+  "runtime_policy_grants": [],
+  "complete_applicable_evidence_universe": false,
+  "live_sources_rechecked": false,
+  "emails_sent_this_review": false,
+  "sources": [
+    {
+      "body_path": "draftkings-la-nba-fullgame-2way-moneyline-v1/captures/20260926T234325857765Z/dk_la_general_json.body",
+      "body_sha256": "5a637a738116b074b008eb70dac4cac803600b3db9ef138824fcdfd621b701c5",
+      "text_path": "draftkings-la-nba-fullgame-2way-moneyline-v1/captures/20260926T234325857765Z/dk_la_general_json.txt",
+      "text_sha256": "029ae988bf3d417979340b33569d038fc62059505c023e4095edd3388b59e2a9"
+    },
+    {
+      "body_path": "draftkings-la-nba-fullgame-2way-moneyline-v1/captures/20260926T234325857765Z/dk_la_market_json.body",
+      "body_sha256": "425e391b7912d6af15e4cf6ac1a46bf33dcfe67d96295f90f0ac8ecb7c816da5",
+      "text_path": "draftkings-la-nba-fullgame-2way-moneyline-v1/captures/20260926T234325857765Z/dk_la_market_json.txt",
+      "text_sha256": "2067bd47e1d5b5e1b1b4c616b351603401cacde9273057d0d8468dc6f72d3a85"
+    },
+    {
+      "body_path": "draftkings-la-nba-fullgame-2way-moneyline-v1/captures/20260926T234325857765Z/dk_la_basketball_json.body",
+      "body_sha256": "34bf5d8306a44c63a5ac0057682fb580ff932c2b77c91fa518c0a0a5126610b7",
+      "text_path": "draftkings-la-nba-fullgame-2way-moneyline-v1/captures/20260926T234325857765Z/dk_la_basketball_json.txt",
+      "text_sha256": "be254e079b07905d9b4cb03699c655143406b0a7b2ceb987c04eb046f477d22a"
+    },
+    {
+      "body_path": "pinnacle-nba-fullgame-conditional-v1/captures/20261001T214305078414Z/pinnacle_rules.body",
+      "body_sha256": "63d6432114be131dfbab98baf91f8777a98549221a59c288fa76916c3d8303fd",
+      "text_path": "pinnacle-nba-fullgame-conditional-v1/captures/20261001T214305078414Z/pinnacle_rules.txt",
+      "text_sha256": "5cf8092a27529dd6ca61952ae0c5c2f0d74c87011dd194004572db891236c672"
+    },
+    {
+      "body_path": "novig-nba-fullgame-conditional-v1/captures/20261001T214305855075Z/novig_settlement.body",
+      "body_sha256": "9ba9c77fc08a08b47feda1bc44fd28d472f4728c8ed93c01fce5f4fb0ef15a94",
+      "text_path": "novig-nba-fullgame-conditional-v1/captures/20261001T214305855075Z/novig_settlement.txt",
+      "text_sha256": "6778db4e19aab4f60a3671aa24be2b99009a32f9c0d7dce0e12627beadfd5a37"
+    },
+    {
+      "body_path": "novig-nba-fullgame-conditional-v1/captures/20261001T214305855075Z/novig_fvs.body",
+      "body_sha256": "4370eb360eaca2790b5edc27cf9120c982124b3827968bc4e35cf674500baef6",
+      "text_path": "novig-nba-fullgame-conditional-v1/captures/20261001T214305855075Z/novig_fvs.txt",
+      "text_sha256": "1d13c030dca1cd51fa4bc565d0125c46d397c005053a323cb207ec4cb9ceb2bf"
+    },
+    {
+      "body_path": "novig-nba-fullgame-conditional-v1/captures/20261001T214305855075Z/novig_contracts.body",
+      "body_sha256": "c6b3200086fd0b4c3e133fcad55aea9b8306c88f676e279e1bfd4a95b3281e60",
+      "text_path": "novig-nba-fullgame-conditional-v1/captures/20261001T214305855075Z/novig_contracts.txt",
+      "text_sha256": "20b5fd86d3c1c44f16ed4b1b93fdb3198d318a04966519645373563f360e13cb"
+    }
+  ],
+  "findings": [
+    {
+      "id": "delayed_start_conditioning_difference",
+      "classification": "potential_incompatibility_if_retained_rules_apply",
+      "source_indices": [
+        0,
+        2,
+        3
+      ],
+      "exact_offering_applicability_proven": false
+    },
+    {
+      "id": "exact_43_minute_boundary",
+      "classification": "implication_not_established",
+      "source_indices": [
+        2,
+        3
+      ],
+      "exact_offering_applicability_proven": false
+    },
+    {
+      "id": "novig_nonzero_nondecisive_economics",
+      "classification": "documented_general_behavior_exact_product_unproven",
+      "source_indices": [
+        4,
+        5,
+        6
+      ],
+      "exact_offering_applicability_proven": false
+    }
+  ],
+  "new_review_required_for_any_approval": true
+}

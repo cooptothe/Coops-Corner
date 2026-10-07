@@ -1,0 +1,15 @@
+{
+  "format": "corner.outbound_clarification_tool_receipt/1",
+  "request_file": "novig-contract-request.json",
+  "tool_result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "user rejected MCP tool call"
+      }
+    ],
+    "isError": true
+  },
+  "delivery_or_read_confirmed": false,
+  "production_authority_granted": false
+}

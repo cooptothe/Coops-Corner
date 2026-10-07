@@ -1,0 +1,50 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+How Settlement Works — Grading, Disputes, and Voided Trades | Novig Help Center
+Skip to main content
+Search for articles...
+All Collections
+Trading and Winning
+How Settlement Works — Grading, Disputes, and Voided Trades
+How Settlement Works — Grading, Disputes, and Voided Trades
+Updated over a week ago
+Table of contents
+Once a game ends, Novig grades all trades against official data sources and settles them automatically. Settlement typically occurs within 30 minutes of the event ending. Your updated balance is reflected in your Portfolio.
+Frequently Asked Questions
+How does Novig settle trades?
+Results are verified against official data sources after the event concludes. Trades are then graded (won, lost, voided, or pushed) accordingly. You can track the status of any trade in your Portfolio.
+How long does settlement take?
+Settlement typically occurs within 30 minutes of the event ending.
+My trade seems graded incorrectly. What do I do?
+Reach out through Live Chat. Provide your trade or order slip ID (or the event name and your selection if you don't have the ID), and explain what you believe the correct outcome should be. Make sure to connect to a human agent. Our team will review against official statistics and respond, usually within 24–48 hours.
+What happens when official statistics are corrected after a game?
+If an official stat correction is issued after a game has ended, Novig is unable to re-grade affected trades. Trades are graded based on the official statistics available at the time of grading, and outcomes will not be adjusted if a correction is issued afterward. Your account balance will not be affected by any subsequent stat corrections.
+What is a voided trade?
+A trade is voided if the event is cancelled, a player doesn't participate, or other conditions in the Market Rules apply. When a trade is voided, you will be paid out at the Fair Market Value. You can learn more about how that's determined
+here
+.
+​
+For most markets if a event is postponed and rescheduled within 48 hours the trades will still be considered active. Please be sure to consult the specific market rule if you are uncertain.
+What is a push?
+A push occurs when the result exactly matches the line, or when a player (in props markets) doesn't participate at any point during the event. As with voids, pushes are also settled at
+Fair Market Value
+.
+Where do I find sport-specific void and push conditions?
+These details are outlined in the contract for the specific market you've traded on. You can view all of our current contracts
+here
+.
+Where can I see all my trade details?
+In the Portfolio section of the app. Each trade shows the event, your selection, the odds, and the settlement result.
+Related Articles
+What is Novig?
+How to Earn Novig Points
+What is Fair Value Settlement (FVS)?
+How does settlement work?
+How Parlay Legs Settle
+Did this answer your question?
+Disappointed Reaction
+😞
+Neutral Reaction
+😐
+Smiley Reaction
+😃
+Table of contents

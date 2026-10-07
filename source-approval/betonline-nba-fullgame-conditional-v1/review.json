@@ -1,0 +1,51 @@
+{
+  "format": "corner.conditional_settlement_investigation/1",
+  "dossier_id": "betonline-nba-fullgame-conditional-v1",
+  "review_date": "2026-10-02",
+  "review_phase": "initial_capture_and_applicability_gap_review",
+  "decision": "insufficient_evidence",
+  "reason_code": "real_quote_absent_and_applicable_rules_bundle_not_retained",
+  "reviewer": {"kind": "assistant_engineering_review", "production_approval_authority": false},
+  "calculation_basis_under_review": "decisive_settlement_conditional",
+  "requested_assertion_class": "decisive_two_way",
+  "production_admissible": false,
+  "executable": false,
+  "authorized_assertion_classes": [],
+  "runtime_policy_grants": [],
+  "candidate_scope": {
+    "sportsbook": "BetOnline", "bookmaker_key": "betonlineag", "competition": "NBA",
+    "market": "moneyline", "scope": "full_game", "selection_structure": "two_way",
+    "rules_jurisdiction": null, "provider_product_binding": null, "actual_offering_binding": null,
+    "current_provider_availability_verified": false
+  },
+  "scope_decision": "../product-applicability-betonline-v1/scope-decision.json",
+  "quote_capture": {
+    "path": "../product-applicability-betonline-v1/captures/20261002T120312455406Z/manifest.json",
+    "body_sha256": "07ac1832c51d1eedc4032cf38dd7f47270872b7f3711fd485b71b79acc4bc663",
+    "betonline_market_count": 0,
+    "absence_cause": "unknown"
+  },
+  "source_bundle": [
+    {"source_id": "odds_api_bookmakers", "capture": "20261002T120443387136Z", "sha256": "a584fa89af44cc65c584111364cbd879ede6796b5fb1d7e49f92ac6f362fb763", "use": "brand_key_directory_only"}
+  ],
+  "failed_captures": [
+    {"capture": "20261002T115925304960Z", "source_ids": ["betonline_basketball", "betonline_general"], "failure": "certificate_chain_verification_failed"},
+    {"capture": "20261002T120443387136Z", "source_ids": ["betonline_basketball", "betonline_general"], "failure": "http_403_with_verified_tls", "denial_bodies_retained": true}
+  ],
+  "public_preview_leads": [
+    {"url": "https://help.betonline.ag/en/articles/185180-basketball-rules", "evidence_class": "web_reader_preview_not_original_operator_response", "review_topics": ["NBA_43_minute_minimum", "overtime", "same_day_suspension_window", "scheduled_date_and_location", "straight_moneyline_tied_interruption_unresolved"]},
+    {"url": "https://www.betonline.ag/rules", "evidence_class": "web_reader_preview_not_original_operator_response", "review_topics": ["non_start_postponement", "rule_changes", "unspecified_fallback_rules", "exact_product_applicability"]}
+  ],
+  "evidence_inventory": {
+    "complete_applicable_rules_universe": false,
+    "retained_substantive_operator_rule_bodies": 0,
+    "missing": ["actual NBA quote and source identifiers", "governing operator rules bytes", "specific product and jurisdiction applicability", "effective rules revision and precedence", "straight-moneyline nondecisive economics", "compatible decisive conditioning across all three books"]
+  },
+  "governing_effective_from": null,
+  "governing_effective_until": null,
+  "approved_conditioning_contract": null,
+  "approved_invalidation_behavior": null,
+  "compatibility_with_target_and_other_reference": "not_established",
+  "provider_contacted": false,
+  "new_review_revision_required_for_approval": true
+}

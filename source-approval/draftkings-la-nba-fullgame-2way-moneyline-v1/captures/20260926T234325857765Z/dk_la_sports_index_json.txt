@@ -1,0 +1,69 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+JSON PATH $/tennis-and-racquet-sports
+Tennis
+JSON PATH $/other-non-sport-special-bets
+Other
+JSON PATH $/volleyball
+Volleyball
+JSON PATH $/snooker
+Snooker
+JSON PATH $/hockey
+Hockey
+JSON PATH $/darts
+Darts
+JSON PATH $/cricket
+Cricket
+JSON PATH $/baseball
+Baseball
+JSON PATH $/football
+Football
+JSON PATH $/basketball
+Basketball
+JSON PATH $/soccer
+Soccer
+JSON PATH $/motor-sports
+Motor Racing
+JSON PATH $/rugby-union
+Rugby
+JSON PATH $/winter-sports
+Winter Sports
+JSON PATH $/golf
+Golf
+JSON PATH $/australian-rules-football
+Aussie Rules
+JSON PATH $/handball
+Handball
+JSON PATH $/esports
+ESports
+JSON PATH $/jai-alai
+Jai Alai
+JSON PATH $/lacrosse
+Lacrosse
+JSON PATH $/table-tennis
+Table Tennis
+JSON PATH $/fighting-boxing-mma
+Boxing/MMA
+JSON PATH $/badminton
+Badminton
+JSON PATH $/boxing
+Boxing
+JSON PATH $/chess
+Chess
+JSON PATH $/c-eating
+Competitive Eating
+JSON PATH $/cycling
+Cycling
+JSON PATH $/athletics
+Athletics
+JSON PATH $/mma
+MMA
+JSON PATH $/rodeo-pbr
+Rodeo and Professional Bull Riding
+JSON PATH $/sailing
+Sailing
+JSON PATH $/softball
+Softball
+JSON PATH $/surfing
+Surfing
+JSON PATH $/swimming
+Swimming

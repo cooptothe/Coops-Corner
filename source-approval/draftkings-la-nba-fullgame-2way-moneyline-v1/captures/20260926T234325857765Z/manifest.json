@@ -1,0 +1,152 @@
+{
+  "format": "corner.source_review.capture/1",
+  "started_at": "2026-09-26T23:43:25.857748Z",
+  "finished_at": "2026-09-26T23:43:26.494782Z",
+  "plan_sha256": "53d37b098cf65964eb9cf8fca1657a723b2fe1ba467a37aea84acd0c7ecf887f",
+  "capture_script_sha256": "cd81521bcb101c52ac02bc7435b5ca5b4d2ebce2393736a4f0f05ed31f5ddf80",
+  "sources": [
+    {
+      "id": "dk_la_general_json",
+      "url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/general_rules_dke/US-LA-SB_ent/generalRules.json",
+      "purpose": "Exact public JSON used to render Louisiana General Rules",
+      "discovered_on": "https://sportsbook.draftkings.com/help/general-betting-rules/general-rules",
+      "requested_at": "2026-09-26T23:43:25.860642Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:43:26.256730Z",
+      "http_status": 200,
+      "final_url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/general_rules_dke/US-LA-SB_ent/generalRules.json",
+      "response_headers": {
+        "Content-Type": "application/json",
+        "Date": "Sat, 26 Sep 2026 23:43:26 GMT",
+        "ETag": "\"2beb6807f2e0d408832770380bd36529\"",
+        "Last-Modified": "Wed, 26 Aug 2026 10:30:40 GMT",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "dk_la_general_json.body",
+      "body_bytes": 51927,
+      "body_sha256": "5a637a738116b074b008eb70dac4cac803600b3db9ef138824fcdfd621b701c5",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "dk_la_general_json.txt",
+      "text_sha256": "029ae988bf3d417979340b33569d038fc62059505c023e4095edd3388b59e2a9",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "dk_la_general_json.links.json",
+      "links_sha256": "d948c18cb60ed3837375ffd3f8f814209500ae7e9e8c401dd4ff592b84ebe1c8"
+    },
+    {
+      "id": "dk_la_market_json",
+      "url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/market_rules_dke/US-LA-SB_ent/marketRules.json",
+      "purpose": "Exact public JSON used to render Louisiana Market Rules",
+      "discovered_on": "https://sportsbook.draftkings.com/help/general-betting-rules/market-rules",
+      "requested_at": "2026-09-26T23:43:25.861489Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:43:26.252385Z",
+      "http_status": 200,
+      "final_url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/market_rules_dke/US-LA-SB_ent/marketRules.json",
+      "response_headers": {
+        "Content-Type": "application/json",
+        "Content-Length": "28766",
+        "Date": "Sat, 26 Sep 2026 23:43:26 GMT",
+        "ETag": "\"04f92533d731d4d11da6b1194255746a\"",
+        "Last-Modified": "Wed, 26 Aug 2026 10:30:40 GMT",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "dk_la_market_json.body",
+      "body_bytes": 28766,
+      "body_sha256": "425e391b7912d6af15e4cf6ac1a46bf33dcfe67d96295f90f0ac8ecb7c816da5",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "dk_la_market_json.txt",
+      "text_sha256": "2067bd47e1d5b5e1b1b4c616b351603401cacde9273057d0d8468dc6f72d3a85",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "dk_la_market_json.links.json",
+      "links_sha256": "572282683164e57ab15f97d01fbab66df041c9e24cbd9024ad879f8137f40b80"
+    },
+    {
+      "id": "dk_la_basketball_json",
+      "url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/sport_rules_dke/US-LA-SB_ent/basketball.json",
+      "purpose": "Exact public JSON used to render Louisiana basketball-specific rules",
+      "discovered_on": "https://sportsbook.draftkings.com/help/sport-rules/basketball",
+      "requested_at": "2026-09-26T23:43:25.861962Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:43:26.304262Z",
+      "http_status": 200,
+      "final_url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/sport_rules_dke/US-LA-SB_ent/basketball.json",
+      "response_headers": {
+        "Content-Type": "application/json",
+        "Content-Length": "38256",
+        "Date": "Sat, 26 Sep 2026 23:43:26 GMT",
+        "ETag": "\"5315c073d3c1302e0edfb4d19c49fa6d\"",
+        "Last-Modified": "Wed, 26 Aug 2026 10:30:43 GMT",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "dk_la_basketball_json.body",
+      "body_bytes": 38256,
+      "body_sha256": "34bf5d8306a44c63a5ac0057682fb580ff932c2b77c91fa518c0a0a5126610b7",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "dk_la_basketball_json.txt",
+      "text_sha256": "be254e079b07905d9b4cb03699c655143406b0a7b2ceb987c04eb046f477d22a",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "dk_la_basketball_json.links.json",
+      "links_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "id": "dk_la_sports_index_json",
+      "url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/sport_rules_dke/US-LA-SB_ent/rulesIndex.json",
+      "purpose": "Sport-rules navigation and content identity",
+      "discovered_on": "https://sportsbook.draftkings.com/help/sport-rules/basketball",
+      "requested_at": "2026-09-26T23:43:26.266842Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-09-26T23:43:26.490886Z",
+      "http_status": 200,
+      "final_url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/sport_rules_dke/US-LA-SB_ent/rulesIndex.json",
+      "response_headers": {
+        "Content-Type": "application/json",
+        "Content-Length": "836",
+        "Date": "Sat, 26 Sep 2026 23:43:26 GMT",
+        "ETag": "\"8a02f18ba29f64b19b0da9e9fbfe2a6b\"",
+        "Last-Modified": "Wed, 26 Aug 2026 10:30:59 GMT",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "dk_la_sports_index_json.body",
+      "body_bytes": 836,
+      "body_sha256": "990ff37cc114c92a5edef8d651284a22279c31a306c53dc806a6c249cf69b5e7",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "dk_la_sports_index_json.txt",
+      "text_sha256": "a97dfa1dc3b3831643bed875905bc5189537289fd88ba64cbe9ef22c1c3dff1c",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "dk_la_sports_index_json.links.json",
+      "links_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    }
+  ]
+}

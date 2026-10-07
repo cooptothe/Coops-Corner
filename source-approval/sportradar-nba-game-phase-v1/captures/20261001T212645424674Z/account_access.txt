@@ -1,0 +1,292 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+Your Account
+For AI agents: visit https://developer.sportradar.com/getting-started/llms.txt for an index of all pages formatted in Markdown and endpoints in OpenAPI. Append .md to any documentation page URL to get its markdown version.
+Jump to Content
+Getting Started
+Getting Started
+Insights
+Images and Editorials
+Widgets
+Odds
+Broadcast
+SPORTS API
+Aussie Rules
+Badminton
+Bandy
+Baseball
+Basketball
+Cricket
+Darts
+Field Hockey
+Football
+Futsal
+Golf
+Handball
+Hockey
+MMA
+Racing
+Rugby
+Snooker
+Soccer
+Squash
+Table Tennis
+Tennis
+Volleyball
+More Sports
+sportradar-updates
+sportradar-thirdparty
+Coverage Matrix
+Change Log
+Log In
+Contact Us
+Getting Started
+Coverage Matrix
+Change Log
+Log In
+Contact Us
+Getting Started
+Getting Started
+Your Account
+Your Account
+Sportradar Media
+Get Started
+Make Your First Call
+API Authentication & Headers
+Your Account
+Doc Structure & Tips
+Versioning
+Response Codes
+ID Types
+Simulations
+MCP Server
+API Security Enhancements
+Your Account
+Registration
+See
+these instructions
+on creating an account and making your first API request. Or
+log in
+to the portal directly.
+Products
+Sportradar products are available at the
+Sportradar Marketplace
+! Browse by league, sport, product type, or our rotating featured products. Select your desired product to register for a free trial.
+🔑
+Can't find your product?
+The following products are currently unavailable in your
+Marketplace
+account:
+Broadcast — Insights — Widgets
+Reach out to
+Sportradar Support
+for assistance with these products.
+Packaging
+Each subscribed API product contains a set of Packages. Trialed products will feature a "Base" level package, with add-on packages available.
+For example, our
+MLB API
+contains:
+MLB Base - access to all MLB API RESTful endpoints
+MLB Push - access to all
+MLB Push
+feeds
+MLB Statcast - access to an extra package containing
+MLB Statcast
+data
+Your subscribed packages are viewable in each product's dedicated page.
+Access Types
+Trial & Production
+Sportradar APIs feature two levels of access:
+Trial
+and
+Production
+.
+Production access is reserved for Sportradar customers.
+Trial access provides the same real-world data as production, with some rare exceptions. Trials will have lower
+rate limits
+but the data itself is not throttled or updated at a lesser frequency between trial and production access levels.
+📌
+Syntax
+If you have upgraded from a trial key, be sure to change the
+access_level
+in the URL to reflect your production access.
+Typically, this means updating from
+trial
+to
+production
+, but see your API's
+Endpoints
+documentation for details.
+Trial Length
+Our trials last 30 days. If you require an extended length, reach out to
+our sales team
+.
+We will send you a notification when your trial is over, at which point any future calls made to the endpoints within that product will no longer return data.
+We will not delete your account when your trial has ended and you are welcome to trial other products at any point.
+Other Trials
+Not all trials can be self-issued. Reach out to our sales team if you are interested in adding any of these products with us:
+Push Feeds
+MLB Statcast
+Probabilities API
+Radar360
+Broadcast Solutions
+Live Odds API
+Some images products (e.g., team logos, certain action shots)
+Rate Limits
+All Sportradar API keys have a rolling
+30-day quota
+and a
+query per second
+limit. You can view limits for each of your products in
+your account
+.
+Should you reach either of these limits during your trial, you will receive an error response. Visit our
+Response Codes
+page for a list of all valid response codes.
+API Quotas
+Each API key (or API product) will have a 30-day request quota. This signifies the number of requests you are allowed to make during this period for that specific product.
+View limits & your usage for each product in
+your account
+.
+As you get close to hitting your quota, we'll send you a notification. We also send you notifications if you go over your rolling 30-day quota.
+📊
+Rolling 30-Day Quotas
+Our rolling 30-day schedule means calls from 31 days prior are removed from your quota each day.
+For example, a rolling 30-day period at the end of a month could include requests from the 1st to the 30th. The following day would take requests made from the 2nd to the 31st.
+QPS Limits
+QPS refers to the maximum number of queries per second allowed for an API product. You can view the configured QPS for each product in
+your account
+.
+Trial Limits
+Sportradar API trials are defaulted at:
+30-day trial period
+1,000 requests (quota) per rolling 30 days
+1 QPS (queries per second)
+Certain images and editorial trials will have smaller quotas.
+If you are interested in increasing your trial limits, reach out to
+our sales team
+.
+Notifications
+You will be notified by email should any of your API products approach or reach their 30-day quotas.
+When you reach your 30-day quota, we will send you a notification daily until you are back under your 30-day quota.
+These emails are delivered to every
+Admin
+user within your account.
+Important Concepts
+Applications
+Applications are groups of products within your account. There can be only one copy of a specific product per application. We recommend naming applications after your real-life applications.
+Each application has its own unique master API key.
+If you require separate testing and production environments, create distinct applications for each purpose. You may update the name of your application by clicking the “Edit” button.
+Master Keys & Legacy Keys
+Master Keys
+- These API keys are associated with each Application in your account. Every active product within this application can be accessed with this Master key.
+Legacy Keys
+- These API keys originated from our previous platform. They are viewable under
+Details
+should you have any within your account.
+Legacy keys came from a single API product and are 24 characters in length. If you are a new customer, you will not have any Legacy API keys.
+Select the clipboard icon to copy any of these keys for requests.
+Any key on an application (master or legacy) will work for all products listed, but we recommend migrating to the master key.
+Users
+Our accounts have two levels of user access:
+User
+and
+Admin
+Admins
+can see and do things in your account. They can add application trials, add new users, update user roles, and remove other users from their account. They can also see all that a user can.
+Users
+have read-only access. They will be able to see what products you have access to, your API keys, and which users are associated with your account.
+You can add teammates to your account by logging in and selecting the
+Users
+link on the lefthand menu. After you add their email address, they should sign up with that email to finish the process. By default, they will have a “User” role. Upgrade their role to “Admin” if you want them to have more access.
+Reporting
+View a usage report for any product by selecting it on your account's
+home page
+. This directs you to detailed reporting for a specific product.
+Adjust the
+Timeframe
+dropdown to see your product usage over a specific timeframe. The usage chart will dynamically update based on your selected timeframe.
+30-Day Balance & Subscription Details
+This section provides quota and subscription info on a specific product.
+Use the
+Rolling 30-Day Balance
+section to find your:
+Current usage percentage for your 30-day quota (8%)
+Current rolling 30-day period call total (386)
+Average requests per day (13)
+In
+Subscription Details
+view your product:
+Type
+(Production, Trial, Development, Qualified Trial)
+Quota
+(Number of calls per rolling 30-day period)
+Start Date
+(Start date of your subscription)
+End Date
+(End date of your subscription)
+Timeframe & Usage Summary
+In this section, view your product's
+Total Calls
+,
+Daily Average
+, and
+Errors
+over a specified timeframe. Use the dropdown to select a pre-determined number of months, or enter a custom date range.
+The usage summary features a visual usage graph that dynamically updates as you adjust your timeframe. Filter and analyze your usage by:
+Language type (ex. 'en' for English)
+API version (ex. v8 or v7)
+Package (ex. MLB Base)
+Hover over a date to receive analytical info.
+Endpoints
+Browse your most visited endpoints for an API in the
+Endpoints
+section. View a line graph of all endpoints or filter by specific endpoint with the "Filter by Endpoint" dropdown.
+Error Log
+Troubleshoot any API errors you may be experiencing with the API
+Error Log
+section.
+Over a specified timeframe, compile an error status code report which includes timestamps, API packages, endpoint paths, IP addresses, request IDs, and API keys.
+🙋‍♀️
+Still have questions?
+Reach out to our
+Support
+team for any additional questions about limits or reporting.
+Data Retrieval
+Visit
+this section
+for step-by-step instructions on making a request to our APIs.
+Updated
+5 months ago
+API Authentication & Headers
+Doc Structure & Tips
+Did this page help you?
+Yes
+No
+Registration
+Products
+Packaging
+Access Types
+Trial & Production
+Trial Length
+Other Trials
+Rate Limits
+API Quotas
+QPS Limits
+Trial Limits
+Notifications
+Important Concepts
+Applications
+Master Keys & Legacy Keys
+Users
+Reporting
+30-Day Balance & Subscription Details
+Timeframe & Usage Summary
+Endpoints
+Error Log
+Data Retrieval
+© Sportradar AG, St. Gallen, Switzerland
+Privacy Policy
+|
+Terms and Conditions
+|
+Contact Us

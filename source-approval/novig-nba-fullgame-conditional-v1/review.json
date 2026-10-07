@@ -1,0 +1,44 @@
+{
+  "format": "corner.conditional_settlement_investigation/1",
+  "dossier_id": "novig-nba-fullgame-conditional-v1",
+  "review_date": "2026-10-01",
+  "reviewer": {"kind": "assistant_engineering_review", "production_approval_authority": false},
+  "decision": "insufficient_evidence",
+  "reason_code": "nba_contract_and_product_mapping_missing_with_fvs_compatibility_concern",
+  "calculation_basis_under_review": "decisive_settlement_conditional",
+  "requested_assertion_class": "decisive_two_way",
+  "production_admissible": false,
+  "authorized_assertion_classes": [],
+  "runtime_policy_grants": [],
+  "executable": false,
+  "candidate_scope": {
+    "sportsbook": "Novig", "competition": "NBA", "market": "moneyline",
+    "scope": "full_game", "selection_structure": "two_way", "quote_phase": "pregame",
+    "rules_jurisdiction": null, "provider_product_binding": null,
+    "canonical_market_id": null, "canonical_sportsbook_id": null,
+    "actual_offering_binding": null, "current_provider_availability_verified": false
+  },
+  "source_bundle": [
+    {"source_id": "novig_settlement", "capture": "20261001T214305855075Z", "sha256": "9ba9c77fc08a08b47feda1bc44fd28d472f4728c8ed93c01fce5f4fb0ef15a94"},
+    {"source_id": "novig_fvs", "capture": "20261001T214305855075Z", "sha256": "4370eb360eaca2790b5edc27cf9120c982124b3827968bc4e35cf674500baef6"},
+    {"source_id": "novig_contracts", "capture": "20261001T214305855075Z", "sha256": "c6b3200086fd0b4c3e133fcad55aea9b8306c88f676e279e1bfd4a95b3281e60"},
+    {"source_id": "novig_product", "capture": "20261001T214305855075Z", "sha256": "ff33f9fd4dfe3e81cbce7dff73d199437baac87d45a739eb350876f037b8b17d"}
+  ],
+  "evidence_inventory": {
+    "public_sources_retained": true, "complete_applicable_rules_universe": false,
+    "operator_clarifications": [], "observed_real_settlement_incidents": [],
+    "missing": ["current Odds API quote to Novig product mapping", "exact NBA winner contract", "governing rulebook/member agreement", "effective revision and precedence", "NBA overtime/interruption terms", "per-branch payout and price/fee semantics"]
+  },
+  "public_fvs_is_stake_refund": false,
+  "public_fvs_applies_to_exact_candidate_quote": null,
+  "nba_contract_found_in_retained_index": false,
+  "absence_from_index_proves_no_nba_product": false,
+  "governing_effective_from": null,
+  "governing_effective_until": null,
+  "approved_conditioning_contract": null,
+  "approved_invalidation_behavior": null,
+  "compatibility_with_target_and_other_reference": "not_established",
+  "adverse_review_cases": ["fair_value_differs_from_entry_cost", "unknown_outcome_source", "abandonment", "cancellation", "postponement_window", "tie_push_economics", "product_revision_change", "market_specific_override"],
+  "provider_contacted": false,
+  "new_review_revision_required_for_approval": true
+}

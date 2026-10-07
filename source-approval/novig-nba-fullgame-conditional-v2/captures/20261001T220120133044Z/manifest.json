@@ -1,0 +1,149 @@
+{
+  "format": "corner.source_review.capture/1",
+  "started_at": "2026-10-01T22:01:20.133028Z",
+  "finished_at": "2026-10-01T22:01:20.978693Z",
+  "plan_sha256": "e9bcf51efbec9ccd908c054e07f9692e916644c7c21a72bdb340c2a81bfcd49f",
+  "capture_script_sha256": "5e0e79f586c60f0192553cd41eddf3e324d023d4f9a01364ee3a2cdeb72e19ca",
+  "retention_helper_sha256": "cd81521bcb101c52ac02bc7435b5ca5b4d2ebce2393736a4f0f05ed31f5ddf80",
+  "evidence_class": "public_documents_not_offering_or_applicability_proof",
+  "sources": [
+    {
+      "id": "odds_api_bookmakers",
+      "url": "https://the-odds-api.com/sports-odds-data/bookmaker-apis.html",
+      "purpose": "Provider key/region/destination mapping; does not prove current NBA offering or settlement contract",
+      "requested_at": "2026-10-01T22:01:20.146382Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T22:01:20.429912Z",
+      "http_status": 200,
+      "final_url": "https://the-odds-api.com/sports-odds-data/bookmaker-apis.html",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": "128754",
+        "Date": "Thu, 01 Oct 2026 22:01:20 GMT",
+        "ETag": "\"7fc23c8af3f8e83725ac8a30f7e9b8135f4e87788b13c477fe22813cb4f8d3db\"",
+        "Last-Modified": "Wed, 30 Sep 2026 02:33:23 GMT",
+        "Cache-Control": "max-age=3600",
+        "Vary": "x-fh-requested-host, accept-encoding"
+      },
+      "body_file": "odds_api_bookmakers.body",
+      "body_bytes": 128754,
+      "body_sha256": "a584fa89af44cc65c584111364cbd879ede6796b5fb1d7e49f92ac6f362fb763",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "odds_api_bookmakers.txt",
+      "text_sha256": "b22a91e13311fdb96f091294b6c4aa101dcb40dfe65760bd93a92c144575c9db",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "odds_api_bookmakers.links.json",
+      "links_sha256": "63b3177414c7360e03ec69caa92f9fedf029576554347e9e0b5882fb8764f2e1"
+    },
+    {
+      "id": "odds_api_v4",
+      "url": "https://the-odds-api.com/liveapi/guides/v4/",
+      "purpose": "Source IDs and link capture options, conditional on provider availability; no API request executed",
+      "requested_at": "2026-10-01T22:01:20.147098Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T22:01:20.468665Z",
+      "http_status": 200,
+      "final_url": "https://the-odds-api.com/liveapi/guides/v4/",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Length": "325495",
+        "Date": "Thu, 01 Oct 2026 22:01:20 GMT",
+        "ETag": "\"2b5c424a4acf34180f2af53276d8c8fa61d4bbc30af1140f8242f0966b8d46d9\"",
+        "Last-Modified": "Wed, 30 Sep 2026 02:33:23 GMT",
+        "Cache-Control": "max-age=3600",
+        "Vary": "x-fh-requested-host, accept-encoding"
+      },
+      "body_file": "odds_api_v4.body",
+      "body_bytes": 325495,
+      "body_sha256": "0f733b857e2de1bf4d71a182f12cd74a8c170a9ab6164fdd36ce63d36ce1733e",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "odds_api_v4.txt",
+      "text_sha256": "5592059aeb97097b914de2599e95c57ba79cc6adef924665ee55885ec3051924",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "odds_api_v4.links.json",
+      "links_sha256": "184c0cf71ab161ee72a553bda4aa437b96353d740a8032675782f522a7139d12"
+    },
+    {
+      "id": "novig_sports",
+      "url": "https://support.novig.com/en/articles/10336189-what-sports-are-available-on-novig",
+      "purpose": "Published NBA Winner coverage claim, not the NBA contract terms",
+      "requested_at": "2026-10-01T22:01:20.147637Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T22:01:20.707246Z",
+      "http_status": 200,
+      "final_url": "https://support.novig.com/en/articles/10336189-what-sports-are-available-on-novig",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 22:01:21 GMT",
+        "Cache-Control": "max-age=0, private, must-revalidate",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "novig_sports.body",
+      "body_bytes": 83632,
+      "body_sha256": "6c7e7844f6090b2d56e9bedc4b7536406024f48df76d3e18fa901d40954cde18",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "novig_sports.txt",
+      "text_sha256": "e0d233c9f9c706c96d2502591ac32e67496e052fa0dbe617afd9d8bae0ef1696",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "novig_sports.links.json",
+      "links_sha256": "05b8149a309b34030655cd5020088ca95494810ede6f91f265e209b999050337"
+    },
+    {
+      "id": "novig_contracts",
+      "url": "https://support.novig.com/en/articles/16083642-contracts",
+      "purpose": "New retained index inspection for exact NBA winner contract; WNBA cannot substitute",
+      "requested_at": "2026-10-01T22:01:20.518832Z",
+      "request_headers": {
+        "User-Agent": "TheCorner-SourceReview/1.0",
+        "Accept": "text/html, application/json",
+        "Accept-Encoding": "identity"
+      },
+      "credentials_sent": false,
+      "browser_location_context": "none established",
+      "tls_verification": "default system trust; certificate verification enabled",
+      "received_at": "2026-10-01T22:01:20.958620Z",
+      "http_status": 200,
+      "final_url": "https://support.novig.com/en/articles/16083642-contracts",
+      "response_headers": {
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Thu, 01 Oct 2026 22:01:21 GMT",
+        "Cache-Control": "max-age=0, private, must-revalidate",
+        "Vary": "Accept-Encoding"
+      },
+      "body_file": "novig_contracts.body",
+      "body_bytes": 99980,
+      "body_sha256": "02fa962dafce00a92eac0d6e6c6aad8c2fbf5e63104614e50dc9389b9c863a34",
+      "capture_status": "retained_response_not_yet_content_validated",
+      "text_file": "novig_contracts.txt",
+      "text_sha256": "20b5fd86d3c1c44f16ed4b1b93fdb3198d318a04966519645373563f360e13cb",
+      "text_encoding": "utf-8",
+      "decode_errors": "replace",
+      "links_file": "novig_contracts.links.json",
+      "links_sha256": "4c20252c724c8ae2f3e1e138ddb55504f593209d70e90e0030b8a17763c413a5"
+    }
+  ]
+}

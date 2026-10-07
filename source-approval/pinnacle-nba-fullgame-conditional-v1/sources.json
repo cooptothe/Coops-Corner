@@ -1,0 +1,7 @@
+{
+  "format": "corner.source_review.capture_plan/1",
+  "sources": [
+    {"id": "pinnacle_rules", "url": "https://www.pinnacle.com/en/future/betting-rules/", "purpose": "General precedence, game-duration/interruption/draw rules, basketball overtime; applicability to provider offering unproven"},
+    {"id": "pinnacle_terms", "url": "https://www.pinnacle.com/en/future/termsandconditions/anjouan", "purpose": "Public terms revision/product identity and restrictions; not assumed to govern the Odds API quote"}
+  ]
+}

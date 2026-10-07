@@ -1,0 +1,49 @@
+{
+  "format": "corner.source_review.settlement_interpretation/1",
+  "executable": false,
+  "production_admissible": false,
+  "candidate_scope": {
+    "sportsbook_label": "DraftKings",
+    "jurisdiction": "US-LA",
+    "competition_label": "NBA",
+    "market_type": "moneyline",
+    "scope": "full_game",
+    "selection_structure": "two_way",
+    "wager_form": "ordinary_straight_bet",
+    "canonical_sportsbook_id": null,
+    "canonical_competition_id": null,
+    "actual_offering_binding": null
+  },
+  "governing_effective_from": null,
+  "governing_effective_until": null,
+  "effective_period_status": "not_established",
+  "review_classification": "push_capable",
+  "classification_is_inference_not_production_assertion": true,
+  "terms": {
+    "structure": "two_way",
+    "overtime": "included_for_candidate_scope",
+    "tie": "refund",
+    "push": "refund",
+    "tie_push_basis": ["dk_la_general_json:II(C)(ii)", "dk_la_market_json:2-Way Moneyline Markets", "dk_la_basketball_json:Schedule and Format Changes, paragraph 3"],
+    "normal_completion_evidence": "nba_rule_5:Section IV",
+    "normal_completion_does_not_override_book_settlement": true,
+    "refund_rule": "Straight-bet tied settlement returns stake; cancellation/void is separately modeled.",
+    "void_rule": {"source": "dk_la_general_json", "locators": ["II(C)(viii)-(xi)", "II(D)", "II(G)"], "sport_overrides": "dk_la_basketball_json:Schedule and Format Changes"}
+  },
+  "interruption_interpretation": {
+    "source": "dk_la_basketball_json",
+    "locator": "Schedule and Format Changes, paragraphs 1-3",
+    "completion_window": {"ordinary_calendar_days": 2, "postseason_calendar_days": 4, "timezone": "local_stadium_time", "anchor": "officially_scheduled_start_date_at_bet_acceptance", "not_a_duration_hours_ttl": true},
+    "early_branch": {"regulation_minutes_remaining_gte": "5", "not_concluded_within_window": "void_unless_unconditionally_determined", "concluded_within_window": "full_game_moneyline_uses_declared_winner_advancing_team_or_champion_as_specified"},
+    "late_branch": {"applies": ["less_than_5_regulation_minutes_remaining", "between_regulation_end_and_overtime", "during_overtime"], "not_concluded_within_window": "deemed_concluded_using_last_play_statistics", "tied_statistics_excluded_by_retained_text": false}
+  },
+  "publisher_metadata": [
+    {"source_id": "dk_la_general_json", "uid": "blt35e94106a262a509", "cms_version": 29, "cms_updated_at": "2026-07-10T05:51:33.650Z", "cms_published_at": "2026-08-26T10:30:38.701Z"},
+    {"source_id": "dk_la_market_json", "uid": "blt4884ae0fd6967250", "cms_version": 27, "cms_updated_at": "2026-07-10T05:51:32.492Z", "cms_published_at": "2026-08-26T10:30:39.304Z"},
+    {"source_id": "dk_la_basketball_json", "uid": "blt60d49d05462ad745", "cms_version": 24, "cms_updated_at": "2026-07-10T05:51:32.520Z", "cms_published_at": "2026-08-26T10:30:42.581Z"}
+  ],
+  "source_precedence_locator": "dk_la_general_json:introduction conflict hierarchy",
+  "offering_title_override_must_be_checked": true,
+  "ordinary_cancellation_void_is_not_itself_proof_of_push": true,
+  "admission_action": "none"
+}

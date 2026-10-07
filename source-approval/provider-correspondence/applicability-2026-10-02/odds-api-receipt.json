@@ -1,0 +1,28 @@
+{
+  "format": "corner.outbound_clarification_tool_receipt/1",
+  "request_file": "odds-api-request.json",
+  "tool_result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Action completed."
+      }
+    ],
+    "structuredContent": {
+      "id": "1a0fc6f7b15e8420",
+      "thread_id": "1a0fc5a5f3eecb6b",
+      "label_ids": [
+        "SENT"
+      ],
+      "snippet": null,
+      "history_id": null,
+      "internal_date": null,
+      "payload": null,
+      "size_estimate": null,
+      "classification_label_values": null
+    },
+    "isError": false
+  },
+  "delivery_or_read_confirmed": false,
+  "production_authority_granted": false
+}

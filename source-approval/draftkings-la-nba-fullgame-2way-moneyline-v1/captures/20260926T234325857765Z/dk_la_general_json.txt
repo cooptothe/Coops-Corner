@@ -1,0 +1,265 @@
+DERIVED HTML TEXT - NOT ORIGINAL RESPONSE BYTES
+JSON PATH $/locale
+en-us
+JSON PATH $/uid
+blt35e94106a262a509
+JSON PATH $/created_at
+2022-01-27T15:27:40.194Z
+JSON PATH $/created_by
+bltfcd61704a4b01873
+JSON PATH $/rich_text_editor
+INTRODUCTION AND DEFINITIONS
+DK Crown Holdings Inc. (“
+DraftKings
+”) operates the DraftKings Sportsbook website (
+www.sportsbook.draftkings.com
+) (“the “
+Website
+”) and the DraftKings Sportsbook and Casino mobile application (the “
+Mobile Application
+” and, together with the Website, the “
+DraftKings Platform
+”) within Louisiana. The DraftKings Sportsbook Terms of Use located at
+https://sportsbook.draftkings.com/legal/la-terms-of-use
+, as may be amended at any time and from time to time (the “
+Terms
+”), in DraftKings sole and absolute discretion, for any reason or no reason, together with (i) the General Rules set forth in Section II below, as may be amended at any time and from time to time (the “
+General Rules”
+), the Bet Type and Market Rules (available by clicking
+HERE
+), as may be amended at any time and from time to time (the “
+Market Rules
+”), and the Sport Rules (available by clicking
+HERE
+), as may be amended at any time and from time to time (the “
+Sport Rules
+” and, together with the General Rules and Market Rules, the “
+DraftKings Louisiana Sportsbook House Rules
+” or the “
+Rules
+”) govern all aspects of your access and use of the DraftKings Platform, the content, products, features, tools, promotions, and other services offered through the DraftKings Platform, and the bets placed through the DraftKings Platform, in each case, only while you are physically located in Louisiana. The Rules may be updated or amended at any time and from time to time by DraftKings in its sole discretion.
+If there is conflict between the General Rules, Market Rules, and Sport Rules, the conflict shall be resolved by giving precedent in the following order, from highest precedent to lowest: (1) the General Rules, with the exception of Section II(C) (Settlement Rules); (2) the Sport Rules; (3) Section II(C) (Settlement Rules) of the General Rules; and (4) the Market Rules. If there is a conflict between (1) Section II(C) (Settlement Rules), the Sport Rules, or the Market Rules and (2) any language in either the market title or the bet slip for a bet, the language in the market title or bet slip will prevail. If there is any conflict between these Rules and the Terms, the Terms shall govern. Sport Rules shall only apply to Events (defined below) within that specific sport, and any definition in a specific set of Sport Rules will only apply within that specific set of Sport Rules. For any section, sub-section, or paragraph in these Rules with a header or section title that names any bet type(s), market type(s), or category(ies) of markets, any statement within that section of these Rules shall only apply to the bet type(s), market(s), or category(ies) of markets specified in the applicable section title or header.
+By placing a bet through the DraftKings Platform, you agree to be, and are, bound by the Terms and these Rules. Your use of the DraftKings Platform is further subject to the regulations imposed by the Louisiana Gaming Control Board or Louisiana State Police Gaming Enforcement Division. DraftKings reserves the right to stop offering or make changes to the DraftKings Platform and any offerings on the DraftKings Platform at any time, including, but not limited to, removing any products, features, tools, or offerings from the DraftKings Platform, in DraftKings’ sole and absolute discretion, for any reason or no reason, with or without providing notice to you.
+In these Rules the following terms shall have the following meanings:
+“
+Canceled
+” means that an Event is scheduled but never starts. A Canceled Event is not postponed, rescheduled, or played later, and, as such, has no result.
+“
+Conclude
+” (in any tense) or “
+Conclusion
+” means that after the Event starts: (i) the Event reaches its intended, natural, or normal end; (ii) a winner or an official result is declared for the Event by the Event’s official governing body; (iii) a participant or team in the Event is advanced to the next stage of the Competition (if no winner of the Game is declared, but a participant or team in the Game is advanced to the next stage of the Competition); or (iv) a participant or team in the Event is declared champion by the Event’s official governing body (if the Event is a final or championship).
+“
+Competition
+” means two or more related Games between two or more participants or teams organized to determine an overall winner. For example only, Competitions include, but are not limited to, tournaments (for example only, a multi-round golf tournament), a full season of a sports league (for example only, a season of the English Premier League), a playoff series (for example only, the American League Championship Series for Major League Baseball), international multi-sport contests (for example only, the Olympics).
+“
+Error
+” means any of the following:
+Any bet(s) accepted, settled, or otherwise resolved by DraftKings in violation of DraftKings’ policies, controls, procedures, or limits that were only accepted, settled, or otherwise resolved by DraftKings due to, or as a result of human error or a technical or mechanical problem or issue on, or in connection with, the DraftKings Platform;
+Except for any bet(s) at odds offered by DraftKings in connection with a clearly labeled promotion, any bet(s) accepted by DraftKings at odds that are meaningfully different, at the time the bet was accepted by DraftKings, from the odds offered in the United States for the same bet by sportsbooks similarly situated to DraftKings;
+Any bet(s) accepted by DraftKings where the odds for the bet, at the time the bet was accepted by DraftKings, reflect an incorrect score or situation for that Event at the time the bet was accepted by DraftKings, including, but not limited to, a bet accepted on Pre-Match markets for a specific Game after such Game starts; a bet, except for a bet at odds in connection with a clearly labeled promotion, accepted by DraftKings at odds that are materially inconsistent with the probability of the outcome bet on at the time the bet was accepted by DraftKings; or a bet accepted at odds that have not been updated on the DraftKings Platform after changed circumstances related to the Event (for example only, the odds on a
+Result of Offensive Drive Market
+for a football Game were not updated after a completed pass for positive yards).
+Any bet(s) accepted by DraftKings on an Event where the market or odds, at the time the bet was accepted by DraftKings, reflect a structure or format for such Event that is different from the format of the Event officially announced or scheduled at the time the bet was accepted by DraftKings. For example only, a bet accepted by DraftKings on a Game with odds that reflect the Game being two 45-minute halves, however, the Game was officially announced to be two 30-minute halves at the time the bet was accepted by DraftKings.
+Any bet(s) accepted on participant(s) or team(s) that were misspelled on the DraftKings Platform where the correct participant(s) or team(s) could not be reasonably identified due to the misspelling;
+Any Past Posted Bet(s); or
+Any bet(s) accepted by DraftKings at the time of or after an announcement has been made or information has been released where: (a) the announcement or information affects the odds for the bet; and (b) the odds for the bet had not yet been updated on the DraftKings Platform to reflect the announcement or information. For example only, if an announcement is made that the starting running back of a football Game is not going to play in the Game, any bets on the backup running back accepted after such announcement was made, but before the odds on such backup running back have been updated on the DraftKings Platform to reflect the announcement is an Error.
+“
+Event
+” means the Occurrence, Game, or Competition that is the subject of the bet. For example only, an Event may include, but is not limited to, a single race, the 4th round in a golf tournament, an entire tournament or season, an exhibition, a fight, a bout, a match, the next drive in a football Game, the next at-bat in a baseball Game, or the next lap in a race.
+“
+Game
+” means a single game, contest, fight, fixture, match, race, bout, meet, match-up, or trial.
+“
+Live
+” means any bet marked as “Live” on the bet slip in the DraftKings Platform.
+“
+Influence Betting
+” means an act or series of acts in which a customer, or parties acting in association with or on behalf of a customer, places a bet on an Event and then directly or indirectly influence, or attempt to directly or indirectly influence, the result of the Event.
+“
+Interrupted
+” means an Event has started and is then paused or stopped before the Event reaches its intended, natural, or normal end, including, but not limited to, the Event being suspended, delayed, postponed, or rescheduled, or due to a forfeiture, withdrawal, disqualification or retirement.
+“
+Occurrence
+” means any instance or segment within a specified Game for which DraftKings offers a bet. For example only, an Occurrence includes, but is not limited to, a specific play within the Game, the next touchdown within a Game, the next at-bat in a Game, or the next lap in a race.
+“
+Participate
+” (in any tense) or “
+Participation
+” means taking part in an Event. If an Event format has multiple rounds, “Participation” means that the competitor or team has started play in the 1st round of the Event (for example, only a qualifying or 1st round). For season-long Events, “Participation” means the competitor or team took part in at least 1 Game in the applicable regular season or equivalent season/schedule (for example only, the year’s racing schedule for Formula 1 or a season of the English Premier League).
+“
+Past Posted Bet
+” means any bet accepted by DraftKings on an Event once the outcome or result of the Event is known or knowable. For example only, a bet accepted by DraftKings on the total score of a Game, after the game has Concluded.
+“
+Pre-Match
+” means any bet that is not a Live bet.
+“
+Push
+” means a bet is settled as neither won nor lost (for example only, a bet on a
+2-Way Moneyline Market
+(where “Draw” is not offered as a Selection) and the Game bet on ends in a draw, or a bet on a
+2-Way Point Spread Market
+(where “Draw” is not offered as a Selection) with a spread of three points, and the Game ends with a score of 13 to 10) and only the stake amount of the bet is returned to the customer; provided that for a leg of a Parlay (as defined in the Market Rules), including a leg of a Same Game Parlay (as defined in the Market Rules) or Progressive Parlay (as defined in the Market Rules), that is settled as Push, the entire stake amount will not be returned and instead will remain on the Parlay with the remaining number of legs.
+“
+Selection
+” is any option or choice available to be bet on for a particular market on the DraftKings Platform.
+“
+Syndicate Betting
+” means an act or series of acts in which customers work together to place a bet or bets, including, but not limited to, legs in a Parlay, on an Event or multiple Events.
+“
+Unconditionally Determined
+” means that before an Event is Concluded, settlement of a bet on that Event is certain and definitive. For example only, an over/under bet on 3.5 strikeouts thrown by Pitcher A in a regular season Major League Baseball game is Unconditionally Determined if Pitcher A is substituted out of the Game after throwing 4 strikeouts; however, if Running Back B has over 100 rushing yards in a Game, but the Game is suspended in the 3rd quarter, an over 100 rushing yards bet on Running Back B would not be Unconditionally Determined, as Running Back B could have accrued negative rushing yards if the Game was resumed.
+GENERAL RULES
+A. Methods of Funding a Bet
+A bet may be funded through, Debit Cards, Online Banking, PayPal, Play+ Cards, Bank Wire Transfers, and approved Gift Cards, and may include any other method approved by the Louisiana Gaming Control Board or Louisiana State Police Gaming Enforcement Division.
+B. Bet Acceptance
+DraftKings reserves the right to refuse to accept all or part of any proposed bet(s) in its sole and absolute discretion, for any reason or no reason.
+Once you place a bet, you cannot partially or totally change or void the bet or the odds associated with the bet, and you shall not have the right to void or change a bet upon request. It is your sole responsibility to ensure all details of a bet are correct before placing the bet and to understand how the bet settles before placing the bet.
+All bets placed through the DraftKings Platform may be subject to a time delay prior to acceptance by DraftKings, and the length of such delay may vary. Whether there is a time delay, and the length of any time delay, shall be determined in DraftKings’ sole and absolute discretion, for any reason or no reason.
+A bet placed on the DraftKings Platform is only valid if DraftKings accepts the bet and the bet is recorded on DraftKings’ transaction log database. DraftKings’ transaction log database will be the final and binding authority governing if DraftKings accepted a bet. A bet recorded on DraftKings transaction log database will appear as accepted in your DraftKings account.
+Selection(s) may be added or removed from a market by DraftKings at any time for any reason or no reason. Selection(s) for a bet may include late qualifiers or alternates that are added as Selection(s) to the market after the market was first offered or bets were placed on such market.
+The start date and times displayed on the DraftKings Platform are for informational purposes only. DraftKings reserves the right to suspend and/or remove any markets at any time, in its sole and absolute discretion, for any reason or no reason. Some Events’ start dates and times may be posted on the DraftKings Platform as a placeholder before the actual start dates and times are officially announced by the Event’s official governing body. Bets will not be voided solely because the DraftKings Platform has a placeholder start date or time that has not been updated or is incorrect compared with the official start date and time announced by the Event’s official governing body.
+C. Settlement Rules
+Except for instances where the winner or correct outcome was not listed as a Selection for a bet due to regulatory reasons, if the winning team, winning participant, or correct outcome of the Event was not listed as a Selection for the bet at the time the bet was accepted by DraftKings, the bet will be settled as lost.
+Except for Futures Markets, if: (1) a bet is placed on a market that has only two Selections, (2) “Tie” or “Draw” is not offered as a Selection for the market at the time the bet was accepted by DraftKings, and (3) the outcome of the market is a tie or draw, such bet will be settled as Push. For example only, a bet on a 2-Way Moneyline Market for a Game that ends in a draw, a bet on a 2-Way Point Spread Market for a Game where the spread is three points and the Game ends with a score of 13 to 10, or an “Over” 100 total points bet on a Game that ends with a score of 60 to 40, will all be settled as Push.
+Except for Futures Markets, if: (1) a bet is placed on a market that has more than two Selections, (2) “Tie” or “Draw” is not offered as a Selection for the market at the time the bet was accepted by DraftKings, and (3) there is a tie or draw between 2 or more winning Selections, such bet will be settled according to Dead Heat Reduction rules (as defined in Section E below).
+For Futures Markets, if there is a tie or draw between two or more winning Selections, and “Tie” or “Draw” was not offered as a Selection at the time the bet was accepted by DraftKings, Dead Heat Reduction rules apply, regardless of the number of Selections for the market.
+If “Tie or “Draw” is a Selection for a market at the time the bet was accepted by DraftKings, and the outcome of the market is a tie or draw, the “Tie or “Draw” Selection will be settled as won, and bets on all other Selections will be settled as lost.
+All bets, except for bets on 2-Way Moneyline Markets, include only statistics from regulation Game time and do not include any statistics from overtime or extra time periods of play or shootouts for settlement purposes.
+Bets on 2-Way Moneyline Markets include results from any overtime and/or shootout for settlement purposes, and bets on 3-Way Moneyline Markets do not include results from any overtime and/or shootout for settlement purposes.
+If settlement of a Selection is not certain and definitive when DraftKings settles the bet after Conclusion of the Event, bets on such Selection for that Event will be voided.
+Event Cancellations and Interruptions
+Bets on an Event that is Canceled will be voided.
+Except for Futures Markets, if a Game does not start, or the Game’s official governing body announces that a Game will not start, within two calendar days (local stadium time) of the Game’s scheduled start date that was officially scheduled at the time the bet was accepted by DraftKings, such bet on that Game will be voided. If there was no officially scheduled start date for the Game at the time the bet was accepted by DraftKings, the first official start date for the Game announced by the Game’s official governing body shall be deemed the officially scheduled start date at the time the bet was accepted by DraftKings for purposes of this paragraph.
+Except for boxing, mixed martial arts, and Futures Markets, if a Game has started; is then Interrupted; and such Game does not reach its intended, natural, or normal end within 48 hours from the Game’s last instance of play, the Game’s official governing body announces the Game will not be resumed, or the Game’s official governing body announces the Game will not be resumed within 48 hours from the Game’s last instance of play, bets on Moneyline Markets and Point Spread Markets for such full Game will be voided (regardless of a winner for such Game being declared or a participant or team in the Game advancing to the next stage of the Competition) and all other bets on such Game will be voided unless settlement is already Unconditionally Determined.
+For a bet on a Futures Market, if the Event is not Concluded within 10 calendar days (eastern prevailing time due to the location of DraftKings’ headquarters) from the Event’s completion date that was officially scheduled at the time the bet was accepted by DraftKings, such bets on Futures Markets for that Event will be voided unless settlement is already Unconditionally Determined. For a bet on a Futures Market, if the Event is Concluded within 10 calendar days (eastern prevailing time due to the location of DraftKings’ headquarters) from the Event’s completion date that was officially scheduled at the time the bet was accepted by DraftKings, such bet on a Futures Market for that Event will be settled based on the official results and statistics declared by the Event’s official governing body. If there was no officially scheduled completion date for the Event at the time the bet was accepted by DraftKings, the first official completion date for the Event announced by the Event’s official governing body shall be deemed the officially scheduled completion date at the time the bet was accepted by DraftKings for purposes of this paragraph.
+For bets on a Futures Market, if a Game related to the Futures Market is not played or the Game starts and does not reach its intended, natural, or normal end, any results or statistics from such Game that are declared official by the Game’s official governing body before DraftKings settles the bet will count for settlement purposes. For example only, if Player A hits a home run in a regular season baseball Game that is later forfeited, if the official governing body for such Game declares the home run hit by Player A is official prior to DraftKings settling the bet, such home run would count as a home run for a Most Regular Season Home Runs Market for settlement purposes. For another example only, in a regular season football Game of Team A vs. Team B, and Team B is disqualified from the Game in the 3rd quarter, if Team A is declared the winner by the Game’s official governing body, such win will be deemed a win towards a Regular Season Wins Market for settlement purposes.
+Participation
+Unless a market is labelled as “all-in”, “run or not”, or “all bets action”, if a Selection for a bet does not Participate in a specific Event, all bets on such Selection for that Event will be voided.
+Except for boxing, mixed martial arts, and Futures Markets, if a Game starts but does not reach its intended, natural, or normal end within 48 hours from the Game’s last instance of play, including, but not limited to, due to a participant or team in the Game withdrawing, forfeiting, retiring, being disqualified, defaulting, or a no contest being declared, bets on Moneyline Markets and Point Spread Markets for such full Game will be voided (regardless of a winner for such Game being declared or a participant or team in the Game advancing to the next stage of the Competition) and all other bets on such Game will be voided unless settlement is already Unconditionally Determined.
+Any default score imposed by the Game’s official governing body in the event of a team or participant withdrawing, retiring, forfeiting, being disqualified, or otherwise similarly pulling out of or being removed from the Game (for example only, a 2-0 score for a National Football League Game that is forfeited by a team) will not be considered for settlement purposes. For example only, in a football Game of Team A vs. Team B where Team B forfeits the Game in the 3rd quarter with a score of 25 – 10 (in favor of Team A), and the Game’s official governing body declares Team A the winner of the Game: (i) a bet on over 20 points scored in the Game will be settled as won since settlement was already Unconditionally Determined; and (ii) a bet on a Point Spread Market on Team A with a point spread of +1 will be voided even if the official score for the Game is declared as 2-0 due to the default score imposed by the Game’s official governing body.
+If a Selection for a bet Participates in a Competition, but then withdraws, retires, forfeits, is disqualified, or is similarly eliminated from such Competition, all bets on such Selection for that Competition will be settled as lost, unless settlement is already Unconditionally Determined.
+For 3-Way Moneyline Markets and Head-2-Head Markets (including, but not limited to, Season-Long Head-2-Head Markets), if all Selections for such market do not Participate in the applicable Event and an official result is not declared by the Event’s official governing body for at least one of the Selections within 48 hours from the Event’s last instance of play, bets on 3-Way Moneyline Markets and Head-2-Head Markets for that Event will be voided.
+For Grouped Markets, if: (i) one or more of the Selections for the market does not Participate in the Event or (ii) none of the Selections for the market receive an official result, as declared by the Event’s official governing body, bets on such Grouped Market will be voided. The official result declared by the Event’s official governing body will include any tie-breaking criteria used by the Event’s official governing body.
+If all Selections for a bet on a 3-Way Moneyline Market, a Head-2-Head Market, or a Grouped Market are disqualified, forfeit, retire, withdraw, or are otherwise eliminated from the Event in the same round or at the same point in the Event, settlement of such 3-Way Moneyline Market, Head-2-Head Market, or Grouped Market will be based on the statistics from the round or at the point in the Event all Selections are disqualified, forfeit, retire, withdraw, or are otherwise eliminated from the Event.
+If one or more of the Selections for a bet on a 3-Way Moneyline Market, a Head-2-Head Market, or a Grouped Market is disqualified, forfeits, retires, withdraws, or is otherwise similarly eliminated from the Competition between Games of the Competition, any bet on a 3-Way Moneyline Market, a Head-2-Head Market, or a Grouped Market for that Competition that (i) includes the disqualified, forfeited, withdrawn, retired, or otherwise similarly eliminated Selection(s) and (ii) was placed after such disqualified, forfeited, withdrawn, retired, or otherwise similarly eliminated Selection’s last instance of play will be voided.
+For all Regular Season Awards Markets, if the Selection bet on does not Participate in at least one Game during the specified regular season, all bets on such Selection will be voided.
+For all Post-Season Awards Markets, bets on a Selection will not be voided solely because such Selection does not Participate in the applicable post-season so long as such Selection does Participate in at least one regular season Game of the applicable season.
+Format and Venue Changes
+If before an Event starts there is a material change to the format or rules of the Event from what was officially announced or scheduled at the time the bet was accepted by DraftKings, that bet on such Event will be voided. If no official format and/or rules were announced or scheduled at the time the bet was accepted by DraftKings, the format and/or rules first announced or scheduled by the Event’s official governing body shall be deemed the Event’s official format and/or rules at the time the bet was accepted by DraftKings for purposes of this paragraph. If no such announcement or schedule regarding the Event’s format and/or rules is made by the Event’s official governing body, the format and/or rules customarily used in the previous three iterations of the Event will be deemed the officially announced or scheduled format and/or rules for the Event at the time the bet was accepted by DraftKings for purposes of this paragraph. For example only, a bet is placed on a tennis match that was scheduled as a best-of-5 set format at the time the bet is accepted by DraftKings, then, after the bet was accepted by DraftKings, but before the match starts, the official governing body changes the format of the Match to best-of-3 sets, as a result, the bet placed before the format change will be voided.
+If after an Event starts there is a material change to the format or rules of the Event from what was officially announced or scheduled at the time the bet was accepted by DraftKings, such bets on that Event will be voided unless settlement is already Unconditionally Determined prior to the material change to the format or rules of the Event.
+If the home and away designations for an Event are switched (for example only, the home team becomes the away team, and the away team becomes the home team) after the bet was accepted by DraftKings, such bet on that Event will be voided.
+Bets for an Event will not be voided solely because the Event’s venue is changed, except if the venue for the Event is changed to the home venue of either team competing in the Event, in which case, bets on such Event placed before the venue change will be voided.
+Bets shall not be voided solely because there is a change in the type of scheduled playing surface for an Event (for example only, a tennis match being played on grass surface switching to a tennis match being played on a clay surface) or because the Event was moved to an outdoor setting from an indoor setting (or vice versa).
+Settlement Statistics
+Except as set forth in Section II(D) (Unavailable Statistics, Incorrect Statistics, and Resettlement): (a) bets are settled using the statistics provided by the Event's official statistical provider or the Event's official governing body, at the time DraftKings initially settles the bet; and (b) if there is a conflict between the statistics of the Event's official statistical provider and the Event's official governing body, at the time DraftKings initially settles the bet, bets will be settled using the Event's official statistical provider.
+If the statistics from the Event’s official statistical provider or the Event’s governing body are rounded by the statistical provider or official governing body, such rounded statistics will be used for settlement purposes.
+Bets are generally settled within a reasonable period of time after the Event has Concluded, however, DraftKings may settle or partly settle some bets before the official result of the Event is announced or before the Event has Concluded, purely for the benefit of customers.
+For bets on finishing positions in an Event or a winner of an Event, in each case, where such Event has a podium presentation, settlement of such bets will be determined based on the statistics at the time of the podium presentation, regardless of any subsequent protests, disqualifications, or amendments to the results, with the exception of cases of clear and obvious error. For bets on finishing positions in an Event or a winner of an Event, in each case, for an Event that is scheduled to have a podium presentation, but there is no podium presentation, such bets will be settled in accordance with the first official statistics of the Event’s official governing body after Conclusion of the Event, regardless of any subsequent protests, amendments to results, or disqualifications, with the exception of cases of clear and obvious error.
+Settlement Rules for Futures, Season Long, and Series Markets
+If the officially scheduled number of Games for a Competition changes from what was officially announced or scheduled at the time the bet was accepted by DraftKings, the following rules apply:
+If the Competition’s statistics are declared official by the Competition’s official governing body or a winner of the Competition is declared by the Competition’s official governing body, bets placed before the change to the number of Games for the Competition will be settled based on the statistics or winner declared by the Competition’s official governing body; or
+If the Competition’s statistics are not declared official by the Competition’s official governing body or if a winner is not declared by the Competition’s official governing body, such bets on that Competition placed before the change to the number of Games will be voided unless settlement is already Unconditionally Determined.
+If no official number of Games for the Competition was announced or scheduled at the time the bet was accepted by DraftKings, the number of Games for the Competition first announced or scheduled by the Competition’s official governing body shall be deemed the Competition’s official number of Games for the Competition at the time the bet was accepted by DraftKings for purposes of this paragraph. If no such announcement or schedule regarding the Competition’s number of Games is made by the Competition’s official governing body, the number of Games customarily used in the previous three iterations of the Competition will be deemed the officially announced or scheduled number of Games for the Competition at the time the bet was accepted by DraftKings for purposes of this paragraph.
+Bets will not be voided solely due to a team relocation, a team’s home venue changing, or a team name change prior to or during the applicable Competition.
+Settlement Rules for Markets Related to Number of Medals Awarded (for example only, Country A Over/Under Total Number of Medals Won in Summer/Winter Olympics)
+If multiple medals are awarded for the same position (for example only, two teams tie for 1st place and are both awarded a gold medal), all athletes or teams awarded a medal will be settled as receiving a medal.
+For
+Number of Medals Won by Country Markets
+, if the full number of medals scheduled to be awarded for the Competition, at the time the bet was accepted by DraftKings, are not awarded, bets on
+Number of Medals Won by Country Markets
+for that Competition will be voided unless settlement is already Unconditionally Determined. Notwithstanding the foregoing sentence, if duplicate medals are awarded (for example only, if there is a tie for 1st place between three athletes and all three athletes agree to split, and are awarded, the gold medal, or if instead of holding a bronze medal boxing match, two fighters are awarded a bronze medal), such duplicate medals shall only be counted as one medal awarded in the Competition for purposes of this paragraph. For example only, if two athletes from the same team or country are tied for 1st and each is awarded a gold medal, and then silver and bronze are awarded to different athletes, only one gold medal will be deemed to have been awarded to the team or country from which the 1st place athletes are from for purposes of this paragraph. If two or more athletes are from different teams or countries and receive duplicate medals, each country will be credited with a medal for purposes of settling
+Number of Medals Won by Country Markets
+. If there is no number of medals scheduled to be awarded for the Competition at the time the bet was accepted by DraftKings, the first announced number of medals scheduled to be awarded for the Competition by the Competition’s official governing body will be deemed the full number of medals scheduled to be awarded for the Competition at the time the bet was accepted by DraftKings for purposes of this paragraph. If no silver or bronze medals are awarded, medals will not be counted for any athletes or teams that finish in second (2nd) or third (3rd) place, respectively, for the purposes of settling
+Number of Medals Won by Country Markets
+.
+For
+Number of Medals Won by Athlete Markets
+, for non-individual Events, the athlete must Participate in the medal round (final round) for that medal to count towards the athlete’s total medals.
+Any medals won in a team sport or contest will count as one medal for any
+Number of Medals Won Markets
+, not by the number of athletes on such team or country that received a medal.
+D. Unavailable Statistics, Incorrect Statistics, and Resettlement
+In instances where (i) there is sufficient evidence that the statistics from the Event’s official statistical provider or official governing body are unequivocally incorrect or (ii) statistics from the Event’s official statistical provider or Event’s official governing body are not available, DraftKings reserves the right to settle bets using statistics from reliable sources. If no official statistics and/or reliable sources of information are available within 48 hours after the Conclusion of the applicable Event, all applicable bets for such Event will be voided.
+DraftKings reserves the right to re-settle any bet(s) if the official statistics from the Event’s official governing body are different from the statistics on which DraftKings settled the bet(s) or the statistics from such Event are later vacated or declared unofficial, in each case, by the Event’s official governing body.
+DraftKings reserves the right to re-settle a bet if the bet was incorrectly settled due to mistake, human error, technical or mechanical issues.
+E. Betting and Payout
+The minimum bet amount is ten U.S. cents ($0.10). DraftKings may limit the maximum bet amount such that the maximum net payout limit on any bet or combinations of bets or Parlay bet (as defined in the Market Rules) does not exceed ONE MILLION SIX HUNDRED FIFTY THOUSAND U.S. DOLLARS ($1,650,000) (the “Maximum Payout”). The Maximum Payout limit applies to a customer, or group of customers acting together, regardless of whether or not such bets are struck separately, at a range of different prices, on different days, and/or through a number of different accounts. DraftKings may lower the Maximum Payout limit for any customer in its sole and absolute discretion, with or without notice, for any reason or no reason. Unless explicitly agreed to by DraftKings and subject to any required regulatory approvals, any bet or series of bets resulting in a net payout exceeding the Maximum Payout will be voided, including, but not limited to, such bet(s) circumventing DraftKings’ risk management policies and procedures.
+DraftKings will payout winning bets by crediting the winnings to your DraftKings account. DraftKings will adjust a payout credited to your DraftKings account if the payout was credited to you in connection with any Error or any other mistake, human error, or technical or mechanical issue. If you have already withdrawn from your DraftKings account any amounts credited to you in connection with any Error or any other mistake, human error, or technical or mechanical issue, you agree that such amounts are property of DraftKings, and you agree to hold such amounts in trust for the benefit of DraftKings and promptly return such amounts upon request.
+All currently offered odds for Events are as displayed on the DraftKings Platform. Any updated odds will be updated and displayed on the DraftKings Platform. Before a bet is accepted by DraftKings, all market odds are subject to variation at any time. For any changes in odds for a market between when you add a Selection to your bet slip and before the bet is accepted by DraftKings, you may choose to either manually accept such odds change or you may set up your DraftKings account to automatically accept such odds change. Once you place a bet, you cannot partially or totally change the odds associated with the bet, regardless of any previous or future odds publication on the DraftKings Platform or odds publications in any other media.
+All payout calculations will be based on American odds irrespective of any other odds format display chosen by you at the time of bet placement. American odds express the amount to be won on a $100 U.S. Dollars bet for positive (+) odds or the amount needed to bet to win $100 U.S. Dollars for negative (-) odds.
+If an Event is being investigated or reviewed for integrity or other concerns, DraftKings may withhold settlement of bets on such Event to allow for an investigation or during an investigation and/or void bets on such Event.
+F. Dead Heat Reduction Rules
+Dead Heat Reduction (“DHR”) rules is a method for settling a bet in the event of a tie between winning Selections and is calculated by dividing the odds proportionally among the number of winning Selections for the applicable bet. For example only, in a 2-way tie where Dead Heat Reduction rules apply, your payout would be half of what was originally projected in the bet slip at the time of bet placement. For further example only:
+You bet $50 on Golfer A to have the best score among a group of three other golfers at 2.5 in decimal odds (+150 in American odds).
+The Event ends with Golfer A tied with one other golfer for the best score in the group.
+2.5 (original odds) ÷ 2 (number of winning Selections who tied) = 1.25 (DHR odds)
+$50 x 1.25 = $62.50 payout
+Dead Heat Reduction rule for a bet involving more than 1 finishing position (for example only, golfer to finish in the top 10) is calculated by dividing the number of participants or teams who tied for a position by the number of remaining finishing positions, including the position where the Selection finished, and dividing the original odds for the bet by that number. For example only:
+You bet $50 on Golfer A to place in the top 10 of a tournament at 3.0 in decimal odds (+200 in American odds).
+The tournament ends with Golfer A tying for 8th place with five other golfers.
+6 (number of tied golfers) ÷ 3 (8th, 9th & 10th places)) = 2.0
+3.0 (original odds) ÷ 2.0 (new odds) = 1.5 (DHR odds)
+$50 x 1.5 = $75 payout
+G. Voided Bets
+DraftKings may void any bet that was accepted by DraftKings when your DraftKings account does not have sufficient funds to cover the bet, including, but not limited to, as a result of a deposit being declined, not honored, or canceled by the payment processor.
+Without prejudice to any other provision in these Rules (including, but not limited to, the Sport Rules), a bet will be voided, totally or partially, irrespective of the bet being settled or Unconditionally Determined, if any of the following circumstances have occurred:
+An Error in connection with the bet;
+The bet was accepted by DraftKings on an Event that was directly or indirectly affected by illegal or suspected illegal activity. If there are any concerns that an incident that directly or indirectly affected an Event is related to any illegal or suspected illegal activity, DraftKings may withhold settlement of bets on such Event while the concerns are being investigated and/or void bets on such Event;
+The bet was accepted by DraftKings after the last instance of play on an Event;
+A customer places multiple copies of the same bet or places a series of bets that contain the same or similar Selection(s). When this occurs, all bets will be voided apart from the 1st bet placed. For example only, one Selection is repeatedly included as a leg in multiple Parlay bets (as defined in the Market Rules) where the other legs of the Parlay bets involve Selections with high-probability odds; or
+Except for a Progressive Parlay (as defined in the Market Rules) or Same Game Parlay (as defined in the Market Rules), any Parlay bet that includes two or more Selections where the outcomes of the Selections are correlated, regardless of the odds of such Selections.
+DraftKings may void any bet placed: (1) in connection with Influence Betting; (2) in connection with Syndicate Betting; or (3) on an Event where the integrity of such Event, including, but not limited to, any participant(s) or team(s) Participating in the Event, being compromised or suspected of being compromised (including, but not limited to, any instance of game-rigging).
+Except for misspellings or misstatements where the correct participant(s) or team(s) in connection with the bet could reasonably be identified, DraftKings may void bets placed on: (1) an Event that is not scheduled to take place or that does not exist and (2) on a participant or team that does not exist, is never scheduled to Participate in the Event, or is a member of a team that is not specified on the bet slip.
+For any Game that is a one team versus one team sport, a one participant versus one participant Game (for example only, a singles tennis match), or a two participant versus two participant Game (for example only, a doubles tennis match), if the opponent for such Game changes after the bet is accepted by DraftKings, bets on such Game will be voided.
+Bets for a market will be voided if a participant, team, or country wins the applicable Event and such participant, team, or country was not listed as a Selection for such market due to regulatory reasons.
+If DraftKings simultaneously offers the same market multiple times on the DraftKings Platform, even if such markets are offered with the same or different odds, any Parlay bet (as defined in the Market Rules) that includes legs on more than one of the duplicate markets will be voided.
+H. Prohibited Sports Betting Participant
+In addition to any prohibitions set forth in the Terms, the following individuals are prohibited from placing any bet on the DraftKings Platform:
+An individual under twenty-one (21) years of age;
+An individual not physically located in the authorized geographic boundaries of a parish in the state of Louisiana that has approved a proposition authorizing sports betting;
+An individual placing a bet in violation of any local, state, or federal law, rule, or regulation;
+An individual betting on behalf of another individual;
+An individual who is in breach of any rule or policy of any sports governing body which the individual is a member;
+An individual that does not have an existing sports betting account with DraftKings if the bet is placed through the DraftKings Platform;
+An individual who is in breach of any policy of DraftKings;
+An individual who is prohibited from betting with DraftKings by law, rule, or pursuant to Louisiana Revised Statutes 27:27.1;
+An individual who is an athlete, coach, trainer, official, referee or other official, umpire, or any employee or staff member of a participant or team that is a participant in the Event on which the individual is attempting to place a bet;
+A director, officer, owner, or employee of DraftKings (“
+DraftKings Employee
+”) or any relative or other person live in the same household of a DraftKings Employee;
+An individual who is voluntarily or involuntarily excluded or prohibited from establishing a betting account or participating in sports betting activities in the state of Louisiana; or
+An individual whose conduct may undermine the integrity of the betting or the Event or who is excluded from betting for other good cause.
+If any bets are placed by any prohibited sports betting participants, such bets shall be voided.
+I. Responsible Gaming
+You may enroll in a self-exclusion program, and more detailed information can be found the Louisiana Gaming Control Board website (available by clicking
+HERE
+). Information on responsible gaming may be found at
+https://rg.draftkings.com/
+.
+J. Miscellaneous
+DraftKings shall not be deemed in default or liable to you for any losses or damages whatsoever due to any Error or any other mistake, human error, or technical or mechanical issue.
+Except where the context otherwise requires: (A) words denoting the singular include the plural and vice versa; (B) words denoting any one gender include all genders; and (C) words denoting persons includes partnerships, corporations, and limited liability companies and vice versa.
+In cases where DraftKings determines in its sole discretion and acting in good faith that these Rules are inconclusive on an issue, DraftKings may void, alter, adjust, settle, and/or resettle bets impacted by such issue on a case-by-case and non-precedential basis taking into account generally accepted industry standards.
+K. Complaint
+If you have a complaint regarding the DraftKings Platform, please contact us directly at sportsbook@draftkings.com, and we will notify you of the disposition of any complaint within ten (10) business days of DraftKings receipt of your complaint. You consent to have DraftKings monitor and record any communications you have with DraftKings.
+L. Cash Out
+“Cash Out” is a feature that allows a customer to take a return on a bet before the final outcome of the Event is determined, at a value specified by DraftKings at the time the Cash Out is offered by DraftKings. The Cash Out feature is offered at DraftKings’ sole and absolute discretion, and its availability for any given bet is not guaranteed. Even though the Cash Out feature is offered for a particular bet, DraftKings may stop offering the Cash Out feature for such bet at any time in its sole discretion. Cash Out requests may be subject to a time delay, and whether there is a time delay, and the length of any time delay, shall be determined in DraftKings’ sole and absolute discretion. If during this delay, the Cash Out offer is removed or the return specified by DraftKings for the Cash Out fluctuates, the Cash Out request will not be accepted and the customer will be notified with an on-screen message. Should a Cash Out request be accepted by DraftKings, the bet will be settled immediately and any subsequent results which occur in relation with the bet will not be taken into account. If a Cash Out bet is affected by a technical, pricing, or any Error at any time between the time of original bet placement and when the Cash Out is accepted by DraftKings, DraftKings reserves the right rectify such inaccuracy in DraftKings’ sole discretion.
+JSON PATH $/site_experience/selected_site_experience
+US-LA-SB_ent
+JSON PATH $/title
+General Rules - LA
+JSON PATH $/updated_at
+2026-07-10T05:51:33.650Z
+JSON PATH $/updated_by
+bltf5901f9d2208db70
+JSON PATH $/url
+generalRules
+JSON PATH $/publish_details/environment
+blt34aae3d8a3f5c8c8
+JSON PATH $/publish_details/locale
+en-us
+JSON PATH $/publish_details/time
+2026-08-26T10:30:38.701Z
+JSON PATH $/publish_details/user
+bltf5901f9d2208db70

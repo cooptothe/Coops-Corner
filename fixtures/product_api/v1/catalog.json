@@ -1,0 +1,29 @@
+{
+  "format": "corner.product_fixture/1",
+  "captured_at": "2030-01-01T19:00:00Z",
+  "observed_at": "2030-01-01T18:59:58Z",
+  "books": [
+    {"id": "demo_target", "name": "Demo Target", "commission": "0"},
+    {"id": "demo_reference_a", "name": "Demo Reference A", "commission": "0"},
+    {"id": "demo_reference_b", "name": "Demo Reference B", "commission": "0"},
+    {"id": "demo_exchange", "name": "Demo Exchange", "commission": "0.02"}
+  ],
+  "games": [
+    {"id": "demo-nba", "sport_key": "basketball_nba", "competition": "NBA (synthetic)", "name": "River Bears at Metro Hawks", "starts_at": "2030-01-01T20:00:00Z", "scope": "full_game", "participants": ["Metro Hawks", "River Bears"]},
+    {"id": "demo-soccer", "sport_key": "soccer_demo", "competition": "Demo Soccer", "name": "Away FC at Home FC", "starts_at": "2030-01-01T21:00:00Z", "scope": "full_game", "participants": ["Home FC", "Away FC"]},
+    {"id": "demo-tournament", "sport_key": "golf_demo_winner", "competition": "Demo Tournament", "name": "Tournament Winner", "starts_at": "2030-01-02T10:00:00Z", "scope": "competition", "participants": ["Entrant A", "Entrant B", "Entrant C", "Entrant D"]}
+  ],
+  "contracts": [
+    {"id": "nba-h2h", "game_id": "demo-nba", "market_key": "h2h", "selections": [{"id": "home", "name": "Metro Hawks", "side": "home", "point": null}, {"id": "away", "name": "River Bears", "side": "away", "point": null}], "prices": {"demo_target": ["2.12", "1.91"], "demo_reference_a": ["1.95", "1.95"], "demo_reference_b": ["1.91", "2.10"]}, "lay_prices": {"demo_exchange": ["2.05", "2.05"]}},
+    {"id": "nba-spread-3-5", "game_id": "demo-nba", "market_key": "spreads", "selections": [{"id": "home", "name": "Metro Hawks", "side": "home", "point": "-3.5"}, {"id": "away", "name": "River Bears", "side": "away", "point": "3.5"}], "prices": {"demo_target": ["2.12", "1.91"], "demo_reference_a": ["1.95", "1.95"], "demo_reference_b": ["1.91", "2.10"]}, "lay_prices": {}},
+    {"id": "nba-spread-6-5", "game_id": "demo-nba", "market_key": "spreads", "selections": [{"id": "home", "name": "Metro Hawks", "side": "home", "point": "-6.5"}, {"id": "away", "name": "River Bears", "side": "away", "point": "6.5"}], "prices": {"demo_target": ["1.91", "2.12"], "demo_reference_a": ["1.95", "1.95"], "demo_reference_b": ["2.10", "1.91"]}, "lay_prices": {}},
+    {"id": "nba-total-210-5", "game_id": "demo-nba", "market_key": "totals", "selections": [{"id": "over", "name": "Over", "side": "over", "point": "210.5"}, {"id": "under", "name": "Under", "side": "under", "point": "210.5"}], "prices": {"demo_target": ["2.12", "1.91"], "demo_reference_a": ["1.95", "1.95"], "demo_reference_b": ["1.91", "2.10"]}, "lay_prices": {}},
+    {"id": "nba-total-214-5", "game_id": "demo-nba", "market_key": "totals", "selections": [{"id": "over", "name": "Over", "side": "over", "point": "214.5"}, {"id": "under", "name": "Under", "side": "under", "point": "214.5"}], "prices": {"demo_target": ["1.91", "2.12"], "demo_reference_a": ["1.95", "1.95"], "demo_reference_b": ["2.10", "1.91"]}, "lay_prices": {}},
+    {"id": "soccer-h2h", "game_id": "demo-soccer", "market_key": "h2h", "selections": [{"id": "home", "name": "Home FC", "side": "home", "point": null}, {"id": "away", "name": "Away FC", "side": "away", "point": null}, {"id": "draw", "name": "Draw", "side": "draw", "point": null}], "prices": {"demo_target": ["3.4", "3.0", "3.0"], "demo_reference_a": ["3.0", "3.4", "3.0"], "demo_reference_b": ["3.0", "3.0", "3.4"]}, "lay_prices": {"demo_exchange": ["3.2", "3.2", "3.2"]}},
+    {"id": "tournament-winner", "game_id": "demo-tournament", "market_key": "outrights", "selections": [{"id": "a", "name": "Entrant A", "side": "entrant", "point": null}, {"id": "b", "name": "Entrant B", "side": "entrant", "point": null}, {"id": "c", "name": "Entrant C", "side": "entrant", "point": null}, {"id": "d", "name": "Entrant D", "side": "entrant", "point": null}], "prices": {"demo_target": ["4.2", "4.2", "4.2", "4.2"], "demo_reference_a": ["4.0", "4.0", "4.0", "4.0"], "demo_reference_b": ["4.0", "4.0", "4.0", "4.0"]}, "lay_prices": {"demo_exchange": ["4.0", "4.0", "4.0", "4.0"]}}
+  ],
+  "required_reference_books": ["demo_reference_a", "demo_reference_b"],
+  "target_books": ["demo_target", "demo_exchange"],
+  "settlement_identity": "synthetic-compatible-full-game-rules/1",
+  "refund_possible": true
+}

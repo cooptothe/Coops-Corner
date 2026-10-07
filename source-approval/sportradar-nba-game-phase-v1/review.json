@@ -1,0 +1,57 @@
+{
+  "format": "corner.phase_source_investigation/1",
+  "dossier_id": "sportradar-nba-game-phase-v1",
+  "review_date": "2026-10-01",
+  "reviewer": {"kind": "assistant_engineering_review", "production_approval_authority": false},
+  "decision": "insufficient_evidence",
+  "reason_code": "fresh_phase_verification_and_applicability_unproven",
+  "requested_assertion_class": "supported_pregame",
+  "production_admissible": false,
+  "authorized_assertion_classes": [],
+  "runtime_policy_grants": [],
+  "candidate_scope": {
+    "provider": "Sportradar NBA",
+    "endpoint_candidate": "/nba/{access_level}/v8/{language_code}/games/{game_id}/pbp.{format}",
+    "competition": "NBA",
+    "season_type": null,
+    "canonical_event_id": null,
+    "event_crosswalk": null,
+    "access_entitlement": null,
+    "market_context": "full-game two-way moneyline",
+    "target": "DraftKings",
+    "target_jurisdiction": "US-LA",
+    "required_references": ["Pinnacle", "Novig"],
+    "reference_rules_contexts": null,
+    "current_odds_availability_verified": false,
+    "settlement_approvals": []
+  },
+  "source_bundle": [
+    {"source_id": "nba_status_workflow", "capture": "20261001T212645424674Z", "sha256": "72eadb019e4c9c50937e623912077061899ce2f13cd176ef8bd2f054de2af5ea"},
+    {"source_id": "nba_play_by_play", "capture": "20261001T212645424674Z", "sha256": "9212e32b3d4c0e5579a25e1a69fcfc0418e2ad76f6b9f7dea9c37ebb6eb91f5a"},
+    {"source_id": "account_access", "capture": "20261001T212645424674Z", "sha256": "65eb4f290d97a16b78c2a0d07bd4bbb8aa8b5d7a66598117747b8c9de3e8804a"},
+    {"source_id": "nba_push", "capture": "20261001T212645424674Z", "sha256": "e9e8e823db8df26e78856b9f19833e843b4b5fe107284afdd141cc0a4625e675"}
+  ],
+  "evidence_inventory": {
+    "published_documentation": "retained_and_reviewed",
+    "access_applicability": "general_documentation_only_no_account_specific_evidence",
+    "provider_clarifications": [],
+    "real_transition_captures": [],
+    "real_adverse_incidents": [],
+    "documented_adverse_topics": ["delayed_before_or_during_play", "unlinked_replacement_game_id", "schedule_game_status_disagreement", "variable_preseason_coverage", "push_is_not_status_heartbeat"],
+    "complete_production_evidence_universe": false
+  },
+  "unresolved": [
+    "Positive operational meaning and failure persistence of scheduled/created",
+    "Status last-verified timestamp or other defensible freshness evidence",
+    "Provider detection/publication latency, cache behavior and outage visibility",
+    "Exact NBA package, tier, API version, retention/use rights and trial exceptions",
+    "Coverage/season restrictions and authoritative endpoint conflict handling",
+    "Reviewed exact canonical event mapping including rescheduled events",
+    "Several retained real transition windows with all attempts and adverse evidence",
+    "Designated production approval authority and review/withdrawal policy"
+  ],
+  "approval_freshness_bound_seconds": null,
+  "provider_contacted": false,
+  "production_loader_implemented": false,
+  "new_review_revision_required_for_approval": true
+}

@@ -1,0 +1,10 @@
+{
+  "format": "corner.source_review.capture_plan/1",
+  "discovery": "Public assets observed through browser pageAssets while rendering the Louisiana general, market and basketball rules pages on 2026-09-26. No endpoint guessing or credentials.",
+  "sources": [
+    {"id": "dk_la_general_json", "url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/general_rules_dke/US-LA-SB_ent/generalRules.json", "purpose": "Exact public JSON used to render Louisiana General Rules", "discovered_on": "https://sportsbook.draftkings.com/help/general-betting-rules/general-rules"},
+    {"id": "dk_la_market_json", "url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/market_rules_dke/US-LA-SB_ent/marketRules.json", "purpose": "Exact public JSON used to render Louisiana Market Rules", "discovered_on": "https://sportsbook.draftkings.com/help/general-betting-rules/market-rules"},
+    {"id": "dk_la_basketball_json", "url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/sport_rules_dke/US-LA-SB_ent/basketball.json", "purpose": "Exact public JSON used to render Louisiana basketball-specific rules", "discovered_on": "https://sportsbook.draftkings.com/help/sport-rules/basketball"},
+    {"id": "dk_la_sports_index_json", "url": "https://sportsbook.draftkings.com/legal/contentstack-bucket/legal/sport_rules_dke/US-LA-SB_ent/rulesIndex.json", "purpose": "Sport-rules navigation and content identity", "discovered_on": "https://sportsbook.draftkings.com/help/sport-rules/basketball"}
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "format": "corner.public_evidence_review/1",
+  "review_date": "2026-10-02",
+  "review_scope": "available_retained_corpus_only",
+  "review_phase": "current_corpus_review_complete",
+  "decision": "insufficient_evidence",
+  "reviewer": {
+    "kind": "assistant_engineering_review",
+    "production_approval_authority": false
+  },
+  "calculation_basis": "decisive_settlement_conditional",
+  "requested_assertion_class": "decisive_two_way",
+  "production_admissible": false,
+  "authorized_assertion_classes": [],
+  "runtime_policy_grants": [],
+  "complete_applicable_evidence_universe": false,
+  "provider_contacted_this_review": false,
+  "new_network_capture_performed": false,
+  "approved_conditioning_contract": null,
+  "new_review_required_for_approval": true,
+  "path_base": "source-approval",
+  "scope_reference": {
+    "path": "product-applicability-betonline-v1/scope-decision.json",
+    "sha256": "0bef969e88c42709ecbd30f13f1bc1c803fa73b33ea0a24cb1eb4715eceb4a15"
+  },
+  "quote_evidence": {
+    "path": "product-applicability-betonline-v1/captures/20261002T120312455406Z/response.body",
+    "sha256": "07ac1832c51d1eedc4032cf38dd7f47270872b7f3711fd485b71b79acc4bc663",
+    "event_id": "26b036ff107f3c658258eaf4a6f26228",
+    "sport_key": "basketball_nba",
+    "market_key": "h2h",
+    "market_sid": null,
+    "offering_to_rules_binding_proven": false,
+    "positive_pregame_authority": false,
+    "bookmaker_key": "pinnacle",
+    "bookmaker_sid": "1633801637",
+    "bookmaker_link": "https://www.pinnacle.com/en/basketball/nba/boston-celtics-vs-detroit-pistons/1633801637/",
+    "outcome_sids": [
+      null,
+      null
+    ]
+  },
+  "decision_rule": "Missing applicability or unresolved controlling branches imply insufficient_evidence; proven incompatible exact contracts imply rejected; complete admissible proof is required for approved.",
+  "dossier_id": "pinnacle-nba-fullgame-conditional-v1",
+  "reason_code": "regional_offering_revision_and_interruption_interaction_unproven",
+  "previous_review": {
+    "path": "pinnacle-nba-fullgame-conditional-v1/review.json",
+    "sha256": "ffe9c7af279fc54ea15727b1ffd3f6579fecf38cef254ff5d10eed23a58f5afa"
+  },
+  "sources": [
+    {
+      "path": "pinnacle-nba-fullgame-conditional-v1/captures/20261001T214305078414Z/pinnacle_rules.body",
+      "sha256": "63d6432114be131dfbab98baf91f8777a98549221a59c288fa76916c3d8303fd",
+      "text_path": "pinnacle-nba-fullgame-conditional-v1/captures/20261001T214305078414Z/pinnacle_rules.txt",
+      "text_sha256": "5cf8092a27529dd6ca61952ae0c5c2f0d74c87011dd194004572db891236c672"
+    },
+    {
+      "path": "pinnacle-nba-fullgame-conditional-v1/captures/20261001T214305078414Z/pinnacle_terms.body",
+      "sha256": "75a6dad38d00466b3c5a51c090597da00583140e521a103ceb9bce3057ef9347"
+    }
+  ],
+  "established_in_retained_documents": [
+    "General rules void a fixture that has not started 12 hours after its scheduled start.",
+    "General rules specify a 30-hour completion window measured from planned start, with sport-specific exceptions.",
+    "NBA game-period bets are void if fewer than 43 minutes are completed; game and second-half periods include overtime.",
+    "Market rules outrank sport rules, which outrank general rules.",
+    "A draw without a draw price is void under the general moneyline rule; the glossary describes void as a refund.",
+    "A real NBA h2h quote with Pinnacle's reported event SID and link is now retained. This advances mapping beyond the initial review, but is not a governing-contract binding."
+  ],
+  "unresolved": [
+    "The quoted offering is not bound to a specific regional product, complete market overrides, and effective rules revision.",
+    "The fewer-than-43-minute rule does not by itself establish decisive settlement at or above 43 minutes.",
+    "The NBA interruption rule and general completion window need a complete applicable interpretation, including tied and overtime interruptions.",
+    "Retained terms publication/version information does not establish applicability at quote or wager acceptance time."
+  ],
+  "compatibility_finding": "Pinnacle's public 12-hour non-start rule differs from DraftKings' calendar-day rule. Equivalent conditioning is not established; no approximation or automatic approval is permitted.",
+  "reopen_only_for": [
+    "retained official/public quote-to-regional-product/rules binding",
+    "retained governing effective revision and market overrides",
+    "retained complete NBA interruption and invalidation interpretation"
+  ]
+}

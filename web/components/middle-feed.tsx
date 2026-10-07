@@ -1,0 +1,678 @@
+"use client";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  MARKETS,
+  american,
+  date,
+  selection,
+  sport,
+  usd,
+} from "../../frontend/format.mjs";
+import { allPages } from "../lib/api";
+import type {
+  Capabilities,
+  Game,
+  Meta,
+  Quote,
+  ToolRow,
+} from "../lib/contracts";
+import { Age, CopyButton, Menu, shortBook } from "./arb-feed";
+import { ErrorCard, Loading } from "./workspace";
+
+type MidRow = Extract<ToolRow, { kind: "middle" }>;
+type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
+type SortKey = "ratio" | "best" | "miss" | "window" | "time" | "scanned";
+interface LegVm {
+  quoteId: string;
+  bookId: string;
+  bookLabel: string;
+  label: string;
+  odds: string;
+  stake: number;
+}
+interface Vm {
+  id: string;
+  matchup: string;
+  league: string;
+  startsAt: string;
+  sportKey: string;
+  marketKey: string;
+  market: string;
+  legs: LegVm[];
+  capital: number;
+  best: number;
+  worst: number;
+  window: string;
+  width: number;
+  states: [string, number][];
+  sig: string;
+  observedAt: string;
+}
+
+const ROW_HEIGHT = { wide: 96, compact: 200 };
+const OVERSCAN = 6;
+const SETTINGS_KEY = "corner.middle-settings";
+const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
+const MISS_PATTERN = /^\d{1,3}$/;
+const WINDOW_PATTERN = /^\d{1,4}(\.\d{1,2})?$/;
+const MARKET_NAMES = MARKETS as Record<string, string>;
+export function Countdown({ value }: { value: string }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => tick((n) => n + 1), 30000);
+    return () => clearInterval(timer);
+  }, []);
+  const ms = new Date(value).getTime() - Date.now();
+  if (!value || Number.isNaN(ms)) return null;
+  if (ms <= 0) return <span>started</span>;
+  const m = Math.floor(ms / 60000);
+  const d = Math.floor(m / 1440);
+  return (
+    <span>
+      starts in{" "}
+      {d > 0
+        ? `${d}d ${Math.floor((m % 1440) / 60)}h`
+        : `${Math.floor(m / 60)}h ${m % 60}m`}
+    </span>
+  );
+}
+
+const money = (n: number) => usd(n.toFixed(2));
+const pct = (n: number) =>
+  `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n * 100).toFixed(1)}%`;
+
+const stateLabel = (id: string) =>
+  id === "common_refund"
+    ? "Push / refund"
+    : id
+        .replace("score:", "")
+        .replace("-inf:", "≤ ")
+        .replace(":+inf", " or more")
+        .replaceAll(":", "–");
+
+function toVm(
+  row: MidRow,
+  quotes: Map<string, Quote>,
+  games: Map<string, Game>,
+  books: Map<string, string>,
+): Vm | null {
+  const capital = Number(row.capital_required);
+  if (row.minimum_profit == null || !(capital > 0)) return null;
+  const legs: LegVm[] = [];
+  for (const leg of row.calculation.legs) {
+    const q = quotes.get(leg.quote_id);
+    if (!q) return null;
+    legs.push({
+      quoteId: leg.quote_id,
+      bookId: q.sportsbook_id,
+      bookLabel: shortBook(books.get(q.sportsbook_id) ?? q.sportsbook_id),
+      label: selection(q),
+      odds: american(q.decimal_odds),
+      stake: Number(leg.stake),
+    });
+  }
+  const ranges = row.calculation.double_win_ranges;
+  const width = ranges.reduce(
+    (sum, [a, b]) =>
+      sum + (a == null || b == null ? 1e9 : Number(b) - Number(a)),
+    0,
+  );
+  const g = games.get(row.game_id);
+  return {
+    id: row.id,
+    matchup: g?.name ?? "Event",
+    league: g?.competition ?? sport(g?.sport_key ?? ""),
+    startsAt: g?.starts_at ?? "",
+    sportKey: g?.sport_key ?? "",
+    marketKey: row.market_key,
+    market: MARKET_NAMES[row.market_key] ?? row.market_key,
+    legs,
+    capital,
+    best: Number(row.calculation.payoff.maximum_modeled_profit),
+    worst: Number(row.minimum_profit),
+    window: ranges.map(([a, b]) => `${a ?? "−∞"}–${b ?? "∞"}`).join(", "),
+    width,
+    states: row.calculation.payoff.states.map((s): [string, number] => [
+      stateLabel(s.state_id),
+      Number(s.net_profit),
+    ]),
+    sig: legs.map((l) => `${l.quoteId}@${l.odds}@${l.label}`).join("|"),
+    observedAt: row.oldest_observed_at,
+  };
+}
+
+// Reward per dollar lost on a miss; free middles sort first.
+const reward = (v: Vm) => (v.worst >= 0 ? Infinity : v.best / -v.worst);
+
+const SORTS: Record<SortKey, (a: Vm, b: Vm) => number> = {
+  ratio: (a, b) => {
+    const x = reward(a);
+    const y = reward(b);
+    return x === y ? b.best - a.best : y - x;
+  },
+  best: (a, b) => b.best / b.capital - a.best / a.capital,
+  miss: (a, b) => b.worst / b.capital - a.worst / a.capital,
+  window: (a, b) => b.width - a.width,
+  time: (a, b) =>
+    (a.startsAt ? new Date(a.startsAt).getTime() : Infinity) -
+    (b.startsAt ? new Date(b.startsAt).getTime() : Infinity),
+  scanned: (a, b) => b.observedAt.localeCompare(a.observedAt),
+};
+
+const Row = memo(
+  function Row({
+    vm,
+    top,
+    selected,
+    onSelect,
+  }: {
+    vm: Vm;
+    top: number;
+    selected: boolean;
+    onSelect: (vm: Vm) => void;
+  }) {
+    return (
+      <div
+        role="row"
+        tabIndex={0}
+        aria-selected={selected}
+        className={`ev-row ${selected ? "selected" : ""}`}
+        style={{ transform: `translateY(${top}px)` }}
+        onClick={() => onSelect(vm)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(vm);
+          }
+        }}
+      >
+        <div role="cell" className="ev-cell ev-edge">
+          <span className="ev-badge arb-badge">
+            {pct(vm.best / vm.capital)}
+          </span>
+          <small className="mid-loss">Miss {pct(vm.worst / vm.capital)}</small>
+        </div>
+        <div role="cell" className="ev-cell ev-event">
+          <span className="ev-league">
+            {vm.league} · {vm.market}
+          </span>
+          <strong>{vm.matchup}</strong>
+          <small>
+            {vm.startsAt ? date(vm.startsAt) : ""} ·{" "}
+            <Countdown value={vm.startsAt} />
+          </small>
+          <small className="mid-window">Win both if {vm.window}</small>
+        </div>
+        <div role="cell" className="ev-cell arb-legs">
+          {vm.legs.map((l) => (
+            <div className="arb-leg" key={l.quoteId}>
+              <span className="arb-book">{l.bookLabel}</span>
+              <span className="arb-side">{l.label}</span>
+              <b>{l.odds}</b>
+            </div>
+          ))}
+        </div>
+        <div role="cell" className="ev-cell ev-time">
+          <Age value={vm.observedAt} />
+        </div>
+      </div>
+    );
+  },
+  (a, b) =>
+    a.vm.id === b.vm.id &&
+    a.vm.sig === b.vm.sig &&
+    a.vm.best === b.vm.best &&
+    a.vm.worst === b.vm.worst &&
+    a.vm.observedAt === b.vm.observedAt &&
+    a.top === b.top &&
+    a.selected === b.selected,
+);
+
+function Calculator({
+  vm,
+  shift,
+  onAccept,
+  stake,
+  setStake,
+  onClose,
+}: {
+  vm: Vm | null;
+  shift: "ok" | "moved" | "dropped";
+  onAccept: () => void;
+  stake: string;
+  setStake: (v: string) => void;
+  onClose: () => void;
+}) {
+  const validStake = STAKE_PATTERN.test(stake) && Number(stake) > 0;
+  const total = validStake ? Number(stake) : 0;
+  const sig = vm?.sig ?? "";
+  // Recalculate only for this row's own prices or the typed stake.
+  const scaled = useMemo(() => {
+    if (!vm || !total) return null;
+    const k = total / vm.capital;
+    return {
+      stakes: vm.legs.map((l) => l.stake * k),
+      best: vm.best * k,
+      worst: vm.worst * k,
+      states: vm.states.map(([label, v]): [string, number] => [label, v * k]),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig, total]);
+
+  return (
+    <aside
+      className={`kelly-panel arb-calc ${vm ? "open" : ""}`}
+      aria-label="Middle calculator"
+    >
+      <button className="kelly-close" onClick={onClose} aria-label="Close">
+        ✕
+      </button>
+      <h3>Middle calculator</h3>
+      {!vm ? (
+        <p className="kelly-empty">Select a middle to size the stakes.</p>
+      ) : (
+        <>
+          {shift !== "ok" && (
+            <div role="alert" className="arb-alert">
+              <strong>
+                {shift === "dropped"
+                  ? "This middle is no longer available."
+                  : "The line has shifted."}
+              </strong>
+              <span>
+                {shift === "dropped"
+                  ? "A sportsbook changed or dropped a price after the latest refresh. The numbers below are the old prices."
+                  : "A sportsbook changed its line or odds after the latest refresh."}
+              </span>
+              {shift === "moved" && (
+                <button className="button secondary" onClick={onAccept}>
+                  Use the updated prices
+                </button>
+              )}
+            </div>
+          )}
+          <div className="kelly-head">
+            <strong>{vm.matchup}</strong>
+            <span>
+              {vm.league} · {vm.market}
+            </span>
+            <span>Win both if the result lands in {vm.window}</span>
+          </div>
+          <label className="field">
+            <span>TOTAL STAKE ($)</span>
+            <input
+              inputMode="decimal"
+              value={stake}
+              maxLength={12}
+              aria-invalid={!validStake}
+              onChange={(e) => setStake(e.target.value.trim())}
+            />
+          </label>
+          {!validStake || !scaled ? (
+            <p className="kelly-empty">Enter a stake greater than zero.</p>
+          ) : (
+            <>
+              {vm.legs.map((l, i) => (
+                <div className="arb-stake" key={l.quoteId}>
+                  <span>
+                    Leg {String.fromCharCode(65 + i)} · {l.bookLabel} {l.label}{" "}
+                    @ {l.odds}
+                  </span>
+                  <output>{money(scaled.stakes[i])}</output>
+                  <CopyButton
+                    value={scaled.stakes[i].toFixed(2)}
+                    label={`leg ${String.fromCharCode(65 + i)}`}
+                  />
+                </div>
+              ))}
+              <div className="arb-summary">
+                <span>If it lands in the window</span>
+                <b className="arb-net">{money(scaled.best)}</b>
+                <span>If it misses</span>
+                <b className={scaled.worst < 0 ? "mid-loss" : ""}>
+                  {money(scaled.worst)}
+                </b>
+                <span>Total risked</span>
+                <b>{money(total)}</b>
+              </div>
+              <table className="mid-states">
+                <caption>Net profit by final margin or total</caption>
+                <tbody>
+                  {scaled.states.map(([label, v]) => (
+                    <tr key={label}>
+                      <td>{label}</td>
+                      <td className={v < 0 ? "mid-loss" : ""}>{money(v)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          <small className="kelly-note">
+            A middle wins big only if the result lands between the two lines.
+            Win probability is not estimated. Calculation only; confirm each
+            price at the sportsbook.
+          </small>
+        </>
+      )}
+    </aside>
+  );
+}
+
+export default function MiddleFeed({ data }: { data: Data }) {
+  const [rows, setRows] = useState<MidRow[] | null>(null);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const [offBooks, setOffBooks] = useState<Set<string>>(new Set());
+  const [offSports, setOffSports] = useState<Set<string>>(new Set());
+  const [offMarkets, setOffMarkets] = useState<Set<string>>(new Set());
+  const [maxMiss, setMaxMiss] = useState("");
+  const [minWindow, setMinWindow] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("ratio");
+  const [stake, setStake] = useState("100");
+  const [selected, setSelected] = useState<Vm | null>(null);
+
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+      if (Array.isArray(s.offBooks))
+        setOffBooks(new Set(s.offBooks.map(String)));
+      if (Array.isArray(s.offSports))
+        setOffSports(new Set(s.offSports.map(String)));
+      if (Array.isArray(s.offMarkets))
+        setOffMarkets(new Set(s.offMarkets.map(String)));
+      if (
+        typeof s.maxMiss === "string" &&
+        (s.maxMiss === "" || MISS_PATTERN.test(s.maxMiss))
+      )
+        setMaxMiss(s.maxMiss);
+      if (
+        typeof s.minWindow === "string" &&
+        (s.minWindow === "" || WINDOW_PATTERN.test(s.minWindow))
+      )
+        setMinWindow(s.minWindow);
+      if (typeof s.sortKey === "string" && s.sortKey in SORTS)
+        setSortKey(s.sortKey as SortKey);
+      if (typeof s.stake === "string" && STAKE_PATTERN.test(s.stake))
+        setStake(s.stake);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({
+        offBooks: [...offBooks],
+        offSports: [...offSports],
+        offMarkets: [...offMarkets],
+        maxMiss,
+        minWindow,
+        sortKey,
+        stake,
+      }),
+    );
+  }, [offBooks, offSports, offMarkets, maxMiss, minWindow, sortKey, stake]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setError("");
+    allPages<ToolRow>("tools/middle", data.meta.snapshot_id, controller.signal)
+      .then((items) => {
+        if (!controller.signal.aborted)
+          setRows(items.filter((r): r is MidRow => r.kind === "middle"));
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted)
+          setError(e instanceof Error ? e.message : "Request failed.");
+      });
+    return () => controller.abort();
+  }, [data, retry]);
+
+  const maps = useMemo(
+    () => ({
+      quotes: new Map(data.quotes.map((q) => [q.id, q])),
+      games: new Map(data.games.map((g) => [g.id, g])),
+      books: new Map(data.caps.books.map((b) => [b.id, b.name])),
+    }),
+    [data],
+  );
+  const all = useMemo(
+    () =>
+      (rows ?? [])
+        .map((r) => toVm(r, maps.quotes, maps.games, maps.books))
+        .filter((v): v is Vm => v !== null),
+    [rows, maps],
+  );
+  const byId = useMemo(() => new Map(all.map((v) => [v.id, v])), [all]);
+  const bookItems = useMemo(
+    () =>
+      data.caps.books
+        .map((b): [string, string] => [b.id, shortBook(b.name)])
+        .sort((a, b) => a[1].localeCompare(b[1])),
+    [data],
+  );
+  const sportItems = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const g of data.games)
+      m.set(g.sport_key, g.competition ?? sport(g.sport_key));
+    for (const v of all) m.set(v.sportKey, m.get(v.sportKey) ?? v.league);
+    return [...m].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [data, all]);
+  const marketItems = useMemo((): [string, string][] => {
+    const m = new Map<string, string>();
+    for (const v of all) m.set(v.marketKey, v.market);
+    return [...m].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [all]);
+
+  const missLimit = MISS_PATTERN.test(maxMiss) ? Number(maxMiss) / 100 : null;
+  const widthLimit = WINDOW_PATTERN.test(minWindow) ? Number(minWindow) : null;
+  const visible = useMemo(
+    () =>
+      all
+        .filter(
+          (v) =>
+            !offSports.has(v.sportKey) &&
+            !offMarkets.has(v.marketKey) &&
+            v.legs.every((l) => !offBooks.has(l.bookId)) &&
+            (missLimit === null || -v.worst / v.capital <= missLimit) &&
+            (widthLimit === null || v.width >= widthLimit),
+        )
+        .sort(SORTS[sortKey]),
+    [all, offBooks, offSports, offMarkets, missLimit, widthLimit, sortKey],
+  );
+
+  const finite = visible.filter((v) => v.width < 1e9);
+  const avgWidth = finite.length
+    ? finite.reduce((s, v) => s + v.width, 0) / finite.length
+    : null;
+  const bestPayoff = visible.length
+    ? Math.max(...visible.map((v) => v.best / v.capital))
+    : null;
+
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const media = matchMedia("(max-width:900px)");
+    const change = () => setCompact(media.matches);
+    change();
+    media.addEventListener("change", change);
+    return () => media.removeEventListener("change", change);
+  }, []);
+  const height = compact ? ROW_HEIGHT.compact : ROW_HEIGHT.wide;
+  const viewport = useRef<HTMLDivElement>(null);
+  const [scroll, setScroll] = useState(0);
+  const frame = useRef(0);
+  const onScroll = useCallback(() => {
+    cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() =>
+      setScroll(viewport.current?.scrollTop ?? 0),
+    );
+  }, []);
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  const viewHeight = 680;
+  const first = Math.max(0, Math.floor(scroll / height) - OVERSCAN);
+  const last = Math.min(
+    visible.length,
+    Math.ceil((scroll + viewHeight) / height) + OVERSCAN,
+  );
+  const select = useCallback((vm: Vm) => setSelected(vm), []);
+
+  const current = selected ? (byId.get(selected.id) ?? null) : null;
+  const shift: "ok" | "moved" | "dropped" = !selected
+    ? "ok"
+    : !current
+      ? "dropped"
+      : current.sig !== selected.sig
+        ? "moved"
+        : "ok";
+  const shown = shift === "moved" ? selected : (current ?? selected);
+
+  if (error)
+    return <ErrorCard message={error} retry={() => setRetry((n) => n + 1)} />;
+  if (!rows) return <Loading text="Scanning for middles…" />;
+
+  return (
+    <section className="arb-layout" aria-label="Middles feed">
+      <div className="arb-bar">
+        <Menu
+          title="Sportsbooks"
+          items={bookItems}
+          off={offBooks}
+          setOff={setOffBooks}
+        />
+        <Menu
+          title="Leagues"
+          items={sportItems}
+          off={offSports}
+          setOff={setOffSports}
+        />
+        <Menu
+          title="Markets"
+          items={marketItems}
+          off={offMarkets}
+          setOff={setOffMarkets}
+        />
+        <label className="field mid-small">
+          <span>MAX MISS COST %</span>
+          <input
+            inputMode="numeric"
+            placeholder="any"
+            value={maxMiss}
+            maxLength={3}
+            aria-invalid={maxMiss !== "" && missLimit === null}
+            onChange={(e) => setMaxMiss(e.target.value.trim())}
+          />
+        </label>
+        <label className="field mid-small">
+          <span>MIN WINDOW (PTS)</span>
+          <input
+            inputMode="decimal"
+            placeholder="any"
+            value={minWindow}
+            maxLength={7}
+            aria-invalid={minWindow !== "" && widthLimit === null}
+            onChange={(e) => setMinWindow(e.target.value.trim())}
+          />
+        </label>
+        <label className="field mid-small">
+          <span>SORT</span>
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as SortKey)}
+          >
+            <option value="ratio">Best reward vs. miss</option>
+            <option value="best">Biggest payoff</option>
+            <option value="miss">Smallest miss cost</option>
+            <option value="window">Widest window</option>
+            <option value="time">Event time (soonest)</option>
+            <option value="scanned">Newest scan</option>
+          </select>
+        </label>
+        <span className="arb-status" role="status">
+          <i className="arb-pulse" aria-hidden="true" />
+          Prices as of {date(data.meta.captured_at)}
+        </span>
+      </div>
+      <div className="mid-metrics" aria-label="Middle summary">
+        <div>
+          <span>MIDDLES FOUND</span>
+          <b>{visible.length}</b>
+        </div>
+        <div>
+          <span>AVG. WINDOW (PTS)</span>
+          <b>{avgWidth === null ? "—" : avgWidth.toFixed(1)}</b>
+        </div>
+        <div>
+          <span>BEST PAYOFF</span>
+          <b className="arb-net">
+            {bestPayoff === null ? "—" : pct(bestPayoff)}
+          </b>
+        </div>
+      </div>
+      <div className="arb-body">
+        <div className="ev-main">
+          <div className="ev-count">
+            <strong>{visible.length}</strong> of {all.length} middles · green is
+            the payoff in the window, red is what a miss costs
+          </div>
+          <div
+            role="table"
+            aria-label="Middle opportunities"
+            className="ev-grid arb-grid"
+          >
+            <div role="row" className="ev-head">
+              <span role="columnheader">Payoff</span>
+              <span role="columnheader">Event &amp; window</span>
+              <span role="columnheader">Legs</span>
+              <span role="columnheader">Scanned</span>
+            </div>
+            {visible.length === 0 ? (
+              <div className="empty-state">
+                <h3>No middles match</h3>
+                <p>
+                  Raise the max miss cost, re-enable books, leagues or markets,
+                  or press Refresh odds. A middle needs two books quoting
+                  different lines on the same game.
+                </p>
+              </div>
+            ) : (
+              <div
+                ref={viewport}
+                className="ev-viewport"
+                style={{
+                  height: Math.min(viewHeight, visible.length * height),
+                }}
+                onScroll={onScroll}
+              >
+                <div
+                  className="ev-spacer"
+                  role="rowgroup"
+                  style={{ height: visible.length * height }}
+                >
+                  {visible.slice(first, last).map((vm, i) => (
+                    <Row
+                      key={vm.id}
+                      vm={vm}
+                      top={(first + i) * height}
+                      selected={vm.id === selected?.id}
+                      onSelect={select}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        {selected && (
+          <div className="kelly-backdrop" onClick={() => setSelected(null)} />
+        )}
+        <Calculator
+          vm={shown}
+          shift={shift}
+          onAccept={() => current && setSelected(current)}
+          stake={stake}
+          setStake={setStake}
+          onClose={() => setSelected(null)}
+        />
+      </div>
+    </section>
+  );
+}

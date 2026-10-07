@@ -1,0 +1,45 @@
+[
+  {
+    "id": "demo-match", "sport_key": "soccer_demo", "sport_title": "Synthetic Soccer",
+    "commence_time": "2030-01-01T20:00:00Z", "home_team": "Home FC", "away_team": "Away FC",
+    "bookmakers": [
+      {"key": "demo_book_a", "title": "Demo Book A", "sid": "demo-event-a",
+       "last_update": "2030-01-01T18:59:58Z", "markets": [
+        {"key": "h2h", "outcomes": [
+          {"name": "Home FC", "price": 3.4}, {"name": "Away FC", "price": 3.0}, {"name": "Draw", "price": 3.0}]},
+        {"key": "spreads", "outcomes": [
+          {"name": "Home FC", "point": -1.5, "price": 2.1}, {"name": "Away FC", "point": 1.5, "price": 1.8}]},
+        {"key": "totals", "outcomes": [
+          {"name": "Over", "point": 2.5, "price": 2.1}, {"name": "Under", "point": 2.5, "price": 1.8}]}
+      ]},
+      {"key": "demo_book_b", "title": "Demo Book B", "markets": [
+        {"key": "h2h", "outcomes": [
+          {"name": "Home FC", "price": 3.0}, {"name": "Away FC", "price": 3.4}, {"name": "Draw", "price": 3.4}]},
+        {"key": "spreads", "outcomes": [
+          {"name": "Home FC", "point": -1.5, "price": 1.8}, {"name": "Away FC", "point": 1.5, "price": 2.1}]},
+        {"key": "totals", "outcomes": [
+          {"name": "Over", "point": 2.5, "price": 1.8}, {"name": "Under", "point": 2.5, "price": 2.1}]}
+      ]},
+      {"key": "demo_exchange", "title": "Demo Exchange", "markets": [
+        {"key": "h2h_lay", "outcomes": [
+          {"name": "Home FC", "price": 3.2}, {"name": "Away FC", "price": 3.2}, {"name": "Draw", "price": 3.2}]}
+      ]}
+    ]
+  },
+  {
+    "id": "demo-tournament", "sport_key": "golf_demo_winner", "sport_title": "Synthetic Tournament",
+    "commence_time": "2030-01-02T10:00:00Z", "home_team": null, "away_team": null,
+    "bookmakers": [
+      {"key": "demo_book_a", "title": "Demo Book A", "markets": [
+        {"key": "outrights", "outcomes": [
+          {"name": "Entrant One", "price": 4.2}, {"name": "Entrant Two", "price": 4.2},
+          {"name": "Entrant Three", "price": 4.2}, {"name": "Entrant Four", "price": 4.2}]}
+      ]},
+      {"key": "demo_exchange", "title": "Demo Exchange", "markets": [
+        {"key": "outrights_lay", "outcomes": [
+          {"name": "Entrant One", "price": 4.0}, {"name": "Entrant Two", "price": 4.0},
+          {"name": "Entrant Three", "price": 4.0}, {"name": "Entrant Four", "price": 4.0}]}
+      ]}
+    ]
+  }
+]

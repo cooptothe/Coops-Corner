@@ -1,0 +1,36 @@
+{
+  "format": "corner.novig_quote_capture/1",
+  "requested_at": "2026-10-02T11:12:08.373971Z",
+  "endpoint": "https://api.the-odds-api.com/v4/sports/basketball_nba/odds/",
+  "public_parameters": {
+    "bookmakers": "novig",
+    "markets": "h2h",
+    "oddsFormat": "decimal",
+    "dateFormat": "iso",
+    "includeLinks": "true",
+    "includeSids": "true"
+  },
+  "credential_retained": false,
+  "redirects_allowed": false,
+  "automatic_retries": 0,
+  "production_admissible": false,
+  "messages_sent": false,
+  "status": "no_complete_novig_quote",
+  "received_headers_at": "2026-10-02T11:12:08.830113Z",
+  "http_status": 200,
+  "response_headers": {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "9182",
+    "date": "Fri, 02 Oct 2026 11:12:08 GMT",
+    "x-requests-remaining": "499",
+    "x-requests-last": "1",
+    "x-requests-used": "1"
+  },
+  "received_body_at": "2026-10-02T11:12:08.830487Z",
+  "body_sha256": "0b15f91aee95bf156407dd51f2f68dd9b7ed26a2f67f3972fa514d6ad07263ef",
+  "body_bytes": 9182,
+  "raw_body_representation": "HTTP_entity_bytes_without_transfer_framing",
+  "finished_at": "2026-10-02T11:12:08.831105Z",
+  "summary_sha256": "c727178303b17afbf941e1a67e391d44136378e93196d0fe66be4f5010a46c66",
+  "capture_script_sha256": "0d7bf4fde76dd0f73f6a3fb3e660738457541c572a05a127a12d5533c2e8be8d"
+}
