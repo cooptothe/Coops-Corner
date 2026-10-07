@@ -67,7 +67,7 @@ export default function FreshOdds({
         .then(setStatus)
         .catch(() => undefined);
       // The service may have finished even if the response was lost; re-read the database.
-      await reloadTools();
+      await reloadTools().catch(() => undefined);
       onRefreshed();
     } finally {
       setBusy(false);

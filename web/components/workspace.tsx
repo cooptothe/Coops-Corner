@@ -12,6 +12,7 @@ import {
   shiftDecimal,
 } from "../../frontend/format.mjs";
 import { allPages, request } from "../lib/api";
+import { reloadToolsOnce } from "../lib/refresh-api";
 import type {
   View,
   Capabilities,
@@ -133,6 +134,8 @@ export default function Workspace({ view }: { view: View }) {
     setBootError("");
     (async () => {
       try {
+        await reloadToolsOnce();
+        if (controller.signal.aborted) return;
         const caps = await request<Capabilities>("capabilities", {
           signal: controller.signal,
         });

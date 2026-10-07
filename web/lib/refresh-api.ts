@@ -44,12 +44,22 @@ export const refreshStatus = (signal?: AbortSignal) =>
 export const refreshOdds = (sports: string[]) =>
   call("POST", "odds", undefined, sports);
 
-// The tools API rebuilds its catalog from the database; harmless if it is not running.
+// The tools API rebuilds its catalog from the database; throws if the rebuild fails.
 export async function reloadTools(): Promise<void> {
-  await fetch("/api/v1/catalog/reload", {
+  const response = await fetch("/api/v1/catalog/reload", {
     method: "POST",
     cache: "no-store",
     headers: { "Content-Type": "application/json" },
     body: "{}",
-  }).catch(() => undefined);
+    signal: AbortSignal.timeout(120000),
+  });
+  if (!response.ok)
+    throw new Error("Odds were fetched, but the feed could not be rebuilt.");
+}
+
+let pageLoadReload: Promise<void> | null = null;
+// Once per full page load, so a browser refresh also picks up newly stored odds.
+export function reloadToolsOnce(): Promise<void> {
+  pageLoadReload ??= reloadTools().catch(() => undefined);
+  return pageLoadReload;
 }
