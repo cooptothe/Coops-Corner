@@ -19,7 +19,7 @@ import {
 import type { QuoteLinks } from "../lib/bet-links";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
-import { allPages } from "../lib/api";
+import { sharedPages } from "../lib/api";
 import type {
   Capabilities,
   Game,
@@ -571,7 +571,7 @@ export default function EvFeed({ data }: { data: Data }) {
   useEffect(() => {
     const controller = new AbortController();
     setError("");
-    allPages<ToolRow>(
+    sharedPages<ToolRow>(
       "tools/positive_ev",
       data.meta.snapshot_id,
       controller.signal,

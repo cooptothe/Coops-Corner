@@ -104,34 +104,147 @@ export async function request<T>(
     options.signal?.removeEventListener("abort", abort);
   }
 }
+const PAGE_LIMIT = 100;
+const FAN_OUT = 6; // the browser's connections per host; more only queues
+
+interface PageOptions {
+  limit?: number;
+  maxOffset?: number;
+}
+
+async function inParallel<I, O>(
+  inputs: I[],
+  width: number,
+  work: (input: I) => Promise<O>,
+): Promise<O[]> {
+  const out: O[] = new Array(inputs.length);
+  let next = 0;
+  let failed = false;
+  const lane = async () => {
+    while (!failed && next < inputs.length) {
+      const at = next++;
+      try {
+        out[at] = await work(inputs[at]);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(width, inputs.length) }, lane),
+  );
+  return out;
+}
+
+// Every page of a list. Once the first page reports a total and a regular cursor, the other pages are
+// requested side by side; otherwise (or against a server that does not) the cursors are followed one by one.
 export async function allPages<T>(
   path: string,
   snapshot: string,
   signal: AbortSignal,
+  { limit = PAGE_LIMIT, maxOffset = 10000 }: PageOptions = {},
 ): Promise<T[]> {
-  const items: T[] = [];
-  let offset = 0;
-  for (let n = 0; n < 101; n++) {
+  const get = async (offset: number) => {
     const { data } = await request<Page<T>>(path, {
-      params: { limit: 100, offset, snapshot_id: snapshot },
+      params: { limit, offset, snapshot_id: snapshot },
       snapshot,
       signal,
     });
     if (
       !Array.isArray(data.items) ||
       data.offset !== offset ||
-      data.items.length > 100
+      data.items.length > limit
     )
       throw new ApiError("Invalid page.", "invalid_response");
-    items.push(...data.items);
-    if (data.next_offset === null) return items;
+    return data;
+  };
+  const first = await get(0);
+  if (first.next_offset === null) return first.items;
+  if (
+    Number.isInteger(first.total) &&
+    first.next_offset === limit &&
+    first.total > limit
+  ) {
+    const offsets: number[] = [];
+    for (let at = limit; at < first.total; at += limit) offsets.push(at);
+    if (offsets[offsets.length - 1] > maxOffset)
+      throw new ApiError(
+        "Snapshot exceeds the client page bound.",
+        "page_limit",
+      );
+    const rest = await inParallel(offsets, FAN_OUT, get);
+    const items = [first, ...rest].flatMap((page, n) => {
+      if (
+        page.total !== first.total ||
+        (n < rest.length && page.items.length !== limit)
+      )
+        throw new ApiError("Invalid page.", "invalid_response");
+      return page.items;
+    });
+    if (items.length !== first.total)
+      throw new ApiError("Invalid page.", "invalid_response");
+    return items;
+  }
+  const items: T[] = [...first.items];
+  let offset = 0;
+  let data = first;
+  for (let n = 1; n < 101; n++) {
     if (
       !Number.isInteger(data.next_offset) ||
+      data.next_offset === null ||
       data.next_offset <= offset ||
-      data.next_offset > 10000
+      data.next_offset > maxOffset
     )
       throw new ApiError("Invalid page cursor.", "invalid_response");
     offset = data.next_offset;
+    data = await get(offset);
+    items.push(...data.items);
+    if (data.next_offset === null) return items;
   }
   throw new ApiError("Snapshot exceeds the client page bound.", "page_limit");
+}
+
+// The same list for the same snapshot is the same data, so it is fetched once however many parts of the page ask,
+// and a caller can start it early. A caller leaving does not cancel the shared request; a failed one is forgotten.
+const shared = new Map<string, Promise<unknown[]>>();
+const SHARED_MAX = 8;
+export function sharedPages<T>(
+  path: string,
+  snapshot: string,
+  signal: AbortSignal,
+  options: PageOptions = {},
+): Promise<T[]> {
+  const key = `${snapshot}|${path}|${options.limit ?? PAGE_LIMIT}`;
+  let pending = shared.get(key);
+  if (!pending) {
+    pending = allPages<T>(
+      path,
+      snapshot,
+      new AbortController().signal,
+      options,
+    );
+    shared.set(key, pending);
+    pending.catch(() => {
+      if (shared.get(key) === pending) shared.delete(key);
+    });
+    while (shared.size > SHARED_MAX) shared.delete(shared.keys().next().value!);
+  }
+  const wait = pending as Promise<T[]>;
+  return new Promise<T[]>((resolve, reject) => {
+    const cancel = () =>
+      reject(new DOMException("Request cancelled", "AbortError"));
+    if (signal.aborted) return cancel();
+    signal.addEventListener("abort", cancel, { once: true });
+    wait.then(
+      (items) => {
+        signal.removeEventListener("abort", cancel);
+        resolve(items.slice());
+      },
+      (error) => {
+        signal.removeEventListener("abort", cancel);
+        reject(error);
+      },
+    );
+  });
 }

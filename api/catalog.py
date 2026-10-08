@@ -12,7 +12,7 @@ from pathlib import Path
 
 from corner.featured_tools import MatchedMarket, Offer, ToolInputError, calculate_back_cover, calculate_back_lay
 from corner.featured_ev import calculate_featured_ev
-from corner.featured_middles import LineBet, find_middles
+from corner.featured_middles import LineBet, calculate_middle, find_middles
 from corner.featured_promos import PromoTerms, convert_promo, convert_promo_back_hedge
 from api.models import Game, Book, Quote, EVRow, CoverRow, MiddleRow, Meta, PromoResponse
 
@@ -90,6 +90,63 @@ def D_TS(text, captured_at):
 
 DATABASE_WARNINGS = ('retained_provider_quotes_not_live', 'availability_unverified',
                      'settlement_rules_assumed_equivalent', 'no_production_authorization')
+
+
+# find_middles is a pure function of its bets, so a game whose lines and prices did not change since the last
+# catalog build reuses the earlier result. The calculation itself is untouched.
+_MIDDLES = {}
+_MIDDLES_MAX = 4096
+# Whether two lines leave a window where both bets win depends only on their sides and lines, never on odds,
+# stakes or books. It is answered by the real calculate_middle on a probe pair and remembered per line pair.
+_WINDOWS = {}
+# find_middles refuses a game above these sizes; the pre-filter must not hide that refusal.
+_MIDDLE_MAX_BETS = 2000
+_MIDDLE_MAX_PAIRS = find_middles.__kwdefaults__['maximum_pair_checks']
+
+
+def _has_window(first, second, refund_possible):
+    key = (first.market_key, first.side, first.line, second.side, second.line, refund_possible)
+    found = _WINDOWS.get(key)
+    if found is None:
+        def probe(bet, name):
+            return LineBet(f'probe:{name}', f'probe-book-{name}', 'probe', bet.market_key, bet.side, bet.line, D(2), D(100), D(0))
+        found = bool(calculate_middle(contract_id='probe', first=probe(first, 'a'), second=probe(second, 'b'),
+                                      refund_possible=refund_possible).double_win_ranges)
+        _WINDOWS[key] = found
+    return found
+
+
+def _windowed(game_bets, refund_possible):
+    """The bets that can be half of a double-win pair, or all of them when find_middles must see the whole game.
+
+    find_middles only returns pairs with a window, so dropping a bet that has no windowed partner cannot change
+    its result, but it skips the exact payoff arithmetic for the (large) majority of pairs.
+    """
+    groups = {}
+    for bet in game_bets:
+        high, low = groups.setdefault((bet.contract_id, bet.market_key), ([], []))
+        (high if bet.side in {'home', 'over'} else low).append(bet)
+    if len(game_bets) > _MIDDLE_MAX_BETS or sum(len(h) * len(l) for h, l in groups.values()) > _MIDDLE_MAX_PAIRS:
+        return game_bets
+    keep = set()
+    for high, low in groups.values():
+        for first in high:
+            for second in low:
+                if first.sportsbook_id != second.sportsbook_id and _has_window(first, second, refund_possible):
+                    keep.add(first.quote_id)
+                    keep.add(second.quote_id)
+    return [bet for bet in game_bets if bet.quote_id in keep]
+
+
+def _middles_for(game_bets, refund_possible):
+    key = (tuple(game_bets), refund_possible)
+    found = _MIDDLES.get(key)
+    if found is None:
+        found = find_middles(_windowed(game_bets, refund_possible), refund_possible=refund_possible)
+        if len(_MIDDLES) >= _MIDDLES_MAX:
+            _MIDDLES.pop(next(iter(_MIDDLES)))
+        _MIDDLES[key] = found
+    return found
 
 
 class APIProblem(Exception):
@@ -194,7 +251,7 @@ class FixtureCatalog:
         middles = []
         for game_bets in by_game.values():
             try:
-                middles.extend(find_middles(game_bets, refund_possible=raw['refund_possible']))
+                middles.extend(_middles_for(game_bets, raw['refund_possible']))
             except ToolInputError:
                 if self.data_mode == 'fixture':
                     raise
@@ -205,8 +262,14 @@ class FixtureCatalog:
                                 result.payoff.conservative_capital_required, minimum=result.payoff.minimum_modeled_profit), calculation=result))
         self.rows = tuple(rows)
         self.quotes = tuple(sorted(self.quote_map.values(), key=lambda q: q.id))
-        self.games = tuple(Game(**game, market_keys=sorted({q.market_key for q in self.quotes if q.game_id == game['id']}),
-                               quote_count=sum(q.game_id == game['id'] for q in self.quotes)) for game in raw['games'])
+        by_game_quotes = {}
+        for q in self.quotes:
+            by_game_quotes.setdefault(q.game_id, []).append(q)
+        self.quotes_by_game = {game_id: tuple(items) for game_id, items in by_game_quotes.items()}
+        self.games = tuple(Game(**game, market_keys=sorted({q.market_key for q in by_game_quotes.get(game['id'], ())}),
+                               quote_count=len(by_game_quotes.get(game['id'], ()))) for game in raw['games'])
+        # Sorted and filtered result lists, valid for this immutable snapshot only: a rebuild replaces the whole catalog.
+        self.memo = {}
         self.game_map = {game.id: game for game in self.games}
         # Snapshot covers data AND calculated output, so pagination clients notice
         # changed calculator output after a deploy even if fixture bytes are equal.
@@ -258,13 +321,32 @@ class FixtureCatalog:
                              promo_quote_id=promo.quote_id, hedge_quote_id=hedge.quote_id, calculation=result)
 
 
-def paginate(items, query, numeric_fields=()):
+def ordered(items, query, numeric_fields=()):
     """Sort exact decimal values, stable ID tie-break, nulls always last."""
     items = sorted(items, key=lambda item: item.id)
     defined = [item for item in items if getattr(item, query.sort) is not None]
     missing = [item for item in items if getattr(item, query.sort) is None]
     key = (lambda item: D(getattr(item, query.sort))) if query.sort in numeric_fields else (lambda item: getattr(item, query.sort))
-    items = sorted(defined, key=key, reverse=query.descending) + missing
+    return sorted(defined, key=key, reverse=query.descending) + missing
+
+
+def paginate(items, query, numeric_fields=(), *, memo=None, memo_key=None):
+    """One page of `ordered` items.
+
+    With a memo (the snapshot's own dict) and a key naming the filter, `items` is a function that builds the
+    filtered list. The ordered list is then built once and every further page of it is just a slice.
+    """
+    if memo is None:
+        items = ordered(items, query, numeric_fields)
+    else:
+        key = (memo_key, query.sort, query.descending)
+        cached = memo.get(key)
+        if cached is None:
+            cached = ordered(items(), query, numeric_fields)
+            if len(memo) >= 256:
+                memo.clear()
+            memo[key] = cached
+        items = cached
     end = query.offset + query.limit
     return dict(items=items[query.offset:end], total=len(items), offset=query.offset, limit=query.limit,
                 next_offset=end if end < len(items) else None)

@@ -50,6 +50,7 @@ changed. The environment is ignored by Git.
 | GET | `/api/v1/games` | Paginated games/tournaments |
 | GET | `/api/v1/games/{game_id}` | One event with participants, scope and market keys |
 | GET | `/api/v1/games/{game_id}/odds` | Paginated exact-contract quote rows |
+| GET | `/api/v1/quotes` | The same quote rows for every game, in large pages (`limit` up to 1000, `offset` up to 100000); the UI loads a snapshot with this instead of one request per game |
 | GET | `/api/v1/tools/positive_ev` | Positive conditional-EV rows |
 | GET | `/api/v1/tools/arbitrage` | Positive decisive back-cover and back/lay results |
 | GET | `/api/v1/tools/low_hold` | Back-cover and back/lay results meeting a modeled-loss bound |
@@ -95,7 +96,7 @@ Opportunity IDs, WorkRequest keys or a durable idempotency API.
 
 ## Filtering, sorting and paging
 
-All list routes accept `offset` (0–10000), `limit` (1–100, default 25),
+All list routes accept `offset` (0–10000), `limit` (1–100, default 25; `/api/v1/quotes` allows `limit` 1–1000 and `offset` 0–100000),
 optional `snapshot_id`, `sort`, and `descending` (default false).
 
 | List | Filters | Sort keys |
@@ -244,5 +245,6 @@ Framework references: [response models](https://fastapi.tiangolo.com/tutorial/re
 - Responses carry `meta.data_mode = "database"`, `x-corner-data-mode: database`, quote `evidence_kind = "retained_provider_quote"` and warnings stating the quotes are not live and rule equivalence is assumed.
 - Inputs: trusted, `active` quotes for `moneyline`/`spread`/`total` full-game markets on events that have not started, observed within `CORNER_TOOLS_MAX_AGE_SECONDS` (default 7200). Contracts are one per event/market/line; only books that price every selection are included; quarter lines and unmatched participants are skipped.
 - Tools: arbitrage and low hold use all books; +EV needs at least two sharp books (`CORNER_TOOLS_REFERENCE_BOOKS`, default `pinnacle,betfair_ex_uk,prophetx,kalshi`; database mode uses whichever fully price the contract, minimum two) priced on the contract and targets every non-sharp book in the data (set `CORNER_TOOLS_TARGET_BOOKS` to restrict; the UI lets the user pick books). Refresh requests name ten bookmakers (draftkings, fanduel, espnbet, betmgm, novig, betrivers plus the four sharps), so a league still costs 3 credits; Caesars (williamhill_us) was swapped out to keep ten books, and bet365 is not in the US region and is not requested; middles pair different lines of the same game/market across books; promo conversion uses the opposite-back hedge (no exchange/lay prices are retained).
+- **Rebuild cost.** `POST /api/v1/catalog/reload` (the UI calls it once per page load and after a refresh) first reads a cheap fingerprint of what the quote query depends on (observation count and newest time, decisions, links, events). If it is unchanged the stored rows are reused and only the time cut-offs are re-applied, and if the resulting catalog input is identical the existing catalog is kept, so a page reload costs about half a second instead of re-running the 1.5 s `trusted_current_quotes` view and the whole calculation. The per-game middle search is memoized by its exact bets, and bets that cannot be half of any window are skipped (the window depends only on the two lines, never on the odds). Sorted and filtered feed lists are kept for the life of a snapshot, so paging a feed sorts it once. Output, ids and `snapshot_id` are unchanged. The session login is granted read access to `observation_dispositions` for the fingerprint; without it caching is simply off.
 - The catalog is rebuilt from the database at most every 15 seconds. If a rebuild fails the last good snapshot keeps being served; a changed snapshot gives clients a 409 `snapshot_changed`.
 - Assumptions to review: reference-book choice, `refund_possible=true`, and that all books settle main lines identically. `production_authorized` and `availability_verified` stay false.

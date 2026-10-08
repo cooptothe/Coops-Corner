@@ -11,7 +11,7 @@ from fractions import Fraction
 import hashlib
 from uuid import uuid4
 
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, execute_values
 
 from corner.featured_markets import normalize_featured_payload
 from corner.featured_matching import BindingError, MARKET_TYPES, QuoteBinding, identity, require
@@ -46,15 +46,31 @@ def _payload(cur, payload_id):
     return row, normalize_featured_payload(raw, received_at=row['received_at'])
 
 
-def _validate_registry(cur, provider_id, quote, binding):
-    cur.execute('''SELECT o.market_id, o.point, o.selected_participant_id, side.code AS side,
+def _lookup(cur, cache, many, sql, params):
+    """A read-only lookup, answered once per ingestion call.
+
+    The same outcome, event, competition, sportsbook, alias and role are checked for every market and side that
+    mentions them. Inside one caller-owned transaction the identical statement returns the identical rows, so
+    repeating it is pure overhead; every check still runs against the (reused) result.
+    """
+    key = (sql, params)
+    if cache is not None and key in cache:
+        return cache[key]
+    cur.execute(sql, params)
+    result = cur.fetchall() if many else cur.fetchone()
+    if cache is not None:
+        cache[key] = result
+    return result
+
+
+def _validate_registry(cur, provider_id, quote, binding, cache=None):
+    row = _lookup(cur, cache, False, '''SELECT o.market_id, o.point, o.selected_participant_id, side.code AS side,
                           m.event_id, m.subject_participant_id, mt.code AS market_type, scope.code AS scope,
                           e.competition_id
                    FROM corner.outcomes o JOIN corner.outcome_sides side ON side.id=o.outcome_side_id
                    JOIN corner.markets m ON m.id=o.market_id JOIN corner.market_types mt ON mt.id=m.market_type_id
                    JOIN corner.scopes scope ON scope.id=m.scope_id JOIN corner.events e ON e.id=m.event_id
                    WHERE o.id=%s''', (binding.outcome_id,))
-    row = cur.fetchone()
     require(row is not None, "unknown canonical outcome")
     require(str(row['market_id']) == binding.market_id and row['market_type'] == MARKET_TYPES[quote.market_key]
             and row['scope'] == quote.scope and row['subject_participant_id'] is None,
@@ -65,20 +81,19 @@ def _validate_registry(cur, provider_id, quote, binding):
         ('competition_provider_identities', 'competition_id', row['competition_id'], quote.sport_key),
         ('sportsbook_provider_identities', 'sportsbook_id', binding.sportsbook_id, quote.bookmaker_key)):
         # Table and column names are constants above; values are always parameters.
-        cur.execute(f'''SELECT 1 FROM corner.{table} WHERE provider_id=%s AND {column}=%s
+        found = _lookup(cur, cache, False, f'''SELECT 1 FROM corner.{table} WHERE provider_id=%s AND {column}=%s
                          AND external_id=%s AND active''', (provider_id, canonical, external))
-        require(cur.fetchone() is not None, "missing or incompatible active provider identity")
+        require(found is not None, "missing or incompatible active provider identity")
     participant = row['selected_participant_id']
     if quote.selection_side in {'home', 'away', 'entrant'}:
         require(participant is not None, "selected participant required")
-        cur.execute('''SELECT DISTINCT participant_id FROM corner.provider_participant_aliases
+        found = _lookup(cur, cache, True, '''SELECT DISTINCT participant_id FROM corner.provider_participant_aliases
                        WHERE provider_id=%s AND competition_id=%s AND raw_name=%s''',
-                    (provider_id, row['competition_id'], quote.selection_name))
-        aliases = {str(alias['participant_id']) if alias['participant_id'] is not None else None for alias in cur.fetchall()}
+                        (provider_id, row['competition_id'], quote.selection_name))
+        aliases = {str(alias['participant_id']) if alias['participant_id'] is not None else None for alias in found}
         require(aliases == {str(participant)}, "unresolved or ambiguous participant alias")
-        cur.execute('''SELECT role FROM corner.event_participants WHERE event_id=%s AND participant_id=%s''',
-                    (row['event_id'], participant))
-        membership = cur.fetchone()
+        membership = _lookup(cur, cache, False, '''SELECT role FROM corner.event_participants WHERE event_id=%s AND participant_id=%s''',
+                             (row['event_id'], participant))
         require(membership is not None and membership['role'] == ('competitor' if quote.selection_side == 'entrant' else quote.selection_side),
                 "participant does not belong to the expected event role")
     else:
@@ -131,21 +146,23 @@ def ingest_featured_payload(conn, *, payload_id, bindings):
                         raise FeaturedConflict("replay changes original binding or observation")
                     ordered.append(str(row['id']))
             else:
+                seen = {}
                 for quote in snapshot.quotes:
                     _exact_sql_price(quote.decimal_odds)
-                    _validate_registry(cur, payload['provider_id'], quote, by_source[quote.source_pointer])
+                    _validate_registry(cur, payload['provider_id'], quote, by_source[quote.source_pointer], seen)
                 cur.execute("SELECT id FROM corner.quote_states WHERE code='active'")
                 state = cur.fetchone()
                 require(state is not None, "active quote state must be provisioned")
-                for quote in snapshot.quotes:
-                    binding = by_source[quote.source_pointer]
-                    cur.execute('''INSERT INTO corner.odds_observations
-                        (provider_payload_id,provider_id,outcome_id,sportsbook_id,quote_state_id,source_record_key,
-                         decimal_odds,provider_updated_at,observed_at)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id''',
-                        (payload_id,payload['provider_id'],binding.outcome_id,binding.sportsbook_id,state['id'],
-                         SOURCE_PREFIX+quote.source_pointer,quote.decimal_odds,quote.provider_updated_at,quote.observed_at))
-                    ordered.append(str(cur.fetchone()['id']))
+                rows = [(payload_id, payload['provider_id'], by_source[q.source_pointer].outcome_id,
+                         by_source[q.source_pointer].sportsbook_id, state['id'], SOURCE_PREFIX + q.source_pointer,
+                         q.decimal_odds, q.provider_updated_at, q.observed_at) for q in snapshot.quotes]
+                # One batched insert; ids are matched back by source key, so the receipt keeps the quotes' order.
+                stored = execute_values(cur, '''INSERT INTO corner.odds_observations
+                    (provider_payload_id,provider_id,outcome_id,sportsbook_id,quote_state_id,source_record_key,
+                     decimal_odds,provider_updated_at,observed_at)
+                    VALUES %s RETURNING source_record_key, id''', rows, page_size=1000, fetch=True)
+                ids = {row['source_record_key']: str(row['id']) for row in stored}
+                ordered = [ids[SOURCE_PREFIX + q.source_pointer] for q in snapshot.quotes]
             cur.execute(f'RELEASE SAVEPOINT {savepoint}')
             return IngestionReceipt(payload_id, tuple(ordered), len(snapshot.excluded_markets))
         except Exception:

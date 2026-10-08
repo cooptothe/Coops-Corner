@@ -15,7 +15,7 @@ from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
 from api.catalog import FixtureCatalog, APIProblem, paginate
-from api.models import (Envelope, Page, Game, Quote, ToolRow, ToolKind, GameQuery, QuoteQuery, ToolQuery,
+from api.models import (Envelope, Page, Game, Quote, ToolRow, ToolKind, GameQuery, QuoteQuery, BulkQuoteQuery, ToolQuery,
                         PromoRequest, PromoResponse, ErrorEnvelope, ErrorDetail, Capabilities, Health)
 from corner.featured_markets import FEATURED_MARKETS
 from corner.featured_tools import ToolInputError
@@ -223,11 +223,24 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
     def odds(game_id: str, query: Annotated[QuoteQuery, Query()]):
         catalog.verify_snapshot(query.snapshot_id)
         catalog.game(game_id)
-        quotes = [q for q in catalog.quotes if q.game_id == game_id
-                  and (query.market_key is None or query.market_key == q.market_key)
+        quotes = [q for q in catalog.quotes_by_game.get(game_id, ())
+                  if (query.market_key is None or query.market_key == q.market_key)
                   and (query.sportsbook_id is None or query.sportsbook_id == q.sportsbook_id)
                   and (query.contract_id is None or query.contract_id == q.contract_id)]
         return result(paginate(quotes, query, ('decimal_odds',)))
+
+    @api.get('/api/v1/quotes', response_model=Envelope[Page[Quote]], tags=['games'])
+    def all_quotes(query: Annotated[BulkQuoteQuery, Query()]):
+        catalog.verify_snapshot(query.snapshot_id)
+
+        def matching():
+            return [q for q in catalog.quotes
+                    if (query.market_key is None or query.market_key == q.market_key)
+                    and (query.sportsbook_id is None or query.sportsbook_id == q.sportsbook_id)
+                    and (query.contract_id is None or query.contract_id == q.contract_id)]
+
+        which = ('quotes', query.market_key, query.sportsbook_id, query.contract_id)
+        return result(paginate(matching, query, ('decimal_odds',), memo=catalog.memo, memo_key=which))
 
     @api.get('/api/v1/tools/{kind}', response_model=Envelope[Page[ToolRow]], tags=['tools'])
     def tools(kind: ToolKind, query: Annotated[ToolQuery, Query()]):
@@ -245,16 +258,22 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
             raise APIProblem(422, 'inapplicable_sort', 'conditional_ev_ratio applies only to positive_ev.')
         if query.sort == 'minimum_profit' and kind == 'positive_ev':
             raise APIProblem(422, 'inapplicable_sort', 'positive_ev has no minimum_profit projection.')
-        rows = [row for row in catalog.rows if row.kind == kind
-                and (query.game_id is None or query.game_id == row.game_id)
-                and (query.sport_key is None or query.sport_key == catalog.game_map[row.game_id].sport_key)
-                and (query.market_key is None or query.market_key == row.market_key)
-                and (query.sportsbook_id is None or query.sportsbook_id in row.sportsbook_ids)]
-        if kind == 'positive_ev':
-            rows = [r for r in rows if Decimal(r.conditional_ev_ratio) >= minimum_ev]
-        if kind == 'low_hold':
-            rows = [r for r in rows if -Fraction(Decimal(r.minimum_profit)) <= Fraction(loss_limit) * Fraction(Decimal(r.capital_required))]
-        return result(paginate(rows, query, ('conditional_ev_ratio', 'minimum_profit', 'capital_required')))
+        def matching():
+            rows = [row for row in catalog.rows if row.kind == kind
+                    and (query.game_id is None or query.game_id == row.game_id)
+                    and (query.sport_key is None or query.sport_key == catalog.game_map[row.game_id].sport_key)
+                    and (query.market_key is None or query.market_key == row.market_key)
+                    and (query.sportsbook_id is None or query.sportsbook_id in row.sportsbook_ids)]
+            if kind == 'positive_ev':
+                rows = [r for r in rows if Decimal(r.conditional_ev_ratio) >= minimum_ev]
+            if kind == 'low_hold':
+                rows = [r for r in rows if -Fraction(Decimal(r.minimum_profit)) <= Fraction(loss_limit) * Fraction(Decimal(r.capital_required))]
+            return rows
+
+        # The filter, its ordering and the page are separate steps: paging through one feed sorts it once.
+        which = (kind, query.game_id, query.sport_key, query.market_key, query.sportsbook_id, query.minimum_ev_ratio, query.maximum_loss_ratio)
+        return result(paginate(matching, query, ('conditional_ev_ratio', 'minimum_profit', 'capital_required'),
+                               memo=catalog.memo, memo_key=which))
 
     @api.post('/api/v1/calculators/promo', response_model=Envelope[PromoResponse], tags=['calculators'])
     def promo(command: PromoRequest):

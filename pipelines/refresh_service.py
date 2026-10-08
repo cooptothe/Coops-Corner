@@ -5,6 +5,7 @@ in-season league, ceiling 39). Nothing runs on a timer. Guards: single flight, c
 capture's own credit floor. Guard state persists in retained/refresh_state.json.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 import os
@@ -115,6 +116,24 @@ def run_refresh(capture=board.capture, ingest=board.ingest, now=None, sports=SPO
         base = ROOT / 'retained' / f"board-refresh-{stamp.strftime('%Y%m%dT%H%M%S%fZ')}"
         results = {}
         params = {'commenceTimeFrom': stamp.strftime('%Y-%m-%dT%H:%M:%SZ')}  # pre-game only
+        # One league's ingest (database) runs while the next league is captured (network). At most one ingest is ever
+        # in flight, and every stop rule below is unchanged: it is decided from the capture, never from the ingest.
+        pool = ThreadPoolExecutor(max_workers=1)
+        pending = None
+
+        def settle():
+            nonlocal pending
+            if pending is None:
+                return
+            league, future = pending
+            pending = None
+            try:
+                future.result()
+                results[league] = 'ok'
+                state['last_success_at'] = datetime.now(timezone.utc).isoformat()
+            except Exception as error:
+                results[league] = f'ingest_failed ({type(error).__name__})'
+
         try:
             plan = [k for s in sports for k in (expand(s) if expand else [s])]
             for sport in plan:
@@ -135,15 +154,17 @@ def run_refresh(capture=board.capture, ingest=board.ingest, now=None, sports=SPO
                     if (destination / 'response.body').read_bytes().strip() in (b'', b'[]'):
                         results[sport] = 'no_upcoming_games'
                         continue
-                    ingest(destination)
-                    results[sport] = 'ok'
-                    state['last_success_at'] = datetime.now(timezone.utc).isoformat()
+                    settle()
+                    results[sport] = 'ingesting'  # keeps the league's place in the result order
+                    pending = (sport, pool.submit(ingest, destination))
                 except Exception as error:
                     results[sport] = f'ingest_failed ({type(error).__name__})'
                 if int((quota or {}).get('x-requests-remaining', '999')) < CREDITS_PER_SPORT:
                     results['stopped'] = 'credit_floor'
                     break
         finally:
+            settle()
+            pool.shutdown(wait=True)
             state['last_results'] = results
             failed = [s for s, r in results.items() if 'failed' in r]
             state['last_error'] = f"Problems: {', '.join(failed)}." if failed else None

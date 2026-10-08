@@ -94,5 +94,86 @@ class RefreshGuards(unittest.TestCase):
             self.assertEqual(client.get(path).status_code, 401, path)
 
 
+class RefreshOverlap(unittest.TestCase):
+    """The next league is captured while the previous one is ingested; nothing else about a run changes."""
+    LEAGUES = ('basketball_nba', 'baseball_mlb', 'icehockey_nhl')
+    setUp = RefreshGuards.setUp
+    capture = RefreshGuards.capture
+
+    def test_next_capture_starts_while_the_previous_ingest_runs(self):
+        import threading
+        captured_second = threading.Event()
+        order, active, widest = [], [0], [0]
+        guard = threading.Lock()
+
+        def capture(dest, params, sport=None):
+            order.append(('capture', sport))
+            if sport == self.LEAGUES[1]:
+                captured_second.set()
+            return RefreshGuards.capture(self, dest, params, sport=sport)
+
+        def ingest(dest):
+            with guard:
+                active[0] += 1
+                widest[0] = max(widest[0], active[0])
+            order.append(('ingest', dest.name))
+            try:
+                if dest.name == self.LEAGUES[0]:
+                    # Can only finish if the second capture really began meanwhile.
+                    self.assertTrue(captured_second.wait(5), 'next capture did not overlap the ingest')
+            finally:
+                with guard:
+                    active[0] -= 1
+
+        code, body = svc.run_refresh(capture, ingest, now=1000.0, sports=self.LEAGUES)
+        self.assertEqual(200, code)
+        self.assertEqual(1, widest[0])
+        self.assertEqual({k: 'ok' for k in self.LEAGUES}, body['last_results'])
+        self.assertEqual(list(self.LEAGUES), list(body['last_results']))
+
+    def test_ingest_failure_is_recorded_and_the_run_continues(self):
+        def ingest(dest):
+            if dest.name == self.LEAGUES[1]:
+                raise RuntimeError('db')
+
+        code, body = svc.run_refresh(self.capture, ingest, now=1000.0, sports=self.LEAGUES)
+        self.assertEqual(200, code)
+        self.assertEqual(['ok', 'ingest_failed (RuntimeError)', 'ok'], list(body['last_results'].values()))
+        self.assertEqual(3, len(self.calls))
+        self.assertIn(self.LEAGUES[1], body['last_error'])
+
+    def test_a_failed_capture_still_waits_for_and_keeps_the_earlier_ingest(self):
+        done = []
+
+        def capture(dest, params, sport=None):
+            if sport == self.LEAGUES[1]:
+                raise RuntimeError('provider')
+            return RefreshGuards.capture(self, dest, params, sport=sport)
+
+        def ingest(dest):
+            import time
+            time.sleep(0.2)
+            done.append(dest.name)
+
+        code, body = svc.run_refresh(capture, ingest, now=1000.0, sports=self.LEAGUES)
+        self.assertEqual([self.LEAGUES[0]], done)
+        self.assertEqual({self.LEAGUES[0]: 'ok', self.LEAGUES[1]: 'capture_failed (RuntimeError)'}, body['last_results'])
+        self.assertEqual(200, code)
+
+    def test_credit_floor_stops_after_the_current_league_and_still_ingests_it(self):
+        ingested = []
+
+        def capture(dest, params, sport=None):
+            RefreshGuards.capture(self, dest, params, sport=sport)
+            low = json.loads((dest / 'manifest.json').read_text())
+            low['response_headers']['x-requests-remaining'] = '2'
+            (dest / 'manifest.json').write_text(json.dumps(low))
+
+        code, body = svc.run_refresh(capture, lambda d: ingested.append(d.name), now=1000.0, sports=self.LEAGUES)
+        self.assertEqual(1, len(self.calls))
+        self.assertEqual([self.LEAGUES[0]], ingested)
+        self.assertEqual({self.LEAGUES[0]: 'ok', 'stopped': 'credit_floor'}, body['last_results'])
+
+
 if __name__ == '__main__':
     unittest.main()

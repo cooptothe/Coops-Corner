@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MARKETS,
   TITLES,
@@ -11,7 +11,7 @@ import {
   decimalInput,
   shiftDecimal,
 } from "../../frontend/format.mjs";
-import { allPages, request } from "../lib/api";
+import { ApiError, allPages, request, sharedPages } from "../lib/api";
 import { reloadToolsOnce } from "../lib/refresh-api";
 import type {
   View,
@@ -70,6 +70,34 @@ const isEv = (view: View): boolean =>
   view === "middle" ||
   view === "props" ||
   view === "games";
+// The row list each feed loads for itself (shared with it through sharedPages, so it is only fetched once).
+const ROW_LISTS: Partial<Record<View, string>> = {
+  positive_ev: "tools/positive_ev",
+  arbitrage: "tools/arbitrage",
+  middle: "tools/middle",
+};
+// Every quote of the snapshot in a few large pages. An older tools API without that route is read game by game.
+async function loadQuotes(snapshot: string, signal: AbortSignal) {
+  try {
+    return await sharedPages<Quote>("quotes", snapshot, signal, {
+      limit: 1000,
+      maxOffset: 100000,
+    });
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 404) throw error;
+    const games = await sharedPages<Game>("games", snapshot, signal);
+    const boards = await Promise.all(
+      games.map((g) =>
+        allPages<Quote>(
+          `games/${encodeURIComponent(g.id)}/odds`,
+          snapshot,
+          signal,
+        ),
+      ),
+    );
+    return boards.flat();
+  }
+}
 const errorText = (error: unknown) =>
   error instanceof Error
     ? error.message
@@ -132,6 +160,8 @@ export default function Workspace({ view }: { view: View }) {
     media.addEventListener("change", change);
     return () => media.removeEventListener("change", change);
   }, []);
+  // The props feed brings its own data, so for it only the small capabilities call is made, and it is shown at once.
+  const light = view === "props";
   useEffect(() => {
     const controller = new AbortController();
     // Keep the current data on screen while an update loads: clearing it would unmount the
@@ -146,27 +176,36 @@ export default function Workspace({ view }: { view: View }) {
         const caps = await request<Capabilities>("capabilities", {
           signal: controller.signal,
         });
-        const games = await allPages<Game>(
-          "games",
-          caps.meta.snapshot_id,
-          controller.signal,
-        );
-        const boards = await Promise.all(
-          games.map((g) =>
-            allPages<Quote>(
-              `games/${encodeURIComponent(g.id)}/odds`,
-              caps.meta.snapshot_id,
-              controller.signal,
-            ),
-          ),
+        if (light) {
+          if (!controller.signal.aborted)
+            setData({
+              caps: caps.data,
+              games: [],
+              quotes: [],
+              meta: caps.meta,
+            });
+          return;
+        }
+        const snapshot = caps.meta.snapshot_id;
+        // The feed's own rows are the slowest part after the quotes; start them now instead of when the feed mounts.
+        const rows = ROW_LISTS[view];
+        if (rows)
+          sharedPages<ToolRow>(rows, snapshot, controller.signal).catch(
+            () => undefined,
+          );
+        const [games, quotes] = await Promise.all([
+          sharedPages<Game>("games", snapshot, controller.signal),
+          loadQuotes(snapshot, controller.signal),
+        ]);
+        // Keep the order the quotes always had: by game, in the games' own order.
+        const rank = new Map(games.map((g, i) => [g.id, i]));
+        quotes.sort(
+          (a, b) =>
+            (rank.get(a.game_id) ?? games.length) -
+            (rank.get(b.game_id) ?? games.length),
         );
         if (!controller.signal.aborted)
-          setData({
-            caps: caps.data,
-            games,
-            quotes: boards.flat(),
-            meta: caps.meta,
-          });
+          setData({ caps: caps.data, games, quotes, meta: caps.meta });
       } catch (error) {
         if (!controller.signal.aborted) setBootError(errorText(error));
       } finally {
@@ -174,7 +213,8 @@ export default function Workspace({ view }: { view: View }) {
       }
     })();
     return () => controller.abort();
-  }, [reload]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reload, light]);
   useEffect(() => {
     if (!data || view === "promo" || isEv(view)) return;
     const controller = new AbortController();
@@ -220,7 +260,10 @@ export default function Workspace({ view }: { view: View }) {
       });
     return () => controller.abort();
   }, [data, view, filters, offset, limit, retry]);
-  const quoteMap = new Map(data?.quotes.map((q) => [q.id, q]));
+  const quoteMap = useMemo(
+    () => new Map(data?.quotes.map((q) => [q.id, q])),
+    [data],
+  );
   const onPromo = (q: Quote) =>
     router.push(`/promo?quote=${encodeURIComponent(q.id)}`);
   const sort =
@@ -352,6 +395,8 @@ export default function Workspace({ view }: { view: View }) {
               message={bootError}
               retry={() => setReload((v) => v + 1)}
             />
+          ) : view === "props" ? (
+            <PropsFeed reload={reload} />
           ) : !data ? (
             <Loading text="Connecting to your local workspace…" />
           ) : view === "promo" ? (
@@ -363,8 +408,6 @@ export default function Workspace({ view }: { view: View }) {
               <ScheduleFeed data={data} />
             ) : view === "middle" ? (
               <MiddleFeed data={data} />
-            ) : view === "props" ? (
-              <PropsFeed reload={reload} />
             ) : (
               <EvFeed data={data} />
             )

@@ -72,6 +72,10 @@ tracker before accounts existed, the first account you create adopts that data.
   (`includeLinks`), are stored by ingestion, and are checked against each sportsbook's own domains before
   they are shown. A bet whose game has started, or that the latest update dropped, shows a disabled button
   instead. Lay prices (Betfair, Kalshi) link to the market. The tracker has no links.
+- **Loading.** A feed page loads the stored odds in one pass: the catalog check (about half a second when nothing
+  changed), then the capabilities, the games, every quote (a dozen large pages from `/api/v1/quotes`) and the
+  feed's own rows, all at once. The same list for the same snapshot is fetched once and shared, so moving between
+  tools is near instant. The Player props page loads only its own data.
 - **Passwords.** Change yours on `/account` (click your name); that signs out every other device. There is
   no email, so a forgotten password is reset by whoever runs the app:
   `python -m pipelines.accounts_admin reset-password USERNAME` (hidden prompt, works while the app is

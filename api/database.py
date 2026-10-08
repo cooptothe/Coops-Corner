@@ -169,16 +169,62 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
                 games=game_list, contracts=contracts)
 
 
-def load_raw(conn, *, now, max_age, references, targets):
+FINGERPRINT_SQL = (
+    'SELECT count(*), max(created_at) FROM corner.odds_observations',
+    'SELECT count(*) FROM corner.observation_dispositions',
+    'SELECT count(*), max(captured_at) FROM corner.quote_links',
+    'SELECT count(*), max(updated_at) FROM corner.events',
+)
+# Even with an unchanged fingerprint, re-read the database at least this often.
+SOURCE_MAX_AGE_SECONDS = 600
+
+
+def fingerprint(conn):
+    """A cheap summary of everything QUOTE_SQL reads that can change: the ledger only grows, and links, decisions and events are counted.
+
+    None when it cannot be read (for example a role without access), which just means no caching.
+    """
+    try:
+        with conn.cursor() as cur:
+            parts = []
+            for statement in FINGERPRINT_SQL:
+                cur.execute(statement)
+                parts.append(tuple(cur.fetchone()))
+        return tuple(parts)
+    except Exception:
+        conn.rollback()
+        return None
+
+
+def read_source(conn, *, now, max_age, cache=None):
+    """The quote and participant rows. `cache` (a dict the caller keeps) holds the last read.
+
+    While the fingerprint is unchanged the stored rows are reused: the only inputs that still move are the two time
+    cut-offs, and they only ever remove rows, so they are applied again here instead of re-running the 1.5 s view.
+    """
     import psycopg2.extras
+    oldest = now - max_age
+    mark = fingerprint(conn) if cache is not None else None
+    if mark is not None and cache.get('mark') == mark and time.monotonic() - cache['at'] < SOURCE_MAX_AGE_SECONDS:
+        rows = [r for r in cache['rows'] if r['scheduled_start'] > now and r['observed_at'] >= oldest]
+        return rows, cache['participants']
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(QUOTE_SQL, dict(market_codes=list(MARKET_KEYS), now=now, oldest=now - max_age))
+        cur.execute(QUOTE_SQL, dict(market_codes=list(MARKET_KEYS), now=now, oldest=oldest))
         rows = cur.fetchall()
         events = sorted({r['event_id'] for r in rows})
         participants = []
         if events:
             cur.execute(PARTICIPANT_SQL, dict(events=[str(e) for e in events]))
             participants = cur.fetchall()
+    if cache is not None:
+        cache.clear()
+        if mark is not None:
+            cache.update(mark=mark, at=time.monotonic(), rows=rows, participants=participants)
+    return rows, participants
+
+
+def load_raw(conn, *, now, max_age, references, targets, cache=None):
+    rows, participants = read_source(conn, now=now, max_age=max_age, cache=cache)
     rows = keep_latest_capture(rows)
     return build_raw(rows, [(p['event_id'], p['role'], p['display_name']) for p in participants],
                      now=now, references=references, targets=targets)
@@ -206,16 +252,21 @@ class LiveCatalog:
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._lock = threading.Lock()
         self._inner, self._built = None, 0.0
+        self._raw, self._source = None, {}
         self._rebuild()
 
     def _rebuild(self):
         conn = self._connect()
         try:
             conn.set_session(readonly=True, isolation_level='REPEATABLE READ')
-            raw = load_raw(conn, now=self._clock(), max_age=self._max_age, references=self._references, targets=self._targets)
+            raw = load_raw(conn, now=self._clock(), max_age=self._max_age, references=self._references, targets=self._targets,
+                           cache=self._source)
         finally:
             conn.close()
-        self._inner = FixtureCatalog(raw=raw)
+        # The catalog is a pure function of this input, so identical input means the identical catalog: keep it.
+        if self._inner is None or raw != self._raw:
+            self._inner = FixtureCatalog(raw=raw)
+            self._raw = raw
         self._built = time.monotonic()
 
     def reload(self):

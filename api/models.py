@@ -145,6 +145,12 @@ class QuoteQuery(PageQuery):
     descending: bool = False
 
 
+class BulkQuoteQuery(QuoteQuery):
+    """Every quote of a snapshot in a few large pages, instead of one request per game."""
+    offset: int = Field(default=0, ge=0, le=100000)
+    limit: int = Field(default=500, ge=1, le=1000)
+
+
 class ToolQuery(PageQuery):
     game_id: Identifier | None = None
     sport_key: Identifier | None = None

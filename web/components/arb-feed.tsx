@@ -15,7 +15,7 @@ import {
 } from "../../frontend/format.mjs";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
-import { allPages } from "../lib/api";
+import { sharedPages } from "../lib/api";
 import {
   type ArbMode,
   type ArbSizing,
@@ -628,7 +628,7 @@ export default function ArbFeed({ data }: { data: Data }) {
   useEffect(() => {
     const controller = new AbortController();
     setError("");
-    allPages<ToolRow>(
+    sharedPages<ToolRow>(
       "tools/arbitrage",
       data.meta.snapshot_id,
       controller.signal,

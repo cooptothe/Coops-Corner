@@ -10,7 +10,7 @@ import {
 } from "../../frontend/format.mjs";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
-import { allPages } from "../lib/api";
+import { sharedPages } from "../lib/api";
 import type {
   Capabilities,
   Game,
@@ -479,7 +479,11 @@ export default function MiddleFeed({ data }: { data: Data }) {
   useEffect(() => {
     const controller = new AbortController();
     setError("");
-    allPages<ToolRow>("tools/middle", data.meta.snapshot_id, controller.signal)
+    sharedPages<ToolRow>(
+      "tools/middle",
+      data.meta.snapshot_id,
+      controller.signal,
+    )
       .then((items) => {
         if (!controller.signal.aborted)
           setRows(items.filter((r): r is MidRow => r.kind === "middle"));
