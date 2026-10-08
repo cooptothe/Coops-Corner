@@ -65,6 +65,50 @@ test("voucher value is the refund at the assumed rate, risk-free only", () => {
   const free = convert("nosweat", 200, 3.5, 1.364, 0.6)!;
   assert.ok(Math.abs(free.voucherValue - 120) < 1e-9);
   // Cash on the loss path before the voucher is converted.
-  assert.ok(Math.abs(free.ifHedgeWins - free.voucherValue - (-200 + free.hedge * 0.364)) < 1e-9);
+  assert.ok(
+    Math.abs(
+      free.ifHedgeWins - free.voucherValue - (-200 + free.hedge * 0.364),
+    ) < 1e-9,
+  );
   assert.equal(convert("bonus", 100, 4, 1.3)!.voucherValue, 0);
+});
+
+test("profit boost: 50% on +200 hedged at -250 locks in about $14.29", () => {
+  const c = convert("boost", 100, 3, 1.4, 0.75, { percent: 0.5 })!;
+  assert.equal(c.boostedDecimal, 4);
+  assert.equal(c.hedge, 285.71);
+  assert.ok(Math.abs(c.ifPromoWins - 14.29) < 0.01);
+  assert.ok(Math.abs(c.ifHedgeWins - 14.29) < 0.01);
+  assert.equal(c.capital, 385.71);
+  assert.ok(Math.abs(c.rate - 14.29 / 385.71) < 1e-4);
+  assert.equal(c.overMaxStake, false);
+  assert.equal(c.capHit, false);
+});
+
+test("profit boost applies only to the stake up to the max, and to capped extra winnings", () => {
+  const over = convert("boost", 100, 3, 1.4, 0.75, {
+    percent: 0.5,
+    maxStake: 20,
+  })!;
+  assert.ok(Math.abs(over.extraWinnings - 20) < 1e-9); // 20 * 2 * 0.5
+  assert.equal(over.overMaxStake, true);
+  const capped = convert("boost", 100, 3, 1.4, 0.75, {
+    percent: 0.5,
+    maxExtra: 50,
+  })!;
+  assert.equal(capped.extraWinnings, 50);
+  assert.equal(capped.capHit, true);
+  assert.ok(
+    capped.profit <
+      convert("boost", 100, 3, 1.4, 0.75, { percent: 0.5 })!.profit,
+  );
+});
+
+test("a 0% boost is a plain arbitrage and efficiency grades on its own scale", () => {
+  assert.ok(convert("boost", 100, 3, 1.4, 0.75, { percent: 0 })!.profit < 0);
+  assert.equal(efficiencyTier(0.019, "boost"), "low");
+  assert.equal(efficiencyTier(0.02, "boost"), "mid");
+  assert.equal(efficiencyTier(0.05, "boost"), "good");
+  assert.equal(efficiencyTier(0.08, "boost"), "elite");
+  assert.equal(efficiencyTier(0.05), "low");
 });

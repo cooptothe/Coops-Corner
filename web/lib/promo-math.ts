@@ -1,4 +1,13 @@
-export type PromoType = "bonus" | "credit" | "nosweat";
+export type PromoType = "bonus" | "credit" | "nosweat" | "boost";
+
+// A profit boost raises the winnings (not the stake) by `percent`. Sportsbooks cap how
+// much stake the boost applies to and how much extra it can pay; stake above maxStake
+// is paid at normal odds.
+export interface Boost {
+  percent: number;
+  maxStake?: number;
+  maxExtra?: number;
+}
 
 export interface Conversion {
   hedge: number;
@@ -9,20 +18,29 @@ export interface Conversion {
   // Assumed cash value of the refund voucher, which only arrives after it is converted (risk-free bets only).
   voucherValue: number;
   profit: number;
+  // Profit over the promo size, except a profit boost, which is over the cash risked on both legs.
   rate: number;
+  // Profit boost details; for every other type boostedDecimal is just the promo odds.
+  boostedDecimal: number;
+  extraWinnings: number;
+  overMaxStake: boolean;
+  capHit: boolean;
 }
 
 // d1 is the promo leg's decimal odds, d2 the cash hedge's. face is the promo
-// value (or the cash stake that triggers a no-sweat bet) and r is the assumed
-// value of the refund voucher as a share of its face value.
+// value (or the cash stake of a no-sweat bet or profit boost), r is the assumed
+// value of the refund voucher as a share of its face value, and boost holds the
+// profit boost terms.
 export function convert(
   type: PromoType,
   face: number,
   d1: number,
   d2: number,
   r = 0.75,
+  boost: Boost = { percent: 0 },
 ): Conversion | null {
   if (!(face > 0) || !(d1 > 1) || !(d2 > 1)) return null;
+  if (type === "boost") return convertBoost(face, d1, d2, boost);
   const hedge =
     type === "bonus"
       ? Math.round(((face * (d1 - 1)) / d2) * 100) / 100
@@ -49,6 +67,42 @@ export function convert(
     voucherValue,
     profit,
     rate: profit / face,
+    boostedDecimal: d1,
+    extraWinnings: 0,
+    overMaxStake: false,
+    capHit: false,
+  };
+}
+
+function convertBoost(
+  stake: number,
+  d1: number,
+  d2: number,
+  boost: Boost,
+): Conversion | null {
+  if (!(boost.percent >= 0) || !Number.isFinite(boost.percent)) return null;
+  const boostable = Math.min(stake, boost.maxStake ?? Infinity);
+  const uncapped = boostable * (d1 - 1) * boost.percent;
+  const extraWinnings = Math.min(uncapped, boost.maxExtra ?? Infinity);
+  // Total returned if the boosted bet wins, stake included.
+  const payout = stake * d1 + extraWinnings;
+  const hedge = Math.round((payout / d2) * 100) / 100;
+  const ifPromoWins = payout - stake - hedge;
+  const ifHedgeWins = hedge * d2 - hedge - stake;
+  const profit = Math.min(ifPromoWins, ifHedgeWins);
+  const capital = stake + hedge;
+  return {
+    hedge,
+    capital,
+    ifPromoWins,
+    ifHedgeWins,
+    voucherValue: 0,
+    profit,
+    rate: profit / capital,
+    boostedDecimal: payout / stake,
+    extraWinnings,
+    overMaxStake: stake > (boost.maxStake ?? Infinity),
+    capHit: extraWinnings < uncapped,
   };
 }
 
@@ -69,9 +123,23 @@ export const marketWidthCents = (d1: number, d2: number) =>
   Math.max(0, Math.round(centsFromEven(d1) + centsFromEven(d2)));
 
 export type EfficiencyTier = "low" | "mid" | "good" | "elite";
-// Red below 65%, amber 65-75%, lime 75-80% (between the two named bands), emerald from 80%.
-export const efficiencyTier = (rate: number): EfficiencyTier =>
-  rate >= 0.8 ? "elite" : rate >= 0.75 ? "good" : rate >= 0.65 ? "mid" : "low";
+// Conversions: red below 65%, amber 65-75%, lime 75-80% (between the two named bands),
+// emerald from 80%. A profit boost earns a few percent of the cash it ties up, so it
+// is graded on a smaller scale: 2%, 5% and 8%.
+export const efficiencyTier = (
+  rate: number,
+  type: PromoType = "bonus",
+): EfficiencyTier => {
+  const [mid, good, elite] =
+    type === "boost" ? [0.02, 0.05, 0.08] : [0.65, 0.75, 0.8];
+  return rate >= elite
+    ? "elite"
+    : rate >= good
+      ? "good"
+      : rate >= mid
+        ? "mid"
+        : "low";
+};
 
 export const parseAmerican = (text: string): number | null => {
   if (!/^[+-]?\d{3,5}$/.test(text.trim())) return null;

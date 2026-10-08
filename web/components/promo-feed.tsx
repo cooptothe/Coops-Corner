@@ -12,6 +12,7 @@ import type { Capabilities, Game, Meta, Quote } from "../lib/contracts";
 import {
   WIDE_MARKET_CENTS,
   convert,
+  type Boost,
   type Conversion,
   efficiencyTier,
   marketWidthCents,
@@ -93,17 +94,51 @@ const TYPES: {
     full: "Risk-Free Bet (Contingent Refund)",
     help: "Cash bet; a loss refunds a bonus bet worth the voucher value below.",
   },
+  {
+    id: "boost",
+    name: "Profit boost",
+    full: "Profit Boost (Cash Stake, Boosted Winnings)",
+    help: "Cash bet whose winnings are boosted. Best on underdogs against a tight hedge.",
+  },
 ];
 const TYPE_NAME = Object.fromEntries(
   TYPES.map((t) => [t.id, t.name]),
 ) as Record<PromoType, string>;
 const sizeLabel = (type: PromoType) =>
-  type === "nosweat" ? "RISK-FREE STAKE ($)" : "PROMO INPUT SIZE ($)";
+  type === "nosweat"
+    ? "RISK-FREE STAKE ($)"
+    : type === "boost"
+      ? "CASH STAKE ($)"
+      : "PROMO INPUT SIZE ($)";
 const DEFAULT_ODDS: Record<PromoType, [string, string]> = {
   bonus: ["+200", "+500"],
   credit: ["", ""],
   nosweat: ["+150", "+400"],
+  boost: ["", ""],
 };
+
+// Profit boost terms as typed. Empty limits mean the sportsbook sets none.
+interface BoostFields {
+  percent: string;
+  maxStake: string;
+  maxExtra: string;
+}
+const DEFAULT_BOOST: BoostFields = {
+  percent: "50",
+  maxStake: "100",
+  maxExtra: "",
+};
+const BOOST_PCT = /^\d{1,4}(\.\d{1,2})?$/;
+const limitOk = (v: string) => v === "" || (AMOUNT.test(v) && Number(v) > 0);
+const boostValid = (b: BoostFields) =>
+  BOOST_PCT.test(b.percent) && limitOk(b.maxStake) && limitOk(b.maxExtra);
+const toBoost = (b: BoostFields): Boost => ({
+  percent: BOOST_PCT.test(b.percent) ? Number(b.percent) / 100 : 0,
+  maxStake:
+    b.maxStake !== "" && limitOk(b.maxStake) ? Number(b.maxStake) : undefined,
+  maxExtra:
+    b.maxExtra !== "" && limitOk(b.maxExtra) ? Number(b.maxExtra) : undefined,
+});
 
 const money = (n: number) => usd(n.toFixed(2));
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
@@ -151,10 +186,13 @@ function CopyIconButton({ value, label }: { value: string; label: string }) {
   );
 }
 
-function Efficiency({ rate }: { rate: number }) {
-  const tier = efficiencyTier(rate);
+function Efficiency({ rate, type }: { rate: number; type: PromoType }) {
+  const tier = efficiencyTier(rate, type);
   return (
-    <span className={`promo-eff eff-${tier}`} title={`${tier} conversion`}>
+    <span
+      className={`promo-eff eff-${tier}`}
+      title={`${tier} ${type === "boost" ? "return on capital" : "conversion"}`}
+    >
       {pct(rate)}
     </span>
   );
@@ -164,16 +202,26 @@ function Warnings({
   hedge,
   limit,
   widthCents,
+  boostCapped = false,
 }: {
   hedge: number | null;
   limit: number;
   widthCents: number;
+  boostCapped?: boolean;
 }) {
   const over = hedge !== null && hedge > limit;
   const wide = widthCents > WIDE_MARKET_CENTS;
-  if (!over && !wide) return null;
+  if (!over && !wide && !boostCapped) return null;
   return (
     <span className="promo-warns">
+      {boostCapped && (
+        <span
+          className="promo-warn"
+          title="Part of the stake or the winnings is past the boost limits, so the boost is smaller than its percentage."
+        >
+          ⚠ Boost limit reached
+        </span>
+      )}
       {over && (
         <span
           className="promo-warn"
@@ -211,6 +259,7 @@ const Row = memo(
     face,
     type,
     refund,
+    boost,
     limit,
     top,
     selected,
@@ -220,12 +269,20 @@ const Row = memo(
     face: number;
     type: PromoType;
     refund: number;
+    boost: Boost;
     limit: number;
     top: number;
     selected: boolean;
     onSelect: (vm: Vm) => void;
   }) {
-    const c = convert(type, face, vm.promo.decimal, vm.hedge.decimal, refund);
+    const c = convert(
+      type,
+      face,
+      vm.promo.decimal,
+      vm.hedge.decimal,
+      refund,
+      boost,
+    );
     return (
       <div
         role="row"
@@ -254,6 +311,12 @@ const Row = memo(
           <small>{vm.market}</small>
           <strong>
             {vm.promo.label} <b>{vm.promo.odds}</b>
+            {type === "boost" && c && (
+              <b className="promo-boosted">
+                {" → "}
+                {american(c.boostedDecimal.toFixed(6))}
+              </b>
+            )}
           </strong>
         </div>
         <div role="cell" className="ev-cell promo-leg">
@@ -272,13 +335,14 @@ const Row = memo(
             hedge={c?.hedge ?? null}
             limit={limit}
             widthCents={vm.widthCents}
+            boostCapped={!!c && (c.overMaxStake || c.capHit)}
           />
         </div>
         <div role="cell" className="ev-cell promo-type">
           <span className={`promo-badge type-${type}`}>{TYPE_NAME[type]}</span>
         </div>
         <div role="cell" className="ev-cell promo-effcell">
-          <Efficiency rate={vm.rate} />
+          <Efficiency rate={vm.rate} type={type} />
           <Age value={vm.observedAt} />
         </div>
         <div role="cell" className="ev-cell promo-act">
@@ -304,6 +368,7 @@ const Row = memo(
     a.face === b.face &&
     a.type === b.type &&
     a.refund === b.refund &&
+    a.boost === b.boost &&
     a.limit === b.limit &&
     a.top === b.top &&
     a.selected === b.selected,
@@ -315,6 +380,7 @@ function Steps({
   c,
   face,
   rate,
+  boost,
   onConvertVoucher,
 }: {
   type: PromoType;
@@ -322,13 +388,21 @@ function Steps({
   c: Conversion;
   face: number;
   rate: number;
+  boost: Boost;
   onConvertVoucher: () => void;
 }) {
-  const place = `On ${vm.promo.bookLabel}, place ${
-    type === "nosweat"
-      ? "your cash bet"
-      : `your ${TYPE_NAME[type].toLowerCase()}`
-  } of ${money(face)} on ${vm.promo.label} @ ${vm.promo.odds}.`;
+  // The price the sportsbook shows on the boosted slip; c.boostedDecimal is the blend after any limits.
+  const boosted = american(
+    (1 + (vm.promo.decimal - 1) * (1 + boost.percent)).toFixed(6),
+  );
+  const place =
+    type === "boost"
+      ? `On ${vm.promo.bookLabel}, activate the boost, then place your cash bet of ${money(face)} on ${vm.promo.label}. The bet slip should show the boosted price (${vm.promo.odds} → ${boosted}) before you confirm.`
+      : `On ${vm.promo.bookLabel}, place ${
+          type === "nosweat"
+            ? "your cash bet"
+            : `your ${TYPE_NAME[type].toLowerCase()}`
+        } of ${money(face)} on ${vm.promo.label} @ ${vm.promo.odds}.`;
   const hedge = `On ${vm.hedge.bookLabel}, place a ${money(c.hedge)} cash bet on ${vm.hedge.label} @ ${vm.hedge.odds}. Do this right away so the prices do not move.`;
   const loseNow = c.ifHedgeWins - c.voucherValue;
   return (
@@ -371,6 +445,33 @@ function Steps({
               converts at a different rate, so does this total.
             </li>
           </>
+        ) : type === "boost" ? (
+          <>
+            <li>
+              <strong>If {vm.promo.label} wins</strong>, {vm.promo.bookLabel}{" "}
+              returns your {money(face)} stake plus boosted winnings, a total of{" "}
+              <b>{money(face * c.boostedDecimal)}</b>. Your hedge loses, and you
+              are up <b>{money(c.ifPromoWins)}</b> after both stakes.
+            </li>
+            <li>
+              <strong>If {vm.promo.label} loses</strong>, you lose your{" "}
+              {money(face)} stake, but your hedge on {vm.hedge.bookLabel} wins
+              and you are up <b>{money(c.ifHedgeWins)}</b> after both stakes.
+            </li>
+            {(c.overMaxStake || c.capHit) && (
+              <li>
+                <strong>The boost is limited:</strong>{" "}
+                {c.overMaxStake
+                  ? `only the first ${money(boost.maxStake ?? 0)} of your stake is boosted, and the rest pays normal odds. `
+                  : ""}
+                {c.capHit
+                  ? `the extra winnings are held at ${money(boost.maxExtra ?? 0)}. `
+                  : ""}
+                The numbers above already count this. The price on your slip may
+                show the full boost, so check the payout it shows.
+              </li>
+            )}
+          </>
         ) : type === "bonus" ? (
           <>
             <li>
@@ -411,6 +512,8 @@ function Calculator({
   setFace,
   refund,
   setRefund,
+  boostFields,
+  setBoostFields,
   limit,
   onClose,
   onConvertVoucher,
@@ -423,6 +526,8 @@ function Calculator({
   setFace: (v: string) => void;
   refund: string;
   setRefund: (v: string) => void;
+  boostFields: BoostFields;
+  setBoostFields: (b: BoostFields) => void;
   limit: number;
   onClose: () => void;
   onConvertVoucher: (amount: string) => void;
@@ -442,19 +547,21 @@ function Calculator({
     ? Math.min(Number(refund), 100) / 100
     : 0.75;
   const sig = vm?.sig ?? "";
+  const boost = useMemo(() => toBoost(boostFields), [boostFields]);
   const c = useMemo(
     () =>
-      vm && valid
+      vm && valid && (type !== "boost" || boostValid(boostFields))
         ? convert(
             type,
             Number(face),
             vm.promo.decimal,
             vm.hedge.decimal,
             refundRate,
+            boost,
           )
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sig, type, face, valid, refundRate],
+    [sig, type, face, valid, refundRate, boost, boostFields],
   );
   const info = TYPES.find((t) => t.id === type)!;
   return (
@@ -494,7 +601,7 @@ function Calculator({
             <span>
               {vm.league} · {vm.market}
             </span>
-            {c && <Efficiency rate={c.rate} />}
+            {c && <Efficiency rate={c.rate} type={type} />}
           </div>
           <div
             className="arb-modes promo-types"
@@ -543,16 +650,84 @@ function Calculator({
               </small>
             </label>
           )}
+          {type === "boost" && (
+            <>
+              <label className="field">
+                <span>
+                  PROFIT BOOST ·{" "}
+                  {BOOST_PCT.test(boostFields.percent)
+                    ? boostFields.percent
+                    : "—"}
+                  %
+                </span>
+                <input
+                  inputMode="decimal"
+                  value={boostFields.percent}
+                  maxLength={7}
+                  aria-invalid={!BOOST_PCT.test(boostFields.percent)}
+                  onChange={(e) =>
+                    setBoostFields({
+                      ...boostFields,
+                      percent: e.target.value.trim(),
+                    })
+                  }
+                />
+                <small className="kelly-note">
+                  The boost raises your winnings, not your stake. At +200 a 50%
+                  boost pays like +300.
+                </small>
+              </label>
+              <label className="field">
+                <span>MAX BOOSTED STAKE ($) · BLANK = NO LIMIT</span>
+                <input
+                  inputMode="decimal"
+                  value={boostFields.maxStake}
+                  maxLength={10}
+                  aria-invalid={!limitOk(boostFields.maxStake)}
+                  onChange={(e) =>
+                    setBoostFields({
+                      ...boostFields,
+                      maxStake: e.target.value.trim(),
+                    })
+                  }
+                />
+                <small className="kelly-note">
+                  Stake above this pays at normal odds. Check the boost banner.
+                </small>
+              </label>
+              <label className="field">
+                <span>MAX EXTRA WINNINGS ($) · BLANK = NO CAP</span>
+                <input
+                  inputMode="decimal"
+                  value={boostFields.maxExtra}
+                  maxLength={10}
+                  aria-invalid={!limitOk(boostFields.maxExtra)}
+                  onChange={(e) =>
+                    setBoostFields({
+                      ...boostFields,
+                      maxExtra: e.target.value.trim(),
+                    })
+                  }
+                />
+              </label>
+            </>
+          )}
           <div className="arb-stake">
             <span>
-              {type === "nosweat" ? "Place the cash bet" : "Place the promo"} on{" "}
-              {vm.promo.bookLabel} · {vm.promo.label} @ {vm.promo.odds}
+              {type === "nosweat" || type === "boost"
+                ? "Place the cash bet"
+                : "Place the promo"}{" "}
+              on {vm.promo.bookLabel} · {vm.promo.label} @ {vm.promo.odds}
             </span>
             <output>{valid ? money(Number(face)) : "—"}</output>
             <span />
           </div>
           {!valid || !c ? (
-            <p className="kelly-empty">Enter an amount greater than zero.</p>
+            <p className="kelly-empty">
+              {type === "boost" && !boostValid(boostFields)
+                ? "Enter the boost percentage and valid limits."
+                : "Enter an amount greater than zero."}
+            </p>
           ) : (
             <>
               <div className="arb-stake">
@@ -570,6 +745,7 @@ function Calculator({
                 hedge={c.hedge}
                 limit={limit}
                 widthCents={vm.widthCents}
+                boostCapped={c.overMaxStake || c.capHit}
               />
               <div className="arb-summary">
                 <span>Required hedge stake</span>
@@ -582,9 +758,13 @@ function Calculator({
                 <b>{money(c.ifHedgeWins)}</b>
                 <span>Guaranteed net cash return</span>
                 <b className="arb-net">{money(c.profit)}</b>
-                <span>Conversion efficiency</span>
+                <span>
+                  {type === "boost"
+                    ? "Return on capital"
+                    : "Conversion efficiency"}
+                </span>
                 <b>
-                  <Efficiency rate={c.rate} />
+                  <Efficiency rate={c.rate} type={type} />
                 </b>
               </div>
               <Steps
@@ -593,6 +773,7 @@ function Calculator({
                 c={c}
                 face={Number(face)}
                 rate={refundRate}
+                boost={boost}
                 onConvertVoucher={() => onConvertVoucher(face)}
               />
             </>
@@ -607,6 +788,7 @@ export default function PromoFeed({ data }: { data: Data }) {
   const [type, setType] = useState<PromoType>("bonus");
   const [face, setFace] = useState("100");
   const [refund, setRefund] = useState("75");
+  const [boostFields, setBoostFields] = useState<BoostFields>(DEFAULT_BOOST);
   const [limitText, setLimitText] = useState(DEFAULT_HEDGE_LIMIT);
   const [promoBook, setPromoBook] = useState("");
   const [minOdds, setMinOdds] = useState(DEFAULT_ODDS.bonus[0]);
@@ -627,6 +809,12 @@ export default function PromoFeed({ data }: { data: Data }) {
       if (typeof s.face === "string" && AMOUNT.test(s.face)) setFace(s.face);
       if (typeof s.refund === "string" && PCT.test(s.refund))
         setRefund(s.refund);
+      if (s.boost && boostValid({ ...DEFAULT_BOOST, ...s.boost }))
+        setBoostFields({
+          percent: String(s.boost.percent ?? DEFAULT_BOOST.percent),
+          maxStake: String(s.boost.maxStake ?? ""),
+          maxExtra: String(s.boost.maxExtra ?? ""),
+        });
       if (typeof s.limitText === "string" && AMOUNT.test(s.limitText))
         setLimitText(s.limitText);
       if (typeof s.promoBook === "string") setPromoBook(s.promoBook);
@@ -655,6 +843,7 @@ export default function PromoFeed({ data }: { data: Data }) {
         type,
         face,
         refund,
+        boost: boostFields,
         limitText,
         promoBook,
         minOdds,
@@ -671,6 +860,7 @@ export default function PromoFeed({ data }: { data: Data }) {
     type,
     face,
     refund,
+    boostFields,
     limitText,
     promoBook,
     minOdds,
@@ -733,6 +923,8 @@ export default function PromoFeed({ data }: { data: Data }) {
   const refundRate = PCT.test(refund)
     ? Math.min(Number(refund), 100) / 100
     : 0.75;
+  const boost = useMemo(() => toBoost(boostFields), [boostFields]);
+  const boostBad = type === "boost" && !boostValid(boostFields);
   const limit = hedgeLimit(limitText);
   const lowOdds = minOdds ? parseAmerican(minOdds) : null;
   const highOdds = maxOdds ? parseAmerican(maxOdds) : null;
@@ -742,7 +934,7 @@ export default function PromoFeed({ data }: { data: Data }) {
     (maxOdds !== "" && highOdds === null);
 
   const all = useMemo(() => {
-    if (!promoBook) return [];
+    if (!promoBook || boostBad) return [];
     const out: Vm[] = [];
     for (const list of contracts.values()) {
       for (const p of list) {
@@ -776,6 +968,7 @@ export default function PromoFeed({ data }: { data: Data }) {
           d1,
           Number(best.decimal_odds),
           refundRate,
+          boost,
         );
         if (!c) continue;
         const pl = leg(p, books);
@@ -807,6 +1000,8 @@ export default function PromoFeed({ data }: { data: Data }) {
     type,
     faceValue,
     refundRate,
+    boost,
+    boostBad,
     lowOdds,
     highOdds,
     offBooks,
@@ -960,8 +1155,59 @@ export default function PromoFeed({ data }: { data: Data }) {
             />
           </label>
         )}
+        {type === "boost" && (
+          <>
+            <label className="field mid-small">
+              <span>PROFIT BOOST %</span>
+              <input
+                inputMode="decimal"
+                value={boostFields.percent}
+                maxLength={7}
+                aria-invalid={!BOOST_PCT.test(boostFields.percent)}
+                onChange={(e) =>
+                  setBoostFields({
+                    ...boostFields,
+                    percent: e.target.value.trim(),
+                  })
+                }
+              />
+            </label>
+            <label className="field mid-small">
+              <span>MAX BOOSTED STAKE ($)</span>
+              <input
+                inputMode="decimal"
+                placeholder="no limit"
+                value={boostFields.maxStake}
+                maxLength={10}
+                aria-invalid={!limitOk(boostFields.maxStake)}
+                onChange={(e) =>
+                  setBoostFields({
+                    ...boostFields,
+                    maxStake: e.target.value.trim(),
+                  })
+                }
+              />
+            </label>
+            <label className="field mid-small">
+              <span>MAX EXTRA WINNINGS ($)</span>
+              <input
+                inputMode="decimal"
+                placeholder="no cap"
+                value={boostFields.maxExtra}
+                maxLength={10}
+                aria-invalid={!limitOk(boostFields.maxExtra)}
+                onChange={(e) =>
+                  setBoostFields({
+                    ...boostFields,
+                    maxExtra: e.target.value.trim(),
+                  })
+                }
+              />
+            </label>
+          </>
+        )}
         <label className="field mid-small">
-          <span>MIN CONVERSION %</span>
+          <span>{type === "boost" ? "MIN RETURN %" : "MIN CONVERSION %"}</span>
           <input
             inputMode="numeric"
             placeholder="any"
@@ -1062,6 +1308,14 @@ export default function PromoFeed({ data }: { data: Data }) {
                   scanned for the best cash hedge at the other books.
                 </p>
               </div>
+            ) : boostBad ? (
+              <div className="empty-state">
+                <h3>Check the boost terms</h3>
+                <p>
+                  Enter the boost percentage, such as 50, and dollar limits or
+                  leave a limit empty if the sportsbook sets none.
+                </p>
+              </div>
             ) : oddsBad ? (
               <div className="empty-state">
                 <h3>Check the odds range</h3>
@@ -1099,6 +1353,7 @@ export default function PromoFeed({ data }: { data: Data }) {
                       face={faceValue}
                       type={type}
                       refund={refundRate}
+                      boost={boost}
                       limit={limit}
                       top={(first + i) * height}
                       selected={vm.id === selected?.id}
@@ -1122,6 +1377,8 @@ export default function PromoFeed({ data }: { data: Data }) {
           setFace={setFace}
           refund={refund}
           setRefund={setRefund}
+          boostFields={boostFields}
+          setBoostFields={setBoostFields}
           onConvertVoucher={(amount) => {
             changeType("bonus");
             setFace(amount);
