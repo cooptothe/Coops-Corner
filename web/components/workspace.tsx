@@ -28,7 +28,7 @@ import PromoFeed from "./promo-feed";
 import EvFeed from "./ev-feed";
 import ArbFeed from "./arb-feed";
 import MiddleFeed from "./middle-feed";
-import OddsScreen from "./odds-screen";
+import ScheduleFeed from "./schedule-feed";
 import PropsFeed from "./props-feed";
 import FreshOdds from "./fresh-odds";
 
@@ -41,7 +41,7 @@ const DESCRIPTIONS: Record<View, string> = {
   props:
     "Player prop bets priced against the same sharp books as the Positive EV feed.",
   games:
-    "One event. Every featured market. The exact quotes behind each calculation.",
+    "Upcoming games by day, with the best main-line spread, total and moneyline available.",
   promo:
     "Explore bonus and refund economics without confusing tokens with cash.",
 };
@@ -348,7 +348,7 @@ export default function Workspace({ view }: { view: View }) {
             view === "arbitrage" ? (
               <ArbFeed data={data} />
             ) : view === "games" ? (
-              <OddsScreen data={data} />
+              <ScheduleFeed data={data} />
             ) : view === "middle" ? (
               <MiddleFeed data={data} />
             ) : view === "props" ? (

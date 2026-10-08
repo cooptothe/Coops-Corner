@@ -19,6 +19,7 @@ import type {
 import { Age, CopyButton, Menu, shortBook } from "./arb-feed";
 import type { NewSlipBet } from "../lib/slip";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
 type MidRow = Extract<ToolRow, { kind: "middle" }>;
@@ -51,7 +52,7 @@ interface Vm {
   observedAt: string;
 }
 
-const ROW_HEIGHT = { wide: 96, compact: 200 };
+const ROW_HEIGHT = { wide: 116, compact: 236 };
 const OVERSCAN = 6;
 const SETTINGS_KEY = "corner.middle-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
@@ -178,7 +179,7 @@ const Row = memo(
         role="row"
         tabIndex={0}
         aria-selected={selected}
-        className={`ev-row ${selected ? "selected" : ""}`}
+        className={`ev-row mid-row ${selected ? "selected" : ""}`}
         style={{ transform: `translateY(${top}px)` }}
         onClick={() => onSelect(vm)}
         onKeyDown={(e) => {
@@ -198,7 +199,7 @@ const Row = memo(
           <span className="ev-league">
             {vm.league} · {vm.market}
           </span>
-          <strong>{vm.matchup}</strong>
+          <Matchup text={vm.matchup} sportKey={vm.sportKey} />
           <small>
             {vm.startsAt ? date(vm.startsAt) : ""} ·{" "}
             <Countdown value={vm.startsAt} />
@@ -314,7 +315,7 @@ function Calculator({
             </div>
           )}
           <div className="kelly-head">
-            <strong>{vm.matchup}</strong>
+            <Matchup text={vm.matchup} sportKey={vm.sportKey} size={22} />
             <span>
               {vm.league} · {vm.market}
             </span>

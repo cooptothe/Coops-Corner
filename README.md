@@ -3,7 +3,7 @@
 ![Coop's Corner](web/public/assets/corner-banner.png)
 
 A local, pre-game sports betting toolkit: **+EV**, **arbitrage**, **middles**,
-a **promo converter** and a sportsbook **odds screen**, all running
+a **promo converter** and an upcoming-games **schedule** with the best lines, all running
 over stored pre-game odds from [The Odds API](https://the-odds-api.com/).
 
 Odds API credits are spent only when you press **Refresh odds**. Nothing polls the
@@ -97,7 +97,7 @@ otherwise built once at startup. If you change `web/next.config.ts`, restart `pn
 | `/middle` | Spread and total middles with window and EV |
 | `/props` | Player prop +EV bets against the sharp books, with the Kelly calculator |
 | `/promo` | Bonus bet, site credit, risk-free bet and profit boost conversion with a stake calculator |
-| `/games` | Odds screen: sportsbooks by game, with Spreads, Moneyline and Totals tabs |
+| `/games` | Schedule: upcoming games by day, with the best main-line spread, total and moneyline |
 
 Feeds can be sorted by EV, win probability, start time and other measures relevant
 to each tool. Sharp reference books are Pinnacle, Novig and BetOnline; the rest of

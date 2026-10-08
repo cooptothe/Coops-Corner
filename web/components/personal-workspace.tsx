@@ -239,7 +239,7 @@ export default function PersonalWorkspace() {
           <p className="eyebrow">YOUR CORNER</p>
           <h1>Tracker &amp; bankroll</h1>
         </div>
-        <Link href="/games">Games &amp; odds →</Link>
+        <Link href="/games">Upcoming schedule →</Link>
       </header>
       <p className="personal-disclaimer">
         Private records of completed activity. Manual entries only—no sportsbook

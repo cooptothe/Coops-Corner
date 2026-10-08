@@ -22,6 +22,7 @@ import {
   type KellyVm,
 } from "./ev-feed";
 import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { Avatar, Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
 const BOOK_NAMES: Record<string, string> = {
@@ -630,12 +631,22 @@ export default function PropsFeed({ reload }: { reload: number }) {
                     <span className="ev-badge">{percent(v.ev, true)}</span>
                   </div>
                   <div role="cell" className="ev-cell ev-event">
-                    <strong>{v.matchup}</strong>
+                    <Matchup text={v.matchup} sportKey={v.sportKey} />
                     <small>{date(v.startsAt)}</small>
                   </div>
                   <div role="cell" className="ev-cell ev-market">
-                    <small>{v.market}</small>
-                    <strong>{v.line}</strong>
+                    <span className="player-line">
+                      <Avatar
+                        kind="player"
+                        name={v.player}
+                        sportKey={v.sportKey}
+                        size={36}
+                      />
+                      <span className="player-text">
+                        <small>{v.market}</small>
+                        <strong>{v.line}</strong>
+                      </span>
+                    </span>
                   </div>
                   <div role="cell" className="ev-cell ev-soft">
                     <span className="ev-action">

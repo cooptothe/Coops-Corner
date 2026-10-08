@@ -341,7 +341,7 @@
   .ev-filters{position:static;max-height:none}.ev-books{max-height:200px}
   .ev-head{display:none}
   .ev-grid>.ev-head,.ev-grid>.ev-viewport,.ev-grid>.empty-state{min-width:0}
-  .ev-row{height:176px;grid-template-columns:84px 1fr;grid-auto-rows:min-content;align-content:center;row-gap:6px;padding:8px 12px}
+  .ev-row{height:208px;grid-template-columns:84px 1fr;grid-auto-rows:min-content;align-content:center;row-gap:6px;padding:8px 12px}
   .ev-row .ev-event{grid-column:2}
   .ev-row .ev-edge{grid-row:1/3}
   .ev-row .ev-market,.ev-row .ev-soft,.ev-row .ev-sharp,.ev-row .ev-time{grid-column:1/-1;flex-direction:row;gap:8px;align-items:center;justify-content:space-between}
@@ -377,7 +377,7 @@
 .arb-alert{display:grid;gap:6px;padding:10px;border-radius:8px;background:rgba(245,158,11,.18);border:1px solid #d97706;font-size:13px}
 .arb-modes{display:grid;grid-template-columns:1fr 1fr;border:1px solid rgba(128,128,128,.4);border-radius:8px;overflow:hidden}
 .arb-modes button{padding:8px;border:0;background:transparent;color:inherit;cursor:pointer}
-.arb-modes button.active{background:#16a34a;color:#fff;font-weight:600}
+.arb-modes button.active{background:#481920;color:#fff;font-weight:600}
 .arb-stake{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;font-size:12px}
 .arb-stake span{grid-column:1/-1}
 .arb-stake output{padding:8px 10px;border:1px solid rgba(128,128,128,.4);border-radius:8px;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -408,31 +408,8 @@
 @media(max-width:600px){.mid-metrics{grid-template-columns:1fr}}
 
 /* Odds screen */
-.odds-screen{--bg:#01020584;--panel:#2e2a2a;--line:#141212;display:flex;flex-direction:column;gap:.75rem}
-.odds-toolbar{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.6rem .8rem}
-.odds-tabs{position:relative;display:grid;grid-template-columns:repeat(3,1fr);width:min(100%,330px);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px}
-.odds-tabs button{position:relative;z-index:1;background:none;border:0;color:#7b8798;font:inherit;font-weight:600;padding:.45rem 0;cursor:pointer;transition:color .2s}
-.odds-tabs button.active{color:#fff}
-.odds-indicator{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/3);background:var(--panel);border-radius:7px;transform:translateX(calc(var(--i,0)*100%));transition:transform .22s cubic-bezier(.4,0,.2,1)}
 .odds-search{flex:1;min-width:160px;max-width:280px}
-.odds-scroll{overflow:auto;max-height:calc(100vh - 230px);min-height:240px;background:var(--bg);border:1px solid var(--line);border-radius:12px;overscroll-behavior:contain}
-.odds-table{table-layout:fixed;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
-.odds-table thead th{position:sticky;top:0;z-index:3;background:var(--panel);border-bottom:1px solid var(--line);padding:.6rem .4rem;font-size:.78rem;color:#9aa6b8;text-align:center;width:124px}
-.odds-table thead th.odds-corner{left:0;z-index:4;width:340px;text-align:left;padding-left:.9rem}
-.odds-matchup{position:sticky;left:0;z-index:2;display:flex;width:340px;background:var(--panel);border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:left;font-weight:500;padding:0 .8rem}
-.odds-teams{flex:1;min-width:0;display:flex;flex-direction:column}
-.odds-teams span{height:36px;line-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.odds-meta{display:flex;flex-direction:column;justify-content:center;gap:2px;width:112px;font-size:.7rem;color:#7b8798;text-align:right;white-space:nowrap;overflow:hidden}
-.odds-cell{width:124px;padding:0;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
-.odds-half{height:36px;display:flex;justify-content:center;align-items:center;gap:.4rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;color:#d5dbe6;transition:color .3s,background-color .3s}
-.odds-half+.odds-half{border-top:1px solid var(--line)}
-.odds-half .odds-line{color:#8b97aa}
-.odds-half.empty{color:#4b5668}
-.odds-half.best{background:rgb(2 44 34/.4);color:#34d399;box-shadow:inset 0 0 0 1px rgb(6 95 70/.6)}
-.odds-half.flash-up{color:#6ee7b7;background:rgb(16 185 129/.25)}
-.odds-half.flash-down{color:#fca5a5;background:rgb(239 68 68/.2)}
 .odds-note{font-size:.8rem;opacity:.65;margin:0}
-@media(max-width:900px){.odds-table thead th.odds-corner,.odds-matchup{width:200px}.odds-meta{display:none}.odds-scroll{max-height:calc(100vh - 260px)}}
 .pr-types{grid-template-columns:repeat(4,auto);align-self:flex-end}.pr-types button{padding:8px 14px;white-space:nowrap}
 .ev-sort{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px}.ev-sort select{padding:4px 8px}
 /* Player props feed */
@@ -500,3 +477,69 @@
 .arb-calc .field .kelly-note{margin-top:4px;display:block}
 .promo-badge.type-boost{color:#f472b6;background:rgba(244,114,182,.12)}
 .promo-boosted{color:#fbbf24!important}
+
+/* Team logos and player headshots */
+.avatar{display:inline-flex;flex:none;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;font-weight:700;letter-spacing:.02em;color:rgba(255,255,255,.85);line-height:1;box-sizing:border-box}
+.avatar img{width:100%;height:100%;display:block}
+.avatar.has-img.avatar-team{border-radius:0;overflow:visible;background:transparent}
+.avatar.has-img.avatar-team img{object-fit:contain}
+.avatar.has-img.avatar-player{background:rgba(255,255,255,.1)}
+.avatar.has-img.avatar-player img{object-fit:cover;object-position:50% 12%}
+.matchup{display:flex;flex-direction:column;gap:3px;min-width:0}
+.matchup-team{display:flex;align-items:center;gap:7px;min-width:0}
+.matchup-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.matchup-at{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.player-line{display:flex;align-items:center;gap:10px;min-width:0}
+.player-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.player-chip{display:flex;align-items:center;gap:10px;font-weight:600}
+.kelly-head .matchup-name{font-size:14px}
+/* Middles rows carry an extra line (countdown and window) under the two-line matchup. */
+.ev-row.mid-row{height:116px}
+@media (max-width:900px){.ev-row.mid-row{height:236px}}
+@media (max-width:700px){.pr-types{grid-template-columns:repeat(2,1fr);width:100%}.pr-types button{white-space:normal}}
+@media (max-width:900px){.ev-row.ev-tall{height:244px}}
+/* Schedule */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sched{display:flex;flex-direction:column;gap:14px}
+.sched-bar{display:grid;gap:10px;padding:10px 12px;border:1px solid rgba(128,128,128,.25);border-radius:10px;background:var(--panel,#2e2a2a)}
+.sched-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.sched-chips button{flex:none;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid rgba(128,128,128,.35);border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.sched-chips button small{opacity:.65;font-size:11px}
+.sched-chips button.active{background:#481920 ;border-color:#201519;color:#fff;font-weight:600}
+.sched-chips button.active small{opacity:.9}
+.sched-tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.sched-date{display:flex;align-items:baseline;gap:10px;margin:6px 0 8px;font-size:17px}
+.sched-date small{font-size:12px;font-weight:400;opacity:.65}
+.sched-table{border:1px solid rgba(128,128,128,.25);border-radius:10px;overflow:hidden;background:var(--panel,#2e2a2a)}
+.sched-head,.sched-row{display:grid;grid-template-columns:86px minmax(230px,1.5fr) repeat(3,minmax(170px,1fr));gap:12px;padding:0 14px;align-items:center}
+.sched-head{height:34px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.8;border-bottom:1px solid rgba(128,128,128,.25)}
+.sched-row{padding-top:10px;padding-bottom:10px;border-bottom:1px solid rgba(128,128,128,.15)}
+.sched-row:last-child{border-bottom:0}
+.sched-row:hover{background:rgba(255,255,255,.03)}
+.sched-time{display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums}
+.sched-time span{font-size:11px;opacity:.65}
+.sched-match,.sched-odds{display:flex;flex-direction:column;min-width:0}
+.sched-team{display:flex;align-items:center;gap:10px;height:34px;min-width:0}
+.sched-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.sched-draw{opacity:.75}.sched-draw .sched-name{font-weight:400}
+.sched-draw-dot{flex:none;width:28px;text-align:center;opacity:.5}
+.sched-draw-dot::before{content:"="}
+.sched-league{margin-top:2px;font-size:11px;opacity:.6}
+.sched-label{display:none}
+.sched-quote{display:flex;align-items:center;gap:8px;height:34px;min-width:0;font-variant-numeric:tabular-nums}
+.sched-quote.empty{opacity:.35}
+.sched-line{min-width:44px;font-weight:600}
+.sched-price{color:#34d399}
+.sched-book{margin-left:auto;font-size:11px;opacity:.65;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sched-more{align-self:center}
+@media (max-width:1200px){
+  .sched-head{display:none}
+  .sched-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px;padding:12px 14px}
+  .sched-time{grid-column:1/-1;flex-direction:row;align-items:baseline;gap:10px}
+  .sched-match{grid-column:1/-1}
+  .sched-label{display:block;margin-bottom:2px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.65}
+}
+@media (max-width:700px){
+  .sched-row{grid-template-columns:minmax(0,1fr)}
+  .sched-quote{height:30px}
+}

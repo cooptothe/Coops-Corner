@@ -42,7 +42,12 @@ the backend as described in [Personal records](../server/PERSONAL_RECORDS.md).
 It does not submit wagers or move money. CLV remains explicitly unavailable.
 
 Routes: `/positive_ev`, `/arbitrage`, `/middle`, `/props`, `/games`, `/promo`.
-`/` opens Positive EV. Unknown view routes return 404. `/games` is the odds screen: a sportsbook-by-game grid with Spreads, Moneyline\nand Totals tabs, best-price highlights and sticky headers, fed by the same\nstored quotes and Refresh odds button as the other tools.
+`/` opens Positive EV. Unknown view routes return 404. `/games` is the schedule: upcoming games grouped by day (ESPN style, with team
+logos), a league filter, and for each game the main line of the spread, total
+and moneyline with the best available price on every side and the sportsbook
+offering it. Choose which sportsbooks count under "Odds from" (the sharp
+reference books are off by default). It reads the same stored quotes and
+Refresh odds button as the other tools.
 The other tools calculate over stored provider quotes under `api.run_local`, and over synthetic fixtures under `python -m api`.
 
 - Typed React cards, filters, sorting and pagination for all six featured markets.

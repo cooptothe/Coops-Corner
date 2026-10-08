@@ -23,6 +23,7 @@ import {
 import type { NewSlipBet } from "../lib/slip";
 import { Age, Menu, shortBook } from "./arb-feed";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { Matchup } from "./media";
 
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 interface Leg {
@@ -305,7 +306,7 @@ const Row = memo(
       >
         <div role="cell" className="ev-cell promo-info">
           <span className="ev-league">{vm.league}</span>
-          <strong>{vm.matchup}</strong>
+          <Matchup text={vm.matchup} sportKey={vm.sportKey} />
           <small>{vm.startsAt ? date(vm.startsAt) : ""}</small>
         </div>
         <div role="cell" className="ev-cell promo-leg">
@@ -620,7 +621,7 @@ function Calculator({
             </div>
           )}
           <div className="kelly-head">
-            <strong>{vm.matchup}</strong>
+            <Matchup text={vm.matchup} sportKey={vm.sportKey} size={22} />
             <span>
               {vm.league} · {vm.market}
             </span>

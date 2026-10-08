@@ -17,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
 from corner import prop_markets
+from pipelines import media as media_service
 from pipelines import odds_ingestion as board
 from pipelines import props_ingestion as props
 
@@ -220,6 +221,7 @@ def run_props_refresh(sport, markets, max_events, capture=props.capture, now=Non
 
 def create_app():
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    app.include_router(media_service.create_router())
 
     def reply(code, body):
         return JSONResponse(body, status_code=code, headers={'Cache-Control': 'no-store'})

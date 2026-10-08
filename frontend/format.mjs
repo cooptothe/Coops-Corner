@@ -1,6 +1,6 @@
 // Exact base-10 display operations. Never round-trip analytical values through Number.
 export const MARKETS = {h2h:'Moneyline',spreads:'Spreads',totals:'Totals',outrights:'Outrights',h2h_lay:'Moneyline · Lay',outrights_lay:'Outrights · Lay'};
-export const TITLES = {positive_ev:'Positive EV',arbitrage:'Arbitrage',middle:'Middles',props:'Player props',games:'Games & odds',promo:'Promo converter'};
+export const TITLES = {positive_ev:'Positive EV',arbitrage:'Arbitrage',middle:'Middles',props:'Player props',games:'Schedule',promo:'Promo converter'};
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function parts(value) {

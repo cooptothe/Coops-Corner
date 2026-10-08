@@ -25,6 +25,7 @@ import type {
 } from "../lib/contracts";
 import { logBets } from "../lib/slip";
 import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { Avatar, Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
 type EvRow = Extract<ToolRow, { kind: "positive_ev" }>;
@@ -52,6 +53,9 @@ interface Vm {
 }
 export interface KellyVm {
   id: string;
+  sportKey: string;
+  // Set for player props, so the calculator can show the headshot.
+  player?: string;
   matchup: string;
   market: string;
   line: string;
@@ -63,7 +67,7 @@ export interface KellyVm {
 }
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 
-const ROW_HEIGHT = { wide: 88, compact: 176 };
+const ROW_HEIGHT = { wide: 88, compact: 244 };
 const OVERSCAN = 6;
 const SHARP_BOOKS = new Set([
   "pinnacle",
@@ -199,7 +203,7 @@ const Row = memo(
         role="row"
         tabIndex={0}
         aria-selected={selected}
-        className={`ev-row ${selected ? "selected" : ""}`}
+        className={`ev-row ev-tall ${selected ? "selected" : ""}`}
         style={{ transform: `translateY(${top}px)` }}
         onClick={() => onSelect(vm.id)}
         onKeyDown={(e) => {
@@ -219,7 +223,7 @@ const Row = memo(
         </div>
         <div role="cell" className="ev-cell ev-event">
           <span className="ev-league">{vm.league}</span>
-          <strong>{vm.matchup}</strong>
+          <Matchup text={vm.matchup} sportKey={vm.sportKey} />
           <small>{vm.startsAt ? date(vm.startsAt) : ""}</small>
         </div>
         <div role="cell" className="ev-cell ev-market">
@@ -322,9 +326,21 @@ export function KellyWidget({
       ) : (
         <>
           <div className="kelly-head">
-            <strong>{vm.matchup}</strong>
+            <Matchup text={vm.matchup} sportKey={vm.sportKey} size={22} />
+            {vm.player && (
+              <span className="player-chip">
+                <Avatar
+                  kind="player"
+                  name={vm.player}
+                  sportKey={vm.sportKey}
+                  size={36}
+                />
+                <span>{vm.line}</span>
+              </span>
+            )}
             <span>
-              {vm.market} · {vm.line}
+              {vm.market}
+              {vm.player ? "" : ` · ${vm.line}`}
             </span>
             <span className="ev-badge">{percent(vm.ev, true)}</span>
             <small>
