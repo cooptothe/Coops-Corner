@@ -150,38 +150,53 @@ def run_refresh(capture=board.capture, ingest=board.ingest, now=None, sports=SPO
     finally:
         _lock.release()
 
-PROP_STATE = ROOT / 'retained' / 'props_state.json'
-PROP_DAILY_CREDITS = int(os.getenv('CORNER_PROPS_DAILY_CREDITS', '300'))
 PROP_MAX_EVENTS = 20
 PROP_DEFAULT_EVENTS = 8
 PROP_SPORTS = tuple(s for s in SPORTS if prop_markets.family(s))
 
 
-def _prop_state():
-    try:
-        state = json.loads(PROP_STATE.read_text(encoding='utf-8'))
-    except (OSError, ValueError):
-        state = {}
-    if state.get('day') != _today():
-        state = {'day': _today(), 'credits_today': 0, 'last_attempt_epoch': 0,
-                 'last_success_at': state.get('last_success_at'), 'last_result': state.get('last_result')}
-    return state
-
-
-def props_status(state=None, now=None):
-    state = _prop_state() if state is None else state
-    now = time.time() if now is None else now
+def props_status():
     return {'sports': [{'key': k, 'label': LABELS[k]} for k in PROP_SPORTS],
             'markets': prop_markets.catalog_view(PROP_SPORTS),
             'default_events': PROP_DEFAULT_EVENTS, 'max_events': PROP_MAX_EVENTS,
-            'credits_today': state.get('credits_today', 0), 'daily_credits': PROP_DAILY_CREDITS,
-            'retry_after_seconds': max(0, int(state.get('last_attempt_epoch', 0) + COOLDOWN - now)),
-            'last_success_at': state.get('last_success_at'), 'last_result': state.get('last_result'),
-            'quota': state.get('quota')}
+            'max_age_seconds': props.MAX_AGE, 'last_success_at': props.last_captured()}
 
 
-def run_props_refresh(sport, markets, max_events, capture=props.capture, now=None):
-    """Returns (http_status, body). Estimated cost (events x markets) is checked against the daily budget."""
+def props_found(sport):
+    """How many bets the stored fetches currently give this league, and how many are +EV."""
+    mine = [b for b in props.bets() if b['sport_key'] == sport]
+    return {'bets': len(mine), 'positive': sum(1 for b in mine if float(b['ev']) >= 0)}
+
+
+def props_message(label, markets, result, found=None):
+    """What happened, in words, so a fetch that bought nothing never looks like a click that did nothing."""
+    done, planned, used = result['events'], result.get('planned', 0), result['credits_used']
+    stopped, remaining = result.get('stopped'), result.get('remaining')
+    games = lambda n: f"{n} game{'s' if n != 1 else ''}"
+    credits = lambda n: f"{n} credit{'s' if n != 1 else ''}"
+    progress = f"Fetched {games(done)} of {planned}, {credits(used)} used." if done else 'Nothing was fetched.'
+    if stopped == 'out_of_credits':
+        left = (f'only {credits(remaining)} left' if remaining is not None else 'too few credits are left')
+        return f'Stopped: {left} on your Odds API key, and each game needs {credits(len(markets))}. {progress}'
+    if stopped:
+        code = stopped.rsplit('_', 1)[-1]
+        reason = {'401': 'The Odds API rejected the key or says it is out of credits (HTTP 401).',
+                  '422': 'The Odds API rejected one of the selected markets (HTTP 422). Try fewer or different markets.',
+                  '429': 'The Odds API is rate limiting requests (HTTP 429). Wait a moment and try again.'
+                  }.get(code, f'The Odds API returned HTTP {code}.')
+        return f'{reason} {progress}'
+    if not planned:
+        return f'No upcoming {label} games to fetch.'
+    base = f'Fetched props for {games(done)}, {credits(used)} used.'
+    if found is None:
+        return base
+    if not found['bets']:
+        return (f'{base} No {label} bets can be shown: none of these lines had two sharp books pricing both '
+                'sides, which a bet needs to be priced.')
+    return f"{base} {found['bets']} {label} bets priced, {found['positive']} with positive EV."
+
+def run_props_refresh(sport, markets, max_events, capture=props.capture):
+    """Returns (http_status, body). Credits are spent only as the user asks: no budget, no cooldown."""
     if sport not in PROP_SPORTS or not isinstance(markets, list) or not markets \
             or not all(isinstance(m, str) and prop_markets.market_meta(sport, m) for m in markets) \
             or len(set(markets)) != len(markets) \
@@ -190,34 +205,16 @@ def run_props_refresh(sport, markets, max_events, capture=props.capture, now=Non
     if not _lock.acquire(blocking=False):
         return 409, {'error': 'A refresh is already running.'}
     try:
-        state, now = _prop_state(), time.time() if now is None else now
-        view = props_status(state, now)
-        if view['retry_after_seconds']:
-            return 429, {'error': 'Refresh is cooling down.', **view}
-        estimate = max_events * len(markets)
-        if state['credits_today'] + estimate > PROP_DAILY_CREDITS:
-            return 429, {'error': f'This could cost up to {estimate} credits and would pass the daily '
-                                  f'prop budget of {PROP_DAILY_CREDITS}.', **view}
-        state['last_attempt_epoch'] = now
-        PROP_STATE.parent.mkdir(exist_ok=True)
-        PROP_STATE.write_text(json.dumps(state), encoding='utf-8')
         try:
             result = capture(sport, markets, max_events)
         except Exception as error:
-            state['last_result'] = f'failed ({type(error).__name__})'
-            PROP_STATE.write_text(json.dumps(state), encoding='utf-8')
             return 502, {'error': f'Prop refresh failed: {error}'}
-        state['credits_today'] += result['credits_used']
-        state['quota'] = result.get('quota') or state.get('quota')
-        state['last_result'] = f"{result['events']} events, {result['credits_used']} credits" + \
-            (f" (stopped: {result['stopped']})" if result['stopped'] else '')
-        if result['events']:
-            state['last_success_at'] = datetime.now(timezone.utc).isoformat()
-        PROP_STATE.write_text(json.dumps(state), encoding='utf-8')
-        return 200, {'refreshed': bool(result['events']), **props_status(state, now)}
+        found = props_found(sport)
+        return 200, {'refreshed': result['events'] > 0, 'stopped': result.get('stopped'),
+                     'bets_found': found['bets'],
+                     'message': props_message(LABELS[sport], markets, result, found), **props_status()}
     finally:
         _lock.release()
-
 
 def create_app():
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)

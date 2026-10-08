@@ -102,7 +102,8 @@ export default function Workspace({ view }: { view: View }) {
   const router = useRouter();
   const [data, setData] = useState<Data | null>(null),
     [bootError, setBootError] = useState(""),
-    [reload, setReload] = useState(0);
+    [reload, setReload] = useState(0),
+    [updating, setUpdating] = useState(false);
   const [filters, setFilters] = useState<Filters>({}),
     [offset, setOffset] = useState(0),
     [limit, setLimit] = useState(10),
@@ -132,9 +133,11 @@ export default function Workspace({ view }: { view: View }) {
   }, []);
   useEffect(() => {
     const controller = new AbortController();
-    setData(null);
+    // Keep the current data on screen while an update loads: clearing it would unmount the
+    // feed, close an open calculator and lose scroll position. The new data replaces it at once.
     setDetail(null);
     setBootError("");
+    setUpdating(true);
     (async () => {
       try {
         await reloadToolsOnce();
@@ -165,6 +168,8 @@ export default function Workspace({ view }: { view: View }) {
           });
       } catch (error) {
         if (!controller.signal.aborted) setBootError(errorText(error));
+      } finally {
+        if (!controller.signal.aborted) setUpdating(false);
       }
     })();
     return () => controller.abort();
@@ -305,6 +310,11 @@ export default function Workspace({ view }: { view: View }) {
           <div className="top-actions">
             {data?.meta.data_mode === "database" && (
               <span className="fixture-badge">◇ Stored pre-game odds</span>
+            )}
+            {updating && data && (
+              <span className="feed-change" role="status">
+                ↻ Updating prices…
+              </span>
             )}
             <FreshOdds onRefreshed={() => setReload((v) => v + 1)} />
           </div>

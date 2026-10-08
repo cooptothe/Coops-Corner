@@ -31,6 +31,21 @@ export default function FreshOdds({
     return () => controller.abort();
   }, []);
 
+  // The cooldown is only known when the status was read, so read it again once it ends;
+  // otherwise the button stays disabled until the page is reloaded.
+  useEffect(() => {
+    const wait = status?.retry_after_seconds ?? 0;
+    if (wait <= 0) return;
+    const timer = setTimeout(
+      () =>
+        refreshStatus()
+          .then(setStatus)
+          .catch(() => undefined),
+      wait * 1000 + 300,
+    );
+    return () => clearTimeout(timer);
+  }, [status]);
+
   const chosen = leagues ?? status?.sports.map((s) => s.key) ?? [];
   const choose = (next: string[]) => {
     setLeagues(next);

@@ -25,6 +25,7 @@ import type {
 } from "../lib/contracts";
 import { logBets } from "../lib/slip";
 import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
@@ -269,8 +270,11 @@ export function KellyWidget({
   setMultiplier,
   onClose,
   onLogged,
+  unavailable = false,
 }: {
   onLogged: () => void;
+  // The update that just ran dropped this bet: show it as gone and do not allow logging it.
+  unavailable?: boolean;
   vm: KellyVm | null;
   bankroll: string;
   setBankroll: (v: string) => void;
@@ -325,6 +329,15 @@ export function KellyWidget({
         <p className="kelly-empty">Select a row to size the bet.</p>
       ) : (
         <>
+          {unavailable && (
+            <div role="alert" className="arb-alert">
+              <strong>This bet is no longer available.</strong>
+              <span>
+                The latest update dropped it. The numbers below are its last
+                prices.
+              </span>
+            </div>
+          )}
           <div className="kelly-head">
             <Matchup text={vm.matchup} sportKey={vm.sportKey} size={22} />
             {vm.player && (
@@ -386,7 +399,7 @@ export function KellyWidget({
           </div>
           <button
             className="button kelly-bet"
-            disabled={!result || bet === "pending"}
+            disabled={!result || bet === "pending" || unavailable}
             onClick={place}
           >
             {bet === "pending"
@@ -579,6 +592,13 @@ export default function EvFeed({ data }: { data: Data }) {
   );
   const select = useCallback((id: string) => setSelected(id), []);
   const active = visible.find((v) => v.id === selected) ?? null;
+  const present = useMemo(
+    () => selected !== null && all.some((v) => v.id === selected),
+    [all, selected],
+  );
+  const { shown, unavailable } = useOpenBet(selected, active, present);
+  const rowIds = useMemo(() => rows?.map((r) => r.id) ?? null, [rows]);
+  const change = useFeedChanges(rowIds);
 
   if (error)
     return <ErrorCard message={error} retry={() => setRetry((n) => n + 1)} />;
@@ -682,6 +702,7 @@ export default function EvFeed({ data }: { data: Data }) {
           />
           <strong>{visible.length}</strong> of {all.length} bets · prices as of{" "}
           {date(data.meta.captured_at)}
+          <FeedChangeNote change={change} />
           <label className="ev-sort">
             Sort by{" "}
             <select
@@ -741,11 +762,12 @@ export default function EvFeed({ data }: { data: Data }) {
           )}
         </div>
       </div>
-      {active && (
+      {shown && (
         <div className="kelly-backdrop" onClick={() => setSelected(null)} />
       )}
       <KellyWidget
-        vm={active}
+        vm={shown}
+        unavailable={unavailable}
         bankroll={bankroll}
         setBankroll={setBankroll}
         multiplier={multiplier}

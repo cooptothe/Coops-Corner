@@ -22,6 +22,7 @@ import {
   type KellyVm,
 } from "./ev-feed";
 import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
@@ -48,6 +49,7 @@ const BETTING_BOOKS = [
 ];
 const bookName = (id: string) => BOOK_NAMES[id] ?? id;
 const SETTINGS_KEY = "corner.props-settings";
+const credits = (n: number) => `${n} credit${n === 1 ? "" : "s"}`;
 const PAGE = 100;
 
 interface Vm extends KellyVm {
@@ -172,7 +174,9 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const [fetchMarkets, setFetchMarkets] = useState<string[]>([]);
   const [fetchEvents, setFetchEvents] = useState(8);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<{ text: string; ok: boolean } | null>(
+    null,
+  );
 
   useEffect(() => {
     const b = localStorage.getItem(BANKROLL_KEY),
@@ -222,10 +226,13 @@ export default function PropsFeed({ reload }: { reload: number }) {
   }, [retry, reload]);
 
   const catalog = status?.markets[fetchSport] ?? [];
+  // Reset the picks to the defaults only when the league changes. The status object is
+  // replaced after every fetch, which used to wipe the user's chosen markets.
+  const catalogKey = catalog.map((m) => m.key).join(",");
   useEffect(() => {
     setFetchMarkets(catalog.filter((m) => m.default).map((m) => m.key));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchSport, status?.markets]);
+  }, [fetchSport, catalogKey]);
 
   const all = useMemo(
     () =>
@@ -242,9 +249,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
         : [],
     [status, all],
   );
+  // A filter whose value no longer exists in the data (its bets were replaced by an update)
+  // must not keep hiding everything behind a dropdown that looks like "All".
+  const activeSport = sports.some((s) => s.key === sportKey) ? sportKey : "";
   const inSport = useMemo(
-    () => all.filter((v) => !sportKey || v.sportKey === sportKey),
-    [all, sportKey],
+    () => all.filter((v) => !activeSport || v.sportKey === activeSport),
+    [all, activeSport],
   );
   const markets = useMemo(() => {
     const m = new Map<string, { label: string; group: string }>();
@@ -260,6 +270,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
     for (const v of inSport) m.set(v.gameId, v);
     return [...m.values()].sort((a, b) => a.startMs - b.startMs);
   }, [inSport]);
+  const activeMarket = markets.some(([, items]) =>
+    items.some(([key]) => key === marketKey),
+  )
+    ? marketKey
+    : "";
+  const activeEvent = events.some((v) => v.gameId === eventId) ? eventId : "";
   const books = useMemo(
     () =>
       [...BETTING_BOOKS].sort((a, b) => bookName(a).localeCompare(bookName(b))),
@@ -275,8 +291,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
       .filter(
         (v) =>
           !offBooks.has(v.bookId) &&
-          (!marketKey || v.marketKey === marketKey) &&
-          (!eventId || v.gameId === eventId) &&
+          (!activeMarket || v.marketKey === activeMarket) &&
+          (!activeEvent || v.gameId === activeEvent) &&
           (!needle || v.player.toLowerCase().includes(needle)) &&
           compareDecimal(v.ev, minRatio) >= 0 &&
           (lo === null || Number(v.decimalOdds) >= lo) &&
@@ -286,8 +302,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
   }, [
     inSport,
     offBooks,
-    marketKey,
-    eventId,
+    activeMarket,
+    activeEvent,
     search,
     minRatio,
     lo,
@@ -309,25 +325,47 @@ export default function PropsFeed({ reload }: { reload: number }) {
     ],
   );
   const active = visible.find((v) => v.id === selected) ?? null;
+  const present = useMemo(
+    () => selected !== null && all.some((v) => v.id === selected),
+    [all, selected],
+  );
+  const { shown: openBet, unavailable } = useOpenBet(selected, active, present);
+  const betIds = useMemo(
+    () => status?.bets?.map((b) => b.id) ?? null,
+    [status?.bets],
+  );
+  const change = useFeedChanges(betIds);
+  const hiddenAsOld =
+    !!status?.last_success_at &&
+    status.max_age_seconds > 0 &&
+    Date.now() - new Date(status.last_success_at).getTime() >
+      status.max_age_seconds * 1000;
 
   const estimate = fetchEvents * fetchMarkets.length;
-  const wait = status?.retry_after_seconds ?? 0;
   const fetchNow = useCallback(async () => {
     if (!fetchSport || !fetchMarkets.length) return;
     if (
       !window.confirm(
-        `Fetch ${fetchMarkets.length} prop market(s) for up to ${fetchEvents} games? This uses up to ${estimate} API credits.`,
+        `Fetch ${fetchMarkets.length} prop market${fetchMarkets.length === 1 ? "" : "s"} for up to ${fetchEvents} game${fetchEvents === 1 ? "" : "s"}? This uses up to ${credits(estimate)}.`,
       )
     )
       return;
     setBusy(true);
-    setNotice("");
+    setNotice(null);
     try {
-      await refreshProps(fetchSport, fetchMarkets, fetchEvents);
+      const result = await refreshProps(fetchSport, fetchMarkets, fetchEvents);
+      setNotice({
+        text: result.message ?? "Done.",
+        ok: Boolean(result.refreshed) && !result.stopped,
+      });
       setRetry((n) => n + 1);
-      setSportKey(fetchSport);
+      // Show the fetched league only when it produced bets; otherwise leave the view alone.
+      if ((result.bets_found ?? 0) > 0) setSportKey(fetchSport);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Refresh failed.");
+      setNotice({
+        text: e instanceof Error ? e.message : "Refresh failed.",
+        ok: false,
+      });
     } finally {
       setBusy(false);
     }
@@ -359,7 +397,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         <label className="field">
           <span>SPORT</span>
           <select
-            value={sportKey}
+            value={activeSport}
             onChange={(e) => {
               setSportKey(e.target.value);
               setMarketKey("");
@@ -377,7 +415,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         <label className="field">
           <span>PROP MARKET</span>
           <select
-            value={marketKey}
+            value={activeMarket}
             onChange={(e) => setMarketKey(e.target.value)}
           >
             <option value="">All props</option>
@@ -394,7 +432,10 @@ export default function PropsFeed({ reload }: { reload: number }) {
         </label>
         <label className="field">
           <span>GAME</span>
-          <select value={eventId} onChange={(e) => setEventId(e.target.value)}>
+          <select
+            value={activeEvent}
+            onChange={(e) => setEventId(e.target.value)}
+          >
             <option value="">All games</option>
             {events.map((v) => (
               <option key={v.gameId} value={v.gameId}>
@@ -541,25 +582,17 @@ export default function PropsFeed({ reload }: { reload: number }) {
         </label>
         <button
           className="button"
-          disabled={busy || !fetchMarkets.length || wait > 0}
+          disabled={busy || !fetchMarkets.length}
           onClick={fetchNow}
         >
-          {busy
-            ? "Fetching…"
-            : wait > 0
-              ? `Wait ${wait}s`
-              : `Fetch props (≤ ${estimate} credits)`}
+          {busy ? "Fetching…" : `Fetch props (≤ ${credits(estimate)})`}
         </button>
-        <small>
-          Used today: {status.credits_today} / {status.daily_credits} credits
-          {status.quota?.["x-requests-remaining"]
-            ? ` · ${status.quota["x-requests-remaining"]} left on the key`
-            : ""}
-          {status.last_result ? ` · Last: ${status.last_result}` : ""}
-        </small>
         {notice && (
-          <small role="alert" className="mid-loss">
-            {notice}
+          <small
+            role={notice.ok ? "status" : "alert"}
+            className={notice.ok ? "props-ok" : "mid-loss"}
+          >
+            {notice.text}
           </small>
         )}
       </aside>
@@ -573,6 +606,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
           {status.last_success_at && (
             <> · fetched {date(status.last_success_at)}</>
           )}
+          <FeedChangeNote change={change} />
           <label className="ev-sort">
             Sort by{" "}
             <select
@@ -605,9 +639,9 @@ export default function PropsFeed({ reload }: { reload: number }) {
             <div className="empty-state">
               <h3>No +EV prop bets right now</h3>
               <p>
-                Fetch prop odds, lower the minimum EV, or re-enable books. Bets
-                need at least two sharp books pricing both sides of the same
-                line.
+                {hiddenAsOld
+                  ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. Fetch prop odds again.`
+                  : "Fetch prop odds, lower the minimum EV, or re-enable books. Bets need at least two sharp books pricing both sides of the same line."}
               </p>
             </div>
           ) : (
@@ -677,11 +711,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
           )}
         </div>
       </div>
-      {active && (
+      {openBet && (
         <div className="kelly-backdrop" onClick={() => setSelected(null)} />
       )}
       <KellyWidget
-        vm={active}
+        vm={openBet}
+        unavailable={unavailable}
         bankroll={bankroll}
         setBankroll={setBankroll}
         multiplier={multiplier}

@@ -23,6 +23,7 @@ import {
 import type { NewSlipBet } from "../lib/slip";
 import { Age, Menu, shortBook } from "./arb-feed";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { FeedChangeNote, useFeedChanges } from "./feed-updates";
 import { Matchup } from "./media";
 
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
@@ -1064,6 +1065,21 @@ export default function PromoFeed({ data }: { data: Data }) {
     [all, rateLimit, sortKey],
   );
   const byId = useMemo(() => new Map(all.map((v) => [v.id, v])), [all]);
+  // Membership follows these settings, so changing one is not a data update.
+  const changeScope = [
+    promoBook,
+    boostBad,
+    minOdds,
+    maxOdds,
+    [...offBooks].sort().join(","),
+    [...offSports].sort().join(","),
+    [...offMarkets].sort().join(","),
+  ].join("|");
+  const promoIds = useMemo(
+    () => (promoBook ? all.map((v) => v.id) : null),
+    [all, promoBook],
+  );
+  const change = useFeedChanges(promoIds, changeScope);
   const avg = visible.length
     ? visible.reduce((s, v) => s + v.rate, 0) / visible.length
     : null;
@@ -1325,6 +1341,7 @@ export default function PromoFeed({ data }: { data: Data }) {
             />
             <strong>{visible.length}</strong> conversions · {help} Hedges are
             two-way markets only.
+            <FeedChangeNote change={change} />
           </div>
           {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
           <div

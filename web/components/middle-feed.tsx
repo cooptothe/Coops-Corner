@@ -19,6 +19,7 @@ import type {
 import { Age, CopyButton, Menu, shortBook } from "./arb-feed";
 import type { NewSlipBet } from "../lib/slip";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { FeedChangeNote, useFeedChanges } from "./feed-updates";
 import { Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
@@ -476,6 +477,8 @@ export default function MiddleFeed({ data }: { data: Data }) {
     [rows, maps],
   );
   const byId = useMemo(() => new Map(all.map((v) => [v.id, v])), [all]);
+  const rowIds = useMemo(() => rows?.map((r) => r.id) ?? null, [rows]);
+  const change = useFeedChanges(rowIds);
   const bookItems = useMemo(
     () =>
       data.caps.books
@@ -649,6 +652,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
             />
             <strong>{visible.length}</strong> of {all.length} middles · green is
             the payoff in the window, red is what a miss costs
+            <FeedChangeNote change={change} />
           </div>
           {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
           <div

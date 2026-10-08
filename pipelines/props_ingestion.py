@@ -4,8 +4,9 @@ Cost is about one credit per market returned per event (all ten books fit in one
 Nothing runs on a timer and nothing retries. Normalized quotes are merged into
 retained/props/latest.json.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
+import os
 from pathlib import Path
 
 import requests
@@ -17,7 +18,8 @@ from pipelines.odds_ingestion import BASE, PARAMS, fetch
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / 'retained' / 'props' / 'latest.json'
 BOOKS = PARAMS['bookmakers']
-CREDIT_FLOOR = 20
+# Prop prices move fast, so a fetch older than this stops counting (the main tools use two hours).
+MAX_AGE = int(os.environ.get('CORNER_PROPS_MAX_AGE_SECONDS', '3600'))
 
 
 def _when(text):
@@ -38,14 +40,43 @@ def _save(data):
     tmp.replace(STORE)
 
 
-def prune(data, now=None):
+def prune(data, now=None, max_age=None):
+    """Drop games that have started, and (with max_age, in seconds) markets fetched longer ago than that."""
     now = now or datetime.now(timezone.utc)
-    data['events'] = {k: v for k, v in data.get('events', {}).items() if _when(v['commence_time']) > now}
+    oldest = None if max_age is None else now - timedelta(seconds=max_age)
+    kept = {}
+    for key, event in data.get('events', {}).items():
+        if _when(event['commence_time']) <= now:
+            continue
+        markets = {name: m for name, m in event.get('markets', {}).items()
+                   if oldest is None or (m.get('captured_at') and _when(m['captured_at']) >= oldest)}
+        if markets:
+            kept[key] = {**event, 'markets': markets}
+    data['events'] = kept
     return data
 
 
-def bets():
-    return build_bets(prune(load())['events'])
+def bets(now=None):
+    """Bets from fresh stored fetches only."""
+    return build_bets(prune(load(), now, MAX_AGE)['events'])
+
+
+def last_captured():
+    """When prop odds were last fetched (newest stored market, however old), or None."""
+    stamps = [m.get('captured_at') for e in prune(load())['events'].values() for m in e.get('markets', {}).values()]
+    return max((s for s in stamps if s), default=None)
+
+
+def replace_scope(data, sport, markets, planned_ids):
+    """A fetch replaces what it covers: for these markets in this league, games outside the new
+    fetch are dropped, so earlier fetches cannot pile up beside the new one."""
+    for event_id, event in list(data['events'].items()):
+        if event.get('sport_key') != sport or event_id in planned_ids:
+            continue
+        for key in markets:
+            event['markets'].pop(key, None)
+        if not event['markets']:
+            del data['events'][event_id]
 
 
 def plan(sport, max_events, session, now=None):
@@ -69,10 +100,13 @@ def capture(sport, markets, max_events):
     with requests.Session() as session:
         session.trust_env = False
         events, quota = plan(sport, max_events, session)
-        data = prune(load())
+        data = prune(load(), max_age=MAX_AGE)  # expired markets are hidden anyway; do not keep them on disk
+        replace_scope(data, sport, markets, {e['id'] for e in events})
+        _save(data)
         for event in events:
-            if int((quota or {}).get('x-requests-remaining', '999')) < max(CREDIT_FLOOR, len(markets)):
-                stopped = 'credit_floor'
+            # The only guard: a call the key cannot pay for would just be rejected.
+            if int((quota or {}).get('x-requests-remaining', '999')) < len(markets):
+                stopped = 'out_of_credits'
                 break
             status, body, headers = fetch(session, f"{BASE}/{sport}/events/{event['id']}/odds", {
                 'bookmakers': BOOKS, 'markets': ','.join(markets), 'oddsFormat': 'decimal', 'dateFormat': 'iso'})
@@ -95,4 +129,6 @@ def capture(sport, markets, max_events):
                     slot['markets'].pop(key, None)
             done += 1
             _save(data)
-    return {'events': done, 'credits_used': used, 'quota': quota, 'stopped': stopped}
+    remaining = (quota or {}).get('x-requests-remaining')
+    return {'events': done, 'planned': len(events), 'credits_used': used, 'stopped': stopped,
+            'remaining': int(remaining) if remaining and remaining.isdigit() else None}

@@ -28,6 +28,7 @@ import type {
 } from "../lib/contracts";
 import type { NewSlipBet } from "../lib/slip";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { FeedChangeNote, useFeedChanges } from "./feed-updates";
 import { Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
@@ -442,9 +443,15 @@ function Calculator({
               <div className="arb-summary">
                 <span>Total risked</span>
                 <b>{usd(sizing.totalStake.toFixed(2))}</b>
-                <span>Gross guaranteed return</span>
+                <span>
+                  {mode === "biased"
+                    ? "Worst-case return"
+                    : "Gross guaranteed return"}
+                </span>
                 <b>{usd(sizing.guaranteedReturn.toFixed(2))}</b>
-                <span>Net profit</span>
+                <span>
+                  {mode === "biased" ? "Worst-case profit" : "Net profit"}
+                </span>
                 <b className="arb-net">{usd(sizing.netProfit.toFixed(2))}</b>
                 {mode === "biased" && (
                   <>
@@ -455,7 +462,9 @@ function Calculator({
               </div>
               {mode === "biased" && (
                 <small className="kelly-note">
-                  Biased: the other legs only return your total stake.
+                  Biased: the other legs only return your total stake, so the
+                  worst case is breaking even and the extra profit comes only if
+                  the favored leg wins.
                 </small>
               )}
             </>
@@ -609,6 +618,8 @@ export default function ArbFeed({ data }: { data: Data }) {
     [rows, maps],
   );
   const byId = useMemo(() => new Map(all.map((v) => [v.id, v])), [all]);
+  const rowIds = useMemo(() => rows?.map((r) => r.id) ?? null, [rows]);
+  const change = useFeedChanges(rowIds);
   const bookItems = useMemo(
     () =>
       data.caps.books
@@ -744,6 +755,7 @@ export default function ArbFeed({ data }: { data: Data }) {
             />
             <strong>{visible.length}</strong> of {all.length} opportunities ·
             best first
+            <FeedChangeNote change={change} />
           </div>
           {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
           <div

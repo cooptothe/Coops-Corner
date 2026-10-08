@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from api.app import create_app
 from api.catalog import FixtureCatalog
-from api.database import LiveCatalog, build_raw
+from api.database import LiveCatalog, build_raw, keep_latest_capture
 
 NOW = datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc)
 START = NOW + timedelta(hours=5)
@@ -105,6 +105,31 @@ class DatabaseCatalogTests(unittest.TestCase):
         arbs = [r for r in catalog.rows if r.kind == 'arbitrage']
         self.assertTrue(arbs)
         self.assertTrue(all(Decimal(r.minimum_profit) == 0 for r in arbs))
+
+    def test_pulled_lines_do_not_survive_a_newer_capture(self):
+        old, new = 'payload-old', 'payload-new'
+        earlier = [dict(r, provider_payload_id=old, observed_at=NOW - timedelta(minutes=40)) for r in board()]
+        # The newer capture still has DraftKings' moneyline but no longer carries its spread or total.
+        newer = [dict(r, provider_payload_id=new, observed_at=NOW - timedelta(minutes=2))
+                 for r in board() if not (r['book_code'] == 'draftkings' and r['market_code'] != 'moneyline')]
+        kept = keep_latest_capture(earlier + newer)
+        self.assertTrue(all(r['provider_payload_id'] == new for r in kept))
+        self.assertEqual(len(newer), len(kept))
+        self.assertFalse([r for r in kept if r['book_code'] == 'draftkings' and r['market_code'] != 'moneyline'])
+
+    def test_each_game_uses_its_own_newest_capture(self):
+        other = '22222222-2222-2222-2222-222222222222'
+        a_old = [dict(r, provider_payload_id='p1', observed_at=NOW - timedelta(hours=1)) for r in board()]
+        b_new = [dict(r, event_id=other, provider_payload_id='p2', observed_at=NOW - timedelta(minutes=1))
+                 for r in board()]
+        kept = keep_latest_capture(a_old + b_new)
+        # A newer capture of another game must not discard this game's only prices.
+        self.assertEqual({EVENT: 'p1', other: 'p2'}, {str(r['event_id']): r['provider_payload_id'] for r in kept})
+
+    def test_rows_without_a_payload_id_are_left_alone(self):
+        rows = board()
+        self.assertEqual(len(rows), len(keep_latest_capture(rows)))
+        self.assertEqual([], keep_latest_capture([]))
 
     def test_api_serves_database_mode(self):
         catalog = FixtureCatalog(raw=build_raw(board(), PEOPLE, now=NOW))

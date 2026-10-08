@@ -83,18 +83,22 @@ export interface PropBet {
   fair_probability: string;
   sharps: string[];
   observed_at: string | null;
-}export interface PropsStatus {
+}
+export interface PropsStatus {
   sports: { key: string; label: string }[];
   markets: Record<string, PropMarketInfo[]>;
   default_events: number;
   max_events: number;
-  credits_today: number;
-  daily_credits: number;
-  retry_after_seconds: number;
+  // Fetches older than this stop counting, so the feed only holds current prices.
+  max_age_seconds: number;
   last_success_at: string | null;
-  last_result: string | null;
-  quota: Record<string, string> | null;
   bets?: PropBet[];
+  // Set by a fetch: what happened, whether any game was fetched, and why it stopped early.
+  refreshed?: boolean;
+  stopped?: string | null;
+  message?: string;
+  // Bets now available for the fetched league (priced against two or more sharp books).
+  bets_found?: number;
 }
 
 async function propsCall(

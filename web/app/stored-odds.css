@@ -543,3 +543,7 @@
   .sched-row{grid-template-columns:minmax(0,1fr)}
   .sched-quote{height:30px}
 }
+/* The drawer scrolls; its contents must never be squeezed (that hid the Symmetric/Biased toggle). */
+.kelly-panel>*{flex-shrink:0}
+.props-ok{color:#34d399}
+.feed-change{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:12px;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4);white-space:nowrap}

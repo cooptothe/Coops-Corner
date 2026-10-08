@@ -44,7 +44,7 @@ QUOTE_SQL = """
 SELECT e.id AS event_id, c.code AS competition_code, c.display_name AS competition_name, e.scheduled_start,
        mt.code AS market_code, sc.code AS scope_code, os.code AS side, o.point,
        p.display_name AS selection_name, b.code AS book_code, b.display_name AS book_name,
-       q.decimal_odds, q.observed_at, q.provider_updated_at
+       q.decimal_odds, q.observed_at, q.provider_updated_at, q.provider_payload_id
 FROM corner.trusted_current_quotes q
 JOIN corner.quote_states qs ON qs.id = q.quote_state_id AND qs.code = 'active'
 JOIN corner.sportsbooks b ON b.id = q.sportsbook_id AND b.active
@@ -63,6 +63,22 @@ SELECT ep.event_id, ep.role, p.display_name
 FROM corner.event_participants ep JOIN corner.participants p ON p.id = ep.participant_id
 WHERE ep.event_id = ANY(%(events)s::uuid[]) AND ep.role IN ('home', 'away')
 """
+
+
+def keep_latest_capture(rows):
+    """A game is priced only by its newest capture.
+
+    The database keeps the latest observation per outcome and book, so a line a book has since pulled
+    would otherwise stay "current" until it ages out and show up as a phantom bet. Each capture is the
+    full board for its games, so anything absent from the newest one is gone.
+    """
+    newest = {}
+    for r in rows:
+        key = (r['observed_at'], str(r.get('provider_payload_id', '')))
+        event = str(r['event_id'])
+        if event not in newest or key > newest[event]:
+            newest[event] = key
+    return [r for r in rows if str(r.get('provider_payload_id', '')) == newest[str(r['event_id'])][1]]
 
 
 def _num(value):
@@ -157,6 +173,7 @@ def load_raw(conn, *, now, max_age, references, targets):
         if events:
             cur.execute(PARTICIPANT_SQL, dict(events=[str(e) for e in events]))
             participants = cur.fetchall()
+    rows = keep_latest_capture(rows)
     return build_raw(rows, [(p['event_id'], p['role'], p['display_name']) for p in participants],
                      now=now, references=references, targets=targets)
 
