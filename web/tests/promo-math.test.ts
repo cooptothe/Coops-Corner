@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { convert, parseAmerican, toDecimal } from "../lib/promo-math";
+import {
+  convert,
+  efficiencyTier,
+  marketWidthCents,
+  parseAmerican,
+  toAmerican,
+  toDecimal,
+} from "../lib/promo-math";
 
 test("bonus bet hedges to equal cash either way", () => {
   const c = convert("bonus", 100, 4.0, 1.303)!;
@@ -29,4 +36,35 @@ test("rejects bad inputs and parses American odds", () => {
   assert.equal(parseAmerican("-110"), -110);
   assert.equal(parseAmerican("50"), null);
   assert.equal(toDecimal(300), 4);
+});
+
+test("capital counts the cash bet only for a risk-free bet", () => {
+  const bonus = convert("bonus", 100, 4.0, 1.303)!;
+  assert.equal(bonus.capital, bonus.hedge);
+  const free = convert("nosweat", 100, 3.5, 1.364, 0.75)!;
+  assert.equal(free.capital, 100 + free.hedge);
+});
+
+test("market width is the margin between opposing prices in cents", () => {
+  assert.equal(marketWidthCents(toDecimal(200), toDecimal(-220)), 20);
+  assert.equal(marketWidthCents(toDecimal(-110), toDecimal(-110)), 20);
+  assert.equal(marketWidthCents(toDecimal(350), toDecimal(-450)), 100);
+  assert.equal(marketWidthCents(toDecimal(110), toDecimal(105)), 0);
+  assert.ok(Math.abs(toAmerican(toDecimal(-110)) + 110) < 1e-9);
+});
+
+test("efficiency tiers", () => {
+  assert.equal(efficiencyTier(0.6499), "low");
+  assert.equal(efficiencyTier(0.65), "mid");
+  assert.equal(efficiencyTier(0.7499), "mid");
+  assert.equal(efficiencyTier(0.77), "good");
+  assert.equal(efficiencyTier(0.8), "elite");
+});
+
+test("voucher value is the refund at the assumed rate, risk-free only", () => {
+  const free = convert("nosweat", 200, 3.5, 1.364, 0.6)!;
+  assert.ok(Math.abs(free.voucherValue - 120) < 1e-9);
+  // Cash on the loss path before the voucher is converted.
+  assert.ok(Math.abs(free.ifHedgeWins - free.voucherValue - (-200 + free.hedge * 0.364)) < 1e-9);
+  assert.equal(convert("bonus", 100, 4, 1.3)!.voucherValue, 0);
 });

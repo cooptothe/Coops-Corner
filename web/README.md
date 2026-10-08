@@ -49,10 +49,13 @@ The other tools calculate over stored provider quotes under `api.run_local`, and
 - Exact-contract sportsbook matrix, with back quotes routed into promo conversion.
 - Native payoff dialogs, raw decimal inspection and explicit conditional-EV basis.
 - `/promo` is a conversion feed: pick the promo type (bonus bet, site credit or
-  no-sweat), your sportsbook and the promo value, and every upcoming two-way
-  market is ranked by conversion rate against the best cash hedge at the other
-  books. The calculator gives the hedge stake and both outcomes. The math is
-  client-side estimates in `lib/promo-math.ts`; the exact promo API remains
+  risk-free bet), your sportsbook and the promo size, and every upcoming two-way
+  market is ranked by conversion efficiency against the best cash hedge at the
+  other books. The efficiency badge is red below 65%, amber to 75%, lime to 80%
+  and emerald from 80%. The calculator drawer switches promo type live and shows
+  the hedge stake (with copy), total capital and guaranteed net cash return, and
+  warns when the hedge passes your limit or the market is over 30¢ wide. The math
+  is client-side estimates in `lib/promo-math.ts`; the exact promo API remains
   available but is not used by this page.
 - Signed American odds and USD money formatting, without converting analytical
   strings through floating-point numbers. Decimal input strings remain unchanged

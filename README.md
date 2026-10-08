@@ -96,7 +96,7 @@ otherwise built once at startup. If you change `web/next.config.ts`, restart `pn
 | `/arbitrage` | Two-way arbitrage only (no three-way outcomes) |
 | `/middle` | Spread and total middles with window and EV |
 | `/props` | Player prop +EV bets against the sharp books, with the Kelly calculator |
-| `/promo` | Bonus bet, site credit and no-sweat conversion with a stake calculator |
+| `/promo` | Bonus bet, site credit and risk-free bet conversion with a stake calculator |
 | `/games` | Odds screen: sportsbooks by game, with Spreads, Moneyline and Totals tabs |
 
 Feeds can be sorted by EV, win probability, start time and other measures relevant

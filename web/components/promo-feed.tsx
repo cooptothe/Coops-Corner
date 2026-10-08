@@ -10,12 +10,16 @@ import {
 } from "../../frontend/format.mjs";
 import type { Capabilities, Game, Meta, Quote } from "../lib/contracts";
 import {
+  WIDE_MARKET_CENTS,
   convert,
+  type Conversion,
+  efficiencyTier,
+  marketWidthCents,
   parseAmerican,
   toDecimal,
   type PromoType,
 } from "../lib/promo-math";
-import { Age, CopyButton, Menu, shortBook } from "./arb-feed";
+import { Age, Menu, shortBook } from "./arb-feed";
 
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 interface Leg {
@@ -37,6 +41,7 @@ interface Vm {
   promo: Leg;
   hedge: Leg;
   rate: number;
+  widthCents: number;
   observedAt: string;
   sig: string;
 }
@@ -50,12 +55,13 @@ const SORT_LABELS: [SortKey, string][] = [
 ];
 const startMs = (v: Vm) =>
   v.startsAt ? new Date(v.startsAt).getTime() : Infinity;
-const ROW_HEIGHT = { wide: 96, compact: 200 };
+const ROW_HEIGHT = { wide: 132, compact: 290 };
 const OVERSCAN = 6;
 const VIEW_HEIGHT = 680;
 const SETTINGS_KEY = "corner.promo-settings";
 const AMOUNT = /^\d{1,7}(\.\d{1,2})?$/;
 const PCT = /^\d{1,3}$/;
+const DEFAULT_HEDGE_LIMIT = "1000";
 const OPPOSITE: Record<string, string> = {
   home: "away",
   away: "home",
@@ -63,23 +69,36 @@ const OPPOSITE: Record<string, string> = {
   under: "over",
 };
 const MARKET_NAMES = MARKETS as Record<string, string>;
-const TYPES: { id: PromoType; name: string; help: string }[] = [
+const TYPES: {
+  id: PromoType;
+  name: string;
+  full: string;
+  help: string;
+}[] = [
   {
     id: "bonus",
     name: "Bonus bet",
+    full: "Bonus Bet (Stake Not Returned)",
     help: "Stake is not returned. Best on +200 to +500 underdogs.",
   },
   {
     id: "credit",
     name: "Site credit",
+    full: "Site Credit (Stake Returned)",
     help: "Stake is returned, so tight even-money lines work best.",
   },
   {
     id: "nosweat",
-    name: "No-sweat bet",
-    help: "Cash bet; a loss refunds a bonus bet worth the rate below.",
+    name: "Risk-free bet",
+    full: "Risk-Free Bet (Contingent Refund)",
+    help: "Cash bet; a loss refunds a bonus bet worth the voucher value below.",
   },
 ];
+const TYPE_NAME = Object.fromEntries(
+  TYPES.map((t) => [t.id, t.name]),
+) as Record<PromoType, string>;
+const sizeLabel = (type: PromoType) =>
+  type === "nosweat" ? "RISK-FREE STAKE ($)" : "PROMO INPUT SIZE ($)";
 const DEFAULT_ODDS: Record<PromoType, [string, string]> = {
   bonus: ["+200", "+500"],
   credit: ["", ""],
@@ -88,6 +107,92 @@ const DEFAULT_ODDS: Record<PromoType, [string, string]> = {
 
 const money = (n: number) => usd(n.toFixed(2));
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+const hedgeLimit = (text: string) =>
+  AMOUNT.test(text) && Number(text) > 0 ? Number(text) : Infinity;
+
+function CopyIconButton({ value, label }: { value: string; label: string }) {
+  const [done, setDone] = useState(false);
+  return (
+    <button
+      type="button"
+      className={`promo-copy ${done ? "done" : ""}`}
+      aria-label={done ? `Copied ${label}` : `Copy ${label}`}
+      title={done ? "Copied" : `Copy ${label}`}
+      onClick={async (e) => {
+        e.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(value);
+          setDone(true);
+          setTimeout(() => setDone(false), 1200);
+        } catch {}
+      }}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="15"
+        height="15"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {done ? (
+          <path d="M5 13l4 4L19 7" />
+        ) : (
+          <>
+            <rect x="9" y="9" width="11" height="11" rx="2" />
+            <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+          </>
+        )}
+      </svg>
+    </button>
+  );
+}
+
+function Efficiency({ rate }: { rate: number }) {
+  const tier = efficiencyTier(rate);
+  return (
+    <span className={`promo-eff eff-${tier}`} title={`${tier} conversion`}>
+      {pct(rate)}
+    </span>
+  );
+}
+
+function Warnings({
+  hedge,
+  limit,
+  widthCents,
+}: {
+  hedge: number | null;
+  limit: number;
+  widthCents: number;
+}) {
+  const over = hedge !== null && hedge > limit;
+  const wide = widthCents > WIDE_MARKET_CENTS;
+  if (!over && !wide) return null;
+  return (
+    <span className="promo-warns">
+      {over && (
+        <span
+          className="promo-warn"
+          title={`The ${money(hedge)} hedge is above your ${money(limit)} limit; books may not accept it.`}
+        >
+          ⚠ Over hedge limit
+        </span>
+      )}
+      {wide && (
+        <span
+          className="promo-warn"
+          title="The two sides are priced far apart, so the hedge is expensive."
+        >
+          ⚠ Wide market · {widthCents}¢
+        </span>
+      )}
+    </span>
+  );
+}
 
 function leg(q: Quote, books: Map<string, string>): Leg {
   return {
@@ -106,6 +211,7 @@ const Row = memo(
     face,
     type,
     refund,
+    limit,
     top,
     selected,
     onSelect,
@@ -114,6 +220,7 @@ const Row = memo(
     face: number;
     type: PromoType;
     refund: number;
+    limit: number;
     top: number;
     selected: boolean;
     onSelect: (vm: Vm) => void;
@@ -124,48 +231,67 @@ const Row = memo(
         role="row"
         tabIndex={0}
         aria-selected={selected}
-        className={`ev-row ${selected ? "selected" : ""}`}
+        className={`ev-row promo-row ${selected ? "selected" : ""}`}
         style={{ transform: `translateY(${top}px)` }}
         onClick={() => onSelect(vm)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
+          if (
+            e.target === e.currentTarget &&
+            (e.key === "Enter" || e.key === " ")
+          ) {
             e.preventDefault();
             onSelect(vm);
           }
         }}
       >
-        <div role="cell" className="ev-cell ev-edge">
-          <span className="ev-badge arb-badge">{pct(vm.rate)}</span>
-        </div>
-        <div role="cell" className="ev-cell ev-event">
-          <span className="ev-league">
-            {vm.league} · {vm.market}
-          </span>
+        <div role="cell" className="ev-cell promo-info">
+          <span className="ev-league">{vm.league}</span>
           <strong>{vm.matchup}</strong>
-          <small>
-            {vm.startsAt ? date(vm.startsAt) : ""}
-            {c ? ` · hedge ${money(c.hedge)} → ${money(c.profit)}` : ""}
-          </small>
+          <small>{vm.startsAt ? date(vm.startsAt) : ""}</small>
         </div>
-        <div role="cell" className="ev-cell arb-legs">
-          {[
-            ["Promo", vm.promo],
-            ["Hedge", vm.hedge],
-          ].map(([tag, l]) => {
-            const g = l as Leg;
-            return (
-              <div className="arb-leg" key={g.quoteId}>
-                <span className="arb-book">
-                  {tag as string} · {g.bookLabel}
-                </span>
-                <span className="arb-side">{g.label}</span>
-                <b>{g.odds}</b>
-              </div>
-            );
-          })}
+        <div role="cell" className="ev-cell promo-leg">
+          <span className="promo-tag">Promo · {vm.promo.bookLabel}</span>
+          <small>{vm.market}</small>
+          <strong>
+            {vm.promo.label} <b>{vm.promo.odds}</b>
+          </strong>
         </div>
-        <div role="cell" className="ev-cell ev-time">
+        <div role="cell" className="ev-cell promo-leg">
+          <span className="promo-tag">Hedge · {vm.hedge.bookLabel}</span>
+          <small>{vm.market}</small>
+          <strong>
+            {vm.hedge.label} <b>{vm.hedge.odds}</b>
+          </strong>
+          {c && (
+            <span className="promo-hedge">
+              Stake {money(c.hedge)}
+              <CopyIconButton value={c.hedge.toFixed(2)} label="hedge stake" />
+            </span>
+          )}
+          <Warnings
+            hedge={c?.hedge ?? null}
+            limit={limit}
+            widthCents={vm.widthCents}
+          />
+        </div>
+        <div role="cell" className="ev-cell promo-type">
+          <span className={`promo-badge type-${type}`}>{TYPE_NAME[type]}</span>
+        </div>
+        <div role="cell" className="ev-cell promo-effcell">
+          <Efficiency rate={vm.rate} />
           <Age value={vm.observedAt} />
+        </div>
+        <div role="cell" className="ev-cell promo-act">
+          <button
+            type="button"
+            className="button promo-go"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(vm);
+            }}
+          >
+            Calculate
+          </button>
         </div>
       </div>
     );
@@ -178,30 +304,143 @@ const Row = memo(
     a.face === b.face &&
     a.type === b.type &&
     a.refund === b.refund &&
+    a.limit === b.limit &&
     a.top === b.top &&
     a.selected === b.selected,
 );
 
+function Steps({
+  type,
+  vm,
+  c,
+  face,
+  rate,
+  onConvertVoucher,
+}: {
+  type: PromoType;
+  vm: Vm;
+  c: Conversion;
+  face: number;
+  rate: number;
+  onConvertVoucher: () => void;
+}) {
+  const place = `On ${vm.promo.bookLabel}, place ${
+    type === "nosweat"
+      ? "your cash bet"
+      : `your ${TYPE_NAME[type].toLowerCase()}`
+  } of ${money(face)} on ${vm.promo.label} @ ${vm.promo.odds}.`;
+  const hedge = `On ${vm.hedge.bookLabel}, place a ${money(c.hedge)} cash bet on ${vm.hedge.label} @ ${vm.hedge.odds}. Do this right away so the prices do not move.`;
+  const loseNow = c.ifHedgeWins - c.voucherValue;
+  return (
+    <div className="promo-steps">
+      <h4>Step by step</h4>
+      <ol>
+        <li>{place}</li>
+        <li>{hedge}</li>
+        {type === "nosweat" ? (
+          <>
+            <li>
+              <strong>If {vm.promo.label} wins</strong>, collect on{" "}
+              {vm.promo.bookLabel}. Your hedge loses, and you are up{" "}
+              <b>{money(c.ifPromoWins)}</b> in cash. You are done.
+            </li>
+            <li>
+              <strong>If {vm.promo.label} loses</strong>, your hedge on{" "}
+              {vm.hedge.bookLabel} wins. For now you are{" "}
+              {loseNow < 0 ? "down" : "up"} <b>{money(Math.abs(loseNow))}</b> in
+              cash, and {vm.promo.bookLabel} refunds your {money(face)} stake as
+              a bonus bet. Check the promo terms for when it arrives and when it
+              expires.
+            </li>
+            <li>
+              Convert the refunded bonus bet to cash: place it on an underdog
+              (+200 to +500 works best) at {vm.promo.bookLabel}, and bet the
+              other side with cash at the book offering the best price.{" "}
+              <button
+                type="button"
+                className="link-button promo-link"
+                onClick={onConvertVoucher}
+              >
+                Find bonus bet conversions for {money(face)}
+              </button>
+            </li>
+            <li>
+              At the {Math.round(rate * 100)}% voucher value you entered, that
+              conversion returns about <b>{money(c.voucherValue)}</b>, bringing
+              this path to <b>{money(c.ifHedgeWins)}</b>. If the bonus bet
+              converts at a different rate, so does this total.
+            </li>
+          </>
+        ) : type === "bonus" ? (
+          <>
+            <li>
+              <strong>If {vm.promo.label} wins</strong>, the bonus bet pays only
+              its winnings, never the stake. Your hedge loses, and you are up{" "}
+              <b>{money(c.ifPromoWins)}</b> in cash.
+            </li>
+            <li>
+              <strong>If {vm.promo.label} loses</strong>, the bonus bet is gone,
+              but it never cost you cash. Your hedge wins and you are up{" "}
+              <b>{money(c.ifHedgeWins)}</b>.
+            </li>
+          </>
+        ) : (
+          <>
+            <li>
+              <strong>If {vm.promo.label} wins</strong>, the site credit pays
+              its stake and winnings. Your hedge loses, and you are up{" "}
+              <b>{money(c.ifPromoWins)}</b> in cash.
+            </li>
+            <li>
+              <strong>If {vm.promo.label} loses</strong>, the credit is gone,
+              but it never cost you cash. Your hedge wins and you are up{" "}
+              <b>{money(c.ifHedgeWins)}</b>.
+            </li>
+          </>
+        )}
+      </ol>
+    </div>
+  );
+}
 function Calculator({
   vm,
   shift,
   onAccept,
-  type,
+  globalType,
   face,
   setFace,
   refund,
+  setRefund,
+  limit,
   onClose,
+  onConvertVoucher,
 }: {
   vm: Vm | null;
   shift: "ok" | "moved" | "dropped";
   onAccept: () => void;
-  type: PromoType;
+  globalType: PromoType;
   face: string;
   setFace: (v: string) => void;
-  refund: number;
+  refund: string;
+  setRefund: (v: string) => void;
+  limit: number;
   onClose: () => void;
+  onConvertVoucher: (amount: string) => void;
 }) {
+  // The workspace previews any promo type without touching the list's filters.
+  const [type, setType] = useState<PromoType>(globalType);
+  useEffect(() => setType(globalType), [globalType, vm?.id]);
+  useEffect(() => {
+    if (!vm) return;
+    const close = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [vm, onClose]);
+
   const valid = AMOUNT.test(face) && Number(face) > 0;
+  const refundRate = PCT.test(refund)
+    ? Math.min(Number(refund), 100) / 100
+    : 0.75;
   const sig = vm?.sig ?? "";
   const c = useMemo(
     () =>
@@ -211,13 +450,13 @@ function Calculator({
             Number(face),
             vm.promo.decimal,
             vm.hedge.decimal,
-            refund,
+            refundRate,
           )
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sig, type, face, valid, refund],
+    [sig, type, face, valid, refundRate],
   );
-  const noun = type === "nosweat" ? "CASH BET ($)" : "PROMO VALUE ($)";
+  const info = TYPES.find((t) => t.id === type)!;
   return (
     <aside
       className={`kelly-panel arb-calc ${vm ? "open" : ""}`}
@@ -255,10 +494,30 @@ function Calculator({
             <span>
               {vm.league} · {vm.market}
             </span>
-            <span className="ev-badge arb-badge">{pct(vm.rate)}</span>
+            {c && <Efficiency rate={c.rate} />}
           </div>
+          <div
+            className="arb-modes promo-types"
+            role="group"
+            aria-label="Promo type"
+          >
+            {TYPES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={type === t.id ? "active" : ""}
+                aria-pressed={type === t.id}
+                onClick={() => setType(t.id)}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+          <small className="kelly-note">
+            {info.full}. {info.help}
+          </small>
           <label className="field">
-            <span>{noun}</span>
+            <span>{sizeLabel(type)}</span>
             <input
               inputMode="decimal"
               value={face}
@@ -267,10 +526,27 @@ function Calculator({
               onChange={(e) => setFace(e.target.value.trim())}
             />
           </label>
+          {type === "nosweat" && (
+            <label className="field">
+              <span>VOUCHER VALUE · {PCT.test(refund) ? refund : "75"}%</span>
+              <input
+                inputMode="numeric"
+                value={refund}
+                maxLength={3}
+                aria-invalid={!PCT.test(refund)}
+                onChange={(e) => setRefund(e.target.value.trim())}
+              />
+              <small className="kelly-note">
+                If the cash bet loses, you get its stake back as a bonus bet.
+                This is the share of that refund you expect to turn into cash
+                once you convert it (about 60–80%).
+              </small>
+            </label>
+          )}
           <div className="arb-stake">
             <span>
-              1 · Place the promo on {vm.promo.bookLabel} · {vm.promo.label} @{" "}
-              {vm.promo.odds}
+              {type === "nosweat" ? "Place the cash bet" : "Place the promo"} on{" "}
+              {vm.promo.bookLabel} · {vm.promo.label} @ {vm.promo.odds}
             </span>
             <output>{valid ? money(Number(face)) : "—"}</output>
             <span />
@@ -281,35 +557,44 @@ function Calculator({
             <>
               <div className="arb-stake">
                 <span>
-                  2 · Cash hedge on {vm.hedge.bookLabel} · {vm.hedge.label} @{" "}
+                  Cash hedge on {vm.hedge.bookLabel} · {vm.hedge.label} @{" "}
                   {vm.hedge.odds}
                 </span>
                 <output>{money(c.hedge)}</output>
-                <CopyButton value={c.hedge.toFixed(2)} label="hedge" />
+                <CopyIconButton
+                  value={c.hedge.toFixed(2)}
+                  label="hedge stake"
+                />
               </div>
+              <Warnings
+                hedge={c.hedge}
+                limit={limit}
+                widthCents={vm.widthCents}
+              />
               <div className="arb-summary">
+                <span>Required hedge stake</span>
+                <b>{money(c.hedge)}</b>
+                <span>Total capital required</span>
+                <b>{money(c.capital)}</b>
                 <span>If {vm.promo.label} wins</span>
                 <b>{money(c.ifPromoWins)}</b>
                 <span>If {vm.hedge.label} wins</span>
                 <b>{money(c.ifHedgeWins)}</b>
-                <span>Guaranteed cash profit</span>
+                <span>Guaranteed net cash return</span>
                 <b className="arb-net">{money(c.profit)}</b>
-                <span>Conversion</span>
-                <b className="arb-net">{pct(c.rate)}</b>
+                <span>Conversion efficiency</span>
+                <b>
+                  <Efficiency rate={c.rate} />
+                </b>
               </div>
-              {type === "nosweat" && (
-                <small className="kelly-note">
-                  The loss case counts the refund voucher at{" "}
-                  {Math.round(refund * 100)}% of its face value; that cash only
-                  arrives after you convert the voucher.
-                </small>
-              )}
-              {type === "bonus" && (
-                <small className="kelly-note">
-                  The bonus stake is not returned, so a win pays only the
-                  profit.
-                </small>
-              )}
+              <Steps
+                type={type}
+                vm={vm}
+                c={c}
+                face={Number(face)}
+                rate={refundRate}
+                onConvertVoucher={() => onConvertVoucher(face)}
+              />
             </>
           )}
         </>
@@ -322,6 +607,7 @@ export default function PromoFeed({ data }: { data: Data }) {
   const [type, setType] = useState<PromoType>("bonus");
   const [face, setFace] = useState("100");
   const [refund, setRefund] = useState("75");
+  const [limitText, setLimitText] = useState(DEFAULT_HEDGE_LIMIT);
   const [promoBook, setPromoBook] = useState("");
   const [minOdds, setMinOdds] = useState(DEFAULT_ODDS.bonus[0]);
   const [maxOdds, setMaxOdds] = useState(DEFAULT_ODDS.bonus[1]);
@@ -331,7 +617,8 @@ export default function PromoFeed({ data }: { data: Data }) {
   const [offSports, setOffSports] = useState<Set<string>>(new Set());
   const [offMarkets, setOffMarkets] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Vm | null>(null);
-  const loaded = useRef(false);
+  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
@@ -340,6 +627,8 @@ export default function PromoFeed({ data }: { data: Data }) {
       if (typeof s.face === "string" && AMOUNT.test(s.face)) setFace(s.face);
       if (typeof s.refund === "string" && PCT.test(s.refund))
         setRefund(s.refund);
+      if (typeof s.limitText === "string" && AMOUNT.test(s.limitText))
+        setLimitText(s.limitText);
       if (typeof s.promoBook === "string") setPromoBook(s.promoBook);
       if (SORT_LABELS.some(([k]) => k === s.sortKey)) setSortKey(s.sortKey);
       if (typeof s.minOdds === "string") setMinOdds(s.minOdds);
@@ -356,16 +645,17 @@ export default function PromoFeed({ data }: { data: Data }) {
       if (Array.isArray(s.offMarkets))
         setOffMarkets(new Set(s.offMarkets.map(String)));
     } catch {}
-    loaded.current = true;
+    setReady(true);
   }, []);
   useEffect(() => {
-    if (!loaded.current) return;
+    if (!ready) return;
     localStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({
         type,
         face,
         refund,
+        limitText,
         promoBook,
         minOdds,
         maxOdds,
@@ -377,13 +667,16 @@ export default function PromoFeed({ data }: { data: Data }) {
       }),
     );
   }, [
+    ready,
     type,
     face,
     refund,
+    limitText,
     promoBook,
     minOdds,
     maxOdds,
     minRate,
+    sortKey,
     offBooks,
     offSports,
     offMarkets,
@@ -440,6 +733,7 @@ export default function PromoFeed({ data }: { data: Data }) {
   const refundRate = PCT.test(refund)
     ? Math.min(Number(refund), 100) / 100
     : 0.75;
+  const limit = hedgeLimit(limitText);
   const lowOdds = minOdds ? parseAmerican(minOdds) : null;
   const highOdds = maxOdds ? parseAmerican(maxOdds) : null;
   const rateLimit = PCT.test(minRate) ? Number(minRate) / 100 : null;
@@ -497,6 +791,7 @@ export default function PromoFeed({ data }: { data: Data }) {
           promo: pl,
           hedge: hl,
           rate: c.rate,
+          widthCents: marketWidthCents(d1, Number(best.decimal_odds)),
           observedAt:
             p.observed_at > best.observed_at ? p.observed_at : best.observed_at,
           sig: `${pl.odds}|${hl.odds}`,
@@ -545,7 +840,7 @@ export default function PromoFeed({ data }: { data: Data }) {
 
   const [compact, setCompact] = useState(false);
   useEffect(() => {
-    const media = matchMedia("(max-width:900px)");
+    const media = matchMedia("(max-width:1380px)");
     const change = () => setCompact(media.matches);
     change();
     media.addEventListener("change", change);
@@ -622,7 +917,7 @@ export default function PromoFeed({ data }: { data: Data }) {
           </select>
         </label>
         <label className="field mid-small">
-          <span>{type === "nosweat" ? "CASH BET ($)" : "PROMO VALUE ($)"}</span>
+          <span>{sizeLabel(type)}</span>
           <input
             inputMode="decimal"
             value={face}
@@ -674,6 +969,16 @@ export default function PromoFeed({ data }: { data: Data }) {
             maxLength={3}
             aria-invalid={minRate !== "" && rateLimit === null}
             onChange={(e) => setMinRate(e.target.value.trim())}
+          />
+        </label>
+        <label className="field mid-small">
+          <span>HEDGE LIMIT ($)</span>
+          <input
+            inputMode="decimal"
+            value={limitText}
+            maxLength={9}
+            aria-invalid={!AMOUNT.test(limitText) || Number(limitText) <= 0}
+            onChange={(e) => setLimitText(e.target.value.trim())}
           />
         </label>
         <label className="field mid-small">
@@ -739,13 +1044,15 @@ export default function PromoFeed({ data }: { data: Data }) {
           <div
             role="table"
             aria-label="Promo conversions"
-            className="ev-grid arb-grid"
+            className="ev-grid promo-grid"
           >
             <div role="row" className="ev-head">
-              <span role="columnheader">Conversion</span>
-              <span role="columnheader">Event</span>
-              <span role="columnheader">Promo &amp; hedge</span>
-              <span role="columnheader">Scanned</span>
+              <span role="columnheader">Market</span>
+              <span role="columnheader">Promo leg</span>
+              <span role="columnheader">Hedge leg</span>
+              <span role="columnheader">Promo type</span>
+              <span role="columnheader">Efficiency</span>
+              <span role="columnheader">Action</span>
             </div>
             {!promoBook ? (
               <div className="empty-state">
@@ -792,6 +1099,7 @@ export default function PromoFeed({ data }: { data: Data }) {
                       face={faceValue}
                       type={type}
                       refund={refundRate}
+                      limit={limit}
                       top={(first + i) * height}
                       selected={vm.id === selected?.id}
                       onSelect={select}
@@ -809,10 +1117,16 @@ export default function PromoFeed({ data }: { data: Data }) {
           vm={shown}
           shift={shift}
           onAccept={() => current && setSelected(current)}
-          type={type}
+          globalType={type}
           face={face}
           setFace={setFace}
-          refund={refundRate}
+          refund={refund}
+          setRefund={setRefund}
+          onConvertVoucher={(amount) => {
+            changeType("bonus");
+            setFace(amount);
+          }}
+          limit={limit}
           onClose={() => setSelected(null)}
         />
       </div>
