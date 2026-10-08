@@ -27,6 +27,8 @@ import type { RefValue } from "../lib/tracker-api";
 import { Age, Menu, shortBook } from "./arb-feed";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
+import { LegLinks } from "./bet-link";
+import type { QuoteLinks } from "../lib/bet-links";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Matchup } from "./media";
 
@@ -39,6 +41,7 @@ interface Leg {
   odds: string;
   decimal: number;
   ref: Record<string, RefValue>;
+  links: QuoteLinks | null;
 }
 interface Vm {
   id: string;
@@ -260,6 +263,7 @@ function leg(q: Quote, books: Map<string, string>): Leg {
     odds: american(q.decimal_odds),
     decimal: Number(q.decimal_odds),
     ref: quoteRef(q),
+    links: q.links ?? null,
   };
 }
 
@@ -816,6 +820,24 @@ function Calculator({
                   <Efficiency rate={c.rate} type={type} />
                 </b>
               </div>
+              <LegLinks
+                legs={[
+                  {
+                    links: vm.promo.links,
+                    bookLabel: vm.promo.bookLabel,
+                    label: vm.promo.label,
+                    stake: Number(face).toFixed(2),
+                  },
+                  {
+                    links: vm.hedge.links,
+                    bookLabel: vm.hedge.bookLabel,
+                    label: vm.hedge.label,
+                    stake: c.hedge.toFixed(2),
+                  },
+                ]}
+                startsAt={vm.startsAt}
+                unavailable={shift === "dropped"}
+              />
               <LogBetButton
                 legs={logLegs}
                 resetKey={`${vm.id}|${vm.sig}|${type}|${face}|${refund}|${JSON.stringify(boostFields)}`}

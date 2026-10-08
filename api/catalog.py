@@ -144,7 +144,8 @@ class FixtureCatalog:
                 for book_id, odds in prices.items():
                     if len(odds) != len(selections):
                         raise ValueError('incomplete fixture price population')
-                    for selection, price in zip(selections, odds):
+                    book_links = contract.get('links', {}).get(book_id)
+                    for position, (selection, price) in enumerate(zip(selections, odds)):
                         quote_id = f'{contract_id}:{book_id}:{direction}:{selection["id"]}'
                         offer = Offer(quote_id, contract_id, direction, selection['id'], book_id, D(price), D(book_map[book_id].commission))
                         self.offers[quote_id] = offer
@@ -154,6 +155,7 @@ class FixtureCatalog:
                             point=selection['point'], decimal_odds=price, commission_rate=book_map[book_id].commission,
                             observed_at=D_TS(contract.get('observed', {}).get(book_id, raw['observed_at']), self.captured_at),
                             provider_updated_at=None,
+                            links=book_links[position] if book_links and direction == key else None,
                             evidence_kind='retained_provider_quote' if self.data_mode == 'database' else 'synthetic_fixture')
                         if key in {'spreads', 'totals'}:
                             shared = f'{game_id}:{key}:{raw["settlement_identity"]}'

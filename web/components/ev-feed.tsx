@@ -16,6 +16,7 @@ import {
   usd,
   ageLabel,
 } from "../../frontend/format.mjs";
+import type { QuoteLinks } from "../lib/bet-links";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import { allPages } from "../lib/api";
@@ -38,6 +39,7 @@ import {
 } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
+import { BetLinkButton } from "./bet-link";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { ErrorCard, Loading } from "./workspace";
 
@@ -65,6 +67,7 @@ interface Vm {
   observedAt: string;
   fairProb: string;
   ref: Record<string, RefValue>;
+  links: QuoteLinks | null;
 }
 export interface KellyVm {
   id: string;
@@ -84,6 +87,8 @@ export interface KellyVm {
   startsAt?: string;
   fairProb?: string;
   ref?: Record<string, RefValue>;
+  // Where to open this exact bet at the sportsbook.
+  links?: QuoteLinks | null;
 }
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 
@@ -184,6 +189,7 @@ function toVm(
     observedAt: row.oldest_observed_at,
     fairProb: row.calculation.conditional_fair_probability,
     ref: quoteRef(q),
+    links: q.links ?? null,
   };
 }
 
@@ -293,6 +299,12 @@ const Row = memo(
           >
             <span>{vm.bookLabel}</span>
             <b>@ {vm.odds}</b>
+            <BetLinkButton
+              compact
+              links={vm.links}
+              bookLabel={vm.bookLabel}
+              startsAt={vm.startsAt}
+            />
           </span>
         </div>
         <div role="cell" className="ev-cell ev-sharp">
@@ -473,6 +485,13 @@ export function KellyWidget({
               cash there first.
             </small>
           )}
+          <BetLinkButton
+            links={vm.links}
+            bookLabel={vm.bookLabel}
+            stake={result ? fixed(result.stake, 2) : undefined}
+            startsAt={vm.startsAt}
+            unavailable={unavailable}
+          />
           <LogBetButton
             legs={legs}
             resetKey={vm.id}

@@ -63,6 +63,15 @@ tracker before accounts existed, the first account you create adopts that data.
   under a name (up to 25 per tool; saving an existing name replaces it), choosing a preset applies it,
   *Update* appears when you change the selected preset, and *Delete* removes it. **Reset to defaults**
   puts every filter back to the tool's factory setting. Presets are private to the account.
+- **Bet on links.** Positive EV, Arbitrage, Middles, Promo and Player props show a **Bet on <sportsbook> ↗**
+  button in the calculator drawer (a small ↗ on the EV and props rows), opening in a new tab so a phone can
+  hand it to the sportsbook app. It opens the betslip when the sportsbook provides one (FanDuel, DraftKings,
+  theScore, ProphetX and others), otherwise the market, otherwise the game, and says which. The stake from
+  the calculator is filled in where a link takes one. BetMGM and BetRivers have a site per state, so choose
+  your state once (in the drawer or on `/account`; saved to your account). Links come from The Odds API
+  (`includeLinks`), are stored by ingestion, and are checked against each sportsbook's own domains before
+  they are shown. A bet whose game has started, or that the latest update dropped, shows a disabled button
+  instead. Lay prices (Betfair, Kalshi) link to the market. The tracker has no links.
 - **Passwords.** Change yours on `/account` (click your name); that signs out every other device. There is
   no email, so a forgotten password is reset by whoever runs the app:
   `python -m pipelines.accounts_admin reset-password USERNAME` (hidden prompt, works while the app is

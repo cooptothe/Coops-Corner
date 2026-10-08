@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_EVEN
 import os
 
+from corner.links import clean_links
+
 # Same reference books (and environment override) as the main +EV feed in api/database.py.
 SHARP_BOOKS = frozenset(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
                         if b.strip()) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi'})
@@ -186,7 +188,10 @@ def normalize_event(event, market_key, meta, book_filter=None):
                 point = o.get('point')
                 if meta.sides[0] == 'Over' and point is None:
                     continue
+                # Event, market and betslip links (when the sportsbook provides them), checked before they are kept.
+                links = clean_links(book['key'], book.get('link'), market.get('link'), o.get('link'))
                 quotes.append({'book': book['key'], 'player': player, 'side': side,
+                               **({'links': links} if links else {}),
                                'point': None if point is None else str(Decimal(str(point))),
                                'price': str(Decimal(str(price))),
                                'updated_at': market.get('last_update') or book.get('last_update')})
@@ -245,5 +250,6 @@ def build_bets(events):
                             'player': player, 'point': point, 'side': meta.sides[side], 'book': book,
                             'price': str(price), 'ev': _q(win * price - 1), 'fair_probability': _q(win),
                             'sharps': used, 'observed_at': by_book[book][side].get('updated_at')
-                            or stored.get('captured_at')})
+                            or stored.get('captured_at'),
+                            'links': by_book[book][side].get('links')})
     return bets

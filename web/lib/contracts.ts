@@ -1,3 +1,4 @@
+import type { QuoteLinks } from "./bet-links";
 export type DecimalText = string;
 export type MarketKey =
   "h2h" | "spreads" | "totals" | "outrights" | "h2h_lay" | "outrights_lay";
@@ -57,6 +58,8 @@ export interface Quote {
   decimal_odds: DecimalText;
   commission_rate: DecimalText;
   observed_at: string;
+  // Sportsbook links (event, market, betslip) when the provider gave valid ones.
+  links?: QuoteLinks | null;
 }
 export interface Leg {
   quote_id: string;

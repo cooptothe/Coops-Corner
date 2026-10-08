@@ -9,7 +9,7 @@ from uuid import uuid4
 
 TABLES = ('events', 'competitions', 'participants', 'event_participants', 'markets',
           'market_types', 'scopes', 'sportsbooks', 'outcomes', 'outcome_sides',
-          'odds_observations', 'quote_states', 'providers', 'trusted_current_quotes')
+          'odds_observations', 'quote_states', 'providers', 'trusted_current_quotes', 'quote_links')
 
 
 def main():

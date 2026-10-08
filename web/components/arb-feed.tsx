@@ -33,6 +33,8 @@ import { quoteRef, type NewBet } from "../lib/slip";
 import type { RefValue } from "../lib/tracker-api";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
+import { LegLinks } from "./bet-link";
+import type { QuoteLinks } from "../lib/bet-links";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
@@ -49,6 +51,7 @@ interface LegVm {
   lay: boolean;
   commission: number;
   ref: Record<string, RefValue>;
+  links: QuoteLinks | null;
 }
 interface BackLayVm {
   capital: number;
@@ -131,6 +134,7 @@ function toVm(
       lay: q.market_key.endsWith("_lay"),
       commission: Number(q.commission_rate) || 0,
       ref: quoteRef(q),
+      links: q.links ?? null,
     });
   }
   if (legs.length !== 2) return null;
@@ -499,6 +503,24 @@ function Calculator({
               These prices no longer form a profitable arbitrage.
             </p>
           )}
+          <LegLinks
+            legs={vm.legs.map((l, i) => {
+              const amount =
+                vm.backLay && lay
+                  ? i === 0
+                    ? lay.back
+                    : lay.layStake
+                  : sizing?.stakes[i];
+              return {
+                links: l.links,
+                bookLabel: l.bookLabel,
+                label: l.label,
+                stake: validStake && amount ? amount.toFixed(2) : undefined,
+              };
+            })}
+            startsAt={vm.startsAt}
+            unavailable={shift === "dropped"}
+          />
           <LogBetButton
             legs={logLegs}
             resetKey={`${vm.id}|${vm.sig}|${stake}|${mode}|${favored}`}

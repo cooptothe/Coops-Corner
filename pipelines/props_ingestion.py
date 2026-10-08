@@ -109,7 +109,8 @@ def capture(sport, markets, max_events):
                 stopped = 'out_of_credits'
                 break
             status, body, headers = fetch(session, f"{BASE}/{sport}/events/{event['id']}/odds", {
-                'bookmakers': BOOKS, 'markets': ','.join(markets), 'oddsFormat': 'decimal', 'dateFormat': 'iso'})
+                'bookmakers': BOOKS, 'markets': ','.join(markets), 'oddsFormat': 'decimal', 'dateFormat': 'iso',
+                'includeLinks': 'true'})
             quota = headers or quota
             if status != 200:
                 stopped = f'provider_http_{status}'

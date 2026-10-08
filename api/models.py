@@ -66,6 +66,13 @@ class Book(Model):
     commission: DecimalText
 
 
+class QuoteLinks(Model):
+    """Validated sportsbook links; each may contain {state}, {wager}, {wagerAmount} or {pickType} placeholders."""
+    event: str | None = None
+    market: str | None = None
+    outcome: str | None = None
+
+
 class Quote(Model):
     id: str
     game_id: str
@@ -80,6 +87,7 @@ class Quote(Model):
     commission_rate: DecimalText
     observed_at: AwareDatetime
     provider_updated_at: AwareDatetime | None
+    links: QuoteLinks | None = None
     current_availability: Literal['unverified'] = 'unverified'
     evidence_kind: Literal['synthetic_fixture', 'retained_provider_quote'] = 'synthetic_fixture'
 

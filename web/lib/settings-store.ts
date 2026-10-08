@@ -78,6 +78,7 @@ export class SettingsStore {
   put(tool: string, settings: Settings) {
     if (this.tools[tool] && canon(this.tools[tool]) === canon(settings)) return;
     this.tools[tool] = settings;
+    this.emit();
     this.pending.set(tool, settings);
     clearTimeout(this.timers.get(tool));
     this.timers.set(

@@ -13,10 +13,12 @@ import sys
 
 import requests
 import psycopg2
+import psycopg2.extras
 from config import DB_CONFIG, ODDS_API_KEY
 from corner.featured_markets import normalize_featured_payload
 from corner.featured_matching import BookRoute, MarketRoute, SelectionRoute, bind_snapshot, MARKET_TYPES
 from corner.featured_store import ingest_featured_payload
+from corner.links import link_rows
 from corner.ingestion import (_seed_provider, _create_batch, _create_payload, _resolve_event,
                               _resolve_event_participants, _resolve_sportsbook, _resolve_market,
                               _resolve_outcome, _ensure_vocabulary)
@@ -101,6 +103,68 @@ def capture(destination, extra_params=None, sport=SPORT):
     if int(headers.get('x-requests-last','0'))>3: raise ValueError('Unexpected provider charge; no further calls permitted')
 
 
+def _bind(conn,provider,snapshot,raw,sport):
+    """Resolve (creating when new) the canonical events, markets, outcomes and sportsbooks a capture refers to."""
+    routes=[];books={}
+    for event in json.loads(raw,parse_float=Decimal):
+        if event['sport_key']!=sport: raise ValueError('Unexpected sport')
+        with conn.cursor() as cur:
+            cur.execute('SELECT e.event_status_id FROM corner.events e JOIN corner.event_provider_identities p ON p.event_id=e.id WHERE p.provider_id=%s AND p.external_id=%s',(provider,event['id']))
+            previous=cur.fetchone()
+            unknown=_ensure_vocabulary(cur,'event_statuses','unknown','Unknown')
+        event_id,competition_id=_resolve_event(conn,provider,event)
+        with conn.cursor() as cur:
+            cur.execute('UPDATE corner.events SET event_status_id=%s WHERE id=%s',(previous[0] if previous else unknown,event_id))
+            # Explicit provider competition identity needed by the featured writer.
+            cur.execute('INSERT INTO corner.competition_provider_identities(provider_id,competition_id,external_id) VALUES (%s,%s,%s) ON CONFLICT(provider_id,external_id) DO NOTHING',(provider,competition_id,sport))
+        participants=_resolve_event_participants(conn,provider,competition_id,event_id,event)
+        event_quotes=[q for q in snapshot.quotes if q.event_id==event['id']]
+        for key in sorted({q.market_key for q in event_quotes}):
+            market_id=str(_resolve_market(conn,event_id,MARKET_TYPES[key],'full_game'))
+            selections={}
+            for q in (q for q in event_quotes if q.market_key==key):
+                if q.bookmaker_key not in books:
+                    books[q.bookmaker_key]=str(_resolve_sportsbook(conn,provider,q.bookmaker_key,q.bookmaker_title))
+                paid=(q.selection_name,q.point)
+                if paid not in selections:
+                    outcome=str(_resolve_outcome(conn,market_id,participants.get(q.selection_name),q.selection_side,q.point))
+                    selections[paid]=SelectionRoute(*paid,outcome)
+            routes.append(MarketRoute(event['id'],sport,key,market_id,tuple(selections.values())))
+    bindings=bind_snapshot(snapshot,markets=tuple(routes),books=tuple(BookRoute(k,v) for k,v in books.items()))
+    return bindings,books
+
+
+def upsert_links(conn,rows,captured_at):
+    """Keep the newest links per outcome and sportsbook; an older capture never replaces a newer one."""
+    if not rows: return 0
+    with conn.cursor() as cur:
+        psycopg2.extras.execute_values(cur,'''INSERT INTO corner.quote_links
+            (outcome_id,sportsbook_id,event_url,market_url,outcome_url,captured_at) VALUES %s
+            ON CONFLICT (outcome_id,sportsbook_id) DO UPDATE SET event_url=EXCLUDED.event_url,market_url=EXCLUDED.market_url,
+                outcome_url=EXCLUDED.outcome_url,captured_at=EXCLUDED.captured_at
+            WHERE corner.quote_links.captured_at<=EXCLUDED.captured_at''',
+            [(o,s,e,m,u,captured_at) for o,s,e,m,u in rows])
+    return len(rows)
+
+
+def refresh_links(directory):
+    """Store the links in a retained capture without ingesting it again. Spends no provider credits."""
+    manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
+    raw=(directory/'response.body').read_bytes()
+    if manifest['http_status']!=200 or hashlib.sha256(raw).hexdigest()!=manifest['sha256']:
+        raise ValueError('Retained capture integrity failure')
+    sport=manifest.get('sport',SPORT)
+    at=datetime.fromisoformat(manifest['received_at'])
+    snapshot=normalize_featured_payload(raw,received_at=at)
+    conn=psycopg2.connect(**DB_CONFIG)
+    try:
+        bindings,_=_bind(conn,_seed_provider(conn),snapshot,raw,sport)
+        stored=upsert_links(conn,link_rows(snapshot,bindings),at)
+        conn.commit()
+        print(json.dumps({'capture':directory.name,'sport':sport,'links':stored}))
+    finally:
+        conn.rollback();conn.close()
+
 def ingest(directory):
     manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
     raw=(directory/'response.body').read_bytes()
@@ -123,38 +187,14 @@ def ingest(directory):
                 if count!=len(snapshot.quotes): raise ValueError('Existing ingestion is incomplete')
                 print(json.dumps({'payload_id':str(old[0]),'observations':count,'reused':True}));return
         provider=_seed_provider(conn)
-        routes=[];books={}
-        for event in json.loads(raw,parse_float=Decimal):
-            if event['sport_key']!=sport: raise ValueError('Unexpected sport')
-            with conn.cursor() as cur:
-                cur.execute('SELECT e.event_status_id FROM corner.events e JOIN corner.event_provider_identities p ON p.event_id=e.id WHERE p.provider_id=%s AND p.external_id=%s',(provider,event['id']))
-                previous=cur.fetchone()
-                unknown=_ensure_vocabulary(cur,'event_statuses','unknown','Unknown')
-            event_id,competition_id=_resolve_event(conn,provider,event)
-            with conn.cursor() as cur:
-                cur.execute('UPDATE corner.events SET event_status_id=%s WHERE id=%s',(previous[0] if previous else unknown,event_id))
-                # Explicit provider competition identity needed by the featured writer.
-                cur.execute('INSERT INTO corner.competition_provider_identities(provider_id,competition_id,external_id) VALUES (%s,%s,%s) ON CONFLICT(provider_id,external_id) DO NOTHING',(provider,competition_id,sport))
-            participants=_resolve_event_participants(conn,provider,competition_id,event_id,event)
-            event_quotes=[q for q in snapshot.quotes if q.event_id==event['id']]
-            for key in sorted({q.market_key for q in event_quotes}):
-                market_id=str(_resolve_market(conn,event_id,MARKET_TYPES[key],'full_game'))
-                selections={}
-                for q in (q for q in event_quotes if q.market_key==key):
-                    if q.bookmaker_key not in books:
-                        books[q.bookmaker_key]=str(_resolve_sportsbook(conn,provider,q.bookmaker_key,q.bookmaker_title))
-                    paid=(q.selection_name,q.point)
-                    if paid not in selections:
-                        outcome=str(_resolve_outcome(conn,market_id,participants.get(q.selection_name),q.selection_side,q.point))
-                        selections[paid]=SelectionRoute(*paid,outcome)
-                routes.append(MarketRoute(event['id'],sport,key,market_id,tuple(selections.values())))
-        bindings=bind_snapshot(snapshot,markets=tuple(routes),books=tuple(BookRoute(k,v) for k,v in books.items()))
+        bindings,books=_bind(conn,provider,snapshot,raw,sport)
         batch=_create_batch(conn,provider,{'source':'one_shot_board_capture','capture_sha256':manifest['sha256'],'parameters':PARAMS})
         payload=str(_create_payload(conn,batch,provider,at,raw))
         receipt=ingest_featured_payload(conn,payload_id=payload,bindings=bindings)
+        stored_links=upsert_links(conn,link_rows(snapshot,bindings),at)
         with conn.cursor() as cur: cur.execute("UPDATE corner.ingestion_batches SET processing_status='completed',completed_at=now() WHERE id=%s",(batch,))
         conn.commit()
-        print(json.dumps({'payload_id':payload,'events':len(json.loads(raw)),'observations':len(receipt.observation_ids),'books':list(books),'production_authorized':False}))
+        print(json.dumps({'payload_id':payload,'events':len(json.loads(raw)),'observations':len(receipt.observation_ids),'links':stored_links,'books':list(books),'production_authorized':False}))
     finally:
         conn.rollback();conn.close()
 
@@ -163,9 +203,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     actions=parser.add_mutually_exclusive_group(required=True)
     actions.add_argument('--capture',type=Path);actions.add_argument('--ingest',type=Path)
+    actions.add_argument('--links',type=Path,help='store the links of a retained capture (no credits, no re-ingest)')
     args=parser.parse_args()
     try:
         if args.capture: capture(args.capture)
+        elif args.links: refresh_links(args.links)
         else: ingest(args.ingest)
     except Exception as error:
         # Requests/DB exception text may contain connection details.

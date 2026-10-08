@@ -37,6 +37,23 @@ class Props(unittest.TestCase):
         self.assertEqual(over['ev'], '0.100000')
         self.assertLess(float(next(b for b in bets if b['side'] == 'Under')['ev']), 0)
 
+    def test_bets_carry_only_validated_links(self):
+        import copy
+        event = copy.deepcopy(EVENT)
+        fanduel = event['bookmakers'][2]
+        fanduel['link'] = 'https://sportsbook.fanduel.com/basketball/nba/game-1'
+        fanduel['markets'][0]['link'] = 'https://evil.example/market'  # not a FanDuel domain: dropped
+        fanduel['markets'][0]['outcomes'][0]['link'] = 'https://sportsbook.fanduel.com/addToBetslip?marketId=1&selectionId=2'
+        meta = pm.market_meta('basketball_nba', 'player_points')
+        quotes = pm.normalize_event(event, 'player_points', meta)
+        stored = {'sport_key': 'basketball_nba', 'home_team': 'H', 'away_team': 'A', 'commence_time': '2030-01-01T00:00:00Z',
+                  'markets': {'player_points': {'captured_at': 'x', 'quotes': quotes}}}
+        bets = {b['side']: b for b in pm.build_bets({'e1': stored})}
+        self.assertEqual(bets['Over']['links'], {'event': 'https://sportsbook.fanduel.com/basketball/nba/game-1',
+                                                 'outcome': 'https://sportsbook.fanduel.com/addToBetslip?marketId=1&selectionId=2'})
+        self.assertIsNone(bets['Under']['links'] and bets['Under']['links'].get('market'))
+        plain = pm.normalize_event(EVENT, 'player_points', meta)
+        self.assertTrue(all('links' not in q for q in plain))
     def test_one_sharp_is_not_enough(self):
         meta = pm.market_meta('basketball_nba', 'player_points')
         quotes = [q for q in pm.normalize_event(EVENT, 'player_points', meta) if q['book'] != 'prophetx']

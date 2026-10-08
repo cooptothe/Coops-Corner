@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { PASSWORD_MIN, changePassword } from "../lib/auth-api";
 import { UserMenu, useAuth } from "./auth-provider";
+import { StatePicker } from "./bet-link";
 
 export default function AccountPage() {
   const { user } = useAuth();
@@ -68,6 +69,15 @@ export default function AccountPage() {
           <UserMenu />
         </div>
       </header>
+      <section className="trk-card account-card" aria-labelledby="state-title">
+        <h3 id="state-title">Betting state</h3>
+        <p className="trk-muted">
+          Some sportsbooks, such as BetMGM and BetRivers, have a separate site
+          for each state. Choose yours so “Bet on” links open the right one. It
+          is saved to your account.
+        </p>
+        <StatePicker />
+      </section>
       <section className="trk-card account-card" aria-labelledby="pw-title">
         <h3 id="pw-title">Change password</h3>
         <p className="trk-muted">

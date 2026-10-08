@@ -15,7 +15,7 @@ import {
 import { SettingsStore } from "../lib/settings-store";
 import { Splash } from "./auth-provider";
 
-const StoreContext = createContext<SettingsStore | null>(null);
+export const StoreContext = createContext<SettingsStore | null>(null);
 
 export function useSettingsStore(): SettingsStore {
   const store = useContext(StoreContext);

@@ -1,5 +1,12 @@
 # The Corner migrations
 
+After 014, apply `015_corner_quote_links.sql`. It adds `corner.quote_links`, the latest
+sportsbook link (event, market and outcome) for each outcome, so the product can open the exact bet at the
+sportsbook. It is a latest-value cache keyed by (outcome, sportsbook) that the ingestion upserts; the
+immutable observation ledger is untouched. The API role needs SELECT on it (`api/run_local.py` grants it).
+Links already in retained captures are loaded with no provider credits:
+`python -m pipelines.odds_ingestion --links retained/board-refresh-<timestamp>/<sport>`.
+
 After 012, apply `013_corner_v2_actionability_reasons.sql` with
 `psql -X -v ON_ERROR_STOP=1`. It extends the transition evidence-shape CHECK to
 permit the explicit v2 authorization/conditioning closure reasons. Existing

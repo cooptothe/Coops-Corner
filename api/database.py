@@ -12,6 +12,7 @@ import threading
 import time
 
 from api.catalog import FixtureCatalog, _verify_selections
+from corner.links import clean_links
 
 log = logging.getLogger('corner.api.database')
 
@@ -44,7 +45,8 @@ QUOTE_SQL = """
 SELECT e.id AS event_id, c.code AS competition_code, c.display_name AS competition_name, e.scheduled_start,
        mt.code AS market_code, sc.code AS scope_code, os.code AS side, o.point,
        p.display_name AS selection_name, b.code AS book_code, b.display_name AS book_name,
-       q.decimal_odds, q.observed_at, q.provider_updated_at, q.provider_payload_id
+       q.decimal_odds, q.observed_at, q.provider_updated_at, q.provider_payload_id,
+       ql.event_url, ql.market_url, ql.outcome_url
 FROM corner.trusted_current_quotes q
 JOIN corner.quote_states qs ON qs.id = q.quote_state_id AND qs.code = 'active'
 JOIN corner.sportsbooks b ON b.id = q.sportsbook_id AND b.active
@@ -56,6 +58,7 @@ JOIN corner.scopes sc ON sc.id = m.scope_id AND sc.code = 'full_game'
 JOIN corner.events e ON e.id = m.event_id
 JOIN corner.competitions c ON c.id = e.competition_id
 LEFT JOIN corner.participants p ON p.id = o.selected_participant_id
+LEFT JOIN corner.quote_links ql ON ql.outcome_id = q.outcome_id AND ql.sportsbook_id = q.sportsbook_id
 WHERE e.scheduled_start > %(now)s AND q.observed_at >= %(oldest)s AND q.decimal_odds > 1
 """
 PARTICIPANT_SQL = """
@@ -136,6 +139,9 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
                         selections=[dict(id=s, name=names[s], side=s, point=None if key == 'h2h' else points[s]) for s in sides],
                         prices={b: [format(Decimal(c[s]['decimal_odds']), 'f') for s in sides] for b, c in sorted(complete.items())},
                         lay_prices={},
+                        # One entry per selection, in the same order as the prices; None where a book gave no usable link.
+                        links={b: [clean_links(b, c[s].get('event_url'), c[s].get('market_url'), c[s].get('outcome_url')) for s in sides]
+                               for b, c in sorted(complete.items())},
                         observed={b: _iso(min(c[s]['observed_at'] for s in sides)) for b, c in complete.items()})
         game = dict(id=event, sport_key=SPORT_KEYS.get(games[event]['competition_code'], games[event]['competition_code']),
                     competition=_label(games[event]['competition_code'], games[event]['competition_name']), name=f'{away} at {home}',

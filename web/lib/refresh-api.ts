@@ -1,4 +1,5 @@
 import { notifyUnauthorized } from "./auth-api";
+import type { QuoteLinks } from "./bet-links";
 
 export interface RefreshStatus {
   last_attempt_at: string | null;
@@ -87,6 +88,7 @@ export interface PropBet {
   fair_probability: string;
   sharps: string[];
   observed_at: string | null;
+  links?: QuoteLinks | null;
 }
 export interface PropsStatus {
   sports: { key: string; label: string }[];

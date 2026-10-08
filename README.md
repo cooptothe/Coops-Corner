@@ -106,6 +106,8 @@ otherwise built once at startup. If you change `web/next.config.ts`, restart `pn
 | `/login` | Sign in or create an account (username + password); `/account` changes your password |
 | `/tracker` | Bet tracker and bankroll: ledger with live progress, per-book balances, Kelly sizing, CLV and history charts ([details](web/README.md#views-and-boundaries)) |
 
+Each bet has a **Bet on <sportsbook> ↗** link that opens the exact bet at the sportsbook (betslip, else market, else game; [details](web/README.md#views-and-boundaries)).
+
 Feeds can be sorted by EV, win probability, start time and other measures relevant
 to each tool. Sharp reference books are Pinnacle, Novig and BetOnline; the rest of
 the US sportsbooks are treated as recreational offers.

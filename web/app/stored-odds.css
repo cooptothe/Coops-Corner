@@ -1220,3 +1220,14 @@
   .arb-menu-pop{max-width:calc(100vw - 32px)}
 }
 @media(max-width:560px){.arb-bar{position:relative}.arb-menu{position:static}.arb-menu-pop{left:0;right:0;min-width:0;max-width:none}}
+
+/* Sportsbook deep links */
+.bet-link,.bet-links{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.bet-links{gap:10px}
+.bet-link-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;text-align:center;box-sizing:border-box;width:100%}
+.bet-link .kelly-note{display:block;margin:0}
+.bet-state select{width:100%}
+.ev-action{position:relative}
+.bet-link-compact{position:absolute;top:4px;right:6px;display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border-radius:6px;color:inherit;text-decoration:none;font-weight:700;opacity:.8}
+.bet-link-compact:hover,.bet-link-compact:focus-visible{opacity:1;background:rgba(34,197,94,.25)}
+.ev-action:has(.bet-link-compact){padding-right:30px}

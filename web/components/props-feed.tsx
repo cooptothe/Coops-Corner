@@ -24,6 +24,7 @@ import {
   type KellyVm,
   type SizingSettings,
 } from "./ev-feed";
+import { BetLinkButton } from "./bet-link";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
@@ -111,6 +112,7 @@ function toVm(b: PropBet): Vm {
     observedAt: b.observed_at,
     strategy: "prop",
     fairProb: b.fair_probability,
+    links: b.links ?? null,
     ref: {
       game_id: b.event_id,
       market_key: "prop",
@@ -740,6 +742,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
                     <span className="ev-action">
                       <span>{v.bookLabel}</span>
                       <b>@ {v.odds}</b>
+                      <BetLinkButton
+                        compact
+                        links={v.links}
+                        bookLabel={v.bookLabel}
+                        startsAt={v.startsAt}
+                      />
                     </span>
                   </div>
                   <div role="cell" className="ev-cell ev-sharp">

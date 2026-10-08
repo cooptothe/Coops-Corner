@@ -23,6 +23,8 @@ import { quoteRef, type NewBet } from "../lib/slip";
 import type { RefValue } from "../lib/tracker-api";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
+import { LegLinks } from "./bet-link";
+import type { QuoteLinks } from "../lib/bet-links";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
@@ -38,6 +40,7 @@ interface LegVm {
   odds: string;
   stake: number;
   ref: Record<string, RefValue>;
+  links: QuoteLinks | null;
 }
 interface Vm {
   id: string;
@@ -137,6 +140,7 @@ function toVm(
       odds: american(q.decimal_odds),
       stake: Number(leg.stake),
       ref: quoteRef(q),
+      links: q.links ?? null,
     });
   }
   const ranges = row.calculation.double_win_ranges;
@@ -405,6 +409,16 @@ function Calculator({
             A middle wins big only if the result lands between the two lines.
             Win probability is not estimated.
           </small>
+          <LegLinks
+            legs={vm.legs.map((l, i) => ({
+              links: l.links,
+              bookLabel: l.bookLabel,
+              label: l.label,
+              stake: scaled ? scaled.stakes[i].toFixed(2) : undefined,
+            }))}
+            startsAt={vm.startsAt}
+            unavailable={shift === "dropped"}
+          />
           <LogBetButton
             legs={validStake ? logLegs : []}
             resetKey={`${vm.id}|${vm.sig}|${stake}`}

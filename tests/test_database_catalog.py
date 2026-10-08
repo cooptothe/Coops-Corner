@@ -145,6 +145,29 @@ class DatabaseCatalogTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             create_app(data_mode='fixture', catalog=catalog)
 
+    def test_quotes_carry_validated_links_per_selection(self):
+        rows = board()
+        for row in rows:
+            if row['book_code'] == 'draftkings' and row['market_code'] == 'moneyline':
+                row['event_url'] = 'https://sportsbook.draftkings.com/event/1'
+                row['outcome_url'] = f"https://sportsbook.draftkings.com/?outcomes={row['side']}"
+            if row['book_code'] == 'pinnacle' and row['market_code'] == 'moneyline' and row['side'] == 'home':
+                row['outcome_url'] = 'https://evil.example/steal'  # a link outside the sportsbook's own domain is dropped
+        catalog = FixtureCatalog(raw=build_raw(rows, PEOPLE, now=NOW))
+        by = {(x.sportsbook_id, x.market_key, x.side): x for x in catalog.quotes if x.contract_id.endswith(':h2h')}
+        home, away = by[('draftkings', 'h2h', 'home')], by[('draftkings', 'h2h', 'away')]
+        self.assertEqual(home.links.outcome, 'https://sportsbook.draftkings.com/?outcomes=home')
+        self.assertEqual(away.links.outcome, 'https://sportsbook.draftkings.com/?outcomes=away')
+        self.assertEqual(home.links.event, 'https://sportsbook.draftkings.com/event/1')
+        self.assertIsNone(home.links.market)
+        self.assertIsNone(by[('pinnacle', 'h2h', 'home')].links)
+        self.assertIsNone(by[('prophetx', 'h2h', 'home')].links)
+        client = TestClient(create_app(data_mode='database', catalog=catalog))
+        game = catalog.games[0].id
+        quotes = client.get(f'/api/v1/games/{game}/odds', params={'limit': 100}, headers={'host': '127.0.0.1'}).json()['data']['items']
+        linked = [x for x in quotes if x['links']]
+        self.assertTrue(linked)
+        self.assertEqual(set(linked[0]['links']), {'event', 'market', 'outcome'})
     def test_live_catalog_keeps_last_good_snapshot_on_failure(self):
         calls = []
 
