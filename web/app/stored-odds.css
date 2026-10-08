@@ -434,3 +434,29 @@
 @media(max-width:900px){.odds-table thead th.odds-corner,.odds-matchup{width:200px}.odds-meta{display:none}.odds-scroll{max-height:calc(100vh - 260px)}}
 .pr-types{grid-template-columns:repeat(3,auto);align-self:flex-end}.pr-types button{padding:8px 14px;white-space:nowrap}
 .ev-sort{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px}.ev-sort select{padding:4px 8px}
+/* Player props feed */
+.props-grid{overflow-x:auto}
+.props-layout .ev-filters>*{flex-shrink:0}.props-layout .ev-filters{position:static;max-height:none;overflow:visible}
+.props-row .ev-cell strong,.props-row .ev-cell small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.props-grid>.ev-head,.props-grid .props-row{display:grid;grid-template-columns:92px minmax(150px,1.4fr) minmax(150px,1.3fr) minmax(130px,1fr) minmax(130px,1fr) 70px;gap:10px;align-items:center;padding:0 12px;min-width:860px;box-sizing:border-box}
+.props-row{min-height:88px;padding-top:8px;padding-bottom:8px;cursor:pointer;border-bottom:1px solid rgba(128,128,128,.15)}
+.props-row:hover,.props-row.selected{background:rgba(34,197,94,.07)}
+.props-row.selected{outline:2px solid #16a34a;outline-offset:-2px}
+.props-grid>.empty-state{min-width:0}
+.props-group{display:grid;gap:2px;margin-bottom:6px}.props-group>small{opacity:.7;text-transform:uppercase;letter-spacing:.06em}
+@media (max-width:1500px){
+  .props-grid>.ev-head{display:none}
+  .props-grid .props-row{min-width:0;grid-template-columns:84px minmax(0,1fr) minmax(0,1fr);row-gap:6px;padding:10px 12px}
+  .props-row .ev-edge{grid-row:1/3}
+  .props-row .ev-event,.props-row .ev-market{grid-column:2/-1}
+  .props-row .ev-soft,.props-row .ev-sharp{grid-column:auto}
+  .props-row .ev-time{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center}
+  .props-row .ev-time::before{content:"Scanned";font-size:12px;opacity:.7}
+}
+@media (max-width:1180px){
+  .props-layout{grid-template-columns:1fr}
+  .props-layout .kelly-panel{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:60;border-radius:16px 16px 0 0;transform:translateY(105%);transition:transform .25s ease;max-height:75vh;overflow:auto}
+  .props-layout .kelly-panel.open{transform:none}
+  .props-layout .kelly-close{display:block;position:absolute;right:10px;top:8px;background:none;border:0;font-size:18px;cursor:pointer;color:inherit}
+  .props-layout .kelly-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:55}
+}

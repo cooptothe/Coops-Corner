@@ -57,6 +57,77 @@ export async function reloadTools(): Promise<void> {
     throw new Error("Odds were fetched, but the feed could not be rebuilt.");
 }
 
+export interface PropMarketInfo {
+  key: string;
+  label: string;
+  group: string;
+  kind: "two_way" | "yes_only";
+  default: boolean;
+}
+export interface PropBet {
+  id: string;
+  event_id: string;
+  sport_key: string;
+  home: string;
+  away: string;
+  starts_at: string;
+  market_key: string;
+  market_label: string;
+  group: string;
+  player: string;
+  point: string | null;
+  side: string;
+  book: string;
+  price: string;
+  ev: string;
+  fair_probability: string;
+  sharps: string[];
+  observed_at: string | null;
+}export interface PropsStatus {
+  sports: { key: string; label: string }[];
+  markets: Record<string, PropMarketInfo[]>;
+  default_events: number;
+  max_events: number;
+  credits_today: number;
+  daily_credits: number;
+  retry_after_seconds: number;
+  last_success_at: string | null;
+  last_result: string | null;
+  quota: Record<string, string> | null;
+  bets?: PropBet[];
+}
+
+async function propsCall(
+  method: "GET" | "POST",
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<PropsStatus> {
+  const response = await fetch("/api/refresh/v1/props", {
+    method,
+    cache: "no-store",
+    ...(body !== undefined && {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    signal: AbortSignal.any([
+      ...(signal ? [signal] : []),
+      AbortSignal.timeout(method === "POST" ? 180000 : 30000),
+    ]),
+  });
+  const data = await response.json().catch(() => {
+    throw new Error("The refresh service returned an unreadable response.");
+  });
+  if (!response.ok) throw new Error(data.error ?? "Request failed.");
+  return data as PropsStatus;
+}
+export const loadProps = (signal?: AbortSignal) =>
+  propsCall("GET", undefined, signal);
+export const refreshProps = (
+  sport: string,
+  markets: string[],
+  max_events: number,
+) => propsCall("POST", { sport, markets, max_events });
+
 let pageLoadReload: Promise<void> | null = null;
 // Once per full page load, so a browser refresh also picks up newly stored odds.
 export function reloadToolsOnce(): Promise<void> {

@@ -29,6 +29,7 @@ import EvFeed from "./ev-feed";
 import ArbFeed from "./arb-feed";
 import MiddleFeed from "./middle-feed";
 import OddsScreen from "./odds-screen";
+import PropsFeed from "./props-feed";
 import FreshOdds from "./fresh-odds";
 
 const DESCRIPTIONS: Record<View, string> = {
@@ -38,6 +39,8 @@ const DESCRIPTIONS: Record<View, string> = {
   middle:
     "Find cross-line windows. See the upside and the cost of missing the middle.",
   low_hold: "Compare payoff tables with a bounded modeled loss.",
+  props:
+    "Player prop lines across books, with a no-vig edge where sharp books price both sides.",
   games:
     "One event. Every featured market. The exact quotes behind each calculation.",
   promo:
@@ -48,6 +51,7 @@ const ICONS: Record<View, string> = {
   arbitrage: "⇄",
   middle: "⋈",
   low_hold: "≋",
+  props: "♟",
   games: "▦",
   promo: "◇",
 };
@@ -65,6 +69,7 @@ const isEv = (view: View): boolean =>
   view === "positive_ev" ||
   view === "arbitrage" ||
   view === "middle" ||
+  view === "props" ||
   view === "games";
 const errorText = (error: unknown) =>
   error instanceof Error
@@ -258,7 +263,7 @@ export default function Workspace({ view }: { view: View }) {
           <p className="nav-label">FIND AN EDGE</p>
           {VIEWS.map((v, i) => (
             <span key={v}>
-              {i === 4 && (
+              {i === 5 && (
                 <p className="nav-label second">EXPLORE &amp; CALCULATE</p>
               )}
               <Link
@@ -350,6 +355,8 @@ export default function Workspace({ view }: { view: View }) {
               <OddsScreen data={data} />
             ) : view === "middle" ? (
               <MiddleFeed data={data} />
+            ) : view === "props" ? (
+              <PropsFeed reload={reload} />
             ) : (
               <EvFeed data={data} />
             )

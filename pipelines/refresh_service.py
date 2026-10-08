@@ -16,7 +16,9 @@ from fastapi import FastAPI, Request
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
+from corner import prop_markets
 from pipelines import odds_ingestion as board
+from pipelines import props_ingestion as props
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / 'retained' / 'refresh_state.json'
@@ -147,11 +149,99 @@ def run_refresh(capture=board.capture, ingest=board.ingest, now=None, sports=SPO
     finally:
         _lock.release()
 
+PROP_STATE = ROOT / 'retained' / 'props_state.json'
+PROP_DAILY_CREDITS = int(os.getenv('CORNER_PROPS_DAILY_CREDITS', '300'))
+PROP_MAX_EVENTS = 20
+PROP_DEFAULT_EVENTS = 8
+PROP_SPORTS = tuple(s for s in SPORTS if prop_markets.family(s))
+
+
+def _prop_state():
+    try:
+        state = json.loads(PROP_STATE.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        state = {}
+    if state.get('day') != _today():
+        state = {'day': _today(), 'credits_today': 0, 'last_attempt_epoch': 0,
+                 'last_success_at': state.get('last_success_at'), 'last_result': state.get('last_result')}
+    return state
+
+
+def props_status(state=None, now=None):
+    state = _prop_state() if state is None else state
+    now = time.time() if now is None else now
+    return {'sports': [{'key': k, 'label': LABELS[k]} for k in PROP_SPORTS],
+            'markets': prop_markets.catalog_view(PROP_SPORTS),
+            'default_events': PROP_DEFAULT_EVENTS, 'max_events': PROP_MAX_EVENTS,
+            'credits_today': state.get('credits_today', 0), 'daily_credits': PROP_DAILY_CREDITS,
+            'retry_after_seconds': max(0, int(state.get('last_attempt_epoch', 0) + COOLDOWN - now)),
+            'last_success_at': state.get('last_success_at'), 'last_result': state.get('last_result'),
+            'quota': state.get('quota')}
+
+
+def run_props_refresh(sport, markets, max_events, capture=props.capture, now=None):
+    """Returns (http_status, body). Estimated cost (events x markets) is checked against the daily budget."""
+    if sport not in PROP_SPORTS or not isinstance(markets, list) or not markets \
+            or not all(isinstance(m, str) and prop_markets.market_meta(sport, m) for m in markets) \
+            or len(set(markets)) != len(markets) \
+            or not isinstance(max_events, int) or isinstance(max_events, bool) or not 1 <= max_events <= PROP_MAX_EVENTS:
+        return 400, {'error': 'Choose a league, valid prop markets, and 1-20 events.'}
+    if not _lock.acquire(blocking=False):
+        return 409, {'error': 'A refresh is already running.'}
+    try:
+        state, now = _prop_state(), time.time() if now is None else now
+        view = props_status(state, now)
+        if view['retry_after_seconds']:
+            return 429, {'error': 'Refresh is cooling down.', **view}
+        estimate = max_events * len(markets)
+        if state['credits_today'] + estimate > PROP_DAILY_CREDITS:
+            return 429, {'error': f'This could cost up to {estimate} credits and would pass the daily '
+                                  f'prop budget of {PROP_DAILY_CREDITS}.', **view}
+        state['last_attempt_epoch'] = now
+        PROP_STATE.parent.mkdir(exist_ok=True)
+        PROP_STATE.write_text(json.dumps(state), encoding='utf-8')
+        try:
+            result = capture(sport, markets, max_events)
+        except Exception as error:
+            state['last_result'] = f'failed ({type(error).__name__})'
+            PROP_STATE.write_text(json.dumps(state), encoding='utf-8')
+            return 502, {'error': f'Prop refresh failed: {error}'}
+        state['credits_today'] += result['credits_used']
+        state['quota'] = result.get('quota') or state.get('quota')
+        state['last_result'] = f"{result['events']} events, {result['credits_used']} credits" + \
+            (f" (stopped: {result['stopped']})" if result['stopped'] else '')
+        if result['events']:
+            state['last_success_at'] = datetime.now(timezone.utc).isoformat()
+        PROP_STATE.write_text(json.dumps(state), encoding='utf-8')
+        return 200, {'refreshed': bool(result['events']), **props_status(state, now)}
+    finally:
+        _lock.release()
+
+
 def create_app():
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
     def reply(code, body):
         return JSONResponse(body, status_code=code, headers={'Cache-Control': 'no-store'})
+
+    @app.get('/api/refresh/v1/props/status')
+    def props_state():
+        return reply(200, props_status())
+
+    @app.get('/api/refresh/v1/props')
+    async def props_bets():
+        return reply(200, {'bets': await run_in_threadpool(props.bets), **props_status()})
+
+    @app.post('/api/refresh/v1/props')
+    async def props_refresh(request: Request):
+        if request.headers.get('origin') not in ALLOWED_ORIGINS:
+            return reply(403, {'error': 'Origin not allowed.'})
+        try:
+            body = await request.json()
+            sport, markets, count = body['sport'], body['markets'], body.get('max_events', PROP_DEFAULT_EVENTS)
+        except (ValueError, KeyError, TypeError):
+            return reply(400, {'error': 'Choose a league, valid prop markets, and 1-20 events.'})
+        return reply(*await run_in_threadpool(run_props_refresh, sport, markets, count))
 
     @app.get('/api/refresh/v1/status')
     def status():

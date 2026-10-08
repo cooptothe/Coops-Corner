@@ -48,6 +48,17 @@ interface Vm {
   sharps: string;
   observedAt: string;
 }
+export interface KellyVm {
+  id: string;
+  matchup: string;
+  market: string;
+  line: string;
+  ev: string;
+  bookLabel: string;
+  odds: string;
+  decimalOdds: string;
+  lay: boolean;
+}
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 
 const ROW_HEIGHT = { wide: 88, compact: 176 };
@@ -58,11 +69,11 @@ const SHARP_BOOKS = new Set([
   "prophetx",
   "kalshi",
 ]);
-const BANKROLL_KEY = "corner.bankroll";
-const MULTIPLIER_KEY = "corner.kelly";
-const SLIP_KEY = "corner.slip";
+export const BANKROLL_KEY = "corner.bankroll";
+export const MULTIPLIER_KEY = "corner.kelly";
+export const SLIP_KEY = "corner.slip";
 const SETTINGS_KEY = "corner.ev-settings";
-interface SlipBet {
+export interface SlipBet {
   at: string;
   matchup: string;
   line: string;
@@ -253,7 +264,7 @@ const Row = memo(
     a.flash?.tick === b.flash?.tick,
 );
 
-function KellyWidget({
+export function KellyWidget({
   vm,
   bankroll,
   setBankroll,
@@ -263,7 +274,7 @@ function KellyWidget({
   onLogged,
 }: {
   onLogged: () => void;
-  vm: Vm | null;
+  vm: KellyVm | null;
   bankroll: string;
   setBankroll: (v: string) => void;
   multiplier: string;

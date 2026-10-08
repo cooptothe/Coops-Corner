@@ -2,7 +2,7 @@ export type DecimalText = string;
 export type MarketKey =
   "h2h" | "spreads" | "totals" | "outrights" | "h2h_lay" | "outrights_lay";
 export type ToolKind = "positive_ev" | "arbitrage" | "middle" | "low_hold";
-export type View = ToolKind | "games" | "promo";
+export type View = ToolKind | "games" | "promo" | "props";
 export interface Meta {
   format: "corner.product_api/1";
   data_mode: "fixture" | "database";
@@ -168,6 +168,7 @@ export const VIEWS: View[] = [
   "arbitrage",
   "middle",
   "low_hold",
+  "props",
   "games",
   "promo",
 ];

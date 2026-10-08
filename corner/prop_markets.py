@@ -1,0 +1,242 @@
+"""Player-prop market catalog, payload normalization and no-vig edge calculation.
+
+Pure functions only: no network, no database. Prop quotes are kept apart from the strict
+featured (h2h/spreads/totals) pipeline because they are priced per player and per line.
+"""
+from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_EVEN
+
+SHARP_BOOKS = frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi'})
+# Over/Under or Yes/No priced on both sides ('two_way'), or a Yes-only / winner list ('yes_only').
+TWO_WAY, YES_ONLY = 'two_way', 'yes_only'
+
+
+@dataclass(frozen=True)
+class PropMarket:
+    key: str
+    label: str
+    group: str
+    kind: str = TWO_WAY
+    sides: tuple = ('Over', 'Under')
+
+
+def _ou(key, label, group):
+    return PropMarket(key, label, group)
+
+
+def _yn(key, label, group):
+    return PropMarket(key, label, group, TWO_WAY, ('Yes', 'No'))
+
+
+def _yes(key, label, group):
+    return PropMarket(key, label, group, YES_ONLY, ('Yes', 'No'))
+
+
+FAMILIES = {
+    'basketball': (
+        _ou('player_points', 'Points', 'Scoring'),
+        _ou('player_points_q1', '1st Quarter Points', 'Scoring'),
+        _ou('player_threes', 'Made Threes', 'Scoring'),
+        _ou('player_rebounds', 'Rebounds', 'Rebounds & assists'),
+        _ou('player_rebounds_q1', '1st Quarter Rebounds', 'Rebounds & assists'),
+        _ou('player_assists', 'Assists', 'Rebounds & assists'),
+        _ou('player_assists_q1', '1st Quarter Assists', 'Rebounds & assists'),
+        _ou('player_blocks', 'Blocks', 'Defense & turnovers'),
+        _ou('player_steals', 'Steals', 'Defense & turnovers'),
+        _ou('player_turnovers', 'Turnovers', 'Defense & turnovers'),
+        _ou('player_points_rebounds_assists', 'Points + Rebounds + Assists', 'Combos'),
+        _ou('player_points_assists', 'Points + Assists', 'Combos'),
+        _ou('player_points_rebounds', 'Points + Rebounds', 'Combos'),
+        _ou('player_rebounds_assists', 'Rebounds + Assists', 'Combos'),
+        _yn('player_double_double', 'Double-Double', 'Milestones'),
+        _yn('player_triple_double', 'Triple-Double', 'Milestones'),
+    ),
+    'football': (
+        _ou('player_pass_yds', 'Passing Yards', 'Passing'),
+        _ou('player_pass_tds', 'Passing TDs', 'Passing'),
+        _ou('player_pass_completions', 'Pass Completions', 'Passing'),
+        _ou('player_pass_attempts', 'Pass Attempts', 'Passing'),
+        _ou('player_pass_interceptions', 'Interceptions Thrown', 'Passing'),
+        _ou('player_pass_longest_completion', 'Longest Completion', 'Passing'),
+        _ou('player_rush_yds', 'Rushing Yards', 'Rushing'),
+        _ou('player_rush_attempts', 'Rush Attempts', 'Rushing'),
+        _ou('player_rush_longest', 'Longest Rush', 'Rushing'),
+        _ou('player_receptions', 'Receptions', 'Receiving'),
+        _ou('player_reception_yds', 'Receiving Yards', 'Receiving'),
+        _ou('player_reception_longest', 'Longest Reception', 'Receiving'),
+        _ou('player_kicking_points', 'Kicking Points', 'Kicking'),
+        _ou('player_field_goals', 'Field Goals Made', 'Kicking'),
+        _yes('player_anytime_td', 'Anytime TD Scorer', 'Touchdown scorers'),
+        _yes('player_1st_td', 'First TD Scorer', 'Touchdown scorers'),
+        _yes('player_last_td', 'Last TD Scorer', 'Touchdown scorers'),
+        _ou('player_tackles_assists', 'Tackles + Assists', 'Defense'),
+        _ou('player_solo_tackles', 'Solo Tackles', 'Defense'),
+        _ou('player_sacks', 'Sacks', 'Defense'),
+    ),
+    'baseball': (
+        _ou('batter_hits', 'Batter Hits', 'Batting'),
+        _ou('batter_runs_scored', 'Batter Runs Scored', 'Batting'),
+        _ou('batter_rbis', 'Batter RBIs', 'Batting'),
+        _ou('batter_home_runs', 'Batter Home Runs', 'Batting'),
+        _ou('batter_total_bases', 'Batter Total Bases', 'Batting'),
+        _ou('batter_singles', 'Batter Singles', 'Batting'),
+        _ou('batter_doubles', 'Batter Doubles', 'Batting'),
+        _ou('batter_triples', 'Batter Triples', 'Batting'),
+        _ou('batter_walks', 'Batter Walks', 'Batting'),
+        _ou('batter_stolen_bases', 'Stolen Bases', 'Batting'),
+        _ou('batter_hits_runs_rbis', 'Hits + Runs + RBIs', 'Batting'),
+        _ou('pitcher_strikeouts', 'Pitcher Strikeouts', 'Pitching'),
+        _ou('pitcher_hits_allowed', 'Pitcher Hits Allowed', 'Pitching'),
+        _ou('pitcher_earned_runs', 'Pitcher Earned Runs', 'Pitching'),
+        _ou('pitcher_walks', 'Pitcher Walks', 'Pitching'),
+        _ou('pitcher_outs', 'Pitcher Outs Recorded', 'Pitching'),
+        _yn('pitcher_record_a_win', 'Pitcher to Record a Win', 'Pitching'),
+    ),
+    'hockey': (
+        _ou('player_points', 'Points', 'Skaters'),
+        _ou('player_goals', 'Goals', 'Skaters'),
+        _ou('player_assists', 'Assists', 'Skaters'),
+        _ou('player_shots_on_goal', 'Shots on Goal', 'Skaters'),
+        _ou('player_power_play_points', 'Power Play Points', 'Skaters'),
+        _ou('player_blocked_shots', 'Blocked Shots', 'Skaters'),
+        _ou('player_total_saves', 'Goalie Saves', 'Goalies'),
+        _yes('player_goal_scorer_anytime', 'Anytime Goal Scorer', 'Goal scorers'),
+        _yes('player_goal_scorer_first', 'First Goal Scorer', 'Goal scorers'),
+        _yes('player_goal_scorer_last', 'Last Goal Scorer', 'Goal scorers'),
+    ),
+    'soccer': (
+        _yes('player_goal_scorer_anytime', 'Anytime Goal Scorer', 'Goal scorers'),
+        _yes('player_goal_scorer_first', 'First Goal Scorer', 'Goal scorers'),
+        _yes('player_goal_scorer_last', 'Last Goal Scorer', 'Goal scorers'),
+        _ou('player_shots', 'Shots', 'Shooting & passing'),
+        _ou('player_shots_on_target', 'Shots on Target', 'Shooting & passing'),
+        _ou('player_assists', 'Assists', 'Shooting & passing'),
+        _yes('player_to_receive_card', 'To Receive a Card', 'Discipline'),
+        _yes('player_to_receive_red_card', 'To Receive a Red Card', 'Discipline'),
+    ),
+}
+# Credit control: only these are fetched unless the user picks others.
+DEFAULT_MARKETS = {
+    'basketball': ('player_points', 'player_rebounds', 'player_assists'),
+    'football': ('player_pass_yds', 'player_rush_yds', 'player_reception_yds'),
+    'baseball': ('batter_hits', 'pitcher_strikeouts'),
+    'hockey': ('player_goals', 'player_shots_on_goal'),
+    'soccer': ('player_goal_scorer_anytime', 'player_shots'),
+}
+PREFIX_FAMILY = (('basketball_', 'basketball'), ('americanfootball_', 'football'),
+                 ('baseball_', 'baseball'), ('icehockey_', 'hockey'), ('soccer_', 'soccer'))
+LABEL_BY_KEY = {m.key: m for markets in FAMILIES.values() for m in markets}
+
+
+def family(sport_key):
+    for prefix, name in PREFIX_FAMILY:
+        if sport_key.startswith(prefix):
+            return name
+    return None
+
+
+def markets_for(sport_key):
+    return FAMILIES.get(family(sport_key), ())
+
+
+def market_meta(sport_key, key):
+    return next((m for m in markets_for(sport_key) if m.key == key), None)
+
+
+def catalog_view(sport_keys):
+    """Per-sport market list for the UI, with the credit-safe default flagged."""
+    out = {}
+    for sport in sport_keys:
+        fam = family(sport)
+        if fam:
+            out[sport] = [{'key': m.key, 'label': m.label, 'group': m.group, 'kind': m.kind,
+                           'default': m.key in DEFAULT_MARKETS[fam]} for m in FAMILIES[fam]]
+    return out
+
+
+def normalize_event(event, market_key, meta, book_filter=None):
+    """Flatten one event-odds payload for one market into quote dicts.
+
+    Skips (never invents) anything it cannot attribute to a named player and side.
+    """
+    quotes = []
+    for book in event.get('bookmakers', []):
+        if book_filter and book['key'] not in book_filter:
+            continue
+        for market in book.get('markets', []):
+            if market.get('key') != market_key:
+                continue
+            for o in market.get('outcomes', []):
+                price, name = o.get('price'), str(o.get('name') or '').strip()
+                player = str(o.get('description') or '').strip()
+                if price is None or Decimal(str(price)) <= 1:
+                    continue
+                if player:
+                    side = {m.lower(): i for i, m in enumerate(meta.sides)}.get(name.lower())
+                    if side is None:
+                        continue
+                elif meta.kind == YES_ONLY and name and name.lower() not in ('over', 'under', 'yes', 'no'):
+                    player, side = name, 0
+                else:
+                    continue
+                point = o.get('point')
+                if meta.sides[0] == 'Over' and point is None:
+                    continue
+                quotes.append({'book': book['key'], 'player': player, 'side': side,
+                               'point': None if point is None else str(Decimal(str(point))),
+                               'price': str(Decimal(str(price))),
+                               'updated_at': market.get('last_update') or book.get('last_update')})
+    return quotes
+
+
+def _prob(price):
+    return Decimal(1) / Decimal(price)
+
+
+def _fair_first_side(prices):
+    """No-vig probability of side 0 averaged over the sharp books pricing both sides."""
+    used = sorted(b for b, p in prices.items() if b in SHARP_BOOKS and 0 in p and 1 in p)
+    probs = [_prob(prices[b][0]) / (_prob(prices[b][0]) + _prob(prices[b][1])) for b in used]
+    return (sum(probs) / len(probs), used) if probs else (None, [])
+
+
+def _q(value):
+    return str(value.quantize(Decimal('0.000001'), ROUND_HALF_EVEN))
+
+
+def build_bets(events):
+    """events: {event_id: {meta, markets:{market_key:{quotes:[...]}}}} -> one bet per soft-book side.
+
+    A bet exists only where sharp books price both sides of the same player line, so its fair
+    probability is the no-vig consensus of those sharps. Lines without that reference are omitted.
+    """
+    bets = []
+    for event_id, ev in events.items():
+        sport = ev['sport_key']
+        for market_key, stored in ev['markets'].items():
+            meta = market_meta(sport, market_key)
+            if not meta or meta.kind != TWO_WAY:
+                continue
+            grouped = {}
+            for q in stored['quotes']:
+                grouped.setdefault((q['player'], q['point']), {}).setdefault(q['book'], {})[q['side']] = q
+            for (player, point), by_book in grouped.items():
+                prices = {b: {s: Decimal(q['price']) for s, q in sides.items()} for b, sides in by_book.items()}
+                fair, used = _fair_first_side(prices)
+                if fair is None:
+                    continue
+                for book, sides in sorted(prices.items()):
+                    if book in SHARP_BOOKS:
+                        continue
+                    for side, price in sorted(sides.items()):
+                        win = fair if side == 0 else 1 - fair
+                        bets.append({
+                            'id': f'{event_id}:{market_key}:{player}:{point or ""}:{book}:{side}',
+                            'event_id': event_id, 'sport_key': sport, 'home': ev['home_team'],
+                            'away': ev['away_team'], 'starts_at': ev['commence_time'],
+                            'market_key': market_key, 'market_label': meta.label, 'group': meta.group,
+                            'player': player, 'point': point, 'side': meta.sides[side], 'book': book,
+                            'price': str(price), 'ev': _q(win * price - 1), 'fair_probability': _q(win),
+                            'sharps': used, 'observed_at': by_book[book][side].get('updated_at')
+                            or stored.get('captured_at')})
+    return bets
