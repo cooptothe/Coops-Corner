@@ -21,11 +21,11 @@ class LiveEventMapping {
         if(states.isEmpty()) return states;
         return read.execute(tx->{
             String placeholders=String.join(",",Collections.nCopies(states.size(),"?"));
-            var rows=jdbc.queryForList("SELECT i.external_id,i.event_id::text FROM corner.event_provider_identities i JOIN corner.providers p ON p.id=i.provider_id WHERE p.code='espn' AND i.active AND i.external_id IN ("+placeholders+")",states.stream().map(n->n.path("game_id").asText()).toArray());
+            var rows=jdbc.queryForList("SELECT i.external_id,i.event_id::text FROM corner.event_provider_identities i JOIN corner.providers p ON p.id=i.provider_id WHERE p.code='espn' AND i.active AND i.external_id IN ("+placeholders+")",states.stream().map(n->n.path("game_id").asString()).toArray());
             var ids=new HashMap<String,String>();
             rows.forEach(r->ids.put((String)r.get("external_id"),(String)r.get("event_id")));
             for(JsonNode state:states) {
-                String id=ids.get(state.path("game_id").asText());
+                String id=ids.get(state.path("game_id").asString());
                 var object=(ObjectNode)state;
                 if(id==null) object.putNull("canonical_event_id"); else object.put("canonical_event_id",id);
             }

@@ -63,8 +63,10 @@ public class MarketRepository {
     }
     static String dbMarket(String key) {
         if (key == null || key.isBlank()) return null;
-        return MARKETS.entrySet().stream().filter(e->e.getValue().equals(key)).map(Map.Entry::getKey).findFirst()
-            .orElseThrow(()->new MarketProblem(400,"invalid_market","Unsupported market."));
+        for (var entry : MARKETS.entrySet()) {
+            if (Objects.equals(entry.getValue(), key)) return entry.getKey();
+        }
+        throw new MarketProblem(400, "invalid_market", "Unsupported market.");
     }
     public Map<String,Object> games(String search, String market, int offset, int limit, boolean upcoming) {
         if(offset<0 || offset>10000 || limit<1 || limit>100 || search.length()>100)

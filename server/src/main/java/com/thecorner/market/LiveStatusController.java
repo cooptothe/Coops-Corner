@@ -54,13 +54,13 @@ public class LiveStatusController {
         return Set.copyOf(Arrays.asList(parts));
     }
     static boolean valid(JsonNode n, Set<String> leagues, long now) {
-        return n.isObject() && "corner.live_status/1".equals(n.path("format").asText())
+        return n.isObject() && "corner.live_status/1".equals(n.path("format").asString())
             && n.path("production_authorized").isBoolean() && !n.path("production_authorized").asBoolean()
-            && n.path("game_id").isTextual() && n.path("league").isTextual()
+            && n.path("game_id").isString() && n.path("league").isString()
             && n.path("observed_at_ms").isIntegralNumber() && n.path("expires_at_ms").isIntegralNumber()
             && n.path("observed_at_ms").asLong()<=now && n.path("expires_at_ms").asLong()>now
             && n.path("expires_at_ms").asLong()-n.path("observed_at_ms").asLong()==60000
-            && (leagues.isEmpty() || leagues.contains(n.path("league").asText()));
+            && (leagues.isEmpty() || leagues.contains(n.path("league").asString()));
     }
     private boolean accepted(String body,Set<String> leagues) {
         if(body.length()>16000) return false;
