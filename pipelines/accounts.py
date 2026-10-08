@@ -84,6 +84,30 @@ class AuthContext:
             return None, reply(401, UNAUTHENTICATED)
         return user, None
 
+    async def serve(self, request, write, work):
+        """Run `work(ledger)` for the signed-in account and reply with its result."""
+        user, denied = self.require(request, write=write)
+        if denied:
+            return denied
+        try:
+            return reply(200, await run_in_threadpool(work, self.store.ledger(user['id'])))
+        except TrackerError as error:
+            return reply(error.status, {'error': str(error), 'code': error.code})
+
+    async def with_body(self, request, work):
+        """Like serve() for writes that carry a JSON body: work(ledger, body)."""
+        user, denied = self.require(request, write=True)
+        if denied:
+            return denied
+        try:
+            try:
+                body = await request.json()
+            except ValueError:
+                raise TrackerError('The request body must be JSON') from None
+            return reply(200, await run_in_threadpool(work, self.store.ledger(user['id']), body))
+        except TrackerError as error:
+            return reply(error.status, {'error': str(error), 'code': error.code})
+
 
 def _secure(request):
     return request.url.scheme == 'https' or request.headers.get('x-forwarded-proto') == 'https'

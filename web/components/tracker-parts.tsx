@@ -210,12 +210,12 @@ export const BetRow = memo(function BetRow({
         <span className="trk-match">{bet.matchup}</span>
         <small>{leagueLabel(bet.sport_key)}</small>
       </td>
-      <td>
+      <td className="trk-c-book" data-label="Book">
         <span className="trk-book" title={bookLabel(bet.book)}>
           {bookAbbr(bet.book)}
         </span>
       </td>
-      <td>
+      <td className="trk-c-strat" data-label="Strategy">
         <span className={`trk-strat s-${bet.strategy}`}>
           {STRATEGY_LABEL[bet.strategy] ?? bet.strategy}
         </span>
@@ -262,7 +262,7 @@ export const BetRow = memo(function BetRow({
           )}
         </div>
       </td>
-      <td className="trk-num">
+      <td className="trk-num" data-label="Odds">
         <b>{amer(bet.odds)}</b>
         {bet.stake_type !== "cash" && (
           <small className="trk-free">
@@ -270,11 +270,11 @@ export const BetRow = memo(function BetRow({
           </small>
         )}
       </td>
-      <td className="trk-num">
+      <td className="trk-num" data-label="Stake">
         <b>{money(bet.stake_cents)}</b>
         <small>{pending ? `to win ${money(toWin(bet))}` : ""}</small>
       </td>
-      <td className="trk-num">
+      <td className="trk-num" data-label="Result">
         {pending ? (
           <span className="trk-chip pending">Open</span>
         ) : (
@@ -290,7 +290,7 @@ export const BetRow = memo(function BetRow({
           </>
         )}
       </td>
-      <td className="trk-num" title={bet.clv?.reason}>
+      <td className="trk-num" data-label="CLV" title={bet.clv?.reason}>
         <b
           className={clv == null ? "" : clv > 0 ? "pos" : clv < 0 ? "neg" : ""}
         >

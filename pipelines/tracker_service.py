@@ -122,29 +122,7 @@ def live_view(bets, fetch=fetch_cached):
 def create_router(ctx, fetch=fetch_cached, close_fetch=None):
     router = APIRouter(prefix='/api/refresh/v1/tracker')
 
-    async def serve(request, write, work):
-        """Run `work(ledger)` for the signed-in user and reply with its result."""
-        user, denied = ctx.require(request, write=write)
-        if denied:
-            return denied
-        try:
-            return reply(200, await run_in_threadpool(work, ctx.store.ledger(user['id'])))
-        except TrackerError as error:
-            return reply(error.status, {'error': str(error), 'code': error.code})
-
-    async def with_body(request, work):
-        """Like serve() for writes that carry a JSON body: work(ledger, body)."""
-        user, denied = ctx.require(request, write=True)
-        if denied:
-            return denied
-        try:
-            try:
-                body = await request.json()
-            except ValueError:
-                raise TrackerError('The request body must be JSON') from None
-            return reply(200, await run_in_threadpool(work, ctx.store.ledger(user['id']), body))
-        except TrackerError as error:
-            return reply(error.status, {'error': str(error), 'code': error.code})
+    serve, with_body = ctx.serve, ctx.with_body
 
     @router.get('/state')
     async def state(request: Request):

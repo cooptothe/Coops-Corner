@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { setStorageOwner } from "../lib/user-storage";
+import { SettingsProvider } from "./settings-provider";
 import {
   fetchMe,
   onUnauthorized,
@@ -128,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function Splash({ children }: { children?: ReactNode }) {
+export function Splash({ children }: { children?: ReactNode }) {
   return (
     <div className="auth-splash" role="status" aria-live="polite">
       <Image
@@ -146,7 +147,7 @@ function Splash({ children }: { children?: ReactNode }) {
 // Everything except the sign-in page needs a session. Protected pages are not even rendered until the
 // server has confirmed one, so a signed-out visitor never triggers their data requests.
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const isLogin = pathname === "/login";
@@ -164,6 +165,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (status === "unreachable") return null;
   if (status === "loading") return <Splash />;
   if (status === "signed-out" && !isLogin) return <Splash />;
+  if (status === "signed-in" && user && !isLogin)
+    return <SettingsProvider key={user.id}>{children}</SettingsProvider>;
   return <>{children}</>;
 }
 

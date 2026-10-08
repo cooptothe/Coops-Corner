@@ -35,7 +35,9 @@ import {
   trackerReducer,
   type Filters,
 } from "../lib/tracker-state";
+import { choice, list, sorted, text } from "../lib/settings-fields";
 import { UserMenu } from "./auth-provider";
+import { SettingsBar, useToolSettings } from "./tool-settings";
 import { BankrollTab } from "./tracker-bankroll";
 import {
   BetDrawer,
@@ -47,6 +49,43 @@ import {
 } from "./tracker-parts";
 
 const DAY = 86400000;
+type TrackerSettings = {
+  tab: string;
+  windowDays: number;
+  books: string[];
+  leagues: string[];
+  status: string;
+  strategy: string;
+  query: string;
+};
+const TRACKER_DEFAULTS: TrackerSettings = {
+  tab: "bets",
+  windowDays: 0,
+  books: [],
+  leagues: [],
+  status: "all",
+  strategy: "all",
+  query: "",
+};
+const STATUS_CHOICES = [
+  "all",
+  "active",
+  "settled",
+  "won",
+  "lost",
+  "push",
+  "void",
+  "cashout",
+] as const;
+const STRATEGY_CHOICES = [
+  "all",
+  "ev",
+  "arbitrage",
+  "middle",
+  "promo",
+  "prop",
+  "manual",
+] as const;
 const LIVE_EVERY = 30000;
 const LIVE_LEAD = 20 * 60000;
 const PAGE = 100;
@@ -196,9 +235,57 @@ export default function Tracker() {
     setShown(PAGE);
   }, []);
 
+  const bookCodes = useMemo(
+    () => [...new Set(view.bets.map((b) => b.book))],
+    [view.bets],
+  );
+  const leagueCodes = useMemo(
+    () => [...new Set(view.bets.map((b) => b.sport_key))],
+    [view.bets],
+  );
+  // A saved book or league you have no bets with any more must not hide everything.
+  const filters = useMemo<Filters>(
+    () => ({
+      ...view.filters,
+      books: view.filters.books.filter((b) => bookCodes.includes(b)),
+      leagues: view.filters.leagues.filter((l) => leagueCodes.includes(l)),
+    }),
+    [view.filters, bookCodes, leagueCodes],
+  );
+  const settings = useToolSettings<TrackerSettings>({
+    tool: "tracker",
+    defaults: TRACKER_DEFAULTS,
+    snapshot: {
+      tab,
+      windowDays: windowDays ?? 0,
+      books: sorted(view.filters.books),
+      leagues: sorted(view.filters.leagues),
+      status: view.filters.status,
+      strategy: view.filters.strategy,
+      query: view.filters.query,
+    },
+    apply: (s) => {
+      setTab(choice(s.tab, ["bets", "bankroll"] as const, "bets"));
+      setWindowDays(
+        s.windowDays === 7 || s.windowDays === 30 ? s.windowDays : null,
+      );
+      dispatch({
+        type: "SET_FILTER",
+        filters: {
+          books: list(s.books),
+          leagues: list(s.leagues),
+          status: choice(s.status, STATUS_CHOICES, "all"),
+          strategy: choice(s.strategy, STRATEGY_CHOICES, "all"),
+          query: text(s.query, /^.{0,80}$/, ""),
+        },
+      });
+      setShown(PAGE);
+    },
+  });
+
   const filtered = useMemo(
-    () => view.bets.filter((b) => matchesFilters(b, view.filters)),
-    [view.bets, view.filters],
+    () => view.bets.filter((b) => matchesFilters(b, filters)),
+    [view.bets, filters],
   );
   const ordered = useMemo(() => orderBets(filtered), [filtered]);
   const balances = useMemo(
@@ -211,10 +298,6 @@ export default function Tracker() {
     // `now` moves once a minute, which is fine granularity for a day-sized window.
     [filtered, windowDays, now],
   );
-  const bookCodes = useMemo(
-    () => [...new Set(view.bets.map((b) => b.book))],
-    [view.bets],
-  );
   const bookItems = useMemo(
     () =>
       bookCodes
@@ -224,10 +307,10 @@ export default function Tracker() {
   );
   const leagueItems = useMemo(
     () =>
-      [...new Set(view.bets.map((b) => b.sport_key))]
+      leagueCodes
         .map((k): [string, string] => [k, leagueLabel(k)])
         .sort((a, b) => a[1].localeCompare(b[1])),
-    [view.bets],
+    [leagueCodes],
   );
 
   const open =
@@ -247,10 +330,10 @@ export default function Tracker() {
     [open, view.bets],
   );
 
-  const f = view.filters;
+  const f = filters;
   return (
     <main className="personal-workspace trk-page">
-      <header className="personal-header">
+      <header className="personal-header page-header">
         <Link href="/games">
           <Image
             src="/assets/corner-logo.png"
@@ -263,8 +346,12 @@ export default function Tracker() {
           <p className="eyebrow">YOUR CORNER</p>
           <h1>Tracker &amp; bankroll</h1>
         </div>
-        <Link href="/positive_ev">← Back to tools</Link>
-        <UserMenu />
+        <div className="page-actions">
+          <Link className="button secondary" href="/positive_ev">
+            ← Back to tools
+          </Link>
+          <UserMenu />
+        </div>
       </header>
 
       {notice && (
@@ -360,6 +447,7 @@ export default function Tracker() {
           ) : (
             <>
               <div className="arb-bar trk-filters">
+                <SettingsBar controls={settings} />
                 <PickMenu
                   title="Sportsbooks"
                   items={bookItems}

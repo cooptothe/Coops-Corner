@@ -17,6 +17,7 @@ import sqlite3
 import threading
 import uuid
 
+from corner import tool_settings
 STRATEGIES = ('ev', 'arbitrage', 'middle', 'promo', 'prop', 'manual')
 STATUSES = ('pending', 'won', 'lost', 'push', 'void', 'cashout')
 RESULTS = ('won', 'lost', 'push', 'void', 'cashout')
@@ -78,6 +79,24 @@ CREATE TABLE IF NOT EXISTS cash (
   UNIQUE (user_id, client_key)
 );
 CREATE INDEX IF NOT EXISTS cash_user_when ON cash(user_id, occurred_at);
+CREATE TABLE IF NOT EXISTS tool_settings (
+  user_id TEXT NOT NULL REFERENCES users(id),
+  tool TEXT NOT NULL,
+  settings TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, tool)
+);
+CREATE TABLE IF NOT EXISTS presets (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  tool TEXT NOT NULL,
+  name TEXT NOT NULL,
+  name_key TEXT NOT NULL,
+  settings TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (user_id, tool, name_key)
+);
 """
 BET_COLUMNS = ('id, client_key, group_id, created_at, placed_at, strategy, sport_key, matchup, starts_at, market, selection, '
                'book, odds, stake_cents, stake_type, status, returned_cents, settled_at, fair_prob, ev_ratio, ref, clv, notes')
@@ -550,6 +569,62 @@ class Ledger:
             if not found:
                 _fail('That entry no longer exists', 404, 'not_found')
             self._db.execute('DELETE FROM cash WHERE id=? AND user_id=?', (cash_id, self.user_id))
+
+    # -- saved tool settings and presets -----------------------------------------------------
+    def settings(self):
+        """Everything this account has saved: {'tools': {tool: settings}, 'presets': {tool: [preset, ...]}}."""
+        with self._lock:
+            tools = {r['tool']: json.loads(r['settings']) for r in self._db.execute(
+                'SELECT tool, settings FROM tool_settings WHERE user_id=?', (self.user_id,))}
+            presets = {}
+            for r in self._db.execute('SELECT id, tool, name, settings FROM presets WHERE user_id=? ORDER BY name_key',
+                                      (self.user_id,)):
+                presets.setdefault(r['tool'], []).append(
+                    {'id': r['id'], 'name': r['name'], 'settings': json.loads(r['settings'])})
+        return {'tools': tools, 'presets': presets}
+
+    def put_settings(self, tool, settings):
+        try:
+            tool, settings = tool_settings.clean_tool(tool), tool_settings.clean_settings(settings)
+        except tool_settings.SettingsError as error:
+            _fail(str(error), error.status, error.code)
+        with self._lock:
+            self._db.execute(
+                'INSERT INTO tool_settings(user_id,tool,settings,updated_at) VALUES(?,?,?,?) '
+                'ON CONFLICT(user_id,tool) DO UPDATE SET settings=excluded.settings, updated_at=excluded.updated_at',
+                (self.user_id, tool, json.dumps(settings, separators=(',', ':')), now_iso()))
+        return settings
+
+    def save_preset(self, tool, name, settings):
+        """Create a preset, or replace the one with the same name (any letter case)."""
+        try:
+            tool, settings = tool_settings.clean_tool(tool), tool_settings.clean_settings(settings)
+            name, key = tool_settings.clean_name(name)
+        except tool_settings.SettingsError as error:
+            _fail(str(error), error.status, error.code)
+        body, now = json.dumps(settings, separators=(',', ':')), now_iso()
+        with self._lock:
+            row = self._db.execute('SELECT id FROM presets WHERE user_id=? AND tool=? AND name_key=?',
+                                   (self.user_id, tool, key)).fetchone()
+            if row:
+                self._db.execute('UPDATE presets SET name=?, settings=?, updated_at=? WHERE id=?', (name, body, now, row['id']))
+                preset_id = row['id']
+            else:
+                count = self._db.execute('SELECT COUNT(*) FROM presets WHERE user_id=? AND tool=?',
+                                         (self.user_id, tool)).fetchone()[0]
+                if count >= tool_settings.MAX_PRESETS:
+                    _fail(f'You can keep up to {tool_settings.MAX_PRESETS} presets per tool. Delete one first.', 409, 'too_many')
+                preset_id = uuid.uuid4().hex
+                self._db.execute(
+                    'INSERT INTO presets(id,user_id,tool,name,name_key,settings,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
+                    (preset_id, self.user_id, tool, name, key, body, now, now))
+        return {'id': preset_id, 'name': name, 'settings': settings}
+
+    def delete_preset(self, preset_id):
+        with self._lock:
+            cursor = self._db.execute('DELETE FROM presets WHERE id=? AND user_id=?', (preset_id, self.user_id))
+            if cursor.rowcount != 1:
+                _fail('That preset no longer exists', 404, 'not_found')
 
     # -- backup -----------------------------------------------------------------------------
     def export(self):

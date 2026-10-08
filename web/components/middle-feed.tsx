@@ -8,6 +8,7 @@ import {
   sport,
   usd,
 } from "../../frontend/format.mjs";
+import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import { allPages } from "../lib/api";
 import type {
@@ -22,6 +23,7 @@ import { quoteRef, type NewBet } from "../lib/slip";
 import type { RefValue } from "../lib/tracker-api";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
+import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
@@ -60,6 +62,24 @@ const ROW_HEIGHT = { wide: 116, compact: 236 };
 const OVERSCAN = 6;
 const SETTINGS_KEY = "corner.middle-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
+type MiddleSettings = {
+  offBooks: string[];
+  offSports: string[];
+  offMarkets: string[];
+  maxMiss: string;
+  minWindow: string;
+  sortKey: string;
+  stake: string;
+};
+const MIDDLE_DEFAULTS: MiddleSettings = {
+  offBooks: [],
+  offSports: [],
+  offMarkets: [],
+  maxMiss: "",
+  minWindow: "",
+  sortKey: "ratio",
+  stake: "100",
+};
 const MISS_PATTERN = /^\d{1,3}$/;
 const WINDOW_PATTERN = /^\d{1,4}(\.\d{1,2})?$/;
 const MARKET_NAMES = MARKETS as Record<string, string>;
@@ -415,60 +435,33 @@ export default function MiddleFeed({ data }: { data: Data }) {
     refresh: refreshSlip,
   } = useSlip();
 
-  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    try {
-      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
-      if (Array.isArray(s.offBooks))
-        setOffBooks(new Set(s.offBooks.map(String)));
-      if (Array.isArray(s.offSports))
-        setOffSports(new Set(s.offSports.map(String)));
-      if (Array.isArray(s.offMarkets))
-        setOffMarkets(new Set(s.offMarkets.map(String)));
-      if (
-        typeof s.maxMiss === "string" &&
-        (s.maxMiss === "" || MISS_PATTERN.test(s.maxMiss))
-      )
-        setMaxMiss(s.maxMiss);
-      if (
-        typeof s.minWindow === "string" &&
-        (s.minWindow === "" || WINDOW_PATTERN.test(s.minWindow))
-      )
-        setMinWindow(s.minWindow);
-      if (typeof s.sortKey === "string" && s.sortKey in SORTS)
-        setSortKey(s.sortKey as SortKey);
-      if (typeof s.stake === "string" && STAKE_PATTERN.test(s.stake))
-        setStake(s.stake);
-    } catch {}
-    setReady(true);
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    userStorage.setItem(
-      SETTINGS_KEY,
-      JSON.stringify({
-        offBooks: [...offBooks],
-        offSports: [...offSports],
-        offMarkets: [...offMarkets],
-        maxMiss,
-        minWindow,
-        sortKey,
-        stake,
-      }),
-    );
-  }, [
-    ready,
-    offBooks,
-    offSports,
-    offMarkets,
-    maxMiss,
-    minWindow,
-    sortKey,
-    stake,
-  ]);
-
+  const settings = useToolSettings<MiddleSettings>({
+    tool: "middle",
+    defaults: MIDDLE_DEFAULTS,
+    snapshot: {
+      offBooks: sorted(offBooks),
+      offSports: sorted(offSports),
+      offMarkets: sorted(offMarkets),
+      maxMiss,
+      minWindow,
+      sortKey,
+      stake,
+    },
+    apply: (s) => {
+      setOffBooks(new Set(list(s.offBooks)));
+      setOffSports(new Set(list(s.offSports)));
+      setOffMarkets(new Set(list(s.offMarkets)));
+      setMaxMiss(text(s.maxMiss, /^(\d{1,3})?$/, ""));
+      setMinWindow(text(s.minWindow, /^(\d{1,4}(\.\d{1,2})?)?$/, ""));
+      setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "ratio"));
+      setStake(text(s.stake, STAKE_PATTERN, MIDDLE_DEFAULTS.stake));
+    },
+    legacy: () => {
+      const saved = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "null");
+      userStorage.removeItem(SETTINGS_KEY);
+      return saved;
+    },
+  });
   useEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -591,6 +584,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
   return (
     <section className="arb-layout" aria-label="Middles feed">
       <div className="arb-bar">
+        <SettingsBar controls={settings} />
         <Menu
           title="Sportsbooks"
           items={bookItems}

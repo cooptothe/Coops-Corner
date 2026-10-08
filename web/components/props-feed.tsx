@@ -1,4 +1,5 @@
 "use client";
+import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -17,11 +18,13 @@ import {
   type PropsStatus,
 } from "../lib/refresh-api";
 import {
-  BANKROLL_KEY,
   KellyWidget,
-  MULTIPLIER_KEY,
+  SIZING_DEFAULTS,
+  legacySizing,
   type KellyVm,
+  type SizingSettings,
 } from "./ev-feed";
+import { SettingsBar, useToolSettings } from "./tool-settings";
 import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
@@ -160,6 +163,29 @@ function Age({ value }: { value: string | null }) {
   return <span className="ev-age">{value ? ageLabel(value) : "—"}</span>;
 }
 
+type PropsSettings = {
+  sportKey: string;
+  marketKey: string;
+  eventId: string;
+  search: string;
+  minEv: string;
+  minOdds: string;
+  maxOdds: string;
+  sortKey: string;
+  offBooks: string[];
+};
+const PROPS_DEFAULTS: PropsSettings = {
+  sportKey: "",
+  marketKey: "",
+  eventId: "",
+  search: "",
+  minEv: "0",
+  minOdds: "",
+  maxOdds: "",
+  sortKey: "ev",
+  offBooks: [],
+};
+
 export default function PropsFeed({ reload }: { reload: number }) {
   const [status, setStatus] = useState<PropsStatus | null>(null);
   const [error, setError] = useState("");
@@ -191,42 +217,51 @@ export default function PropsFeed({ reload }: { reload: number }) {
     null,
   );
 
-  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const b = userStorage.getItem(BANKROLL_KEY),
-      m = userStorage.getItem(MULTIPLIER_KEY);
-    if (b && /^[0-9.]{1,13}$/.test(b)) setBankroll(b);
-    if (m && /^(0\.[1-9]\d?|1)$/.test(m)) setMultiplier(m);
-    try {
-      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
-      if (Array.isArray(s.off)) setOffBooks(new Set(s.off.map(String)));
-      if (typeof s.sortKey === "string" && s.sortKey in SORTS)
-        setSortKey(s.sortKey as SortKey);
-      if (typeof s.minEv === "string" && /^\d{1,2}(\.\d{1,2})?$/.test(s.minEv))
-        setMinEv(s.minEv);
-      if (typeof s.minOdds === "string" && /^-?\d{0,5}$/.test(s.minOdds))
-        setMinOdds(s.minOdds);
-      if (typeof s.maxOdds === "string" && /^-?\d{0,5}$/.test(s.maxOdds))
-        setMaxOdds(s.maxOdds);
-    } catch {}
-    setReady(true);
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    userStorage.setItem(
-      SETTINGS_KEY,
-      JSON.stringify({ off: [...offBooks], minEv, minOdds, maxOdds, sortKey }),
-    );
-  }, [ready, offBooks, minEv, minOdds, maxOdds, sortKey]);
-  useEffect(() => {
-    if (ready) userStorage.setItem(BANKROLL_KEY, bankroll);
-  }, [ready, bankroll]);
-  useEffect(() => {
-    if (ready) userStorage.setItem(MULTIPLIER_KEY, multiplier);
-  }, [ready, multiplier]);
-
+  const settings = useToolSettings<PropsSettings>({
+    tool: "props",
+    defaults: PROPS_DEFAULTS,
+    snapshot: {
+      sportKey,
+      marketKey,
+      eventId,
+      search,
+      minEv,
+      minOdds,
+      maxOdds,
+      sortKey,
+      offBooks: sorted(offBooks),
+    },
+    apply: (s) => {
+      setSportKey(text(s.sportKey, /^[a-z0-9_]{0,60}$/, ""));
+      setMarketKey(text(s.marketKey, /^[a-z0-9_]{0,60}$/, ""));
+      setEventId(text(s.eventId, /^[A-Za-z0-9_-]{0,80}$/, ""));
+      setSearch(text(s.search, /^.{0,60}$/, ""));
+      setMinEv(text(s.minEv, /^\d{1,2}(\.\d{1,2})?$/, "0"));
+      setMinOdds(text(s.minOdds, /^-?\d{0,5}$/, ""));
+      setMaxOdds(text(s.maxOdds, /^-?\d{0,5}$/, ""));
+      setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "ev"));
+      setOffBooks(new Set(list(s.offBooks)));
+    },
+    legacy: () => {
+      const saved = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "null");
+      userStorage.removeItem(SETTINGS_KEY);
+      return saved ? { ...saved, offBooks: saved.off } : null;
+    },
+  });
+  // Bankroll and Kelly multiplier are shared with the Positive EV page.
+  useToolSettings<SizingSettings>({
+    tool: "sizing",
+    defaults: SIZING_DEFAULTS,
+    snapshot: { bankroll, multiplier },
+    apply: (s) => {
+      setBankroll(text(s.bankroll, /^[0-9.]{1,13}$/, SIZING_DEFAULTS.bankroll));
+      setMultiplier(
+        text(s.multiplier, /^(0\.[1-9]\d?|1)$/, SIZING_DEFAULTS.multiplier),
+      );
+    },
+    legacy: legacySizing,
+    presets: false,
+  });
   useEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -401,6 +436,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     <section className="ev-layout props-layout" aria-label="Player props">
       <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
         <h3>Filters</h3>
+        <SettingsBar controls={settings} />
         <label className="field">
           <span>MIN. EV · {minEv}%</span>
           <input

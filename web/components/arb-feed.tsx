@@ -13,6 +13,7 @@ import {
   sport,
   usd,
 } from "../../frontend/format.mjs";
+import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import { allPages } from "../lib/api";
 import {
@@ -32,6 +33,7 @@ import { quoteRef, type NewBet } from "../lib/slip";
 import type { RefValue } from "../lib/tracker-api";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
+import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
 
@@ -86,6 +88,20 @@ const OVERSCAN = 6;
 const SETTINGS_KEY = "corner.arb-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
 const PROFIT_PATTERN = /^\d{1,2}(\.\d{1,2})?$/;
+type ArbSettings = {
+  offBooks: string[];
+  offSports: string[];
+  minProfit: string;
+  sortKey: string;
+  stake: string;
+};
+const ARB_DEFAULTS: ArbSettings = {
+  offBooks: [],
+  offSports: [],
+  minProfit: "0",
+  sortKey: "profit",
+  stake: "100",
+};
 export const shortBook = (name: string) =>
   name.replace("Demo ", "").replace("Reference ", "Ref ");
 
@@ -564,39 +580,29 @@ export default function ArbFeed({ data }: { data: Data }) {
     refresh: refreshSlip,
   } = useSlip();
 
-  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    try {
-      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
-      if (Array.isArray(s.offBooks))
-        setOffBooks(new Set(s.offBooks.map(String)));
-      if (Array.isArray(s.offSports))
-        setOffSports(new Set(s.offSports.map(String)));
-      if (typeof s.sortKey === "string" && s.sortKey in SORTS)
-        setSortKey(s.sortKey as SortKey);
-      if (typeof s.minProfit === "string" && PROFIT_PATTERN.test(s.minProfit))
-        setMinProfit(s.minProfit);
-      if (typeof s.stake === "string" && STAKE_PATTERN.test(s.stake))
-        setStake(s.stake);
-    } catch {}
-    setReady(true);
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    userStorage.setItem(
-      SETTINGS_KEY,
-      JSON.stringify({
-        offBooks: [...offBooks],
-        offSports: [...offSports],
-        minProfit,
-        stake,
-        sortKey,
-      }),
-    );
-  }, [ready, offBooks, offSports, minProfit, stake, sortKey]);
-
+  const settings = useToolSettings<ArbSettings>({
+    tool: "arbitrage",
+    defaults: ARB_DEFAULTS,
+    snapshot: {
+      offBooks: sorted(offBooks),
+      offSports: sorted(offSports),
+      minProfit,
+      sortKey,
+      stake,
+    },
+    apply: (s) => {
+      setOffBooks(new Set(list(s.offBooks)));
+      setOffSports(new Set(list(s.offSports)));
+      setMinProfit(text(s.minProfit, PROFIT_PATTERN, ARB_DEFAULTS.minProfit));
+      setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "profit"));
+      setStake(text(s.stake, STAKE_PATTERN, ARB_DEFAULTS.stake));
+    },
+    legacy: () => {
+      const saved = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "null");
+      userStorage.removeItem(SETTINGS_KEY);
+      return saved;
+    },
+  });
   useEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -711,6 +717,7 @@ export default function ArbFeed({ data }: { data: Data }) {
   return (
     <section className="arb-layout" aria-label="Arbitrage feed">
       <div className="arb-bar">
+        <SettingsBar controls={settings} />
         <Menu
           title="Sportsbooks"
           items={bookItems}

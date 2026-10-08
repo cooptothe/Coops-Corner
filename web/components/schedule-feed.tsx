@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { american, date, point as signed } from "../../frontend/format.mjs";
+import { list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import type { Capabilities, Game, Meta, Quote } from "../lib/contracts";
 import { isIndividualSport, splitMatchup } from "../lib/media";
@@ -15,6 +16,7 @@ import {
   type LineMarket,
 } from "../lib/schedule";
 import { Menu, shortBook } from "./arb-feed";
+import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Avatar } from "./media";
 import { Countdown } from "./middle-feed";
 
@@ -141,6 +143,14 @@ function GameRow({
   );
 }
 
+type ScheduleSettings = { league: string; search: string; offBooks: string[] };
+// The sharp reference books are off by default, so the schedule shows prices you can actually bet.
+const SCHEDULE_DEFAULTS: ScheduleSettings = {
+  league: "",
+  search: "",
+  offBooks: sorted(REFERENCE_BOOKS),
+};
+
 export default function ScheduleFeed({ data }: { data: Data }) {
   const [league, setLeague] = useState("");
   const [search, setSearch] = useState("");
@@ -148,24 +158,21 @@ export default function ScheduleFeed({ data }: { data: Data }) {
     () => new Set(REFERENCE_BOOKS),
   );
   const [dayCount, setDayCount] = useState(FIRST_DAYS);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    try {
-      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
-      if (Array.isArray(s.offBooks))
-        setOffBooks(new Set(s.offBooks.map(String)));
-      if (typeof s.league === "string") setLeague(s.league);
-    } catch {}
-    setReady(true);
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    userStorage.setItem(
-      SETTINGS_KEY,
-      JSON.stringify({ offBooks: [...offBooks], league }),
-    );
-  }, [ready, offBooks, league]);
+  const settings = useToolSettings<ScheduleSettings>({
+    tool: "games",
+    defaults: SCHEDULE_DEFAULTS,
+    snapshot: { league, search, offBooks: sorted(offBooks) },
+    apply: (s) => {
+      setLeague(text(s.league, /^[a-z0-9_]{0,60}$/, ""));
+      setSearch(text(s.search, /^.{0,60}$/, ""));
+      setOffBooks(new Set(list(s.offBooks)));
+    },
+    legacy: () => {
+      const saved = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "null");
+      userStorage.removeItem(SETTINGS_KEY);
+      return saved;
+    },
+  });
   useEffect(() => setDayCount(FIRST_DAYS), [league, search, offBooks]);
 
   const bookNames = useMemo(
@@ -236,6 +243,7 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   return (
     <section className="sched" aria-label="Upcoming games">
       <div className="sched-bar">
+        <SettingsBar controls={settings} />
         <div className="sched-chips" role="group" aria-label="League">
           <button
             type="button"

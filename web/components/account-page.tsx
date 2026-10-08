@@ -48,7 +48,7 @@ export default function AccountPage() {
 
   return (
     <main className="personal-workspace account-page">
-      <header className="personal-header">
+      <header className="personal-header page-header">
         <Link href="/games">
           <Image
             src="/assets/corner-logo.png"
@@ -61,8 +61,12 @@ export default function AccountPage() {
           <p className="eyebrow">YOUR CORNER</p>
           <h1>Account</h1>
         </div>
-        <Link href="/positive_ev">← Back to tools</Link>
-        <UserMenu />
+        <div className="page-actions">
+          <Link className="button secondary" href="/positive_ev">
+            ← Back to tools
+          </Link>
+          <UserMenu />
+        </div>
       </header>
       <section className="trk-card account-card" aria-labelledby="pw-title">
         <h3 id="pw-title">Change password</h3>

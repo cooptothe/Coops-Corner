@@ -16,6 +16,7 @@ import {
   usd,
   ageLabel,
 } from "../../frontend/format.mjs";
+import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import { allPages } from "../lib/api";
 import type {
@@ -37,6 +38,7 @@ import {
 } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
+import { SettingsBar, useToolSettings } from "./tool-settings";
 import { ErrorCard, Loading } from "./workspace";
 
 type EvRow = Extract<ToolRow, { kind: "positive_ev" }>;
@@ -95,6 +97,40 @@ const SHARP_BOOKS = new Set([
 ]);
 export const BANKROLL_KEY = "corner.bankroll";
 export const MULTIPLIER_KEY = "corner.kelly";
+export type SizingSettings = { bankroll: string; multiplier: string };
+export const SIZING_DEFAULTS: SizingSettings = {
+  bankroll: "1000",
+  multiplier: "0.25",
+};
+// Bankroll and multiplier kept in this browser before they moved to the account (used once).
+export function legacySizing(): Partial<SizingSettings> | null {
+  const bankroll = userStorage.getItem(BANKROLL_KEY);
+  const multiplier = userStorage.getItem(MULTIPLIER_KEY);
+  userStorage.removeItem(BANKROLL_KEY);
+  userStorage.removeItem(MULTIPLIER_KEY);
+  return bankroll || multiplier
+    ? {
+        ...(bankroll && { bankroll }),
+        ...(multiplier && { multiplier }),
+      }
+    : null;
+}
+type EvSettings = {
+  offBooks: string[];
+  minEv: string;
+  sortKey: string;
+  minOdds: string;
+  maxOdds: string;
+  sportKey: string;
+};
+const EV_DEFAULTS: EvSettings = {
+  offBooks: [],
+  minEv: "0",
+  sortKey: "ev",
+  minOdds: "",
+  maxOdds: "",
+  sportKey: "",
+};
 const SETTINGS_KEY = "corner.ev-settings";
 const oddsToDecimal = (v: string) => {
   if (!/^-?\d{2,5}$/.test(v)) return null;
@@ -474,42 +510,45 @@ export default function EvFeed({ data }: { data: Data }) {
   const previous = useRef<Map<string, { odds: string; ev: string }>>(new Map());
   const tickRef = useRef(0);
 
-  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const b = userStorage.getItem(BANKROLL_KEY),
-      m = userStorage.getItem(MULTIPLIER_KEY);
-    if (b && /^[0-9.]{1,13}$/.test(b)) setBankroll(b);
-    if (m && /^(0\.[1-9]\d?|1)$/.test(m)) setMultiplier(m);
-    try {
-      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
-      if (Array.isArray(s.off)) setOffBooks(new Set(s.off.map(String)));
-      if (typeof s.sortKey === "string" && s.sortKey in SORTS)
-        setSortKey(s.sortKey as SortKey);
-      if (typeof s.minEv === "string" && /^\d{1,2}(\.\d{1,2})?$/.test(s.minEv))
-        setMinEv(s.minEv);
-      if (typeof s.minOdds === "string" && /^-?\d{0,5}$/.test(s.minOdds))
-        setMinOdds(s.minOdds);
-      if (typeof s.maxOdds === "string" && /^-?\d{0,5}$/.test(s.maxOdds))
-        setMaxOdds(s.maxOdds);
-    } catch {}
-    setReady(true);
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    userStorage.setItem(
-      SETTINGS_KEY,
-      JSON.stringify({ off: [...offBooks], minEv, minOdds, maxOdds, sortKey }),
-    );
-  }, [ready, offBooks, minEv, minOdds, maxOdds, sortKey]);
-  useEffect(() => {
-    if (ready) userStorage.setItem(BANKROLL_KEY, bankroll);
-  }, [ready, bankroll]);
-  useEffect(() => {
-    if (ready) userStorage.setItem(MULTIPLIER_KEY, multiplier);
-  }, [ready, multiplier]);
-
+  const settings = useToolSettings<EvSettings>({
+    tool: "positive_ev",
+    defaults: EV_DEFAULTS,
+    snapshot: {
+      offBooks: sorted(offBooks),
+      minEv,
+      sortKey,
+      minOdds,
+      maxOdds,
+      sportKey,
+    },
+    apply: (s) => {
+      setOffBooks(new Set(list(s.offBooks)));
+      setMinEv(text(s.minEv, /^\d{1,2}(\.\d{1,2})?$/, EV_DEFAULTS.minEv));
+      setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "ev"));
+      setMinOdds(text(s.minOdds, /^-?\d{0,5}$/, ""));
+      setMaxOdds(text(s.maxOdds, /^-?\d{0,5}$/, ""));
+      setSportKey(text(s.sportKey, /^[a-z0-9_]{0,60}$/, ""));
+    },
+    legacy: () => {
+      const saved = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "null");
+      userStorage.removeItem(SETTINGS_KEY);
+      return saved ? { ...saved, offBooks: saved.off } : null;
+    },
+  });
+  // Bankroll and Kelly multiplier belong to the account too, shared with the player props page.
+  useToolSettings<SizingSettings>({
+    tool: "sizing",
+    defaults: SIZING_DEFAULTS,
+    snapshot: { bankroll, multiplier },
+    apply: (s) => {
+      setBankroll(text(s.bankroll, /^[0-9.]{1,13}$/, SIZING_DEFAULTS.bankroll));
+      setMultiplier(
+        text(s.multiplier, /^(0\.[1-9]\d?|1)$/, SIZING_DEFAULTS.multiplier),
+      );
+    },
+    legacy: legacySizing,
+    presets: false,
+  });
   useEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -582,6 +621,8 @@ export default function EvFeed({ data }: { data: Data }) {
     for (const v of all) if (v.sportKey) m.set(v.sportKey, v.league);
     return [...m].sort((a, b) => a[1].localeCompare(b[1]));
   }, [all]);
+  // A saved league that is not in today's data is ignored rather than hiding every bet.
+  const sportFilter = sports.some(([key]) => key === sportKey) ? sportKey : "";
   const minRatio = shiftDecimal(minEv, -2);
   const lo = oddsToDecimal(minOdds);
   const hi = oddsToDecimal(maxOdds);
@@ -591,13 +632,13 @@ export default function EvFeed({ data }: { data: Data }) {
         .filter(
           (v) =>
             !offBooks.has(v.bookId) &&
-            (!sportKey || v.sportKey === sportKey) &&
+            (!sportFilter || v.sportKey === sportFilter) &&
             compareDecimal(v.ev, minRatio) >= 0 &&
             (lo === null || Number(v.decimalOdds) >= lo) &&
             (hi === null || Number(v.decimalOdds) <= hi),
         )
         .sort(SORTS[sortKey]),
-    [all, offBooks, sportKey, minRatio, lo, hi, sortKey],
+    [all, offBooks, sportFilter, minRatio, lo, hi, sortKey],
   );
 
   const [compact, setCompact] = useState(false);
@@ -643,6 +684,7 @@ export default function EvFeed({ data }: { data: Data }) {
     <section className="ev-layout" aria-label="Positive EV feed">
       <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
         <h3>Filters</h3>
+        <SettingsBar controls={settings} />
         <label className="field">
           <span>MIN. EV · {minEv}%</span>
           <input
@@ -657,7 +699,7 @@ export default function EvFeed({ data }: { data: Data }) {
         <label className="field">
           <span>SPORT</span>
           <select
-            value={sportKey}
+            value={sportFilter}
             onChange={(e) => setSportKey(e.target.value)}
           >
             <option value="">All sports</option>

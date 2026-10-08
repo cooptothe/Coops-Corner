@@ -53,9 +53,16 @@ tracker before accounts existed, the first account you create adopts that data.
   `/api/v1` call), the refresh service (status, props, Refresh odds) and the logo/headshot routes all
   answer 401 without a valid session. The odds API reads the same signing key and accounts file, so
   start the refresh service once (it creates the key) before the odds API.
-- **Saved settings are per account.** Filters, sorting, the bankroll box, the Kelly multiplier and the
-  league picker are stored under the signed-in account, so people sharing a browser never see each
-  other's. Settings saved before accounts existed go to whoever signs in first.
+- **Filters are saved per account, on the server.** Every tool (Positive EV, Arbitrage, Middles, Player
+  props, Promo, Schedule and the Tracker's ledger filters) restores exactly the filters, sorting and
+  stakes you left it with, including when you switch tools and come back, reload, or sign in from another
+  browser. The bankroll box and Kelly multiplier are saved the same way. People sharing a browser never see
+  each other's. Settings saved in the browser before this existed are moved to the first account that
+  opens the page.
+- **Presets.** Each tool's filter area has a **Preset** row: *Save as preset…* stores the current filters
+  under a name (up to 25 per tool; saving an existing name replaces it), choosing a preset applies it,
+  *Update* appears when you change the selected preset, and *Delete* removes it. **Reset to defaults**
+  puts every filter back to the tool's factory setting. Presets are private to the account.
 - **Passwords.** Change yours on `/account` (click your name); that signs out every other device. There is
   no email, so a forgotten password is reset by whoever runs the app:
   `python -m pipelines.accounts_admin reset-password USERNAME` (hidden prompt, works while the app is

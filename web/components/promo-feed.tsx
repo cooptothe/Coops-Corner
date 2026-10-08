@@ -8,6 +8,7 @@ import {
   sport,
   usd,
 } from "../../frontend/format.mjs";
+import { choice, list as asList, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import type { Capabilities, Game, Meta, Quote } from "../lib/contracts";
 import {
@@ -26,6 +27,7 @@ import type { RefValue } from "../lib/tracker-api";
 import { Age, Menu, shortBook } from "./arb-feed";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
+import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Matchup } from "./media";
 
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
@@ -836,6 +838,37 @@ function Calculator({
   );
 }
 
+type PromoSettings = {
+  type: string;
+  face: string;
+  refund: string;
+  boost: BoostFields;
+  limitText: string;
+  promoBook: string;
+  minOdds: string;
+  maxOdds: string;
+  minRate: string;
+  sortKey: string;
+  offBooks: string[];
+  offSports: string[];
+  offMarkets: string[];
+};
+const PROMO_DEFAULTS: PromoSettings = {
+  type: "bonus",
+  face: "100",
+  refund: "75",
+  boost: DEFAULT_BOOST,
+  limitText: DEFAULT_HEDGE_LIMIT,
+  promoBook: "",
+  minOdds: DEFAULT_ODDS.bonus[0],
+  maxOdds: DEFAULT_ODDS.bonus[1],
+  minRate: "",
+  sortKey: "rate",
+  offBooks: [],
+  offSports: [],
+  offMarkets: [],
+};
+
 export default function PromoFeed({ data }: { data: Data }) {
   const [type, setType] = useState<PromoType>("bonus");
   const [face, setFace] = useState("100");
@@ -857,79 +890,66 @@ export default function PromoFeed({ data }: { data: Data }) {
     setOpen: setSlipOpen,
     refresh: refreshSlip,
   } = useSlip();
-  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    try {
-      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
-      if (TYPES.some((t) => t.id === s.type)) setType(s.type);
-      if (typeof s.face === "string" && AMOUNT.test(s.face)) setFace(s.face);
-      if (typeof s.refund === "string" && PCT.test(s.refund))
-        setRefund(s.refund);
-      if (s.boost && boostValid({ ...DEFAULT_BOOST, ...s.boost }))
-        setBoostFields({
-          percent: String(s.boost.percent ?? DEFAULT_BOOST.percent),
-          maxStake: String(s.boost.maxStake ?? ""),
-          maxExtra: String(s.boost.maxExtra ?? ""),
-        });
-      if (typeof s.limitText === "string" && AMOUNT.test(s.limitText))
-        setLimitText(s.limitText);
-      if (typeof s.promoBook === "string") setPromoBook(s.promoBook);
-      if (SORT_LABELS.some(([k]) => k === s.sortKey)) setSortKey(s.sortKey);
-      if (typeof s.minOdds === "string") setMinOdds(s.minOdds);
-      if (typeof s.maxOdds === "string") setMaxOdds(s.maxOdds);
-      if (
-        typeof s.minRate === "string" &&
-        (s.minRate === "" || PCT.test(s.minRate))
-      )
-        setMinRate(s.minRate);
-      if (Array.isArray(s.offBooks))
-        setOffBooks(new Set(s.offBooks.map(String)));
-      if (Array.isArray(s.offSports))
-        setOffSports(new Set(s.offSports.map(String)));
-      if (Array.isArray(s.offMarkets))
-        setOffMarkets(new Set(s.offMarkets.map(String)));
-    } catch {}
-    setReady(true);
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    userStorage.setItem(
-      SETTINGS_KEY,
-      JSON.stringify({
-        type,
-        face,
-        refund,
-        boost: boostFields,
-        limitText,
-        promoBook,
-        minOdds,
-        maxOdds,
-        minRate,
-        sortKey,
-        offBooks: [...offBooks],
-        offSports: [...offSports],
-        offMarkets: [...offMarkets],
-      }),
-    );
-  }, [
-    ready,
-    type,
-    face,
-    refund,
-    boostFields,
-    limitText,
-    promoBook,
-    minOdds,
-    maxOdds,
-    minRate,
-    sortKey,
-    offBooks,
-    offSports,
-    offMarkets,
-  ]);
-
+  const settings = useToolSettings<PromoSettings>({
+    tool: "promo",
+    defaults: PROMO_DEFAULTS,
+    snapshot: {
+      type,
+      face,
+      refund,
+      boost: boostFields,
+      limitText,
+      promoBook,
+      minOdds,
+      maxOdds,
+      minRate,
+      sortKey,
+      offBooks: sorted(offBooks),
+      offSports: sorted(offSports),
+      offMarkets: sorted(offMarkets),
+    },
+    apply: (s) => {
+      setType(
+        choice(
+          s.type,
+          TYPES.map((t) => t.id),
+          "bonus",
+        ),
+      );
+      setFace(text(s.face, AMOUNT, PROMO_DEFAULTS.face));
+      setRefund(text(s.refund, PCT, PROMO_DEFAULTS.refund));
+      const boost = { ...DEFAULT_BOOST, ...(s.boost as Partial<BoostFields>) };
+      setBoostFields(
+        boostValid(boost)
+          ? {
+              percent: String(boost.percent),
+              maxStake: String(boost.maxStake ?? ""),
+              maxExtra: String(boost.maxExtra ?? ""),
+            }
+          : DEFAULT_BOOST,
+      );
+      setLimitText(text(s.limitText, AMOUNT, DEFAULT_HEDGE_LIMIT));
+      setPromoBook(text(s.promoBook, /^[A-Za-z0-9_.-]{0,80}$/, ""));
+      setMinOdds(text(s.minOdds, /^[-+]?\d{0,5}$/, PROMO_DEFAULTS.minOdds));
+      setMaxOdds(text(s.maxOdds, /^[-+]?\d{0,5}$/, PROMO_DEFAULTS.maxOdds));
+      setMinRate(text(s.minRate, /^(\d{1,3})?$/, ""));
+      setSortKey(
+        choice(
+          s.sortKey,
+          SORT_LABELS.map(([k]) => k),
+          "rate",
+        ),
+      );
+      setOffBooks(new Set(asList(s.offBooks)));
+      setOffSports(new Set(asList(s.offSports)));
+      setOffMarkets(new Set(asList(s.offMarkets)));
+    },
+    legacy: () => {
+      const saved = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "null");
+      userStorage.removeItem(SETTINGS_KEY);
+      return saved;
+    },
+  });
   const books = useMemo(
     () => new Map(data.caps.books.map((b) => [b.id, b.name])),
     [data],
@@ -1153,6 +1173,7 @@ export default function PromoFeed({ data }: { data: Data }) {
   return (
     <section className="arb-layout" aria-label="Promo converter">
       <div className="arb-bar">
+        <SettingsBar controls={settings} />
         <div
           className="arb-modes pr-types"
           role="group"
