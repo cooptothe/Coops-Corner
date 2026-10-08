@@ -8,7 +8,6 @@ import {
   divDecimal,
   percent,
   shiftDecimal,
-  usd,
 } from "../../frontend/format.mjs";
 import {
   loadProps,
@@ -20,10 +19,9 @@ import {
   BANKROLL_KEY,
   KellyWidget,
   MULTIPLIER_KEY,
-  SLIP_KEY,
   type KellyVm,
-  type SlipBet,
 } from "./ev-feed";
+import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { ErrorCard, Loading } from "./workspace";
 
 const BOOK_NAMES: Record<string, string> = {
@@ -79,7 +77,8 @@ function toVm(b: PropBet): Vm {
   try {
     fairOdds = american(divDecimal("1", b.fair_probability));
   } catch {}
-  const side = b.point == null ? b.side : `${b.side} ${shiftDecimal(b.point, 0)}`;
+  const side =
+    b.point == null ? b.side : `${b.side} ${shiftDecimal(b.point, 0)}`;
   return {
     id: b.id,
     gameId: b.event_id,
@@ -162,9 +161,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [bankroll, setBankroll] = useState("1000");
   const [multiplier, setMultiplier] = useState("0.25");
-  const [slip, setSlip] = useState<SlipBet[]>([]);
-  const [slipOpen, setSlipOpen] = useState(false);
-  const [slipVersion, setSlipVersion] = useState(0);
+  const {
+    slip,
+    open: slipOpen,
+    setOpen: setSlipOpen,
+    refresh: refreshSlip,
+  } = useSlip();
   const [fetchSport, setFetchSport] = useState("");
   const [fetchMarkets, setFetchMarkets] = useState<string[]>([]);
   const [fetchEvents, setFetchEvents] = useState(8);
@@ -201,13 +203,6 @@ export default function PropsFeed({ reload }: { reload: number }) {
   useEffect(() => {
     localStorage.setItem(MULTIPLIER_KEY, multiplier);
   }, [multiplier]);
-  useEffect(() => {
-    try {
-      setSlip(JSON.parse(localStorage.getItem(SLIP_KEY) ?? "[]"));
-    } catch {
-      setSlip([]);
-    }
-  }, [slipVersion]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -287,10 +282,30 @@ export default function PropsFeed({ reload }: { reload: number }) {
           (hi === null || Number(v.decimalOdds) <= hi),
       )
       .sort(SORTS[sortKey]);
-  }, [inSport, offBooks, marketKey, eventId, search, minRatio, lo, hi, sortKey]);
+  }, [
+    inSport,
+    offBooks,
+    marketKey,
+    eventId,
+    search,
+    minRatio,
+    lo,
+    hi,
+    sortKey,
+  ]);
   useEffect(
     () => setShown(PAGE),
-    [sportKey, marketKey, eventId, search, minEv, minOdds, maxOdds, sortKey, offBooks],
+    [
+      sportKey,
+      marketKey,
+      eventId,
+      search,
+      minEv,
+      minOdds,
+      maxOdds,
+      sortKey,
+      offBooks,
+    ],
   );
   const active = visible.find((v) => v.id === selected) ?? null;
 
@@ -549,12 +564,10 @@ export default function PropsFeed({ reload }: { reload: number }) {
       </aside>
       <div className="ev-main">
         <div className="ev-count">
-          <button
-            className="button secondary ev-slip-toggle"
+          <SlipToggle
+            count={slip.length}
             onClick={() => setSlipOpen((o) => !o)}
-          >
-            My bets ({slip.length})
-          </button>
+          />
           <strong>{visible.length}</strong> of {all.length} bets
           {status.last_success_at && (
             <> · fetched {date(status.last_success_at)}</>
@@ -573,41 +586,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
             </select>
           </label>
         </div>
-        {slipOpen && (
-          <div className="ev-slip">
-            {slip.length === 0 ? (
-              <p>No bets logged yet. Select a row and use One-click bet.</p>
-            ) : (
-              <>
-                <table>
-                  <tbody>
-                    {[...slip].reverse().map((b) => (
-                      <tr key={b.at}>
-                        <td>{date(b.at)}</td>
-                        <td>
-                          {b.matchup} · {b.line}
-                        </td>
-                        <td>
-                          {b.book} @ {b.odds}
-                        </td>
-                        <td>{usd(b.stake)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <button
-                  className="button secondary"
-                  onClick={() => {
-                    localStorage.removeItem(SLIP_KEY);
-                    setSlipVersion((n) => n + 1);
-                  }}
-                >
-                  Clear log
-                </button>
-              </>
-            )}
-          </div>
-        )}
+        {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
         <div
           role="table"
           aria-label="Player prop bets"
@@ -626,7 +605,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
               <h3>No +EV prop bets right now</h3>
               <p>
                 Fetch prop odds, lower the minimum EV, or re-enable books. Bets
-                need at least two sharp books pricing both sides of the same line.
+                need at least two sharp books pricing both sides of the same
+                line.
               </p>
             </div>
           ) : (
@@ -696,7 +676,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         multiplier={multiplier}
         setMultiplier={setMultiplier}
         onClose={() => setSelected(null)}
-        onLogged={() => setSlipVersion((n) => n + 1)}
+        onLogged={refreshSlip}
       />
     </section>
   );

@@ -26,6 +26,8 @@ import type {
   Quote,
   ToolRow,
 } from "../lib/contracts";
+import type { NewSlipBet } from "../lib/slip";
+import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { ErrorCard, Loading } from "./workspace";
 
 type ArbRow = Extract<ToolRow, { kind: "arbitrage" }>;
@@ -232,6 +234,7 @@ function Calculator({
   stake,
   setStake,
   onClose,
+  onLogged,
 }: {
   vm: Vm | null;
   shift: "ok" | "moved" | "dropped";
@@ -239,6 +242,7 @@ function Calculator({
   stake: string;
   setStake: (v: string) => void;
   onClose: () => void;
+  onLogged: () => void;
 }) {
   const [mode, setMode] = useState<ArbMode>("symmetric");
   // The calculator is a drawer, so Escape closes it.
@@ -272,6 +276,36 @@ function Calculator({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig, total]);
+
+  const logLegs: NewSlipBet[] =
+    !vm || !validStake
+      ? []
+      : vm.backLay && lay
+        ? [
+            {
+              matchup: vm.matchup,
+              line: `Arbitrage · Back ${vm.legs[0].label}`,
+              book: vm.legs[0].bookLabel,
+              odds: vm.legs[0].odds,
+              stake: lay.back.toFixed(2),
+            },
+            {
+              matchup: vm.matchup,
+              line: `Arbitrage · Lay ${vm.legs[1].label}`,
+              book: vm.legs[1].bookLabel,
+              odds: vm.legs[1].odds,
+              stake: lay.layStake.toFixed(2),
+            },
+          ]
+        : sizing
+          ? vm.legs.map((l, i) => ({
+              matchup: vm.matchup,
+              line: `Arbitrage · ${l.label}`,
+              book: l.bookLabel,
+              odds: l.odds,
+              stake: sizing.stakes[i].toFixed(2),
+            }))
+          : [];
 
   return (
     <aside
@@ -429,10 +463,11 @@ function Calculator({
               These prices no longer form a profitable arbitrage.
             </p>
           )}
-          <small className="kelly-note">
-            Calculation only. Nothing is placed at a sportsbook; confirm each
-            price there first.
-          </small>
+          <LogBetButton
+            legs={logLegs}
+            resetKey={`${vm.id}|${vm.sig}|${stake}|${mode}|${favored}`}
+            onLogged={onLogged}
+          />
         </>
       )}
     </aside>
@@ -502,6 +537,12 @@ export default function ArbFeed({ data }: { data: Data }) {
   const [sortKey, setSortKey] = useState<SortKey>("profit");
   const [stake, setStake] = useState("100");
   const [selected, setSelected] = useState<Vm | null>(null);
+  const {
+    slip,
+    open: slipOpen,
+    setOpen: setSlipOpen,
+    refresh: refreshSlip,
+  } = useSlip();
 
   useEffect(() => {
     try {
@@ -696,9 +737,14 @@ export default function ArbFeed({ data }: { data: Data }) {
       <div className="arb-body">
         <div className="ev-main">
           <div className="ev-count">
+            <SlipToggle
+              count={slip.length}
+              onClick={() => setSlipOpen((o) => !o)}
+            />
             <strong>{visible.length}</strong> of {all.length} opportunities ·
             best first
           </div>
+          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
           <div
             role="table"
             aria-label="Arbitrage opportunities"
@@ -756,6 +802,7 @@ export default function ArbFeed({ data }: { data: Data }) {
           stake={stake}
           setStake={setStake}
           onClose={() => setSelected(null)}
+          onLogged={refreshSlip}
         />
       </div>
     </section>

@@ -17,6 +17,8 @@ import type {
   ToolRow,
 } from "../lib/contracts";
 import { Age, CopyButton, Menu, shortBook } from "./arb-feed";
+import type { NewSlipBet } from "../lib/slip";
+import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { ErrorCard, Loading } from "./workspace";
 
 type MidRow = Extract<ToolRow, { kind: "middle" }>;
@@ -235,6 +237,7 @@ function Calculator({
   stake,
   setStake,
   onClose,
+  onLogged,
 }: {
   vm: Vm | null;
   shift: "ok" | "moved" | "dropped";
@@ -242,6 +245,7 @@ function Calculator({
   stake: string;
   setStake: (v: string) => void;
   onClose: () => void;
+  onLogged: () => void;
 }) {
   const validStake = STAKE_PATTERN.test(stake) && Number(stake) > 0;
   const total = validStake ? Number(stake) : 0;
@@ -265,6 +269,17 @@ function Calculator({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig, total]);
+
+  const logLegs: NewSlipBet[] =
+    vm && scaled
+      ? vm.legs.map((l, i) => ({
+          matchup: vm.matchup,
+          line: `Middle · ${l.label}`,
+          book: l.bookLabel,
+          odds: l.odds,
+          stake: scaled.stakes[i].toFixed(2),
+        }))
+      : [];
 
   return (
     <aside
@@ -357,9 +372,13 @@ function Calculator({
           )}
           <small className="kelly-note">
             A middle wins big only if the result lands between the two lines.
-            Win probability is not estimated. Calculation only; confirm each
-            price at the sportsbook.
+            Win probability is not estimated.
           </small>
+          <LogBetButton
+            legs={validStake ? logLegs : []}
+            resetKey={`${vm.id}|${vm.sig}|${stake}`}
+            onLogged={onLogged}
+          />
         </>
       )}
     </aside>
@@ -378,6 +397,12 @@ export default function MiddleFeed({ data }: { data: Data }) {
   const [sortKey, setSortKey] = useState<SortKey>("ratio");
   const [stake, setStake] = useState("100");
   const [selected, setSelected] = useState<Vm | null>(null);
+  const {
+    slip,
+    open: slipOpen,
+    setOpen: setSlipOpen,
+    refresh: refreshSlip,
+  } = useSlip();
 
   useEffect(() => {
     try {
@@ -617,9 +642,14 @@ export default function MiddleFeed({ data }: { data: Data }) {
       <div className="arb-body">
         <div className="ev-main">
           <div className="ev-count">
+            <SlipToggle
+              count={slip.length}
+              onClick={() => setSlipOpen((o) => !o)}
+            />
             <strong>{visible.length}</strong> of {all.length} middles · green is
             the payoff in the window, red is what a miss costs
           </div>
+          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
           <div
             role="table"
             aria-label="Middle opportunities"
@@ -678,6 +708,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
           stake={stake}
           setStake={setStake}
           onClose={() => setSelected(null)}
+          onLogged={refreshSlip}
         />
       </div>
     </section>

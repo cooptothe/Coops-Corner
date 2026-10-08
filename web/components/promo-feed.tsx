@@ -20,7 +20,9 @@ import {
   toDecimal,
   type PromoType,
 } from "../lib/promo-math";
+import type { NewSlipBet } from "../lib/slip";
 import { Age, Menu, shortBook } from "./arb-feed";
+import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 interface Leg {
@@ -516,6 +518,7 @@ function Calculator({
   setBoostFields,
   limit,
   onClose,
+  onLogged,
   onConvertVoucher,
 }: {
   vm: Vm | null;
@@ -530,6 +533,7 @@ function Calculator({
   setBoostFields: (b: BoostFields) => void;
   limit: number;
   onClose: () => void;
+  onLogged: () => void;
   onConvertVoucher: (amount: string) => void;
 }) {
   // The workspace previews any promo type without touching the list's filters.
@@ -564,6 +568,25 @@ function Calculator({
     [sig, type, face, valid, refundRate, boost, boostFields],
   );
   const info = TYPES.find((t) => t.id === type)!;
+  const logLegs: NewSlipBet[] =
+    vm && c && valid
+      ? [
+          {
+            matchup: vm.matchup,
+            line: `Promo (${info.name}) · ${vm.promo.label}`,
+            book: vm.promo.bookLabel,
+            odds: vm.promo.odds,
+            stake: Number(face).toFixed(2),
+          },
+          {
+            matchup: vm.matchup,
+            line: `Hedge · ${vm.hedge.label}`,
+            book: vm.hedge.bookLabel,
+            odds: vm.hedge.odds,
+            stake: c.hedge.toFixed(2),
+          },
+        ]
+      : [];
   return (
     <aside
       className={`kelly-panel arb-calc ${vm ? "open" : ""}`}
@@ -767,6 +790,11 @@ function Calculator({
                   <Efficiency rate={c.rate} type={type} />
                 </b>
               </div>
+              <LogBetButton
+                legs={logLegs}
+                resetKey={`${vm.id}|${vm.sig}|${type}|${face}|${refund}|${JSON.stringify(boostFields)}`}
+                onLogged={onLogged}
+              />
               <Steps
                 type={type}
                 vm={vm}
@@ -799,6 +827,12 @@ export default function PromoFeed({ data }: { data: Data }) {
   const [offSports, setOffSports] = useState<Set<string>>(new Set());
   const [offMarkets, setOffMarkets] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Vm | null>(null);
+  const {
+    slip,
+    open: slipOpen,
+    setOpen: setSlipOpen,
+    refresh: refreshSlip,
+  } = useSlip();
   // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
   const [ready, setReady] = useState(false);
 
@@ -1284,9 +1318,14 @@ export default function PromoFeed({ data }: { data: Data }) {
       <div className="arb-body">
         <div className="ev-main">
           <div className="ev-count">
+            <SlipToggle
+              count={slip.length}
+              onClick={() => setSlipOpen((o) => !o)}
+            />
             <strong>{visible.length}</strong> conversions · {help} Hedges are
             two-way markets only.
           </div>
+          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
           <div
             role="table"
             aria-label="Promo conversions"
@@ -1385,6 +1424,7 @@ export default function PromoFeed({ data }: { data: Data }) {
           }}
           limit={limit}
           onClose={() => setSelected(null)}
+          onLogged={refreshSlip}
         />
       </div>
     </section>

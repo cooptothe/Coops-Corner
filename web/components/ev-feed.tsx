@@ -23,6 +23,8 @@ import type {
   Quote,
   ToolRow,
 } from "../lib/contracts";
+import { logBets } from "../lib/slip";
+import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { ErrorCard, Loading } from "./workspace";
 
 type EvRow = Extract<ToolRow, { kind: "positive_ev" }>;
@@ -71,16 +73,7 @@ const SHARP_BOOKS = new Set([
 ]);
 export const BANKROLL_KEY = "corner.bankroll";
 export const MULTIPLIER_KEY = "corner.kelly";
-export const SLIP_KEY = "corner.slip";
 const SETTINGS_KEY = "corner.ev-settings";
-export interface SlipBet {
-  at: string;
-  matchup: string;
-  line: string;
-  book: string;
-  odds: string;
-  stake: string;
-}
 const oddsToDecimal = (v: string) => {
   if (!/^-?\d{2,5}$/.test(v)) return null;
   const n = Number(v);
@@ -300,16 +293,15 @@ export function KellyWidget({
     setBet("pending");
     setTimeout(() => {
       try {
-        const slip = JSON.parse(localStorage.getItem(SLIP_KEY) ?? "[]");
-        slip.push({
-          at: new Date().toISOString(),
-          matchup: vm.matchup,
-          line: vm.line,
-          book: vm.bookLabel,
-          odds: vm.odds,
-          stake: result.stake,
-        });
-        localStorage.setItem(SLIP_KEY, JSON.stringify(slip.slice(-200)));
+        logBets([
+          {
+            matchup: vm.matchup,
+            line: vm.line,
+            book: vm.bookLabel,
+            odds: vm.odds,
+            stake: result.stake,
+          },
+        ]);
       } catch {}
       setBet("done");
       onLogged();
@@ -407,9 +399,12 @@ export default function EvFeed({ data }: { data: Data }) {
   const [sortKey, setSortKey] = useState<SortKey>("ev");
   const [minOdds, setMinOdds] = useState("");
   const [maxOdds, setMaxOdds] = useState("");
-  const [slip, setSlip] = useState<SlipBet[]>([]);
-  const [slipOpen, setSlipOpen] = useState(false);
-  const [slipVersion, setSlipVersion] = useState(0);
+  const {
+    slip,
+    open: slipOpen,
+    setOpen: setSlipOpen,
+    refresh: refreshSlip,
+  } = useSlip();
   const [sportKey, setSportKey] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [bankroll, setBankroll] = useState("1000");
@@ -444,13 +439,6 @@ export default function EvFeed({ data }: { data: Data }) {
       JSON.stringify({ off: [...offBooks], minEv, minOdds, maxOdds, sortKey }),
     );
   }, [offBooks, minEv, minOdds, maxOdds, sortKey]);
-  useEffect(() => {
-    try {
-      setSlip(JSON.parse(localStorage.getItem(SLIP_KEY) ?? "[]"));
-    } catch {
-      setSlip([]);
-    }
-  }, [slipVersion]);
   useEffect(() => {
     localStorage.setItem(BANKROLL_KEY, bankroll);
   }, [bankroll]);
@@ -672,12 +660,10 @@ export default function EvFeed({ data }: { data: Data }) {
       </aside>
       <div className="ev-main">
         <div className="ev-count">
-          <button
-            className="button secondary ev-slip-toggle"
+          <SlipToggle
+            count={slip.length}
             onClick={() => setSlipOpen((o) => !o)}
-          >
-            My bets ({slip.length})
-          </button>
+          />
           <strong>{visible.length}</strong> of {all.length} bets · prices as of{" "}
           {date(data.meta.captured_at)}
           <label className="ev-sort">
@@ -694,41 +680,7 @@ export default function EvFeed({ data }: { data: Data }) {
             </select>
           </label>
         </div>
-        {slipOpen && (
-          <div className="ev-slip">
-            {slip.length === 0 ? (
-              <p>No bets logged yet. Select a row and use One-click bet.</p>
-            ) : (
-              <>
-                <table>
-                  <tbody>
-                    {[...slip].reverse().map((b) => (
-                      <tr key={b.at}>
-                        <td>{date(b.at)}</td>
-                        <td>
-                          {b.matchup} · {b.line}
-                        </td>
-                        <td>
-                          {b.book} @ {b.odds}
-                        </td>
-                        <td>{usd(b.stake)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <button
-                  className="button secondary"
-                  onClick={() => {
-                    localStorage.removeItem(SLIP_KEY);
-                    setSlipVersion((n) => n + 1);
-                  }}
-                >
-                  Clear log
-                </button>
-              </>
-            )}
-          </div>
-        )}
+        {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
         <div role="table" aria-label="Positive EV bets" className="ev-grid">
           <div role="row" className="ev-head">
             <span role="columnheader">EV</span>
@@ -783,7 +735,7 @@ export default function EvFeed({ data }: { data: Data }) {
         multiplier={multiplier}
         setMultiplier={setMultiplier}
         onClose={() => setSelected(null)}
-        onLogged={() => setSlipVersion((n) => n + 1)}
+        onLogged={refreshSlip}
       />
     </section>
   );
