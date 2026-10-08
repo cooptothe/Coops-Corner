@@ -283,6 +283,13 @@ export function KellyWidget({
 }) {
   const [bet, setBet] = useState<"idle" | "pending" | "done">("idle");
   useEffect(() => setBet("idle"), [vm?.id]);
+  // The calculator is a drawer, so Escape closes it.
+  useEffect(() => {
+    if (!vm) return;
+    const close = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [vm, onClose]);
   const validBankroll = /^(0|[1-9]\d{0,9})(\.\d{1,2})?$/.test(bankroll);
   const result =
     vm && validBankroll && compareDecimal(bankroll, "0") > 0

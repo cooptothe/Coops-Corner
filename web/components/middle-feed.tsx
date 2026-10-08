@@ -245,6 +245,13 @@ function Calculator({
 }) {
   const validStake = STAKE_PATTERN.test(stake) && Number(stake) > 0;
   const total = validStake ? Number(stake) : 0;
+  // The calculator is a drawer, so Escape closes it.
+  useEffect(() => {
+    if (!vm) return;
+    const close = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [vm, onClose]);
   const sig = vm?.sig ?? "";
   // Recalculate only for this row's own prices or the typed stake.
   const scaled = useMemo(() => {

@@ -241,6 +241,13 @@ function Calculator({
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<ArbMode>("symmetric");
+  // The calculator is a drawer, so Escape closes it.
+  useEffect(() => {
+    if (!vm) return;
+    const close = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [vm, onClose]);
   const [favored, setFavored] = useState(0);
   const sig = vm?.sig ?? "";
   const validStake = STAKE_PATTERN.test(stake) && Number(stake) > 0;
