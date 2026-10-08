@@ -626,7 +626,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
               <h3>No +EV prop bets right now</h3>
               <p>
                 Fetch prop odds, lower the minimum EV, or re-enable books. Bets
-                need a sharp book pricing both sides of the same line.
+                need at least two sharp books pricing both sides of the same line.
               </p>
             </div>
           ) : (

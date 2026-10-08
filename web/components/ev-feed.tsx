@@ -185,7 +185,7 @@ const SORTS: Record<SortKey, (a: Vm, b: Vm) => number> = {
   odds_low: (a, b) => Number(a.decimalOdds) - Number(b.decimalOdds),
   scanned: (a, b) => b.observedAt.localeCompare(a.observedAt),
 };
-const chance = (p: number) => `%`;
+const chance = (p: number) => `${(p * 100).toFixed(2)}%`;
 
 const Row = memo(
   function Row({

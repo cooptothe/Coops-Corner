@@ -5,8 +5,12 @@ featured (h2h/spreads/totals) pipeline because they are priced per player and pe
 """
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_EVEN
+import os
 
-SHARP_BOOKS = frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi'})
+# Same reference books (and environment override) as the main +EV feed in api/database.py.
+SHARP_BOOKS = frozenset(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
+                        if b.strip()) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi'})
+MIN_SHARPS = 2  # the +EV feed requires at least two sharp books fully pricing the line
 # Over/Under or Yes/No priced on both sides ('two_way'), or a Yes-only / winner list ('yes_only').
 TWO_WAY, YES_ONLY = 'two_way', 'yes_only'
 
@@ -194,10 +198,13 @@ def _prob(price):
 
 
 def _fair_first_side(prices):
-    """No-vig probability of side 0 averaged over the sharp books pricing both sides."""
+    """No-vig probability of side 0, averaged over the sharp books pricing both sides.
+
+    Needs at least MIN_SHARPS such books, exactly as the main +EV feed does.
+    """
     used = sorted(b for b, p in prices.items() if b in SHARP_BOOKS and 0 in p and 1 in p)
     probs = [_prob(prices[b][0]) / (_prob(prices[b][0]) + _prob(prices[b][1])) for b in used]
-    return (sum(probs) / len(probs), used) if probs else (None, [])
+    return (sum(probs) / len(probs), used) if len(probs) >= MIN_SHARPS else (None, [])
 
 
 def _q(value):
@@ -207,8 +214,8 @@ def _q(value):
 def build_bets(events):
     """events: {event_id: {meta, markets:{market_key:{quotes:[...]}}}} -> one bet per soft-book side.
 
-    A bet exists only where sharp books price both sides of the same player line, so its fair
-    probability is the no-vig consensus of those sharps. Lines without that reference are omitted.
+    A bet exists only where at least two sharp books price both sides of the same player line,
+    so its fair probability is their no-vig consensus. Other lines are omitted.
     """
     bets = []
     for event_id, ev in events.items():

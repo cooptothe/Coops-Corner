@@ -71,7 +71,7 @@ def main():
                        CORNER_ACCOUNTS_DB_USER=account_role,CORNER_ACCOUNTS_DB_PASSWORD=account_password)
         else:
             env['CORNER_ACCOUNTS_ENABLED']='false'
-        java = os.getenv('CORNER_JAVA', str(ROOT / '.tools/jdk-21.0.12.1+1/bin/java.exe'))
+        java = os.getenv('CORNER_JAVA', str(ROOT / '.tools/jdk-25.0.4.1+1/bin/java.exe'))
         process = subprocess.Popen([java, '-jar', str(ROOT / 'server/target/market-api-0.1.0.jar')], env=env,
                                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         print('Local read-only board API on :8080; no provider polling. Ctrl+C stops and removes the session login.', flush=True)

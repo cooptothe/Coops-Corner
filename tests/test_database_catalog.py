@@ -90,6 +90,22 @@ class DatabaseCatalogTests(unittest.TestCase):
         catalog = FixtureCatalog(raw=build_raw(rows, PEOPLE, now=NOW))
         self.assertEqual({'pinnacle'}, {x.sportsbook_id for x in catalog.quotes})
 
+    def test_arbitrage_profit_is_not_floored_to_zero(self):
+        catalog = FixtureCatalog(raw=build_raw(board(), PEOPLE, now=NOW))
+        moneyline = [r for r in catalog.rows if r.kind == 'arbitrage' and r.market_key == 'h2h']
+        self.assertTrue(moneyline)
+        self.assertTrue(all(Decimal(r.minimum_profit) > 0 for r in moneyline))
+
+    def test_whole_number_line_keeps_refund_floor(self):
+        rows = [q('draftkings', 'spread', 'home', '2.20', '-3'), q('draftkings', 'spread', 'away', '1.70', '3'),
+                q('pinnacle', 'spread', 'home', '1.70', '-3'), q('pinnacle', 'spread', 'away', '2.20', '3')]
+        raw = build_raw(rows, PEOPLE, now=NOW)
+        self.assertTrue(all(c['refund_possible'] for c in raw['contracts']))
+        catalog = FixtureCatalog(raw=raw)
+        arbs = [r for r in catalog.rows if r.kind == 'arbitrage']
+        self.assertTrue(arbs)
+        self.assertTrue(all(Decimal(r.minimum_profit) == 0 for r in arbs))
+
     def test_api_serves_database_mode(self):
         catalog = FixtureCatalog(raw=build_raw(board(), PEOPLE, now=NOW))
         client = TestClient(create_app(data_mode='database', catalog=catalog))

@@ -130,7 +130,10 @@ class FixtureCatalog:
             if contract_id in self.contracts or game_id not in game_meta:
                 raise ValueError('duplicate or unbound fixture contract')
             selections = contract['selections']
-            market = MatchedMarket(contract_id, key, tuple(s['id'] for s in selections), raw['refund_possible'])
+            # A refund (push) branch only exists on whole-number spread/total lines; the per-contract flag lets
+            # half-point lines and moneylines show their true locked-in profit instead of a floor of zero.
+            refund = contract.get('refund_possible', raw['refund_possible'])
+            market = MatchedMarket(contract_id, key, tuple(s['id'] for s in selections), refund)
             _verify_selections(contract, game_meta[game_id])
             if key in {'spreads', 'totals'} and any(D(s['point']) == D(s['point']).to_integral_value() for s in selections) and not market.refund_possible:
                 raise ValueError('integer lines require explicit push/refund branch')

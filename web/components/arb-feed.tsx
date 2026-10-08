@@ -28,7 +28,7 @@ import type {
 } from "../lib/contracts";
 import { ErrorCard, Loading } from "./workspace";
 
-type ArbRow = Extract<ToolRow, { kind: "arbitrage" | "low_hold" }>;
+type ArbRow = Extract<ToolRow, { kind: "arbitrage" }>;
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 interface LegVm {
   quoteId: string;

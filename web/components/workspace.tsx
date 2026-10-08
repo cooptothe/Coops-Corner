@@ -38,9 +38,8 @@ const DESCRIPTIONS: Record<View, string> = {
     "Explore complementary positions and their decisive-settlement payoffs.",
   middle:
     "Find cross-line windows. See the upside and the cost of missing the middle.",
-  low_hold: "Compare payoff tables with a bounded modeled loss.",
   props:
-    "Player prop lines across books, with a no-vig edge where sharp books price both sides.",
+    "Player prop bets priced against the same sharp books as the Positive EV feed.",
   games:
     "One event. Every featured market. The exact quotes behind each calculation.",
   promo:
@@ -50,7 +49,6 @@ const ICONS: Record<View, string> = {
   positive_ev: "↗",
   arbitrage: "⇄",
   middle: "⋈",
-  low_hold: "≋",
   props: "♟",
   games: "▦",
   promo: "◇",
@@ -201,8 +199,6 @@ export default function Workspace({ view }: { view: View }) {
     );
     if (view === "positive_ev")
       params.minimum_ev_ratio = shiftDecimal(filters.threshold ?? "0", -2);
-    if (view === "low_hold")
-      params.maximum_loss_ratio = shiftDecimal(filters.threshold ?? "1", -2);
     request<Page<ToolRow | Game>>(
       view === "games" ? "games" : `tools/${view}`,
       { params, signal: controller.signal, snapshot: data.meta.snapshot_id },
@@ -263,7 +259,7 @@ export default function Workspace({ view }: { view: View }) {
           <p className="nav-label">FIND AN EDGE</p>
           {VIEWS.map((v, i) => (
             <span key={v}>
-              {i === 5 && (
+              {i === 4 && (
                 <p className="nav-label second">EXPLORE &amp; CALCULATE</p>
               )}
               <Link
@@ -444,20 +440,13 @@ export default function Workspace({ view }: { view: View }) {
                         />
                       </>
                     )}
-                    {(view === "positive_ev" || view === "low_hold") && (
+                    {view === "positive_ev" && (
                       <label className="field threshold">
-                        <span>
-                          {view === "positive_ev"
-                            ? "MIN. EV (%)"
-                            : "MAX. LOSS (%)"}
-                        </span>
+                        <span>MIN. EV (%)</span>
                         <input
                           name="threshold"
                           inputMode="decimal"
-                          defaultValue={
-                            filters.threshold ??
-                            (view === "positive_ev" ? "0" : "1")
-                          }
+                          defaultValue={filters.threshold ?? "0"}
                           required
                           maxLength={20}
                           onInput={(e) => e.currentTarget.setCustomValidity("")}

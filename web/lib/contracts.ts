@@ -1,7 +1,7 @@
 export type DecimalText = string;
 export type MarketKey =
   "h2h" | "spreads" | "totals" | "outrights" | "h2h_lay" | "outrights_lay";
-export type ToolKind = "positive_ev" | "arbitrage" | "middle" | "low_hold";
+export type ToolKind = "positive_ev" | "arbitrage" | "middle";
 export type View = ToolKind | "games" | "promo" | "props";
 export interface Meta {
   format: "corner.product_api/1";
@@ -119,7 +119,7 @@ export type ToolRow = RowBase &
   (
     | { kind: "positive_ev"; calculation: FeaturedEV }
     | { kind: "middle"; calculation: Middle }
-    | { kind: "arbitrage" | "low_hold"; calculation: Cover | BackLay }
+    | { kind: "arbitrage"; calculation: Cover | BackLay }
   );
 export type PromoKind =
   | "bonus_stake_not_returned"
@@ -167,7 +167,6 @@ export const VIEWS: View[] = [
   "positive_ev",
   "arbitrage",
   "middle",
-  "low_hold",
   "props",
   "games",
   "promo",

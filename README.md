@@ -3,7 +3,7 @@
 ![Coop's Corner](web/public/assets/corner-banner.png)
 
 A local, pre-game sports betting toolkit: **+EV**, **arbitrage**, **middles**,
-**low hold**, a **promo converter** and a sportsbook **odds screen**, all running
+a **promo converter** and a sportsbook **odds screen**, all running
 over stored pre-game odds from [The Odds API](https://the-odds-api.com/).
 
 Odds API credits are spent only when you press **Refresh odds**. Nothing polls the
@@ -46,7 +46,7 @@ enforces a cooldown (`CORNER_REFRESH_COOLDOWN_SECONDS`, default 30) and a daily 
 
 ## Setup
 
-Requirements: Python 3.12+, PostgreSQL 18, Node 20.9+ with pnpm, and Java 21 +
+Requirements: Python 3.12+, PostgreSQL 18, Node 20.9+ with pnpm, and Java 25 +
 Maven 3.9+ (only for the `/games` Spring service).
 
 1. Create `.env` in the repository root:
@@ -95,7 +95,7 @@ otherwise built once at startup. If you change `web/next.config.ts`, restart `pn
 | `/positive_ev` | +EV bets with no-vig fair probabilities from sharp books and uncapped Kelly stakes |
 | `/arbitrage` | Two-way arbitrage only (no three-way outcomes) |
 | `/middle` | Spread and total middles with window and EV |
-| `/low_hold` | Lowest-hold two-way markets |
+| `/props` | Player prop +EV bets against the sharp books, with the Kelly calculator |
 | `/promo` | Bonus bet, site credit and no-sweat conversion with a stake calculator |
 | `/games` | Odds screen: sportsbooks by game, with Spreads, Moneyline and Totals tabs |
 

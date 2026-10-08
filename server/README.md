@@ -1,12 +1,12 @@
 # Database-backed Games & Odds
 
-Spring Boot 4.0.8 / Java 21 supplies the read-only API; Next.js/TypeScript
+Spring Boot 4.0.8 / Java 25 supplies the read-only API; Next.js/TypeScript
 renders `/games`. This is a local development service, not an installed service
 or a production-authorized betting engine. No provider requests occur on reads.
 
 ## Run
 
-Build with Java 21 and Maven 3.9+: `mvn -f server/pom.xml package`.
+Build with Java 25 and Maven 3.9+: `mvn -f server/pom.xml package`.
 From the repository root, run:
 
 ```powershell

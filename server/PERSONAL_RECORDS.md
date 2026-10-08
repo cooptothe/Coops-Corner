@@ -11,7 +11,7 @@ balances and open-position reporting remain work.
 
 ## Start
 
-Build the Spring jar with Java 21 and `mvn -f server/pom.xml package`. From repo root:
+Build the Spring jar with Java 25 and `mvn -f server/pom.xml package`. From repo root:
 
 ```powershell
 .\.venv-api\Scripts\python.exe -m server.run_local --initialize-accounts --accounts

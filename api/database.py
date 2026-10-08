@@ -116,6 +116,7 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
                   'draw': None}
         contract_id = f'{event}:{key}:{line}' if line else f'{event}:{key}'
         contract = dict(id=contract_id, game_id=event, market_key=key,
+                        refund_possible=key in ('spreads', 'totals') and Decimal(line) == Decimal(line).to_integral_value(),
                         selections=[dict(id=s, name=names[s], side=s, point=None if key == 'h2h' else points[s]) for s in sides],
                         prices={b: [format(Decimal(c[s]['decimal_odds']), 'f') for s in sides] for b, c in sorted(complete.items())},
                         lay_prices={},

@@ -124,9 +124,7 @@ export function Cards({
               ev = row.kind === "positive_ev" ? row : null,
               mid = row.kind === "middle" ? row : null,
               cover =
-                row.kind === "arbitrage" || row.kind === "low_hold"
-                  ? row
-                  : null,
+                row.kind === "arbitrage" ? row : null,
               headline = ev
                 ? ev.conditional_ev_ratio
                 : mid

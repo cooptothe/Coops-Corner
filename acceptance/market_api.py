@@ -86,7 +86,7 @@ class Harness:
                         CORNER_MARKET_PORT=str(self.port),CORNER_MARKET_MAX_AGE_SECONDS='120',CORNER_MARKET_DATASET='synthetic_acceptance')
         if self.configure:
             self.env.update(self.configure(self))
-        java = os.getenv('CORNER_JAVA',str(ROOT/'.tools/jdk-21.0.12.1+1/bin/java.exe'))
+        java = os.getenv('CORNER_JAVA',str(ROOT/'.tools/jdk-25.0.4.1+1/bin/java.exe'))
         self.process=subprocess.Popen([java,'-jar',str(ROOT/'server/target/market-api-0.1.0.jar')],env=self.env,
             stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
         for _ in range(80):
