@@ -7,8 +7,9 @@ a **promo converter**, an upcoming-games **schedule** with the best lines, and a
 tracker with bankroll management**, all running
 over stored pre-game odds from [The Odds API](https://the-odds-api.com/).
 
-Odds API credits are spent only when you press **Refresh odds**. Nothing polls the
-provider in the background. Everything binds to loopback.
+Odds API credits are spent only when you press **Refresh odds** (which requires being signed in).
+Nothing polls the provider in the background. Everything binds to loopback. Each person has their
+own account (username and password) and private bet tracker; see [web/README.md](web/README.md#views-and-boundaries).
 
 ## Architecture
 
@@ -85,7 +86,7 @@ cd web; pnpm dev
 .\.venv-api\Scripts\python.exe -m server.run_local
 ```
 
-Open http://127.0.0.1:3000/. After **Refresh odds** completes, the web app asks the
+Open http://127.0.0.1:3000/ and create an account. After **Refresh odds** completes, the web app asks the
 tools API to reload its snapshot (`POST /api/v1/catalog/reload`); the snapshot is
 otherwise built once at startup. If you change `web/next.config.ts`, restart `pnpm dev`.
 
@@ -99,6 +100,7 @@ otherwise built once at startup. If you change `web/next.config.ts`, restart `pn
 | `/props` | Player prop +EV bets against the sharp books, with the Kelly calculator |
 | `/promo` | Bonus bet, site credit, risk-free bet and profit boost conversion with a stake calculator |
 | `/games` | Schedule: upcoming games by day, with the best main-line spread, total and moneyline |
+| `/login` | Sign in or create an account (username + password) |
 | `/tracker` | Bet tracker and bankroll: ledger with live progress, per-book balances, Kelly sizing, CLV and history charts ([details](web/README.md#views-and-boundaries)) |
 
 Feeds can be sorted by EV, win probability, start time and other measures relevant

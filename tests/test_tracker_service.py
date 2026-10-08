@@ -8,11 +8,22 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from corner import auth
 from corner.tracker_store import TrackerStore
+from pipelines import accounts
 from pipelines import media as media_service
 from pipelines import tracker_service as svc
 
 ORIGIN = 'http://localhost:3000'
+SECRET = 'test-secret-' + 'x' * 40
+
+
+def signed_in(store, name, client_factory):
+    """A test client holding a valid session cookie for a fresh account."""
+    user = store.create_user(name, name.lower(), 'unused-hash')
+    client = client_factory()
+    client.cookies.set(accounts.COOKIE, auth.issue_token(SECRET, user['id'], user['username']))
+    return client, store.ledger(user['id'])
 
 
 def bet_payload(key='k1', **extra):
@@ -29,8 +40,10 @@ class Service(unittest.TestCase):
         self.store = TrackerStore(Path(self.dir.name) / 't.sqlite3')
         self.board = {}
         app = FastAPI()
-        app.include_router(svc.create_router(self.store, {ORIGIN}, fetch=lambda url, ttl: self.board[url.split('?')[0].rsplit('/', 1)[-1] + ':' + url.split('=')[1].split('&')[0]]))
-        self.client = TestClient(app, base_url='http://localhost')
+        self.ctx = accounts.AuthContext(self.store, SECRET, {ORIGIN})
+        app.include_router(svc.create_router(self.ctx))
+        self.anonymous = lambda: TestClient(app, base_url='http://localhost')
+        self.client, self.ledger = signed_in(self.store, 'Ann', self.anonymous)
         self.write = {'Origin': ORIGIN}
         self.addCleanup(self.dir.cleanup)
         self.addCleanup(self.store.close)
@@ -65,6 +78,24 @@ class Service(unittest.TestCase):
         self.assertIn('decimal', american.json()['error'])
         self.assertEqual(self.client.post(self.url('/cash'), json={'client_key': 'x', 'kind': 'transfer', 'book': 'a', 'to_book': 'a', 'amount': '5'}, headers=self.write).status_code, 400)
 
+    def test_every_route_needs_a_signed_in_account_and_stays_in_it(self):
+        guest = self.anonymous()
+        for method, path in (('get', '/state'), ('get', '/export'), ('get', '/live')):
+            self.assertEqual(getattr(guest, method)(self.url(path)).status_code, 401, path)
+        for method, path in (('post', '/bets'), ('post', '/cash'), ('post', '/clv'), ('post', '/bets/x/settle'),
+                             ('post', '/bets/x/reopen'), ('delete', '/bets/x'), ('delete', '/cash/x'), ('patch', '/bets/x')):
+            self.assertEqual(getattr(guest, method)(self.url(path), headers=self.write).status_code, 401, path)
+        forged = self.anonymous()
+        forged.cookies.set(accounts.COOKIE, auth.issue_token('some-other-secret-' + 'y' * 30, 'ann', 'Ann'))
+        self.assertEqual(forged.get(self.url('/state')).status_code, 401)
+        # Another account never sees or touches Ann's data.
+        mine = self.client.post(self.url('/bets'), json=[bet_payload()], headers=self.write).json()['bets'][0]
+        bob, _ = signed_in(self.store, 'Bob', self.anonymous)
+        self.assertEqual(bob.get(self.url('/state')).json(), {'bets': [], 'cash': []})
+        self.assertEqual(bob.post(self.url(f"/bets/{mine['id']}/settle"), json={'result': 'won'}, headers=self.write).status_code, 404)
+        self.assertEqual(bob.delete(self.url(f"/bets/{mine['id']}"), headers=self.write).status_code, 404)
+        self.assertEqual(self.client.get(self.url('/state')).json()['bets'][0]['status'], 'pending')
+
     def test_writes_need_the_local_origin_and_every_request_needs_a_local_host(self):
         self.assertEqual(self.client.post(self.url('/bets'), json=[bet_payload()]).status_code, 403)
         self.assertEqual(self.client.post(self.url('/bets'), json=[bet_payload()], headers={'Origin': 'https://evil.example'}).status_code, 403)
@@ -85,8 +116,8 @@ class Clv(unittest.TestCase):
         self.calls = []
         self.start = datetime.now(timezone.utc) - timedelta(hours=3)
         app = FastAPI()
-        app.include_router(svc.create_router(self.store, {ORIGIN}, close_fetch=self.close))
-        self.client = TestClient(app, base_url='http://localhost')
+        app.include_router(svc.create_router(accounts.AuthContext(self.store, SECRET, {ORIGIN}), close_fetch=self.close))
+        self.client, self.ledger = signed_in(self.store, 'Ann', lambda: TestClient(app, base_url='http://localhost'))
         self.addCleanup(self.dir.cleanup)
         self.addCleanup(self.store.close)
 
@@ -111,7 +142,7 @@ class Clv(unittest.TestCase):
         self.assertEqual(out[0]['clv']['pct'], '0.05')
         self.assertEqual(len(self.calls), 1)  # one lookup serves both bets on the same game and market
         self.assertEqual(self.client.post('/api/refresh/v1/tracker/clv', headers={'Origin': ORIGIN}).json()['bets'], [])
-        self.assertEqual(self.store.bet(first['id'])['clv']['books'], ['pinnacle'])
+        self.assertEqual(self.ledger.bet(first['id'])['clv']['books'], ['pinnacle'])
 
     def test_skips_props_lays_future_games_and_untracked_bets(self):
         self.log('prop', market_key='prop')
@@ -128,7 +159,7 @@ class Clv(unittest.TestCase):
         self.fail = True
         response = self.client.post('/api/refresh/v1/tracker/clv', headers={'Origin': ORIGIN})
         self.assertEqual(response.status_code, 502)
-        self.assertIsNone(self.store.bet(bet['id'])['clv'])
+        self.assertIsNone(self.ledger.bet(bet['id'])['clv'])
         self.fail = False
         self.assertEqual(len(self.client.post('/api/refresh/v1/tracker/clv', headers={'Origin': ORIGIN}).json()['bets']), 1)
 

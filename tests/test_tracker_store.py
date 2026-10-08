@@ -1,4 +1,5 @@
 """Tracker store tests: money exactness, settlement rules, idempotency, validation. No network."""
+import sqlite3
 import tempfile
 import unittest
 
@@ -16,8 +17,9 @@ class Store(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        self.store = ts.TrackerStore(f'{tmp.name}/t.sqlite3')
-        self.addCleanup(self.store.close)
+        self.db = ts.TrackerStore(f'{tmp.name}/t.sqlite3')
+        self.addCleanup(self.db.close)
+        self.store = self.db.ledger(self.db.create_user('Ann', 'ann', 'hash')['id'])
 
     def add(self, **over):
         return self.store.add_bets([bet(**over)])[0]
@@ -145,13 +147,106 @@ class Store(unittest.TestCase):
 
     def test_state_survives_reopening_the_file(self):
         self.add()
-        path = self.store.path
-        self.store.close()
+        path = self.db.path
+        user = self.store.user_id
+        self.db.close()
         reopened = ts.TrackerStore(path)
         self.addCleanup(reopened.close)
-        self.assertEqual(len(reopened.state()['bets']), 1)
-        self.store = reopened
+        self.assertEqual(len(reopened.ledger(user).state()['bets']), 1)
+        self.db = reopened
 
+
+class Accounts(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.path = f'{tmp.name}/t.sqlite3'
+        self.db = ts.TrackerStore(self.path)
+        self.addCleanup(self.db.close)
+        self.ann = self.db.ledger(self.db.create_user('Ann', 'ann', 'h1')['id'])
+        self.bob = self.db.ledger(self.db.create_user('Bob', 'bob', 'h2')['id'])
+
+    def test_usernames_are_unique_ignoring_case(self):
+        with self.assertRaises(ts.TrackerError) as raised:
+            self.db.create_user('ANN', 'ann', 'x')
+        self.assertEqual((raised.exception.status, raised.exception.code), (409, 'username_taken'))
+        self.assertEqual(self.db.user_by_key('ann')['username'], 'Ann')
+        self.assertIsNone(self.db.user_by_key('carol'))
+
+    def test_a_user_sees_and_changes_only_their_own_rows(self):
+        mine = self.ann.add_bets([bet(client_key='same')])[0]
+        theirs = self.bob.add_bets([bet(client_key='same', selection='Bob only')])[0]
+        self.assertNotEqual(mine['id'], theirs['id'])  # the same client key is fine across users
+        self.assertEqual([b['id'] for b in self.ann.state()['bets']], [mine['id']])
+        self.assertNotIn('user_id', mine)
+        for attempt in (lambda: self.bob.bet(mine['id']), lambda: self.bob.settle_bet(mine['id'], 'won'),
+                        lambda: self.bob.reopen_bet(mine['id']), lambda: self.bob.delete_bet(mine['id']),
+                        lambda: self.bob.update_bet(mine['id'], {'odds': '3'})):
+            with self.assertRaises(ts.TrackerError) as raised:
+                attempt()
+            self.assertEqual(raised.exception.status, 404)
+        self.bob.set_clv(mine['id'], {'pct': '0.5'})
+        self.assertEqual(self.ann.bet(mine['id'])['status'], 'pending')
+        self.assertIsNone(self.ann.bet(mine['id'])['clv'])
+
+    def test_cash_is_private_too(self):
+        entry = self.ann.add_cash({'client_key': 'c', 'kind': 'deposit', 'book': 'fanduel', 'amount': '50'})
+        self.assertEqual(self.bob.state()['cash'], [])
+        with self.assertRaises(ts.TrackerError):
+            self.bob.delete_cash(entry['id'])
+        self.assertEqual(len(self.ann.state()['cash']), 1)
+        other = self.bob.add_cash({'client_key': 'c', 'kind': 'deposit', 'book': 'fanduel', 'amount': '7'})
+        self.assertNotEqual(other['id'], entry['id'])
+
+    def test_a_ledger_needs_a_user_and_a_real_one(self):
+        with self.assertRaises(ValueError):
+            self.db.ledger('')
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.ledger('no-such-user').add_bets([bet()])
+
+
+class Upgrade(unittest.TestCase):
+    OLD = """
+    CREATE TABLE bets (id TEXT PRIMARY KEY, client_key TEXT NOT NULL UNIQUE, group_id TEXT, created_at TEXT NOT NULL,
+      placed_at TEXT NOT NULL, strategy TEXT NOT NULL, sport_key TEXT NOT NULL DEFAULT '', matchup TEXT NOT NULL,
+      starts_at TEXT, market TEXT NOT NULL DEFAULT '', selection TEXT NOT NULL, book TEXT NOT NULL, odds TEXT NOT NULL,
+      stake_cents INTEGER NOT NULL, stake_type TEXT NOT NULL DEFAULT 'cash', status TEXT NOT NULL DEFAULT 'pending',
+      returned_cents INTEGER, settled_at TEXT, fair_prob TEXT, ev_ratio TEXT, ref TEXT NOT NULL DEFAULT '{}', clv TEXT,
+      notes TEXT NOT NULL DEFAULT '');
+    CREATE INDEX bets_placed ON bets(placed_at);
+    CREATE INDEX bets_status ON bets(status);
+    CREATE TABLE cash (id TEXT PRIMARY KEY, client_key TEXT NOT NULL UNIQUE, occurred_at TEXT NOT NULL, kind TEXT NOT NULL,
+      amount_cents INTEGER NOT NULL, book TEXT NOT NULL, to_book TEXT, note TEXT NOT NULL DEFAULT '');
+    CREATE INDEX cash_when ON cash(occurred_at);
+    INSERT INTO bets(id,client_key,created_at,placed_at,strategy,matchup,selection,book,odds,stake_cents)
+      VALUES('b1','old-1','2026-01-01T00:00:00+00:00','2026-01-01T00:00:00+00:00','manual','A at B','A','fanduel','2',1000);
+    INSERT INTO cash(id,client_key,occurred_at,kind,amount_cents,book) VALUES('c1','old-c','2026-01-01T00:00:00+00:00','deposit',5000,'fanduel');
+    """
+
+    def test_existing_single_user_data_goes_to_the_first_account_only(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = f'{tmp.name}/t.sqlite3'
+        raw = sqlite3.connect(path)
+        raw.executescript(self.OLD)
+        raw.close()
+        db = ts.TrackerStore(path)
+        self.addCleanup(db.close)
+        # Nobody owns the old rows yet, so no account can see them.
+        stranger = db.ledger(db.create_user('First', 'first', 'h')['id'])
+        self.assertEqual([b['id'] for b in stranger.state()['bets']], ['b1'])
+        self.assertEqual(len(stranger.state()['cash']), 1)
+        second = db.ledger(db.create_user('Second', 'second', 'h')['id'])
+        self.assertEqual(second.state(), {'bets': [], 'cash': []})
+        # The upgraded table keeps working, with keys unique per user.
+        self.assertEqual(second.add_bets([bet(client_key='old-1')])[0]['client_key'], 'old-1')
+        reopened = ts.TrackerStore(path)
+        self.addCleanup(reopened.close)
+        self.assertEqual(len(reopened.ledger(stranger.user_id).state()['bets']), 1)
+        check = sqlite3.connect(path)
+        self.addCleanup(check.close)
+        tables = {r[0] for r in check.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        self.assertNotIn('bets_old', tables)
 
 if __name__ == '__main__':
     unittest.main()

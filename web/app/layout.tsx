@@ -4,6 +4,8 @@ import "../../frontend/betting.css";
 import "../../frontend/corner.css";
 import "./stored-odds.css";
 import "./personal.css";
+import "./auth.css";
+import { AuthGate, AuthProvider } from "../components/auth-provider";
 
 export const metadata: Metadata = {
   title: "The Corner — Sports market intelligence",
@@ -22,7 +24,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <AuthGate>{children}</AuthGate>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

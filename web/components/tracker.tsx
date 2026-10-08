@@ -35,6 +35,7 @@ import {
   trackerReducer,
   type Filters,
 } from "../lib/tracker-state";
+import { UserMenu } from "./auth-provider";
 import { BankrollTab } from "./tracker-bankroll";
 import {
   BetDrawer,
@@ -263,6 +264,7 @@ export default function Tracker() {
           <h1>Tracker &amp; bankroll</h1>
         </div>
         <Link href="/positive_ev">← Back to tools</Link>
+        <UserMenu />
       </header>
 
       {notice && (

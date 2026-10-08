@@ -1,0 +1,181 @@
+"use client";
+import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  fetchMe,
+  onUnauthorized,
+  signIn,
+  signOut,
+  signUp,
+  type User,
+} from "../lib/auth-api";
+
+type Status = "loading" | "signed-in" | "signed-out" | "unreachable";
+
+interface Auth {
+  status: Status;
+  user: User | null;
+  login: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<Auth | null>(null);
+
+export function useAuth(): Auth {
+  const value = useContext(AuthContext);
+  if (!value) throw new Error("useAuth must be used inside AuthProvider");
+  return value;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState<Status>("loading");
+  const [user, setUser] = useState<User | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  // Hydrate once per page load: the cookie is HttpOnly, so the server is the only one who can say who we are.
+  useEffect(() => {
+    let live = true;
+    fetchMe().then(
+      (me) => {
+        if (!live) return;
+        setUser(me);
+        setStatus(me ? "signed-in" : "signed-out");
+      },
+      () => live && setStatus("unreachable"),
+    );
+    return () => {
+      live = false;
+    };
+  }, [attempt]);
+
+  useEffect(
+    () =>
+      onUnauthorized(() => {
+        setUser(null);
+        setStatus("signed-out");
+      }),
+    [],
+  );
+
+  const accept = useCallback((me: User) => {
+    setUser(me);
+    setStatus("signed-in");
+  }, []);
+  const value = useMemo<Auth>(
+    () => ({
+      status,
+      user,
+      login: async (username, password) =>
+        accept(await signIn(username, password)),
+      register: async (username, password) =>
+        accept(await signUp(username, password)),
+      logout: async () => {
+        // Clear locally even if the request fails, so the screen never stays signed in by mistake.
+        await signOut().catch(() => undefined);
+        setUser(null);
+        setStatus("signed-out");
+      },
+    }),
+    [status, user, accept],
+  );
+
+  return (
+    <AuthContext.Provider value={value}>
+      {status === "unreachable" ? (
+        <Splash>
+          <p role="alert">
+            The account service is not running, so the app cannot sign you in.
+          </p>
+          <code>python -m pipelines.refresh_service</code>
+          <button
+            className="button"
+            onClick={() => {
+              setStatus("loading");
+              setAttempt((n) => n + 1);
+            }}
+          >
+            Try again
+          </button>
+        </Splash>
+      ) : (
+        children
+      )}
+    </AuthContext.Provider>
+  );
+}
+
+function Splash({ children }: { children?: ReactNode }) {
+  return (
+    <div className="auth-splash" role="status" aria-live="polite">
+      <Image
+        src="/assets/corner-logo.png"
+        alt="Coop's Corner"
+        width={96}
+        height={96}
+        priority
+      />
+      {children ?? <p>Loading…</p>}
+    </div>
+  );
+}
+
+// Everything except the sign-in page needs a session. Protected pages are not even rendered until the
+// server has confirmed one, so a signed-out visitor never triggers their data requests.
+export function AuthGate({ children }: { children: ReactNode }) {
+  const { status } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const isLogin = pathname === "/login";
+
+  useEffect(() => {
+    if (status === "signed-out" && !isLogin) {
+      const next =
+        pathname && pathname !== "/"
+          ? `?next=${encodeURIComponent(pathname)}`
+          : "";
+      router.replace(`/login${next}`);
+    }
+  }, [status, isLogin, pathname, router]);
+
+  if (status === "unreachable") return null;
+  if (status === "loading") return <Splash />;
+  if (status === "signed-out" && !isLogin) return <Splash />;
+  return <>{children}</>;
+}
+
+export function UserMenu() {
+  const { user, logout } = useAuth();
+  const [busy, setBusy] = useState(false);
+  if (!user) return null;
+  return (
+    <span className="user-menu">
+      <span className="user-chip" title="Signed in">
+        <span className="user-avatar" aria-hidden="true">
+          {user.username.slice(0, 1).toUpperCase()}
+        </span>
+        {user.username}
+      </span>
+      <button
+        type="button"
+        className="button secondary"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          logout().finally(() => setBusy(false));
+        }}
+      >
+        Sign out
+      </button>
+    </span>
+  );
+}

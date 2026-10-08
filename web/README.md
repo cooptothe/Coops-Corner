@@ -37,9 +37,20 @@ needed or imported. Configuration changes require restarting/rebuilding Next.
 
 ## Views and boundaries
 
-`/tracker` is the bet tracker and bankroll manager. It needs no account and no Java
-backend: the refresh service (`python -m pipelines.refresh_service`) stores the ledger in
+**Accounts.** The app opens on `/login` (sign in or create an account with a unique username and
+a password). Everything else requires a session; signed-out visitors are redirected to `/login`
+and returned to the page they wanted. Usernames are 3-24 characters (letters, numbers, `.`, `-`,
+`_`), unique ignoring case; passwords are 8-128 characters. Passwords are stored only as salted
+scrypt hashes. A session is a signed 7-day JWT in an HttpOnly, SameSite=Strict cookie that page
+scripts cannot read; sign out clears it. Repeated failed sign-ins for a username lock it for a few
+minutes. Accounts live in the same SQLite file as the ledger and need no Java backend; the signing key is
+created at `retained/auth_secret` (or set `CORNER_AUTH_SECRET`, 32+ characters). If you used the
+tracker before accounts existed, the first account you create adopts that data.
+
+`/tracker` is the bet tracker and bankroll manager. The refresh service
+(`python -m pipelines.refresh_service`) stores each account's ledger in
 `retained/tracker.sqlite3` and the page reads and writes it through `/api/refresh/v1/tracker`.
+Every query is scoped to the signed-in account, so users never see each other's bets or cash.
 It does not submit wagers or move money.
 
 - **Bets**: a KPI ribbon (net P&L with a sparkline, bankroll, ROI and W-L-P record, CLV beat rate,

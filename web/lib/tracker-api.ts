@@ -1,3 +1,5 @@
+import { notifyUnauthorized } from "./auth-api";
+
 export type Strategy =
   "ev" | "arbitrage" | "middle" | "promo" | "prop" | "manual";
 export type BetStatus =
@@ -129,6 +131,7 @@ async function call<T>(
     );
   }
   const data = await response.json().catch(() => null);
+  if (response.status === 401) notifyUnauthorized();
   if (!response.ok)
     throw new TrackerRequestError(
       (data && typeof data.error === "string" && data.error) ||

@@ -75,6 +75,16 @@ class RefreshGuards(unittest.TestCase):
         self.assertEqual(client.post('/api/refresh/v1/odds').status_code, 403)
         self.assertEqual(client.post('/api/refresh/v1/odds', headers={'origin': 'http://evil.test'}).status_code, 403)
 
+    def test_spending_credits_needs_a_signed_in_account(self):
+        from fastapi.testclient import TestClient
+        client = TestClient(svc.create_app(), base_url='http://localhost')
+        local = {'origin': 'http://localhost:3000'}
+        self.assertEqual(client.post('/api/refresh/v1/odds', json={'sports': ['basketball_nba']}, headers=local).status_code, 401)
+        self.assertEqual(client.post('/api/refresh/v1/props', json={}, headers=local).status_code, 401)
+        client.cookies.set('corner_session', 'forged.session.token')
+        self.assertEqual(client.post('/api/refresh/v1/odds', json={'sports': ['basketball_nba']}, headers=local).status_code, 401)
+        self.assertEqual(self.calls, [])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,13 +1,12 @@
 """Local tracker service: the bet ledger over HTTP, plus live game status for pending bets.
 
-Mounted by the refresh service on loopback. Reads need no credits. Writes must come from the local UI
-(Origin check) and every request must address the loopback host, which blocks DNS-rebinding pages.
+Mounted by the refresh service on loopback. Every route needs a signed-in account and only ever touches
+that account's ledger. Reads need no credits. Writes must come from the local UI (Origin check) and every
+request must address the loopback host, which blocks DNS-rebinding pages.
 """
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import logging
-import os
-from pathlib import Path
 import threading
 import time
 
@@ -16,14 +15,12 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
 from corner import tracker_live as live
-from corner.tracker_store import TrackerError, TrackerStore
+from corner.tracker_store import TrackerError
 from pipelines import media as media_service
 from pipelines import tracker_clv
+from pipelines.accounts import reply
 
 log = logging.getLogger('corner.tracker')
-ROOT = Path(__file__).resolve().parents[1]
-DB_PATH = Path(os.environ.get('CORNER_TRACKER_DB') or ROOT / 'retained' / 'tracker.sqlite3')
-LOCAL_HOSTS = {'127.0.0.1', 'localhost', '[::1]'}
 LIVE_TTL = 20
 FINAL_TTL = 600
 MAX_LIVE_BETS = 120
@@ -31,12 +28,6 @@ LOOKBACK = timedelta(days=10)
 LEAD = timedelta(minutes=20)
 _cache = {}
 _cache_lock = threading.Lock()
-
-
-def host_ok(request):
-    host = (request.headers.get('host') or '').lower()
-    name = host.rsplit(':', 1)[0] if not host.startswith('[') else host.split(']')[0] + ']'
-    return name in LOCAL_HOSTS
 
 
 def fetch_cached(url, ttl):
@@ -128,67 +119,53 @@ def live_view(bets, fetch=fetch_cached):
     return out
 
 
-def create_router(store=None, allowed_origins=None, fetch=fetch_cached, close_fetch=None):
+def create_router(ctx, fetch=fetch_cached, close_fetch=None):
     router = APIRouter(prefix='/api/refresh/v1/tracker')
-    holder = {'store': store}
-    lock = threading.Lock()
 
-    def db():
-        with lock:
-            if holder['store'] is None:
-                holder['store'] = TrackerStore(DB_PATH)
-            return holder['store']
-
-    def origins():
-        if allowed_origins is not None:
-            return allowed_origins
-        from pipelines.refresh_service import ALLOWED_ORIGINS
-        return ALLOWED_ORIGINS
-
-    def reply(code, body):
-        return JSONResponse(body, status_code=code, headers={'Cache-Control': 'no-store'})
-
-    def guard(request, write):
-        if not host_ok(request):
-            return reply(403, {'error': 'Host not allowed.'})
-        if write and request.headers.get('origin') not in origins():
-            return reply(403, {'error': 'Origin not allowed.'})
-        return None
-
-    async def body_of(request):
+    async def serve(request, write, work):
+        """Run `work(ledger)` for the signed-in user and reply with its result."""
+        user, denied = ctx.require(request, write=write)
+        if denied:
+            return denied
         try:
-            return await request.json()
-        except ValueError:
-            raise TrackerError('The request body must be JSON') from None
+            return reply(200, await run_in_threadpool(work, ctx.store.ledger(user['id'])))
+        except TrackerError as error:
+            return reply(error.status, {'error': str(error), 'code': error.code})
 
-    async def run(request, write, work):
-        blocked = guard(request, write)
-        if blocked:
-            return blocked
+    async def with_body(request, work):
+        """Like serve() for writes that carry a JSON body: work(ledger, body)."""
+        user, denied = ctx.require(request, write=True)
+        if denied:
+            return denied
         try:
-            return reply(200, await run_in_threadpool(work))
+            try:
+                body = await request.json()
+            except ValueError:
+                raise TrackerError('The request body must be JSON') from None
+            return reply(200, await run_in_threadpool(work, ctx.store.ledger(user['id']), body))
         except TrackerError as error:
             return reply(error.status, {'error': str(error), 'code': error.code})
 
     @router.get('/state')
     async def state(request: Request):
-        return await run(request, False, lambda: db().state())
+        return await serve(request, False, lambda ledger: ledger.state())
 
     @router.get('/export')
     async def export(request: Request):
-        return await run(request, False, lambda: db().export())
+        return await serve(request, False, lambda ledger: ledger.export())
 
     @router.get('/live')
     async def live_state(request: Request):
-        return await run(request, False, lambda: {'live': live_view(db().state()['bets'], fetch)})
+        return await serve(request, False, lambda ledger: {'live': live_view(ledger.state()['bets'], fetch)})
 
     @router.post('/clv')
     async def measure_clv(request: Request):
-        blocked = guard(request, True)
-        if blocked:
-            return blocked
+        user, denied = ctx.require(request, write=True)
+        if denied:
+            return denied
+        ledger = ctx.store.ledger(user['id'])
         try:
-            bets = await run_in_threadpool(lambda: tracker_clv.measure_pending(db(), close_fetch or tracker_clv.fetch_close))
+            bets = await run_in_threadpool(lambda: tracker_clv.measure_pending(ledger, close_fetch or tracker_clv.fetch_close))
         except Exception:
             log.exception('closing-line measurement failed')
             return reply(502, {'error': 'The odds database is unavailable, so closing lines could not be measured.'})
@@ -196,64 +173,37 @@ def create_router(store=None, allowed_origins=None, fetch=fetch_cached, close_fe
 
     @router.post('/bets')
     async def add_bets(request: Request):
-        blocked = guard(request, True)
-        if blocked:
-            return blocked
-        try:
-            items = await body_of(request)
-            if isinstance(items, dict):
-                items = items.get('bets')
-            return reply(200, {'bets': await run_in_threadpool(db().add_bets, items)})
-        except TrackerError as error:
-            return reply(error.status, {'error': str(error), 'code': error.code})
+        def work(ledger, items):
+            return {'bets': ledger.add_bets(items.get('bets') if isinstance(items, dict) else items)}
+        return await with_body(request, work)
 
     @router.patch('/bets/{bet_id}')
     async def update(bet_id: str, request: Request):
-        blocked = guard(request, True)
-        if blocked:
-            return blocked
-        try:
-            data = await body_of(request)
-            return reply(200, {'bet': await run_in_threadpool(db().update_bet, bet_id, data)})
-        except TrackerError as error:
-            return reply(error.status, {'error': str(error), 'code': error.code})
+        return await with_body(request, lambda ledger, data: {'bet': ledger.update_bet(bet_id, data)})
 
     @router.post('/bets/{bet_id}/settle')
     async def settle(bet_id: str, request: Request):
-        blocked = guard(request, True)
-        if blocked:
-            return blocked
-        try:
-            data = await body_of(request)
+        def work(ledger, data):
             if not isinstance(data, dict):
                 raise TrackerError('The request body must be an object')
-            bet = await run_in_threadpool(lambda: db().settle_bet(
-                bet_id, data.get('result'), returned=data.get('returned'), settled_at=data.get('settled_at')))
-            return reply(200, {'bet': bet})
-        except TrackerError as error:
-            return reply(error.status, {'error': str(error), 'code': error.code})
+            return {'bet': ledger.settle_bet(bet_id, data.get('result'), returned=data.get('returned'),
+                                             settled_at=data.get('settled_at'))}
+        return await with_body(request, work)
 
     @router.post('/bets/{bet_id}/reopen')
     async def reopen(bet_id: str, request: Request):
-        return await run(request, True, lambda: {'bet': db().reopen_bet(bet_id)})
+        return await serve(request, True, lambda ledger: {'bet': ledger.reopen_bet(bet_id)})
 
     @router.delete('/bets/{bet_id}')
     async def delete_bet(bet_id: str, request: Request):
-        return await run(request, True, lambda: (db().delete_bet(bet_id), {'ok': True})[1])
+        return await serve(request, True, lambda ledger: (ledger.delete_bet(bet_id), {'ok': True})[1])
 
     @router.post('/cash')
     async def add_cash(request: Request):
-        blocked = guard(request, True)
-        if blocked:
-            return blocked
-        try:
-            data = await body_of(request)
-            return reply(200, {'cash': await run_in_threadpool(db().add_cash, data)})
-        except TrackerError as error:
-            return reply(error.status, {'error': str(error), 'code': error.code})
+        return await with_body(request, lambda ledger, data: {'cash': ledger.add_cash(data)})
 
     @router.delete('/cash/{cash_id}')
     async def delete_cash(cash_id: str, request: Request):
-        return await run(request, True, lambda: (db().delete_cash(cash_id), {'ok': True})[1])
+        return await serve(request, True, lambda ledger: (ledger.delete_cash(cash_id), {'ok': True})[1])
 
     return router

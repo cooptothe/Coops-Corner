@@ -23,6 +23,7 @@ import type {
   Page,
 } from "../lib/contracts";
 import { VIEWS } from "../lib/contracts";
+import { UserMenu } from "./auth-provider";
 import { Cards, Details, OddsMatrix } from "./market-views";
 import PromoFeed from "./promo-feed";
 import EvFeed from "./ev-feed";
@@ -317,6 +318,7 @@ export default function Workspace({ view }: { view: View }) {
               </span>
             )}
             <FreshOdds onRefreshed={() => setReload((v) => v + 1)} />
+            <UserMenu />
           </div>
         </header>
         <main id="main" tabIndex={-1}>

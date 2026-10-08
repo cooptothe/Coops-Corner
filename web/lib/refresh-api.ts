@@ -1,3 +1,5 @@
+import { notifyUnauthorized } from "./auth-api";
+
 export interface RefreshStatus {
   last_attempt_at: string | null;
   last_success_at: string | null;
@@ -35,6 +37,7 @@ async function call(
   const body = await response.json().catch(() => {
     throw new Error("The refresh service returned an unreadable response.");
   });
+  if (response.status === 401) notifyUnauthorized();
   if (!response.ok) throw new Error(body.error ?? "Refresh failed.");
   return body as RefreshStatus;
 }
@@ -121,6 +124,7 @@ async function propsCall(
   const data = await response.json().catch(() => {
     throw new Error("The refresh service returned an unreadable response.");
   });
+  if (response.status === 401) notifyUnauthorized();
   if (!response.ok) throw new Error(data.error ?? "Request failed.");
   return data as PropsStatus;
 }

@@ -17,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
 from corner import prop_markets
+from pipelines import accounts
 from pipelines import media as media_service
 from pipelines import tracker_service
 from pipelines import odds_ingestion as board
@@ -219,8 +220,10 @@ def run_props_refresh(sport, markets, max_events, capture=props.capture):
 
 def create_app():
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    ctx = accounts.AuthContext()
     app.include_router(media_service.create_router())
-    app.include_router(tracker_service.create_router())
+    app.include_router(accounts.create_router(ctx))
+    app.include_router(tracker_service.create_router(ctx))
 
     def reply(code, body):
         return JSONResponse(body, status_code=code, headers={'Cache-Control': 'no-store'})
@@ -235,8 +238,10 @@ def create_app():
 
     @app.post('/api/refresh/v1/props')
     async def props_refresh(request: Request):
-        if request.headers.get('origin') not in ALLOWED_ORIGINS:
-            return reply(403, {'error': 'Origin not allowed.'})
+        # Spends provider credits, so it needs the local UI origin and a signed-in account.
+        _, denied = ctx.require(request, write=True)
+        if denied:
+            return denied
         try:
             body = await request.json()
             sport, markets, count = body['sport'], body['markets'], body.get('max_events', PROP_DEFAULT_EVENTS)
@@ -250,9 +255,10 @@ def create_app():
 
     @app.post('/api/refresh/v1/odds')
     async def refresh(request: Request):
-        # Browsers always send Origin on cross-origin POST; reject anything but the local UI.
-        if request.headers.get('origin') not in ALLOWED_ORIGINS:
-            return reply(403, {'error': 'Origin not allowed.'})
+        # Browsers always send Origin on cross-origin POST; reject anything but the local UI, and anyone not signed in.
+        _, denied = ctx.require(request, write=True)
+        if denied:
+            return denied
         try:
             body = await request.json()
             chosen = body['sports']

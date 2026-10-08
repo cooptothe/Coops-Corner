@@ -28,9 +28,17 @@ BOOK = re.compile(r'^[a-z0-9_]{1,40}$')
 MAX_LEGS = 12
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  username_key TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS bets (
   id TEXT PRIMARY KEY,
-  client_key TEXT NOT NULL UNIQUE,
+  user_id TEXT REFERENCES users(id),
+  client_key TEXT NOT NULL,
   group_id TEXT,
   created_at TEXT NOT NULL,
   placed_at TEXT NOT NULL,
@@ -51,22 +59,28 @@ CREATE TABLE IF NOT EXISTS bets (
   ev_ratio TEXT,
   ref TEXT NOT NULL DEFAULT '{}',
   clv TEXT,
-  notes TEXT NOT NULL DEFAULT ''
+  notes TEXT NOT NULL DEFAULT '',
+  UNIQUE (user_id, client_key)
 );
-CREATE INDEX IF NOT EXISTS bets_placed ON bets(placed_at);
-CREATE INDEX IF NOT EXISTS bets_status ON bets(status);
+CREATE INDEX IF NOT EXISTS bets_user_placed ON bets(user_id, placed_at);
+CREATE INDEX IF NOT EXISTS bets_user_status ON bets(user_id, status);
 CREATE TABLE IF NOT EXISTS cash (
   id TEXT PRIMARY KEY,
-  client_key TEXT NOT NULL UNIQUE,
+  user_id TEXT REFERENCES users(id),
+  client_key TEXT NOT NULL,
   occurred_at TEXT NOT NULL,
   kind TEXT NOT NULL,
   amount_cents INTEGER NOT NULL,
   book TEXT NOT NULL,
   to_book TEXT,
-  note TEXT NOT NULL DEFAULT ''
+  note TEXT NOT NULL DEFAULT '',
+  UNIQUE (user_id, client_key)
 );
-CREATE INDEX IF NOT EXISTS cash_when ON cash(occurred_at);
+CREATE INDEX IF NOT EXISTS cash_user_when ON cash(user_id, occurred_at);
 """
+BET_COLUMNS = ('id, client_key, group_id, created_at, placed_at, strategy, sport_key, matchup, starts_at, market, selection, '
+               'book, odds, stake_cents, stake_type, status, returned_cents, settled_at, fair_prob, ev_ratio, ref, clv, notes')
+CASH_COLUMNS = 'id, client_key, occurred_at, kind, amount_cents, book, to_book, note'
 
 
 class TrackerError(ValueError):
@@ -211,12 +225,21 @@ def profit_cents(bet):
 
 def _bet_row(row):
     bet = dict(row)
+    bet.pop('user_id', None)
     bet['ref'] = json.loads(bet['ref'] or '{}')
     bet['clv'] = json.loads(bet['clv']) if bet['clv'] else None
     return bet
 
 
+def _cash_row(row):
+    entry = dict(row)
+    entry.pop('user_id', None)
+    return entry
+
+
 class TrackerStore:
+    """The database: accounts, plus one ledger per user (see ledger()). Every bet and cash row belongs to a user."""
+
     def __init__(self, path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -225,22 +248,106 @@ class TrackerStore:
         self._db.row_factory = sqlite3.Row
         self._db.execute('PRAGMA journal_mode=WAL')
         self._db.execute('PRAGMA synchronous=FULL')
+        self._db.execute('PRAGMA foreign_keys=ON')
+        self._upgrade_unscoped_tables()
         self._db.executescript(SCHEMA)
+        self._copy_unscoped_rows()
 
     def close(self):
         with self._lock:
             self._db.close()
 
+    # -- upgrading a database from before accounts existed -------------------------------------
+    # Those rows have no owner. They stay NULL (visible to nobody) until the first account is created,
+    # which adopts them, so a single-user database keeps its history.
+    def _upgrade_unscoped_tables(self):
+        with self._lock:
+            old = [t for t in ('bets', 'cash')
+                   if (cols := [r['name'] for r in self._db.execute(f'PRAGMA table_info({t})')]) and 'user_id' not in cols]
+            if not old:
+                return
+            self._db.execute('BEGIN IMMEDIATE')
+            try:
+                for index in ('bets_placed', 'bets_status', 'cash_when'):
+                    self._db.execute(f'DROP INDEX IF EXISTS {index}')
+                for table in old:
+                    self._db.execute(f'DROP TABLE IF EXISTS {table}_old')
+                    self._db.execute(f'ALTER TABLE {table} RENAME TO {table}_old')
+                self._db.execute('COMMIT')
+            except Exception:
+                self._db.execute('ROLLBACK')
+                raise
+
+    def _copy_unscoped_rows(self):
+        with self._lock:
+            for table, columns in (('bets', BET_COLUMNS), ('cash', CASH_COLUMNS)):
+                if not self._db.execute('SELECT 1 FROM sqlite_master WHERE name=?', (f'{table}_old',)).fetchone():
+                    continue
+                self._db.execute('BEGIN IMMEDIATE')
+                try:
+                    self._db.execute(f'INSERT OR IGNORE INTO {table}({columns}) SELECT {columns} FROM {table}_old')
+                    self._db.execute(f'DROP TABLE {table}_old')
+                    self._db.execute('COMMIT')
+                except Exception:
+                    self._db.execute('ROLLBACK')
+                    raise
+
+    # -- accounts -------------------------------------------------------------------------------
+    def create_user(self, username, username_key, password_hash):
+        """A new account; the username must be unused (case-insensitively). The first account adopts any unowned rows."""
+        user_id = uuid.uuid4().hex
+        with self._lock:
+            self._db.execute('BEGIN IMMEDIATE')
+            try:
+                first = self._db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0
+                self._db.execute('INSERT INTO users(id,username,username_key,password_hash,created_at) VALUES(?,?,?,?,?)',
+                                 (user_id, username, username_key, password_hash, now_iso()))
+                if first:
+                    self._db.execute('UPDATE bets SET user_id=? WHERE user_id IS NULL', (user_id,))
+                    self._db.execute('UPDATE cash SET user_id=? WHERE user_id IS NULL', (user_id,))
+                self._db.execute('COMMIT')
+            except sqlite3.IntegrityError:
+                self._db.execute('ROLLBACK')
+                _fail('That username is already taken. Try another.', 409, 'username_taken')
+            except Exception:
+                self._db.execute('ROLLBACK')
+                raise
+        return {'id': user_id, 'username': username}
+
+    def user_by_key(self, username_key):
+        with self._lock:
+            row = self._db.execute('SELECT * FROM users WHERE username_key=?', (username_key,)).fetchone()
+        return dict(row) if row else None
+
+    def user_by_id(self, user_id):
+        with self._lock:
+            row = self._db.execute('SELECT * FROM users WHERE id=?', (user_id,)).fetchone()
+        return dict(row) if row else None
+
+    def ledger(self, user_id):
+        return Ledger(self, user_id)
+
+
+class Ledger:
+    """One user's bets and cash. Every query is constrained to that user's id."""
+
+    def __init__(self, store, user_id):
+        if not user_id:
+            raise ValueError('A ledger needs a user')
+        self._db, self._lock, self.user_id = store._db, store._lock, user_id
+
     # -- reads ------------------------------------------------------------------------------
     def state(self):
         with self._lock:
-            bets = [_bet_row(r) for r in self._db.execute('SELECT * FROM bets ORDER BY placed_at, created_at, id')]
-            cash = [dict(r) for r in self._db.execute('SELECT * FROM cash ORDER BY occurred_at, id')]
+            bets = [_bet_row(r) for r in self._db.execute(
+                'SELECT * FROM bets WHERE user_id=? ORDER BY placed_at, created_at, id', (self.user_id,))]
+            cash = [_cash_row(r) for r in self._db.execute(
+                'SELECT * FROM cash WHERE user_id=? ORDER BY occurred_at, id', (self.user_id,))]
         return {'bets': bets, 'cash': cash}
 
     def bet(self, bet_id):
         with self._lock:
-            row = self._db.execute('SELECT * FROM bets WHERE id=?', (bet_id,)).fetchone()
+            row = self._db.execute('SELECT * FROM bets WHERE id=? AND user_id=?', (bet_id, self.user_id)).fetchone()
         if not row:
             _fail('That bet no longer exists', 404, 'not_found')
         return _bet_row(row)
@@ -290,16 +397,16 @@ class TrackerStore:
             self._db.execute('BEGIN IMMEDIATE')
             try:
                 for key, v in prepared:
-                    row = self._db.execute('SELECT * FROM bets WHERE client_key=?', (key,)).fetchone()
+                    row = self._db.execute('SELECT * FROM bets WHERE client_key=? AND user_id=?', (key, self.user_id)).fetchone()
                     if row:
                         saved.append(_bet_row(row))
                         continue
                     bet_id = uuid.uuid4().hex
                     self._db.execute(
-                        'INSERT INTO bets(id,client_key,group_id,created_at,placed_at,strategy,sport_key,matchup,starts_at,'
+                        'INSERT INTO bets(id,user_id,client_key,group_id,created_at,placed_at,strategy,sport_key,matchup,starts_at,'
                         'market,selection,book,odds,stake_cents,stake_type,fair_prob,ev_ratio,ref,notes) '
-                        'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                        (bet_id, key, v['group_id'], now_iso(), v['placed_at'], v['strategy'], v['sport_key'],
+                        'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                        (bet_id, self.user_id, key, v['group_id'], now_iso(), v['placed_at'], v['strategy'], v['sport_key'],
                          v['matchup'], v['starts_at'], v['market'], v['selection'], v['book'], v['odds'],
                          v['stake_cents'], v['stake_type'], v['fair_prob'], v['ev_ratio'], v['ref'], v['notes']))
                     saved.append(_bet_row(self._db.execute('SELECT * FROM bets WHERE id=?', (bet_id,)).fetchone()))
@@ -332,9 +439,9 @@ class TrackerStore:
         with self._lock:
             self._db.execute(
                 'UPDATE bets SET placed_at=?,strategy=?,matchup=?,market=?,selection=?,book=?,odds=?,stake_cents=?,'
-                'stake_type=?,notes=?,returned_cents=? WHERE id=?',
+                'stake_type=?,notes=?,returned_cents=? WHERE id=? AND user_id=?',
                 (v['placed_at'], v['strategy'], v['matchup'], v['market'], v['selection'], v['book'], v['odds'],
-                 v['stake_cents'], v['stake_type'], v['notes'], returned, bet_id))
+                 v['stake_cents'], v['stake_type'], v['notes'], returned, bet_id, self.user_id))
         return self.bet(bet_id)
 
     def settle_bet(self, bet_id, result, *, returned=None, settled_at=None):
@@ -347,24 +454,25 @@ class TrackerStore:
         if when < bet['placed_at']:
             when = bet['placed_at']
         with self._lock:
-            self._db.execute('UPDATE bets SET status=?,returned_cents=?,settled_at=? WHERE id=?',
-                             (result, total, when, bet_id))
+            self._db.execute('UPDATE bets SET status=?,returned_cents=?,settled_at=? WHERE id=? AND user_id=?',
+                             (result, total, when, bet_id, self.user_id))
         return self.bet(bet_id)
 
     def reopen_bet(self, bet_id):
         self.bet(bet_id)
         with self._lock:
-            self._db.execute("UPDATE bets SET status='pending',returned_cents=NULL,settled_at=NULL WHERE id=?", (bet_id,))
+            self._db.execute("UPDATE bets SET status='pending',returned_cents=NULL,settled_at=NULL WHERE id=? AND user_id=?", (bet_id, self.user_id))
         return self.bet(bet_id)
 
     def delete_bet(self, bet_id):
         self.bet(bet_id)
         with self._lock:
-            self._db.execute('DELETE FROM bets WHERE id=?', (bet_id,))
+            self._db.execute('DELETE FROM bets WHERE id=? AND user_id=?', (bet_id, self.user_id))
 
     def set_clv(self, bet_id, clv):
         with self._lock:
-            self._db.execute('UPDATE bets SET clv=? WHERE id=?', (json.dumps(clv, separators=(',', ':')), bet_id))
+            self._db.execute('UPDATE bets SET clv=? WHERE id=? AND user_id=?',
+                             (json.dumps(clv, separators=(',', ':')), bet_id, self.user_id))
 
     # -- cash -------------------------------------------------------------------------------
     def add_cash(self, data):
@@ -387,20 +495,20 @@ class TrackerStore:
         if datetime.fromisoformat(occurred) > datetime.now(timezone.utc) + timedelta(days=1):
             _fail('date: cannot be in the future')
         with self._lock:
-            row = self._db.execute('SELECT * FROM cash WHERE client_key=?', (key,)).fetchone()
+            row = self._db.execute('SELECT * FROM cash WHERE client_key=? AND user_id=?', (key, self.user_id)).fetchone()
             if row:
-                return dict(row)
+                return _cash_row(row)
             cash_id = uuid.uuid4().hex
-            self._db.execute('INSERT INTO cash(id,client_key,occurred_at,kind,amount_cents,book,to_book,note) VALUES(?,?,?,?,?,?,?,?)',
-                             (cash_id, key, occurred, kind, amount, where, to_book, text(data.get('note'), 'note', limit=300)))
-            return dict(self._db.execute('SELECT * FROM cash WHERE id=?', (cash_id,)).fetchone())
+            self._db.execute('INSERT INTO cash(id,user_id,client_key,occurred_at,kind,amount_cents,book,to_book,note) VALUES(?,?,?,?,?,?,?,?,?)',
+                             (cash_id, self.user_id, key, occurred, kind, amount, where, to_book, text(data.get('note'), 'note', limit=300)))
+            return _cash_row(self._db.execute('SELECT * FROM cash WHERE id=?', (cash_id,)).fetchone())
 
     def delete_cash(self, cash_id):
         with self._lock:
-            found = self._db.execute('SELECT 1 FROM cash WHERE id=?', (cash_id,)).fetchone()
+            found = self._db.execute('SELECT 1 FROM cash WHERE id=? AND user_id=?', (cash_id, self.user_id)).fetchone()
             if not found:
                 _fail('That entry no longer exists', 404, 'not_found')
-            self._db.execute('DELETE FROM cash WHERE id=?', (cash_id,))
+            self._db.execute('DELETE FROM cash WHERE id=? AND user_id=?', (cash_id, self.user_id))
 
     # -- backup -----------------------------------------------------------------------------
     def export(self):
