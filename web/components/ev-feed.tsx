@@ -6,6 +6,7 @@ import {
   compareDecimal,
   date,
   divDecimal,
+  fixed,
   mulDecimal,
   percent,
   selection,
@@ -23,8 +24,16 @@ import type {
   Quote,
   ToolRow,
 } from "../lib/contracts";
-import { logBets } from "../lib/slip";
-import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { quoteRef, type NewBet } from "../lib/slip";
+import type { RefValue, Strategy } from "../lib/tracker-api";
+import { bookCode, bookLabel, dollars } from "../lib/tracker-math";
+import {
+  LogBetButton,
+  SlipLog,
+  SlipToggle,
+  useSlip,
+  useTrackedBankroll,
+} from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
@@ -51,6 +60,8 @@ interface Vm {
   startMs: number;
   sharps: string;
   observedAt: string;
+  fairProb: string;
+  ref: Record<string, RefValue>;
 }
 export interface KellyVm {
   id: string;
@@ -65,6 +76,11 @@ export interface KellyVm {
   odds: string;
   decimalOdds: string;
   lay: boolean;
+  // What the tracker records about the bet; absent for views that only size a stake.
+  strategy?: Strategy;
+  startsAt?: string;
+  fairProb?: string;
+  ref?: Record<string, RefValue>;
 }
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 
@@ -129,6 +145,8 @@ function toVm(
     startMs: g?.starts_at ? new Date(g.starts_at).getTime() : Infinity,
     sharps,
     observedAt: row.oldest_observed_at,
+    fairProb: row.calculation.conditional_fair_probability,
+    ref: quoteRef(q),
   };
 }
 
@@ -282,8 +300,7 @@ export function KellyWidget({
   setMultiplier: (v: string) => void;
   onClose: () => void;
 }) {
-  const [bet, setBet] = useState<"idle" | "pending" | "done">("idle");
-  useEffect(() => setBet("idle"), [vm?.id]);
+  const tracked = useTrackedBankroll();
   // The calculator is a drawer, so Escape closes it.
   useEffect(() => {
     if (!vm) return;
@@ -296,25 +313,29 @@ export function KellyWidget({
     vm && validBankroll && compareDecimal(bankroll, "0") > 0
       ? kelly(vm.ev, vm.decimalOdds, bankroll, multiplier, vm.lay)
       : null;
-  const place = () => {
-    if (!vm || !result) return;
-    setBet("pending");
-    setTimeout(() => {
-      try {
-        logBets([
+  const legs: NewBet[] =
+    vm && result
+      ? [
           {
             matchup: vm.matchup,
             line: vm.line,
             book: vm.bookLabel,
             odds: vm.odds,
-            stake: result.stake,
+            stake: fixed(result.stake, 2),
+            strategy: vm.strategy ?? (vm.player ? "prop" : "ev"),
+            sportKey: vm.sportKey,
+            startsAt: vm.startsAt,
+            market: vm.market,
+            decimalOdds: vm.decimalOdds,
+            fairProb: vm.fairProb,
+            evRatio: vm.ev,
+            ref: vm.ref,
           },
-        ]);
-      } catch {}
-      setBet("done");
-      onLogged();
-    }, 700);
-  };
+        ]
+      : [];
+  const trackedDollars = tracked.ready ? dollars(tracked.bankroll) : "";
+  const bookCash = vm ? tracked.liquid(bookCode(vm.bookLabel)) : null;
+  const stakeCents = result ? Math.round(Number(result.stake) * 100) : 0;
   return (
     <aside
       className={`kelly-panel ${vm ? "open" : ""}`}
@@ -369,6 +390,17 @@ export function KellyWidget({
               onChange={(e) => setBankroll(e.target.value)}
               aria-invalid={!validBankroll}
             />
+            {tracked.ready &&
+              tracked.bankroll > 0 &&
+              trackedDollars !== bankroll && (
+                <button
+                  type="button"
+                  className="trk-link"
+                  onClick={() => setBankroll(trackedDollars)}
+                >
+                  Use tracked bankroll ({usd(trackedDollars)})
+                </button>
+              )}
           </label>
           <label className="field">
             <span>
@@ -397,22 +429,19 @@ export function KellyWidget({
                   : "Enter a valid bankroll"}
             </small>
           </div>
-          <button
-            className="button kelly-bet"
-            disabled={!result || bet === "pending" || unavailable}
-            onClick={place}
-          >
-            {bet === "pending"
-              ? "Recording…"
-              : bet === "done"
-                ? "Logged ✓"
-                : "One-click bet"}
-          </button>
-          <small className="kelly-note">
-            {bet === "done"
-              ? "Saved to the local slip only. Nothing was placed at the sportsbook — place it there and re-check the price."
-              : "Simulated: records the bet locally. It does not place a wager."}
-          </small>
+          {bookCash != null && result && stakeCents > bookCash && (
+            <small className="kelly-note" role="alert">
+              Your tracked {bookLabel(bookCode(vm.bookLabel))} balance is{" "}
+              {usd(dollars(Math.max(0, bookCash)))}, less than this stake. Move
+              cash there first.
+            </small>
+          )}
+          <LogBetButton
+            legs={legs}
+            resetKey={vm.id}
+            disabled={!result || unavailable}
+            onLogged={onLogged}
+          />
         </>
       )}
     </aside>

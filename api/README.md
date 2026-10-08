@@ -228,8 +228,9 @@ is optional and skips if the API dependencies are not installed. The pinned
 Starlette release currently emits a non-failing HTTPX TestClient deprecation
 warning; the runtime API and test assertions still pass.
 
-There is no tracker/bankroll API, CLV, historical movement, live ingestion or
-broader persisted-engine/worker integration in this slice. No existing engine,
+This tools API has no tracker/bankroll endpoints (the tracker lives in the local refresh
+service), no historical movement, live ingestion or broader persisted-engine/worker
+integration in this slice. No existing engine,
 database schema, credentials or production approval has been changed.
 
 Framework references: [response models](https://fastapi.tiangolo.com/tutorial/response-model/),

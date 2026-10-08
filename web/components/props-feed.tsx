@@ -105,6 +105,18 @@ function toVm(b: PropBet): Vm {
     fair: b.fair_probability,
     sharps: b.sharps.map(bookName).join(" + "),
     observedAt: b.observed_at,
+    strategy: "prop",
+    fairProb: b.fair_probability,
+    ref: {
+      game_id: b.event_id,
+      market_key: "prop",
+      prop_market: b.market_key,
+      player: b.player,
+      side: b.side.toLowerCase(),
+      point: b.point == null ? null : Number(b.point),
+      away: b.away,
+      home: b.home,
+    },
   };
 }
 

@@ -5,6 +5,7 @@ import {
   american,
   compareDecimal,
   date,
+  MARKETS,
   divDecimal,
   percent,
   selection,
@@ -26,7 +27,8 @@ import type {
   Quote,
   ToolRow,
 } from "../lib/contracts";
-import type { NewSlipBet } from "../lib/slip";
+import { quoteRef, type NewBet } from "../lib/slip";
+import type { RefValue } from "../lib/tracker-api";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
 import { Matchup } from "./media";
@@ -42,6 +44,8 @@ interface LegVm {
   decimalOdds: string;
   odds: string;
   lay: boolean;
+  commission: number;
+  ref: Record<string, RefValue>;
 }
 interface BackLayVm {
   capital: number;
@@ -108,6 +112,8 @@ function toVm(
       decimalOdds: q.decimal_odds,
       odds: american(q.decimal_odds),
       lay: q.market_key.endsWith("_lay"),
+      commission: Number(q.commission_rate) || 0,
+      ref: quoteRef(q),
     });
   }
   if (legs.length !== 2) return null;
@@ -279,34 +285,37 @@ function Calculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig, total]);
 
-  const logLegs: NewSlipBet[] =
+  const legBet = (l: LegVm, label: string, stake: number): NewBet => ({
+    matchup: vm!.matchup,
+    line: `${label} ${l.label}`.trim(),
+    book: l.bookLabel,
+    odds: l.odds,
+    stake: stake.toFixed(2),
+    strategy: "arbitrage",
+    sportKey: vm!.sportKey,
+    startsAt: vm!.startsAt,
+    market: MARKETS[l.ref.market_key as keyof typeof MARKETS] ?? "",
+    ref: l.ref,
+  });
+  // A lay is tracked as a bet on the opposite outcome: the stake is the liability, and a win pays the
+  // backer's stake net of commission, which is the same cash result as the lay.
+  const layBet = (l: LegVm, liability: number): NewBet => ({
+    ...legBet(l, "Lay", liability),
+    decimalOdds: (1 + (1 - l.commission) / (Number(l.decimalOdds) - 1)).toFixed(
+      6,
+    ),
+    ref: { ...l.ref, lay: true, market_key: null, side: null },
+  });
+  const logLegs: NewBet[] =
     !vm || !validStake
       ? []
       : vm.backLay && lay
         ? [
-            {
-              matchup: vm.matchup,
-              line: `Arbitrage · Back ${vm.legs[0].label}`,
-              book: vm.legs[0].bookLabel,
-              odds: vm.legs[0].odds,
-              stake: lay.back.toFixed(2),
-            },
-            {
-              matchup: vm.matchup,
-              line: `Arbitrage · Lay ${vm.legs[1].label}`,
-              book: vm.legs[1].bookLabel,
-              odds: vm.legs[1].odds,
-              stake: lay.layStake.toFixed(2),
-            },
+            legBet(vm.legs[0], "Back", lay.back),
+            layBet(vm.legs[1], lay.liability),
           ]
         : sizing
-          ? vm.legs.map((l, i) => ({
-              matchup: vm.matchup,
-              line: `Arbitrage · ${l.label}`,
-              book: l.bookLabel,
-              odds: l.odds,
-              stake: sizing.stakes[i].toFixed(2),
-            }))
+          ? vm.legs.map((l, i) => legBet(l, "", sizing.stakes[i]))
           : [];
 
   return (

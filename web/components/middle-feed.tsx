@@ -17,7 +17,8 @@ import type {
   ToolRow,
 } from "../lib/contracts";
 import { Age, CopyButton, Menu, shortBook } from "./arb-feed";
-import type { NewSlipBet } from "../lib/slip";
+import { quoteRef, type NewBet } from "../lib/slip";
+import type { RefValue } from "../lib/tracker-api";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
 import { Matchup } from "./media";
@@ -33,6 +34,7 @@ interface LegVm {
   label: string;
   odds: string;
   stake: number;
+  ref: Record<string, RefValue>;
 }
 interface Vm {
   id: string;
@@ -113,6 +115,7 @@ function toVm(
       label: selection(q),
       odds: american(q.decimal_odds),
       stake: Number(leg.stake),
+      ref: quoteRef(q),
     });
   }
   const ranges = row.calculation.double_win_ranges;
@@ -272,14 +275,19 @@ function Calculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig, total]);
 
-  const logLegs: NewSlipBet[] =
+  const logLegs: NewBet[] =
     vm && scaled
       ? vm.legs.map((l, i) => ({
           matchup: vm.matchup,
-          line: `Middle · ${l.label}`,
+          line: l.label,
           book: l.bookLabel,
           odds: l.odds,
           stake: scaled.stakes[i].toFixed(2),
+          strategy: "middle" as const,
+          sportKey: vm.sportKey,
+          startsAt: vm.startsAt,
+          market: vm.market,
+          ref: l.ref,
         }))
       : [];
 

@@ -1,4 +1,4 @@
-import PersonalWorkspace from "../../components/personal-workspace";
+﻿import Tracker from "../../components/tracker";
 export default function TrackerPage() {
-  return <PersonalWorkspace />;
+  return <Tracker />;
 }

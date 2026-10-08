@@ -37,11 +37,36 @@ needed or imported. Configuration changes require restarting/rebuilding Next.
 
 ## Views and boundaries
 
-`/tracker` adds local accounts and private retrospective recordkeeping. Enable
-the backend as described in [Personal records](../server/PERSONAL_RECORDS.md).
-It does not submit wagers or move money. CLV remains explicitly unavailable.
+`/tracker` is the bet tracker and bankroll manager. It needs no account and no Java
+backend: the refresh service (`python -m pipelines.refresh_service`) stores the ledger in
+`retained/tracker.sqlite3` and the page reads and writes it through `/api/refresh/v1/tracker`.
+It does not submit wagers or move money.
 
-Routes: `/positive_ev`, `/arbitrage`, `/middle`, `/props`, `/games`, `/promo`.
+- **Bets**: a KPI ribbon (net P&L with a sparkline, bankroll, ROI and W-L-P record, CLV beat rate,
+  open bets), filters (sportsbook, league, status, strategy, search) and a ledger whose rows show
+  live progress for open bets (a progress bar for player props and totals, the score otherwise).
+  Click a bet to settle it (won, lost, push, void, cash-out), correct it, reopen or delete it.
+  When ESPN reports a game final the row offers a suggested result; nothing settles until you click.
+- **Bankroll**: balances per sportsbook and a vault, deposits, withdrawals, rebalancing transfers
+  and balance adjustments, a running net-bankroll ledger, a bankroll timeline, max and current
+  drawdown, 7-day / 30-day / all-time performance, and expected value versus realized profit for
+  bets logged with an edge. Kelly sizing (quarter, half or full) is in the log-a-bet drawer and
+  can use your tracked bankroll.
+- Every tool's **One-click bet** records the play (all legs together) here, with its odds, edge,
+  teams and line. Bets saved in the old browser-only log are imported once, as pending manual bets.
+- Money is whole cents; balances, the ledger and the charts are derived from your bets and cash
+  entries, so edits and deletes cannot leave a total stale. A bonus bet costs no cash and pays
+  winnings only; site credit also pays its stake on a win.
+- Live progress is polled about every 30 seconds while a game is under way (ESPN public data; NFL,
+  NCAAF, NBA, NCAAB, WNBA, MLB and NHL main lines and common player props can be graded; soccer,
+  tennis and MMA show status only). It is not a WebSocket feed.
+- Closing-line value compares the price you took with the sharp books' last no-vig price at the same
+  line before the game started, from the odds ledger. It is only available when a refresh captured
+  that close, for moneyline, spread and total bets (not player props or lays), and the ribbon says
+  how many bets were measured.
+- Back up by copying `retained/tracker.sqlite3` or with **Export backup** on the Bankroll tab.
+
+Routes: `/positive_ev`, `/arbitrage`, `/middle`, `/props`, `/games`, `/promo`, `/tracker`.
 `/` opens Positive EV. Unknown view routes return 404. `/games` is the schedule: upcoming games grouped by day (ESPN style, with team
 logos), a league filter, and for each game the main line of the spread, total
 and moneyline with the best available price on every side and the sportsbook

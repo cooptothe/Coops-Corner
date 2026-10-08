@@ -14,122 +14,7 @@
   margin-left: auto;
   color: #f0a8b4;
 }
-.personal-disclaimer,
-.personal-muted {
-  color: #b9aeb4;
-  font-size: 13px;
-  line-height: 1.7;
-  margin: 18px 0;
-}
-.personal-card {
-  background: #201a1e;
-  border: 1px solid #46333d;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
-}
-.personal-card h2 {
-  margin-bottom: 14px;
-}
-.personal-card h3 {
-  margin-top: 30px;
-}
-.personal-card > p {
-  line-height: 1.65;
-  color: #c0b4bb;
-  font-size: 13px;
-}
-.personal-card form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-top: 22px;
-}
-.personal-card label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  color: #d1c5cb;
-}
-.personal-card input,
-.personal-card select {
-  padding: 12px;
-  background: #110f11;
-  color: white;
-  border: 1px solid #4c3b44;
-  border-radius: 6px;
-  width: 100%;
-  min-width: 0;
-  color-scheme: dark;
-}
-.personal-card .button {
-  align-self: start;
-}
-.personal-pair,
-.personal-session {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-.personal-session {
-  justify-content: space-between;
-  margin: 20px 0;
-}
-.personal-forms {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 22px;
-}
-.personal-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-.personal-summary strong {
-  display: block;
-  font-size: 25px;
-  margin-top: 14px;
-}
-.personal-summary span {
-  font-size: 12px;
-  color: #c3b4bc;
-}
-.personal-scroll {
-  overflow-x: auto;
-}
-.personal-scroll table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  white-space: nowrap;
-}
-.personal-scroll td,
-.personal-scroll th {
-  padding: 14px 10px;
-  border-bottom: 1px solid #49343f;
-  font-size: 13px;
-}
-.auth-card {
-  max-width: 480px;
-  margin: 40px auto;
-}
-.personal-link {
-  border: 0;
-  background: transparent;
-  color: #ef9dae;
-  padding: 16px 0;
-  cursor: pointer;
-}
 @media (max-width: 760px) {
-  .personal-forms {
-    grid-template-columns: 1fr;
-  }
-  .personal-summary {
-    grid-template-columns: 1fr 1fr;
-  }
   .personal-header {
     flex-wrap: wrap;
   }
@@ -138,9 +23,5 @@
   }
   .personal-workspace {
     padding: 20px 14px;
-  }
-  .personal-pair {
-    flex-direction: column;
-    align-items: stretch;
   }
 }

@@ -20,7 +20,8 @@ import {
   toDecimal,
   type PromoType,
 } from "../lib/promo-math";
-import type { NewSlipBet } from "../lib/slip";
+import { quoteRef, type NewBet } from "../lib/slip";
+import type { RefValue } from "../lib/tracker-api";
 import { Age, Menu, shortBook } from "./arb-feed";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
@@ -34,6 +35,7 @@ interface Leg {
   label: string;
   odds: string;
   decimal: number;
+  ref: Record<string, RefValue>;
 }
 interface Vm {
   id: string;
@@ -254,6 +256,7 @@ function leg(q: Quote, books: Map<string, string>): Leg {
     label: selection(q),
     odds: american(q.decimal_odds),
     decimal: Number(q.decimal_odds),
+    ref: quoteRef(q),
   };
 }
 
@@ -570,21 +573,39 @@ function Calculator({
     [sig, type, face, valid, refundRate, boost, boostFields],
   );
   const info = TYPES.find((t) => t.id === type)!;
-  const logLegs: NewSlipBet[] =
+  // Each promo type is recorded as what it really is: a free bet costs no cash, site credit also
+  // pays its stake back on a win, a boost is a cash bet at the boosted price, and a risk-free bet
+  // is a cash bet whose refund (if it loses) is logged later as a bonus bet.
+  const stakeType =
+    type === "bonus" ? "bonus" : type === "credit" ? "credit" : "cash";
+  const context = (leg: Vm["promo"]) => ({
+    matchup: vm!.matchup,
+    book: leg.bookLabel,
+    odds: leg.odds,
+    strategy: "promo" as const,
+    sportKey: vm!.sportKey,
+    startsAt: vm!.startsAt,
+    market: vm!.market,
+    ref: leg.ref,
+  });
+  const logLegs: NewBet[] =
     vm && c && valid
       ? [
           {
-            matchup: vm.matchup,
-            line: `Promo (${info.name}) · ${vm.promo.label}`,
-            book: vm.promo.bookLabel,
-            odds: vm.promo.odds,
+            ...context(vm.promo),
+            line: `${vm.promo.label} · ${info.name}`,
             stake: Number(face).toFixed(2),
+            stakeType,
+            ...(type === "boost" && {
+              decimalOdds: c.boostedDecimal.toFixed(6),
+            }),
+            ...(type === "nosweat" && {
+              notes: "Risk-free: if this loses, log the refund as a bonus bet.",
+            }),
           },
           {
-            matchup: vm.matchup,
+            ...context(vm.hedge),
             line: `Hedge · ${vm.hedge.label}`,
-            book: vm.hedge.bookLabel,
-            odds: vm.hedge.odds,
             stake: c.hedge.toFixed(2),
           },
         ]

@@ -3,7 +3,8 @@
 ![Coop's Corner](web/public/assets/corner-banner.png)
 
 A local, pre-game sports betting toolkit: **+EV**, **arbitrage**, **middles**,
-a **promo converter** and an upcoming-games **schedule** with the best lines, all running
+a **promo converter**, an upcoming-games **schedule** with the best lines, and a **bet
+tracker with bankroll management**, all running
 over stored pre-game odds from [The Odds API](https://the-odds-api.com/).
 
 Odds API credits are spent only when you press **Refresh odds**. Nothing polls the
@@ -25,7 +26,7 @@ The Odds API --> pipelines/ (refresh service :8766) --> PostgreSQL
 | `web/` | Next.js / TypeScript frontend ([guide](web/README.md)) |
 | `api/` | FastAPI tools API over stored odds ([guide](api/README.md)) |
 | `server/` | Spring Boot read-only market API ([guide](server/README.md)) |
-| `pipelines/` | `refresh_service.py` (credit-aware refresh) and `odds_ingestion.py` |
+| `pipelines/` | `refresh_service.py` (credit-aware refresh, props, media and the local bet tracker) and `odds_ingestion.py` |
 | `corner/` | Canonical domain model, calculators and ledgers ([docs](corner/)) |
 | `db/` | `schema.sql`, migrations ([guide](db/migrations/README.md)) and `insert.py` |
 | `frontend/` | Shared formatting/hedge utilities and brand assets used by `web/` |
@@ -98,6 +99,7 @@ otherwise built once at startup. If you change `web/next.config.ts`, restart `pn
 | `/props` | Player prop +EV bets against the sharp books, with the Kelly calculator |
 | `/promo` | Bonus bet, site credit, risk-free bet and profit boost conversion with a stake calculator |
 | `/games` | Schedule: upcoming games by day, with the best main-line spread, total and moneyline |
+| `/tracker` | Bet tracker and bankroll: ledger with live progress, per-book balances, Kelly sizing, CLV and history charts ([details](web/README.md#views-and-boundaries)) |
 
 Feeds can be sorted by EV, win probability, start time and other measures relevant
 to each tool. Sharp reference books are Pinnacle, Novig and BetOnline; the rest of
