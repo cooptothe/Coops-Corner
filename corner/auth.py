@@ -15,7 +15,8 @@ import secrets
 import threading
 import time
 
-TOKEN_TTL = 7 * 86400
+REMEMBER_TTL = 30 * 86400  # "remember me": a persistent cookie
+SESSION_TTL = 12 * 3600  # otherwise a browser-session cookie, which the server also stops honouring after 12 hours
 USERNAME = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{2,23}$')
 PASSWORD_MIN, PASSWORD_MAX = 8, 128
 SCRYPT_N, SCRYPT_R, SCRYPT_P = 2 ** 15, 8, 1
@@ -98,10 +99,12 @@ def _sign(secret, signing_input):
     return hmac.new(secret.encode('utf-8'), signing_input.encode('ascii'), hashlib.sha256).digest()
 
 
-def issue_token(secret, user_id, username, *, now=None, ttl=TOKEN_TTL):
+def issue_token(secret, user_id, username, *, epoch=0, remember=True, now=None, ttl=None):
     now = int(time.time() if now is None else now)
+    ttl = ttl if ttl is not None else REMEMBER_TTL if remember else SESSION_TTL
     header = _url(json.dumps({'alg': 'HS256', 'typ': 'JWT'}, separators=(',', ':')).encode())
-    claims = _url(json.dumps({'sub': user_id, 'usr': username, 'iat': now, 'exp': now + ttl}, separators=(',', ':')).encode())
+    claims = _url(json.dumps({'sub': user_id, 'usr': username, 'ep': epoch, 'rm': bool(remember), 'iat': now,
+                              'exp': now + ttl}, separators=(',', ':')).encode())
     signing_input = f'{header}.{claims}'
     return f'{signing_input}.{_url(_sign(secret, signing_input))}'
 
@@ -123,6 +126,19 @@ def verify_token(secret, token, *, now=None):
         return claims
     except (ValueError, TypeError, AttributeError, UnicodeError):
         return None
+
+
+def session_user(secret, token, lookup):
+    """The {id, username, remember} a session token stands for, or None.
+
+    `lookup(user_id)` returns the stored account row (or None). A token stops working when the account is
+    gone or its password was changed or reset (the account's session_epoch no longer matches the token's).
+    """
+    claims = verify_token(secret, token) if token else None
+    row = lookup(claims['sub']) if claims else None
+    if not row or claims.get('ep', 0) != row.get('session_epoch', 0):
+        return None
+    return {'id': row['id'], 'username': row['username'], 'remember': claims.get('rm', True) is not False}
 
 
 def load_secret(path):

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL,
   username_key TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
+  session_epoch INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS bets (
@@ -231,6 +232,25 @@ def _bet_row(row):
     return bet
 
 
+def read_user(path, user_id):
+    """An account row through a read-only connection, for other processes that only need to check a session."""
+    path = Path(path)
+    if not path.exists():
+        return None
+    try:
+        db = sqlite3.connect(f'{path.resolve().as_uri()}?mode=ro', uri=True, timeout=2)
+    except sqlite3.Error:
+        return None
+    try:
+        db.row_factory = sqlite3.Row
+        row = db.execute('SELECT id, username, session_epoch FROM users WHERE id=?', (user_id,)).fetchone()
+        return dict(row) if row else None
+    except sqlite3.Error:
+        return None
+    finally:
+        db.close()
+
+
 def _cash_row(row):
     entry = dict(row)
     entry.pop('user_id', None)
@@ -250,6 +270,7 @@ class TrackerStore:
         self._db.execute('PRAGMA synchronous=FULL')
         self._db.execute('PRAGMA foreign_keys=ON')
         self._upgrade_unscoped_tables()
+        self._add_session_epoch()
         self._db.executescript(SCHEMA)
         self._copy_unscoped_rows()
 
@@ -292,6 +313,12 @@ class TrackerStore:
                     self._db.execute('ROLLBACK')
                     raise
 
+    def _add_session_epoch(self):
+        with self._lock:
+            columns = [r['name'] for r in self._db.execute('PRAGMA table_info(users)')]
+            if columns and 'session_epoch' not in columns:
+                self._db.execute('ALTER TABLE users ADD COLUMN session_epoch INTEGER NOT NULL DEFAULT 0')
+
     # -- accounts -------------------------------------------------------------------------------
     def create_user(self, username, username_key, password_hash):
         """A new account; the username must be unused (case-insensitively). The first account adopts any unowned rows."""
@@ -323,6 +350,20 @@ class TrackerStore:
         with self._lock:
             row = self._db.execute('SELECT * FROM users WHERE id=?', (user_id,)).fetchone()
         return dict(row) if row else None
+
+    def list_users(self):
+        with self._lock:
+            rows = self._db.execute('SELECT id, username, created_at FROM users ORDER BY created_at, username_key').fetchall()
+        return [dict(r) for r in rows]
+
+    def set_password(self, user_id, password_hash):
+        """Replace a password and sign out every session issued before now (the epoch is part of each token)."""
+        with self._lock:
+            cursor = self._db.execute('UPDATE users SET password_hash=?, session_epoch=session_epoch+1 WHERE id=?',
+                                      (password_hash, user_id))
+            if cursor.rowcount != 1:
+                _fail('That account no longer exists', 404, 'not_found')
+            return self._db.execute('SELECT session_epoch FROM users WHERE id=?', (user_id,)).fetchone()[0]
 
     def ledger(self, user_id):
         return Ledger(self, user_id)

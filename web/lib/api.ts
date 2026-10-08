@@ -1,3 +1,4 @@
+import { notifyUnauthorized } from "./auth-api.ts";
 import type { Envelope, Page } from "./contracts.ts";
 
 export class ApiError extends Error {
@@ -81,6 +82,7 @@ export async function request<T>(
     });
     if (controller.signal.aborted)
       throw new DOMException("Request cancelled", "AbortError");
+    if (response.status === 401) notifyUnauthorized();
     if (!response.ok) {
       const error = (body as { error?: { message?: string; code?: string } })
         ?.error;

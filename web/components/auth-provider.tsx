@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -10,6 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { setStorageOwner } from "../lib/user-storage";
 import {
   fetchMe,
   onUnauthorized,
@@ -24,8 +26,16 @@ type Status = "loading" | "signed-in" | "signed-out" | "unreachable";
 interface Auth {
   status: Status;
   user: User | null;
-  login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  login: (
+    username: string,
+    password: string,
+    remember: boolean,
+  ) => Promise<void>;
+  register: (
+    username: string,
+    password: string,
+    remember: boolean,
+  ) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -48,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchMe().then(
       (me) => {
         if (!live) return;
+        setStorageOwner(me?.id ?? null);
         setUser(me);
         setStatus(me ? "signed-in" : "signed-out");
       },
@@ -61,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(
     () =>
       onUnauthorized(() => {
+        setStorageOwner(null);
         setUser(null);
         setStatus("signed-out");
       }),
@@ -68,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const accept = useCallback((me: User) => {
+    setStorageOwner(me.id);
     setUser(me);
     setStatus("signed-in");
   }, []);
@@ -75,13 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       user,
-      login: async (username, password) =>
-        accept(await signIn(username, password)),
-      register: async (username, password) =>
-        accept(await signUp(username, password)),
+      login: async (username, password, remember) =>
+        accept(await signIn(username, password, remember)),
+      register: async (username, password, remember) =>
+        accept(await signUp(username, password, remember)),
       logout: async () => {
         // Clear locally even if the request fails, so the screen never stays signed in by mistake.
         await signOut().catch(() => undefined);
+        setStorageOwner(null);
         setUser(null);
         setStatus("signed-out");
       },
@@ -159,12 +173,12 @@ export function UserMenu() {
   if (!user) return null;
   return (
     <span className="user-menu">
-      <span className="user-chip" title="Signed in">
+      <Link className="user-chip" href="/account" title="Your account">
         <span className="user-avatar" aria-hidden="true">
           {user.username.slice(0, 1).toUpperCase()}
         </span>
         {user.username}
-      </span>
+      </Link>
       <button
         type="button"
         className="button secondary"

@@ -14,7 +14,7 @@ import threading
 import time
 
 import requests
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse, Response
 
@@ -221,12 +221,16 @@ class MediaStore:
         return fetched
 
 
-def create_router(store=None):
+def create_router(store=None, guard=None):
+    """guard(request) returns an error response to refuse a request, or None to allow it."""
     store = store or MediaStore()
     router = APIRouter(prefix='/api/refresh/v1/media')
 
     @router.get('/resolve')
-    async def resolve(kind: str = Query(...), sport: str = Query(...), n: list[str] = Query(default=[])):
+    async def resolve(request: Request, kind: str = Query(...), sport: str = Query(...), n: list[str] = Query(default=[])):
+        denied = guard(request) if guard else None
+        if denied:
+            return denied
         valid = (kind in ('team', 'player') and SPORT_KEY.match(sport)
                  and (media.sport_family(sport) or media.team_sources(sport))
                  and 0 < len(n) <= MAX_NAMES and all(0 < len(x) <= 80 for x in n))
@@ -236,12 +240,15 @@ def create_router(store=None):
         return JSONResponse({'results': results, 'retry': retry}, headers={'Cache-Control': 'no-store'})
 
     @router.get('/img')
-    async def image(u: str = Query(..., max_length=600)):
+    async def image(request: Request, u: str = Query(..., max_length=600)):
+        denied = guard(request) if guard else None
+        if denied:
+            return denied
         found = await run_in_threadpool(store.image, u)
         if not found:
             return Response(status_code=404, headers={'Cache-Control': 'no-store'})
         return Response(found[0], media_type=found[1], headers={
-            'Cache-Control': 'public, max-age=604800, immutable',
+            'Cache-Control': 'private, max-age=604800, immutable',
             'X-Content-Type-Options': 'nosniff',
             'Content-Security-Policy': "default-src 'none'; sandbox"})
 

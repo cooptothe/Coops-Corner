@@ -8,6 +8,7 @@ import {
   sport,
   usd,
 } from "../../frontend/format.mjs";
+import { userStorage } from "../lib/user-storage";
 import { allPages } from "../lib/api";
 import type {
   Capabilities,
@@ -414,9 +415,12 @@ export default function MiddleFeed({ data }: { data: Data }) {
     refresh: refreshSlip,
   } = useSlip();
 
+  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
     try {
-      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
       if (Array.isArray(s.offBooks))
         setOffBooks(new Set(s.offBooks.map(String)));
       if (Array.isArray(s.offSports))
@@ -438,9 +442,11 @@ export default function MiddleFeed({ data }: { data: Data }) {
       if (typeof s.stake === "string" && STAKE_PATTERN.test(s.stake))
         setStake(s.stake);
     } catch {}
+    setReady(true);
   }, []);
   useEffect(() => {
-    localStorage.setItem(
+    if (!ready) return;
+    userStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({
         offBooks: [...offBooks],
@@ -452,7 +458,16 @@ export default function MiddleFeed({ data }: { data: Data }) {
         stake,
       }),
     );
-  }, [offBooks, offSports, offMarkets, maxMiss, minWindow, sortKey, stake]);
+  }, [
+    ready,
+    offBooks,
+    offSports,
+    offMarkets,
+    maxMiss,
+    minWindow,
+    sortKey,
+    stake,
+  ]);
 
   useEffect(() => {
     const controller = new AbortController();

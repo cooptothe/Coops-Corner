@@ -1,4 +1,5 @@
 "use client";
+import { userStorage } from "../lib/user-storage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   american,
@@ -190,13 +191,16 @@ export default function PropsFeed({ reload }: { reload: number }) {
     null,
   );
 
+  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    const b = localStorage.getItem(BANKROLL_KEY),
-      m = localStorage.getItem(MULTIPLIER_KEY);
+    const b = userStorage.getItem(BANKROLL_KEY),
+      m = userStorage.getItem(MULTIPLIER_KEY);
     if (b && /^[0-9.]{1,13}$/.test(b)) setBankroll(b);
     if (m && /^(0\.[1-9]\d?|1)$/.test(m)) setMultiplier(m);
     try {
-      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
       if (Array.isArray(s.off)) setOffBooks(new Set(s.off.map(String)));
       if (typeof s.sortKey === "string" && s.sortKey in SORTS)
         setSortKey(s.sortKey as SortKey);
@@ -207,19 +211,21 @@ export default function PropsFeed({ reload }: { reload: number }) {
       if (typeof s.maxOdds === "string" && /^-?\d{0,5}$/.test(s.maxOdds))
         setMaxOdds(s.maxOdds);
     } catch {}
+    setReady(true);
   }, []);
   useEffect(() => {
-    localStorage.setItem(
+    if (!ready) return;
+    userStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({ off: [...offBooks], minEv, minOdds, maxOdds, sortKey }),
     );
-  }, [offBooks, minEv, minOdds, maxOdds, sortKey]);
+  }, [ready, offBooks, minEv, minOdds, maxOdds, sortKey]);
   useEffect(() => {
-    localStorage.setItem(BANKROLL_KEY, bankroll);
-  }, [bankroll]);
+    if (ready) userStorage.setItem(BANKROLL_KEY, bankroll);
+  }, [ready, bankroll]);
   useEffect(() => {
-    localStorage.setItem(MULTIPLIER_KEY, multiplier);
-  }, [multiplier]);
+    if (ready) userStorage.setItem(MULTIPLIER_KEY, multiplier);
+  }, [ready, multiplier]);
 
   useEffect(() => {
     const controller = new AbortController();

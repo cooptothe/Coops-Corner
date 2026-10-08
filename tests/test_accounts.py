@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from corner import auth
 from corner.tracker_store import TrackerStore
-from pipelines import accounts
+from pipelines import accounts, accounts_admin
 
 ORIGIN = 'http://localhost:3000'
 SECRET = 'unit-test-secret-' + 'k' * 32
@@ -62,7 +62,11 @@ class Tokens(unittest.TestCase):
         claims = auth.verify_token(SECRET, token, now=1059)
         self.assertEqual((claims['sub'], claims['usr'], claims['exp']), ('u1', 'Ann', 1060))
         self.assertIsNone(auth.verify_token(SECRET, token, now=1060))
-        self.assertEqual(auth.TOKEN_TTL, 7 * 86400)
+        self.assertEqual((auth.REMEMBER_TTL, auth.SESSION_TTL), (30 * 86400, 12 * 3600))
+        short = auth.issue_token(SECRET, 'u', 'A', remember=False, now=0)
+        self.assertEqual(auth.verify_token(SECRET, short, now=1)['exp'], 12 * 3600)
+        self.assertIsNone(auth.verify_token(SECRET, short, now=12 * 3600))
+        self.assertEqual(auth.verify_token(SECRET, auth.issue_token(SECRET, 'u', 'A', now=0), now=1)['exp'], 30 * 86400)
 
     def test_forged_tampered_and_alg_none_tokens_are_rejected(self):
         token = auth.issue_token(SECRET, 'u1', 'Ann')
@@ -126,12 +130,12 @@ class Endpoints(unittest.TestCase):
         return (client or self.client).post(f'/api/refresh/v1/auth/{path}', json=body, headers=headers)
 
     def test_register_signs_you_in_with_a_hardened_cookie(self):
-        response = self.post('register', {'username': 'Coop', 'password': 'a-long-password'})
+        response = self.post('register', {'username': 'Coop', 'password': 'a-long-password', 'remember': True})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['user']['username'], 'Coop')
         self.assertNotIn('password', json.dumps(response.json()))
         cookie = response.headers['set-cookie']
-        for flag in ('HttpOnly', 'SameSite=strict', 'Path=/', 'Max-Age=604800'):
+        for flag in ('HttpOnly', 'SameSite=strict', 'Path=/', 'Max-Age=2592000'):
             self.assertIn(flag, cookie)
         me = self.client.get('/api/refresh/v1/auth/me')
         self.assertEqual(me.json()['user']['username'], 'Coop')
@@ -153,6 +157,49 @@ class Endpoints(unittest.TestCase):
                      {'username': 'okname', 'password': 'okname'}, []):
             self.assertEqual(self.post('register', body).status_code, 400, body)
         self.assertEqual(self.client.post('/api/refresh/v1/auth/register', content=b'nope', headers=JSON_ORIGIN).status_code, 400)
+
+    def test_remember_me_chooses_a_persistent_or_a_browser_session_cookie(self):
+        self.post('register', {'username': 'Coop', 'password': 'a-long-password'})
+        for remember, persistent in ((True, True), (False, False), (None, False), ('yes', False)):
+            fresh = TestClient(self.client.app, base_url='http://localhost')
+            body = {'username': 'coop', 'password': 'a-long-password'}
+            if remember is not None:
+                body['remember'] = remember
+            cookie = self.post('login', body, fresh).headers['set-cookie']
+            self.assertEqual('Max-Age=2592000' in cookie, persistent, (remember, cookie))
+            self.assertEqual('max-age' in cookie.lower(), persistent, (remember, cookie))
+            self.assertIn('HttpOnly', cookie)
+        # A browser-session login is a 12-hour token; a remembered one is 30 days.
+        short = TestClient(self.client.app, base_url='http://localhost')
+        self.post('login', {'username': 'coop', 'password': 'a-long-password', 'remember': False}, short)
+        claims = auth.verify_token(SECRET, short.cookies.get(accounts.COOKIE))
+        self.assertEqual(claims['exp'] - claims['iat'], auth.SESSION_TTL)
+        self.assertFalse(claims['rm'])
+
+    def test_a_new_account_also_honours_the_choice(self):
+        session = self.post('register', {'username': 'Coop', 'password': 'a-long-password'})
+        self.assertNotIn('Max-Age', session.headers['set-cookie'])
+        other = TestClient(self.client.app, base_url='http://localhost')
+        kept = self.post('register', {'username': 'Ann', 'password': 'a-long-password', 'remember': True}, other)
+        self.assertIn('Max-Age=2592000', kept.headers['set-cookie'])
+
+    def test_changing_a_password_keeps_the_remember_choice(self):
+        self.post('register', {'username': 'Coop', 'password': 'a-long-password'})
+        for remember in (True, False):
+            device = TestClient(self.client.app, base_url='http://localhost')
+            self.post('login', {'username': 'coop', 'password': 'a-long-password', 'remember': remember}, device)
+            changed = self.post('password', {'current': 'a-long-password', 'new': 'brand-new-pass1'}, device)
+            self.assertEqual('Max-Age=2592000' in changed.headers['set-cookie'], remember)
+            self.assertEqual(auth.verify_token(SECRET, device.cookies.get(accounts.COOKIE))['rm'], remember)
+            self.post('password', {'current': 'brand-new-pass1', 'new': 'a-long-password'}, device)
+
+    def test_tokens_from_before_remember_me_still_count_as_remembered(self):
+        def part(obj):
+            return base64.urlsafe_b64encode(json.dumps(obj).encode()).rstrip(b'=').decode()
+        head, body = part({'alg': 'HS256', 'typ': 'JWT'}), part({'sub': 'u1', 'usr': 'Ann', 'ep': 0, 'exp': 4102444800})
+        token = f'{head}.{body}.{auth._url(auth._sign(SECRET, head + "." + body))}'
+        user = auth.session_user(SECRET, token, lambda uid: {'id': 'u1', 'username': 'Ann', 'session_epoch': 0})
+        self.assertTrue(user['remember'])
 
     def test_login_logout_and_generic_failures(self):
         self.post('register', {'username': 'Coop', 'password': 'a-long-password'})
@@ -195,6 +242,71 @@ class Endpoints(unittest.TestCase):
         self.assertIsNone(self.store.user_by_key('coop'))
 
 
+    def test_changing_your_password(self):
+        self.post('register', {'username': 'Coop', 'password': 'a-long-password'})
+        other_device = TestClient(self.client.app, base_url='http://localhost')
+        self.post('login', {'username': 'coop', 'password': 'a-long-password'}, other_device)
+        bad = self.post('password', {'current': 'not-my-password', 'new': 'brand-new-pass1'})
+        self.assertEqual((bad.status_code, bad.json()['code']), (403, 'bad_credentials'))
+        for body in ({'current': 'a-long-password', 'new': 'short'}, {'current': 'a-long-password', 'new': 'a-long-password'},
+                     {'current': 'a-long-password', 'new': 'Coop'}, {'current': 'a-long-password'}):
+            self.assertEqual(self.post('password', body).status_code, 400, body)
+        ok = self.post('password', {'current': 'a-long-password', 'new': 'brand-new-pass1'})
+        self.assertEqual(ok.status_code, 200)
+        # This device stays signed in; the other one is signed out.
+        self.assertEqual(self.client.get('/api/refresh/v1/auth/me').status_code, 200)
+        self.assertEqual(other_device.get('/api/refresh/v1/auth/me').status_code, 401)
+        fresh = TestClient(self.client.app, base_url='http://localhost')
+        self.assertEqual(self.post('login', {'username': 'coop', 'password': 'a-long-password'}, fresh).status_code, 401)
+        self.assertEqual(self.post('login', {'username': 'coop', 'password': 'brand-new-pass1'}, fresh).status_code, 200)
+
+    def test_changing_a_password_needs_a_session_and_the_local_origin(self):
+        body = {'current': 'a-long-password', 'new': 'brand-new-pass1'}
+        self.assertEqual(self.post('password', body).status_code, 401)
+        self.post('register', {'username': 'Coop', 'password': 'a-long-password'})
+        self.assertEqual(self.post('password', body, headers={}).status_code, 403)
+
+    def test_guessing_the_current_password_is_throttled(self):
+        self.post('register', {'username': 'Coop', 'password': 'a-long-password'})
+        for _ in range(8):
+            self.assertEqual(self.post('password', {'current': 'guess-guess-1', 'new': 'brand-new-pass1'}).status_code, 403)
+        locked = self.post('password', {'current': 'a-long-password', 'new': 'brand-new-pass1'})
+        self.assertEqual(locked.status_code, 429)
+
+
+class AdminReset(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.store = TrackerStore(Path(self.tmp.name) / 't.sqlite3')
+        self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(self.store.close)
+        self.user = self.store.create_user('Coop', 'coop', auth.hash_password('old-password-1'))
+        self.lines = []
+
+    def run_cli(self, argv, *typed):
+        answers = iter(typed)
+        return accounts_admin.run(argv, self.store, ask=lambda prompt: next(answers), out=self.lines.append)
+
+    def test_reset_replaces_the_password_and_ends_sessions(self):
+        token = auth.issue_token(SECRET, self.user['id'], 'Coop')
+        lookup = self.store.user_by_id
+        self.assertIsNotNone(auth.session_user(SECRET, token, lookup))
+        self.assertEqual(self.run_cli(['reset-password', 'COOP'], 'fresh-password-9', 'fresh-password-9'), 0)
+        row = self.store.user_by_key('coop')
+        self.assertTrue(auth.verify_password('fresh-password-9', row['password_hash']))
+        self.assertFalse(auth.verify_password('old-password-1', row['password_hash']))
+        self.assertIsNone(auth.session_user(SECRET, token, lookup))
+
+    def test_refuses_mismatches_weak_passwords_and_unknown_accounts(self):
+        self.assertEqual(self.run_cli(['reset-password', 'coop'], 'fresh-password-9', 'different-9999'), 1)
+        self.assertEqual(self.run_cli(['reset-password', 'coop'], 'short', 'short'), 1)
+        self.assertEqual(self.run_cli(['reset-password', 'nobody']), 1)
+        self.assertTrue(auth.verify_password('old-password-1', self.store.user_by_key('coop')['password_hash']))
+
+    def test_list_shows_accounts(self):
+        self.assertEqual(self.run_cli(['list']), 0)
+        self.assertIn('Coop', self.lines[0])
+        self.assertEqual(self.lines[-1], '1 account(s)')
 
 if __name__ == '__main__':
     unittest.main()

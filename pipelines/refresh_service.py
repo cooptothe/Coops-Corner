@@ -221,19 +221,24 @@ def run_props_refresh(sport, markets, max_events, capture=props.capture):
 def create_app():
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     ctx = accounts.AuthContext()
-    app.include_router(media_service.create_router())
+    app.include_router(media_service.create_router(guard=lambda request: ctx.require(request, write=False)[1]))
     app.include_router(accounts.create_router(ctx))
     app.include_router(tracker_service.create_router(ctx))
 
     def reply(code, body):
         return JSONResponse(body, status_code=code, headers={'Cache-Control': 'no-store'})
 
+    # Every route here needs a signed-in account; reads cost no credits but are not public.
     @app.get('/api/refresh/v1/props/status')
-    def props_state():
-        return reply(200, props_status())
+    async def props_state(request: Request):
+        _, denied = ctx.require(request, write=False)
+        return denied or reply(200, props_status())
 
     @app.get('/api/refresh/v1/props')
-    async def props_bets():
+    async def props_bets(request: Request):
+        _, denied = ctx.require(request, write=False)
+        if denied:
+            return denied
         return reply(200, {'bets': await run_in_threadpool(props.bets), **props_status()})
 
     @app.post('/api/refresh/v1/props')
@@ -250,8 +255,9 @@ def create_app():
         return reply(*await run_in_threadpool(run_props_refresh, sport, markets, count))
 
     @app.get('/api/refresh/v1/status')
-    def status():
-        return reply(200, status_view())
+    async def status(request: Request):
+        _, denied = ctx.require(request, write=False)
+        return denied or reply(200, status_view())
 
     @app.post('/api/refresh/v1/odds')
     async def refresh(request: Request):

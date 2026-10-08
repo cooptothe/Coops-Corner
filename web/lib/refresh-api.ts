@@ -56,6 +56,7 @@ export async function reloadTools(): Promise<void> {
     body: "{}",
     signal: AbortSignal.timeout(120000),
   });
+  if (response.status === 401) notifyUnauthorized();
   if (!response.ok)
     throw new Error("Odds were fetched, but the feed could not be rebuilt.");
 }

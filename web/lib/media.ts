@@ -1,3 +1,4 @@
+import { notifyUnauthorized } from "./auth-api";
 // Client cache for team logos and player headshots.
 //
 // Components ask for a name; requests for the same league are batched into one call to the local
@@ -65,6 +66,7 @@ async function send(kind: MediaKind, sport: string, names: string[]) {
       cache: "no-store",
       signal: AbortSignal.timeout(60000),
     });
+    if (response.status === 401) notifyUnauthorized();
     if (!response.ok) throw new Error("media unavailable");
     const body = (await response.json()) as {
       results: Record<string, string | null>;

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { american, date, point as signed } from "../../frontend/format.mjs";
+import { userStorage } from "../lib/user-storage";
 import type { Capabilities, Game, Meta, Quote } from "../lib/contracts";
 import { isIndividualSport, splitMatchup } from "../lib/media";
 import {
@@ -151,7 +152,7 @@ export default function ScheduleFeed({ data }: { data: Data }) {
 
   useEffect(() => {
     try {
-      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
       if (Array.isArray(s.offBooks))
         setOffBooks(new Set(s.offBooks.map(String)));
       if (typeof s.league === "string") setLeague(s.league);
@@ -160,7 +161,7 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   }, []);
   useEffect(() => {
     if (!ready) return;
-    localStorage.setItem(
+    userStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({ offBooks: [...offBooks], league }),
     );

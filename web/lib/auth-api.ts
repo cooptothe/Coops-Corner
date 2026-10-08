@@ -47,6 +47,7 @@ async function call(
     );
   }
   const data = await response.json().catch(() => null);
+  if (response.status === 401 && path === "password") notifyUnauthorized();
   if (!response.ok)
     throw new AuthRequestError(
       (data && typeof data.error === "string" && data.error) ||
@@ -65,11 +66,15 @@ export async function fetchMe(): Promise<User | null> {
     throw e;
   }
 }
-export const signIn = (username: string, password: string) =>
-  call("POST", "login", { username, password }) as Promise<User>;
-export const signUp = (username: string, password: string) =>
-  call("POST", "register", { username, password }) as Promise<User>;
+// remember: a 30-day cookie; otherwise the session ends when the browser closes (or after 12 hours).
+export const signIn = (username: string, password: string, remember: boolean) =>
+  call("POST", "login", { username, password, remember }) as Promise<User>;
+export const signUp = (username: string, password: string, remember: boolean) =>
+  call("POST", "register", { username, password, remember }) as Promise<User>;
 export const signOut = () => call("POST", "logout", {}).then(() => undefined);
+// A wrong current password comes back as 403, which is shown as a message, not treated as a lost session.
+export const changePassword = (current: string, next: string) =>
+  call("POST", "password", { current, new: next }).then(() => undefined);
 
 // Only same-site paths are honoured, so a crafted ?next= cannot send someone to another site.
 export function safeNext(value: string | null | undefined): string {

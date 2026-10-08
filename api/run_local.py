@@ -24,6 +24,15 @@ def main():
     from config import DB_CONFIG
     from api.app import create_app
     from api.database import LiveCatalog
+    from corner import auth
+    from corner.tracker_store import read_user
+    from pipelines.accounts import DB_PATH, SECRET_PATH
+
+    # Every /api/v1 call needs a signed-in account; the key and accounts are the refresh service's.
+    secret = auth.load_secret(SECRET_PATH)
+
+    def signed_in(token):
+        return auth.session_user(secret, token, lambda user_id: read_user(DB_PATH, user_id)) is not None
 
     role, password = 'corner_tools_session_' + uuid4().hex, secrets.token_urlsafe(32)
     created = False
@@ -43,7 +52,7 @@ def main():
         catalog = LiveCatalog(lambda: psycopg2.connect(**login))
         print(f'Tools API on 127.0.0.1:{args.port} over retained pre-game quotes; no provider polling. '
               f'{len(catalog.games)} games, {len(catalog.rows)} tool rows. Ctrl+C stops and removes the session login.', flush=True)
-        uvicorn.run(create_app(data_mode='database', catalog=catalog), host='127.0.0.1', port=args.port,
+        uvicorn.run(create_app(data_mode='database', catalog=catalog, session_check=signed_in), host='127.0.0.1', port=args.port,
                     access_log=False, timeout_graceful_shutdown=5)
     except KeyboardInterrupt:
         pass

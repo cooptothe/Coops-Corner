@@ -85,6 +85,14 @@ class RefreshGuards(unittest.TestCase):
         self.assertEqual(client.post('/api/refresh/v1/odds', json={'sports': ['basketball_nba']}, headers=local).status_code, 401)
         self.assertEqual(self.calls, [])
 
+    def test_reads_and_media_need_a_signed_in_account_too(self):
+        from fastapi.testclient import TestClient
+        client = TestClient(svc.create_app(), base_url='http://localhost')
+        for path in ('/api/refresh/v1/status', '/api/refresh/v1/props/status', '/api/refresh/v1/props',
+                     '/api/refresh/v1/media/resolve?kind=team&sport=basketball_nba&n=Boston',
+                     '/api/refresh/v1/media/img?u=https://a.espncdn.com/x.png'):
+            self.assertEqual(client.get(path).status_code, 401, path)
+
 
 if __name__ == '__main__':
     unittest.main()

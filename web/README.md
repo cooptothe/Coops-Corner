@@ -41,11 +41,26 @@ needed or imported. Configuration changes require restarting/rebuilding Next.
 a password). Everything else requires a session; signed-out visitors are redirected to `/login`
 and returned to the page they wanted. Usernames are 3-24 characters (letters, numbers, `.`, `-`,
 `_`), unique ignoring case; passwords are 8-128 characters. Passwords are stored only as salted
-scrypt hashes. A session is a signed 7-day JWT in an HttpOnly, SameSite=Strict cookie that page
-scripts cannot read; sign out clears it. Repeated failed sign-ins for a username lock it for a few
+scrypt hashes. A session is a signed JWT in an HttpOnly, SameSite=Strict cookie that page
+scripts cannot read. **Remember me** on the sign-in page keeps you signed in for 30 days; unchecked
+(the default) the cookie ends when the browser closes and the session also expires after 12 hours,
+which is the right choice on a shared computer. Sign out clears it. Repeated failed sign-ins for a username lock it for a few
 minutes. Accounts live in the same SQLite file as the ledger and need no Java backend; the signing key is
 created at `retained/auth_secret` (or set `CORNER_AUTH_SECRET`, 32+ characters). If you used the
 tracker before accounts existed, the first account you create adopts that data.
+
+- **Everything is behind sign-in on the server, not just in the page.** The odds API (`:8765`, every
+  `/api/v1` call), the refresh service (status, props, Refresh odds) and the logo/headshot routes all
+  answer 401 without a valid session. The odds API reads the same signing key and accounts file, so
+  start the refresh service once (it creates the key) before the odds API.
+- **Saved settings are per account.** Filters, sorting, the bankroll box, the Kelly multiplier and the
+  league picker are stored under the signed-in account, so people sharing a browser never see each
+  other's. Settings saved before accounts existed go to whoever signs in first.
+- **Passwords.** Change yours on `/account` (click your name); that signs out every other device. There is
+  no email, so a forgotten password is reset by whoever runs the app:
+  `python -m pipelines.accounts_admin reset-password USERNAME` (hidden prompt, works while the app is
+  running) and `python -m pipelines.accounts_admin list`. Resetting or changing a password ends all of
+  that account's existing sessions.
 
 `/tracker` is the bet tracker and bankroll manager. The refresh service
 (`python -m pipelines.refresh_service`) stores each account's ledger in

@@ -11,6 +11,7 @@ import {
 import { useAuth } from "./auth-provider";
 
 type Mode = "signin" | "signup";
+const REMEMBER_KEY = "corner.remember-me";
 
 export default function LoginPage() {
   const { status, login, register } = useAuth();
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -35,6 +37,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     document.title = "Sign in — The Corner";
+    // Only the checkbox choice is remembered here, never any credentials.
+    try {
+      setRemember(localStorage.getItem(REMEMBER_KEY) === "1");
+    } catch {}
   }, []);
 
   const signup = mode === "signup";
@@ -59,7 +65,12 @@ export default function LoginPage() {
     setBusy(true);
     setError("");
     try {
-      await (signup ? register(name, password) : login(name, password));
+      try {
+        localStorage.setItem(REMEMBER_KEY, remember ? "1" : "0");
+      } catch {}
+      await (signup
+        ? register(name, password, remember)
+        : login(name, password, remember));
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Something went wrong. Try again.",
@@ -158,6 +169,21 @@ export default function LoginPage() {
               />
             </label>
           )}
+          <label className="auth-remember">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <span>
+              Remember me
+              <small>
+                {remember
+                  ? "Stay signed in on this device for 30 days."
+                  : "Sign out when you close the browser. Use on shared computers."}
+              </small>
+            </span>
+          </label>
           {error && (
             <div role="alert" className="arb-alert">
               <span>{error}</span>

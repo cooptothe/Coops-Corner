@@ -121,7 +121,27 @@ class RequestBoundary:
         await self.app(scope, replay, safe_headers)
 
 
-def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGINS):
+class SessionGate:
+    """Requires a valid session cookie for every /api/v1 call. `check(token)` says whether a token is good."""
+    def __init__(self, app, check, catalog, cookie='corner_session'):
+        self.app, self.check, self.catalog, self.cookie = app, check, catalog, cookie.encode()
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] != 'http' or not scope['path'].startswith('/api/v1'):
+            return await self.app(scope, receive, send)
+        token = None
+        for key, value in scope['headers']:
+            if key == b'cookie':
+                for part in value.split(b';'):
+                    name, _, raw = part.strip().partition(b'=')
+                    if name == self.cookie:
+                        token = raw.decode('ascii', 'ignore')
+        if not token or not self.check(token):
+            return await error_response(self.catalog, 401, 'auth_required', 'Sign in to continue.')(scope, receive, send)
+        await self.app(scope, receive, send)
+
+
+def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGINS, session_check=None):
     if data_mode not in {'fixture', 'database'} or (data_mode == 'database' and catalog is None):
         raise ValueError('Use fixture mode, or database mode with an explicit read-only catalog; there is no live fallback.')
     for origin in cors_origins:
@@ -138,6 +158,8 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
                   responses={code: {'model': ErrorEnvelope} for code in (400, 404, 409, 413, 415, 422, 500)})
     api.state.catalog = catalog
     api.add_middleware(RequestBoundary, catalog=catalog)
+    if session_check is not None:
+        api.add_middleware(SessionGate, check=session_check, catalog=catalog)
     api.add_middleware(CORSMiddleware, allow_origins=list(cors_origins), allow_credentials=False,
                        allow_methods=['GET', 'POST'], allow_headers=['Content-Type'], expose_headers=['X-Corner-Data-Mode'])
 

@@ -13,6 +13,7 @@ import {
   sport,
   usd,
 } from "../../frontend/format.mjs";
+import { userStorage } from "../lib/user-storage";
 import { allPages } from "../lib/api";
 import {
   type ArbMode,
@@ -563,9 +564,12 @@ export default function ArbFeed({ data }: { data: Data }) {
     refresh: refreshSlip,
   } = useSlip();
 
+  // Saving waits for the load to be applied, or the defaults would overwrite stored settings.
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
     try {
-      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
       if (Array.isArray(s.offBooks))
         setOffBooks(new Set(s.offBooks.map(String)));
       if (Array.isArray(s.offSports))
@@ -577,9 +581,11 @@ export default function ArbFeed({ data }: { data: Data }) {
       if (typeof s.stake === "string" && STAKE_PATTERN.test(s.stake))
         setStake(s.stake);
     } catch {}
+    setReady(true);
   }, []);
   useEffect(() => {
-    localStorage.setItem(
+    if (!ready) return;
+    userStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({
         offBooks: [...offBooks],
@@ -589,7 +595,7 @@ export default function ArbFeed({ data }: { data: Data }) {
         sortKey,
       }),
     );
-  }, [offBooks, offSports, minProfit, stake, sortKey]);
+  }, [ready, offBooks, offSports, minProfit, stake, sortKey]);
 
   useEffect(() => {
     const controller = new AbortController();

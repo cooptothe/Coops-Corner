@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { userStorage } from "../lib/user-storage";
 import { reloadTools, refreshOdds, refreshStatus } from "../lib/refresh-api";
 import type { RefreshStatus } from "../lib/refresh-api";
 
@@ -19,7 +20,7 @@ export default function FreshOdds({
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE) ?? "null");
+      const saved = JSON.parse(userStorage.getItem(STORAGE) ?? "null");
       if (Array.isArray(saved)) setLeagues(saved.map(String));
     } catch {
       /* ignore unreadable preference */
@@ -49,7 +50,7 @@ export default function FreshOdds({
   const chosen = leagues ?? status?.sports.map((s) => s.key) ?? [];
   const choose = (next: string[]) => {
     setLeagues(next);
-    localStorage.setItem(STORAGE, JSON.stringify(next));
+    userStorage.setItem(STORAGE, JSON.stringify(next));
   };
 
   async function fetchFresh() {

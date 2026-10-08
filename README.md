@@ -79,8 +79,11 @@ Start each process in its own terminal and stop it with Ctrl+C.
 # 2. Refresh service (spends credits only when asked)
 .\.venv-api\Scripts\python.exe -m pipelines.refresh_service
 
-# 3. Frontend
+# 3. Frontend (the first account you create at /login adopts any existing tracker data)
 cd web; pnpm dev
+
+# Forgot a password? The person running the app resets it (there is no email):
+#   .\.venv-api\Scripts\python.exe -m pipelines.accounts_admin reset-password USERNAME
 
 # 4. Optional: Spring Boot service for the /games board (build the jar first)
 .\.venv-api\Scripts\python.exe -m server.run_local
@@ -100,7 +103,7 @@ otherwise built once at startup. If you change `web/next.config.ts`, restart `pn
 | `/props` | Player prop +EV bets against the sharp books, with the Kelly calculator |
 | `/promo` | Bonus bet, site credit, risk-free bet and profit boost conversion with a stake calculator |
 | `/games` | Schedule: upcoming games by day, with the best main-line spread, total and moneyline |
-| `/login` | Sign in or create an account (username + password) |
+| `/login` | Sign in or create an account (username + password); `/account` changes your password |
 | `/tracker` | Bet tracker and bankroll: ledger with live progress, per-book balances, Kelly sizing, CLV and history charts ([details](web/README.md#views-and-boundaries)) |
 
 Feeds can be sorted by EV, win probability, start time and other measures relevant

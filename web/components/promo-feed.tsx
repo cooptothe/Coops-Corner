@@ -8,6 +8,7 @@ import {
   sport,
   usd,
 } from "../../frontend/format.mjs";
+import { userStorage } from "../lib/user-storage";
 import type { Capabilities, Game, Meta, Quote } from "../lib/contracts";
 import {
   WIDE_MARKET_CENTS,
@@ -861,7 +862,7 @@ export default function PromoFeed({ data }: { data: Data }) {
 
   useEffect(() => {
     try {
-      const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+      const s = JSON.parse(userStorage.getItem(SETTINGS_KEY) ?? "{}");
       if (TYPES.some((t) => t.id === s.type)) setType(s.type);
       if (typeof s.face === "string" && AMOUNT.test(s.face)) setFace(s.face);
       if (typeof s.refund === "string" && PCT.test(s.refund))
@@ -894,7 +895,7 @@ export default function PromoFeed({ data }: { data: Data }) {
   }, []);
   useEffect(() => {
     if (!ready) return;
-    localStorage.setItem(
+    userStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({
         type,
