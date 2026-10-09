@@ -17,24 +17,55 @@
 .PARAMETER Open
   Open http://localhost:3000 in the browser when everything is up.
 
+.PARAMETER Ngrok
+  Also start an ngrok tunnel to the web app (so you can open the app on your phone) and allow exactly that
+  tunnel's https address in the app. The address is printed when everything is up. Needs ngrok installed and its
+  authtoken added once:  ngrok config add-authtoken <your token>
+
+.PARAMETER NgrokUrl
+  With -Ngrok: use this fixed address instead of a random one (a free static domain from the ngrok dashboard),
+  for example https://your-name.ngrok-free.app. The phone's bookmark then keeps working.
+
+.PARAMETER BasicAuth
+  With -Ngrok: ask for this 'user:password' (password at least 8 characters) before ngrok lets anyone reach the app.
+  Strongly recommended: the tunnel is public, the app has open sign-up, and signed-in users can spend Odds API credits.
+
 .EXAMPLE
   .\scripts\start-services.ps1
   .\scripts\start-services.ps1 -MaxAgeSeconds 259200 -Open
+  .\scripts\start-services.ps1 -Ngrok -BasicAuth 'me:a-long-password'
 #>
 [CmdletBinding()]
 param(
     [int]$MaxAgeSeconds = 0,
-    [switch]$Open
+    [switch]$Open,
+    [switch]$Ngrok,
+    [string]$NgrokUrl,
+    [string]$BasicAuth
 )
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $root '.venv-api\Scripts\python.exe'
 $pidFile = Join-Path $root 'retained\services.json'
+$policyFile = Join-Path $root 'retained\ngrok-policy.yml'
 $ports = @{ refresh = 8766; api = 8765; web = 3000 }
 
 if (-not (Test-Path $python)) { throw "Python environment not found at $python" }
 if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) { throw 'pnpm was not found on PATH.' }
+if (($NgrokUrl -or $BasicAuth) -and -not $Ngrok) { throw '-NgrokUrl and -BasicAuth need -Ngrok.' }
+if ($Ngrok) {
+    if (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) { throw 'ngrok was not found on PATH.' }
+    & cmd.exe /c 'ngrok config check >nul 2>&1'  # through cmd, so ngrok's stderr is not turned into a PowerShell error
+    if ($LASTEXITCODE -ne 0) {
+        throw "ngrok has no authtoken yet. Sign up at https://dashboard.ngrok.com, then run once:`n  ngrok config add-authtoken <your token>"
+    }
+    if ($NgrokUrl -and $NgrokUrl -notmatch '^https://[A-Za-z0-9.-]+$') { throw '-NgrokUrl must look like https://your-name.ngrok-free.app' }
+    if ($BasicAuth -and $BasicAuth -notmatch '^[^:\s"]+:[^\s"]{8,}$') { throw '-BasicAuth must be user:password with a password of at least 8 characters (no spaces or quotes).' }
+    if (Get-NetTCPConnection -LocalPort 4040 -State Listen -ErrorAction SilentlyContinue) {
+        throw 'Port 4040 (ngrok) is already in use. Run .\scripts\stop-services.ps1 first.'
+    }
+}
 
 function Get-Listener([int]$port) {
     Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -68,6 +99,39 @@ function Wait-Port([string]$name, [int]$port, [int]$seconds, $window) {
 }
 
 $windows = [ordered]@{}
+$publicUrl = $null
+
+if ($Ngrok) {
+    # The tunnel goes first: its address has to be known to the services so they accept requests from it.
+    $arguments = "http 127.0.0.1:3000"
+    if ($NgrokUrl) { $arguments += " --url $NgrokUrl" }
+    if ($BasicAuth) {
+        New-Item -ItemType Directory -Force (Split-Path $policyFile) | Out-Null
+        @"
+on_http_request:
+  - actions:
+      - type: basic-auth
+        config:
+          credentials:
+            - "$BasicAuth"
+"@ | Set-Content -Path $policyFile -Encoding ascii
+        $arguments += " --traffic-policy-file '$policyFile'"
+    }
+    $windows.ngrok = Start-Window 'Corner: ngrok tunnel' $root "ngrok $arguments"
+    Write-Host 'Waiting for the ngrok tunnel ' -NoNewline
+    $deadline = (Get-Date).AddSeconds(40)
+    while (-not $publicUrl -and (Get-Date) -lt $deadline) {
+        if ($windows.ngrok.HasExited) { throw 'The ngrok window closed. Run ngrok by hand to see the error.' }
+        try {
+            $publicUrl = (Invoke-RestMethod 'http://127.0.0.1:4040/api/tunnels' -TimeoutSec 2).tunnels |
+                Where-Object { $_.public_url -like 'https://*' } | Select-Object -First 1 -ExpandProperty public_url
+        } catch { }
+        if (-not $publicUrl) { Write-Host '.' -NoNewline; Start-Sleep -Milliseconds 700 }
+    }
+    if (-not $publicUrl) { throw 'ngrok did not report a public address. Check its window.' }
+    Write-Host " $publicUrl" -ForegroundColor Green
+    $env:CORNER_PUBLIC_ORIGINS = $publicUrl
+}
 
 # The refresh service creates retained\auth_secret, which the tools API reads, so it goes first.
 $windows.refresh = Start-Window 'Corner: refresh service :8766' $root "& '$python' -m pipelines.refresh_service"
@@ -89,5 +153,12 @@ Write-Host 'All services are running:' -ForegroundColor Green
 Write-Host '  Web app          http://localhost:3000'
 Write-Host '  Tools API        http://127.0.0.1:8765'
 Write-Host '  Refresh service  http://127.0.0.1:8766'
+if ($publicUrl) {
+    Write-Host ''
+    Write-Host "  On your phone    $publicUrl" -ForegroundColor Cyan
+    Write-Host '  ngrok shows a "Visit Site" page the first time: tap it.'
+    if ($BasicAuth) { Write-Host '  Then sign in to the ngrok prompt with the -BasicAuth user and password.' }
+    else { Write-Host '  Anyone with this address can reach the app and create accounts. Use -BasicAuth, and stop it when done.' -ForegroundColor Yellow }
+}
 Write-Host 'Stop them all with .\scripts\stop-services.ps1'
 if ($Open) { Start-Process 'http://localhost:3000' }

@@ -41,12 +41,17 @@ if (Test-Path $pidFile) {
     Remove-Item $pidFile -ErrorAction SilentlyContinue
 }
 
-# 2. Whatever still listens on the three ports, however it was started.
+# 2. Whatever still listens on the service ports (and ngrok's local dashboard port), however it was started.
 foreach ($port in $ports) {
     Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
         Select-Object -ExpandProperty OwningProcess -Unique |
         ForEach-Object { Stop-Tree $_ "listener on :$port" }
 }
+Get-NetTCPConnection -LocalPort 4040 -State Listen -ErrorAction SilentlyContinue |
+    Select-Object -ExpandProperty OwningProcess -Unique |
+    Where-Object { (Get-Process -Id $_ -ErrorAction SilentlyContinue).ProcessName -like 'ngrok*' } |
+    ForEach-Object { Stop-Tree $_ 'ngrok tunnel' }
+Remove-Item (Join-Path $root 'retained\ngrok-policy.yml') -ErrorAction SilentlyContinue  # holds the tunnel's basic-auth password
 
 # 3. Wait for the ports to free up.
 $deadline = (Get-Date).AddSeconds(10)

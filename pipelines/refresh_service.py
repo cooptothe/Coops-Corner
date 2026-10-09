@@ -27,7 +27,29 @@ from pipelines import props_ingestion as props
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / 'retained' / 'refresh_state.json'
-ALLOWED_ORIGINS = {f'http://{h}:{p}' for h in ('127.0.0.1', 'localhost') for p in (3000,)}
+def public_origins(value):
+    """Extra browser origins allowed to write, from a comma-separated list (CORNER_PUBLIC_ORIGINS, for a tunnel such as ngrok).
+
+    Only plain https origins are accepted (no path, query, credentials or wildcard); anything else is ignored.
+    """
+    from urllib.parse import urlsplit
+    found = set()
+    for item in (value or '').split(','):
+        item = item.strip().rstrip('/')
+        try:
+            url = urlsplit(item)
+            ok = (url.scheme == 'https' and url.hostname and '*' not in item and not url.username
+                  and not url.password and not url.path and not url.query and not url.fragment)
+            origin = f'https://{url.hostname}' + (f':{url.port}' if url.port else '') if ok else None
+        except ValueError:
+            origin = None
+        if origin:
+            found.add(origin)
+    return found
+
+
+ALLOWED_ORIGINS = {f'http://{h}:{p}' for h in ('127.0.0.1', 'localhost') for p in (3000,)} \
+    | public_origins(os.getenv('CORNER_PUBLIC_ORIGINS'))
 COOLDOWN = int(os.getenv('CORNER_REFRESH_COOLDOWN_SECONDS', '30'))
 DAILY_CAP = int(os.getenv('CORNER_REFRESH_DAILY_CAP', '50'))
 SPORTS = ('americanfootball_nfl', 'americanfootball_ncaaf', 'basketball_nba', 'basketball_ncaab',

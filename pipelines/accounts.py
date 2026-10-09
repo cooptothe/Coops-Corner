@@ -110,7 +110,9 @@ class AuthContext:
 
 
 def _secure(request):
-    return request.url.scheme == 'https' or request.headers.get('x-forwarded-proto') == 'https'
+    # Behind a proxy chain the header can be a list ("https,http"); the first entry is the browser's own scheme.
+    forwarded = (request.headers.get('x-forwarded-proto') or '').split(',')[0].strip().lower()
+    return request.url.scheme == 'https' or forwarded == 'https'
 
 
 def _set_session(response, request, secret, user, *, remember, epoch=0):

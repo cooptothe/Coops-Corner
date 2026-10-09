@@ -100,6 +100,20 @@ Open http://127.0.0.1:3000/ and create an account. After **Refresh odds** comple
 tools API to reload its snapshot (`POST /api/v1/catalog/reload`); the snapshot is
 otherwise built once at startup. If you change `web/next.config.ts`, restart `pnpm dev`.
 
+### Testing on your phone (ngrok)
+
+Once, install [ngrok](https://ngrok.com/download) and add your authtoken: `ngrok config add-authtoken <token>`. Then:
+
+```powershell
+.\scripts\start-services.ps1 -Ngrok -BasicAuth 'me:a-long-password'
+```
+
+This starts the tunnel first, then the three services, and prints the `https://….ngrok-free.app` address to open on
+your phone (tap **Visit Site** on ngrok's first-visit page, then the `-BasicAuth` prompt). The app accepts sign-ins
+and writes only from `localhost` and that exact address (`CORNER_PUBLIC_ORIGINS`, https only). Use `-NgrokUrl
+https://your-name.ngrok-free.app` with a free static domain to keep the same address. The tunnel is public, the app
+has open sign-up and signed-in users can spend Odds API credits, so use `-BasicAuth` and stop it when you are done
+(`.\scripts\stop-services.ps1` also stops ngrok).
 ## Tools
 
 | Route | Tool |

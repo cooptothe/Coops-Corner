@@ -15,8 +15,22 @@ if (
 ) {
   throw new Error("CORNER_API_ORIGIN must be a plain loopback HTTP origin.");
 }
+// A tunnel such as ngrok reaches the dev server under its own host name. Next's dev server only serves hot reload and
+// dev resources to hosts it is told about, so the exact hosts of CORNER_PUBLIC_ORIGINS (https only) are listed.
+const publicHosts = (process.env.CORNER_PUBLIC_ORIGINS ?? "")
+  .split(",")
+  .map((item) => item.trim())
+  .flatMap((item) => {
+    try {
+      const url = new URL(item);
+      return url.protocol === "https:" && url.hostname ? [url.hostname] : [];
+    } catch {
+      return [];
+    }
+  });
 const config: NextConfig = {
   turbopack: { root: resolve(process.cwd(), "..") },
+  allowedDevOrigins: publicHosts,
   // A multi-league refresh takes over a minute; the default proxy timeout is 30 seconds.
   experimental: { proxyTimeout: 300000 },
   async rewrites() {

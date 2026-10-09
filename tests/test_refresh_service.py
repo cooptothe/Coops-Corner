@@ -175,5 +175,46 @@ class RefreshOverlap(unittest.TestCase):
         self.assertEqual({self.LEAGUES[0]: 'ok', 'stopped': 'credit_floor'}, body['last_results'])
 
 
+class PublicOrigins(unittest.TestCase):
+    """A tunnel's https origin can be allowed exactly; nothing broader slips in."""
+    def test_only_plain_https_origins_are_taken(self):
+        got = svc.public_origins('https://abc-123.ngrok-free.app, https://x.ngrok.dev/ ,https://h.example:8443')
+        self.assertEqual({'https://abc-123.ngrok-free.app', 'https://x.ngrok.dev', 'https://h.example:8443'}, got)
+
+    def test_everything_else_is_ignored(self):
+        for bad in ('', None, 'http://abc.ngrok-free.app', 'https://*.ngrok-free.app', 'https://abc.ngrok-free.app/path',
+                    'https://abc.ngrok-free.app?x=1', 'https://user:pw@abc.ngrok-free.app', 'abc.ngrok-free.app',
+                    'https://', 'javascript:alert(1)', 'https://abc.ngrok-free.app:notaport'):
+            self.assertEqual(set(), svc.public_origins(bad), bad)
+
+    def test_local_origins_stay_allowed_and_an_unlisted_tunnel_is_not(self):
+        self.assertIn('http://localhost:3000', svc.ALLOWED_ORIGINS)
+        self.assertNotIn('https://other.ngrok-free.app', svc.ALLOWED_ORIGINS)
+
+    def test_a_listed_tunnel_may_write_and_an_unlisted_one_may_not(self):
+        from fastapi.testclient import TestClient
+        with patch.object(svc, 'ALLOWED_ORIGINS', svc.ALLOWED_ORIGINS | svc.public_origins('https://me.ngrok-free.app')):
+            client = TestClient(svc.create_app(), base_url='http://localhost')
+            body = {'username': 'tunnel-test', 'password': 'a long enough password'}
+            allowed = client.post('/api/refresh/v1/auth/login', json=body, headers={'origin': 'https://me.ngrok-free.app'})
+            denied = client.post('/api/refresh/v1/auth/login', json=body, headers={'origin': 'https://evil.ngrok-free.app'})
+        self.assertNotEqual(403, allowed.status_code)  # passes the origin check (then fails as an unknown account)
+        self.assertEqual(403, denied.status_code)
+
+    def test_session_cookie_is_secure_behind_an_https_tunnel(self):
+        from types import SimpleNamespace
+        from pipelines.accounts import _secure
+
+        def request(scheme, forwarded=None):
+            headers = {} if forwarded is None else {'x-forwarded-proto': forwarded}
+            return SimpleNamespace(url=SimpleNamespace(scheme=scheme), headers=headers)
+
+        self.assertTrue(_secure(request('http', 'https')))
+        self.assertTrue(_secure(request('http', 'https,http')))
+        self.assertTrue(_secure(request('https')))
+        self.assertFalse(_secure(request('http')))
+        self.assertFalse(_secure(request('http', 'http,https')))
+
+
 if __name__ == '__main__':
     unittest.main()
