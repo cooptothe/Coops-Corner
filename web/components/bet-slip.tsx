@@ -124,11 +124,14 @@ export function LogBetButton({
   legs,
   resetKey,
   disabled,
+  placed = false,
   onLogged: after,
 }: {
   legs: NewBet[];
   resetKey: string;
   disabled?: boolean;
+  // This bet is already in the tracker; the button says so instead of inviting a duplicate.
+  placed?: boolean;
   onLogged?: () => void;
 }) {
   const [state, setState] = useState<"idle" | "pending" | "done" | "error">(
@@ -168,9 +171,11 @@ export function LogBetButton({
             ? "Logged ✓"
             : state === "error"
               ? "Try again"
-              : legs.length > 1
-                ? "One-click bet (all legs)"
-                : "One-click bet"}
+              : placed
+                ? "Already placed · log again"
+                : legs.length > 1
+                  ? "One-click bet (all legs)"
+                  : "One-click bet"}
       </button>
       {state === "error" ? (
         <small className="kelly-note" role="alert">

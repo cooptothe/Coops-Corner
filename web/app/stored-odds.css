@@ -1231,3 +1231,8 @@
 .bet-link-compact{position:absolute;top:4px;right:6px;display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border-radius:6px;color:inherit;text-decoration:none;font-weight:700;opacity:.8}
 .bet-link-compact:hover,.bet-link-compact:focus-visible{opacity:1;background:rgba(34,197,94,.25)}
 .ev-action:has(.bet-link-compact){padding-right:30px}
+/* Bets already tracked (positive EV and player props feeds) */
+.placed-badge{display:inline-flex;align-self:flex-start;align-items:center;gap:3px;max-width:100%;box-sizing:border-box;margin-top:4px;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#b91c1c;background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.5)}
+.placed-note{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:8px;font-size:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5)}
+.placed-note strong{font-size:13px}
+.ev-row:has(.placed-badge),.props-row:has(.placed-badge){background:rgba(239,68,68,.06)}

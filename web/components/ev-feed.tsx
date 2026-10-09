@@ -40,6 +40,7 @@ import {
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
 import { BetLinkButton } from "./bet-link";
+import { PlacedChip, PlacedNoteFor, PlacedProvider, usePlaced } from "./placed";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { ErrorCard, Loading } from "./workspace";
 
@@ -282,6 +283,7 @@ const Row = memo(
           >
             {percent(vm.ev, true)}
           </span>
+          <PlacedChip leg={vm} />
         </div>
         <div role="cell" className="ev-cell ev-event">
           <span className="ev-league">{vm.league}</span>
@@ -350,6 +352,7 @@ export function KellyWidget({
   onClose: () => void;
 }) {
   const tracked = useTrackedBankroll();
+  const placed = usePlaced(vm ? [vm] : []).placed > 0;
   // The calculator is a drawer, so Escape closes it.
   useEffect(() => {
     if (!vm) return;
@@ -492,7 +495,9 @@ export function KellyWidget({
             startsAt={vm.startsAt}
             unavailable={unavailable}
           />
+          <PlacedNoteFor leg={vm} />
           <LogBetButton
+            placed={placed}
             legs={legs}
             resetKey={vm.id}
             disabled={!result || unavailable}
@@ -700,177 +705,181 @@ export default function EvFeed({ data }: { data: Data }) {
   if (!rows) return <Loading text="Scanning for +EV bets…" />;
 
   return (
-    <section className="ev-layout" aria-label="Positive EV feed">
-      <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
-        <h3>Filters</h3>
-        <SettingsBar controls={settings} />
-        <label className="field">
-          <span>MIN. EV · {minEv}%</span>
-          <input
-            type="range"
-            min="0"
-            max="10"
-            step="0.25"
-            value={minEv}
-            onChange={(e) => setMinEv(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>SPORT</span>
-          <select
-            value={sportFilter}
-            onChange={(e) => setSportKey(e.target.value)}
-          >
-            <option value="">All sports</option>
-            {sports.map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="ev-odds-range">
+    <PlacedProvider slip={slip}>
+      <section className="ev-layout" aria-label="Positive EV feed">
+        <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
+          <h3>Filters</h3>
+          <SettingsBar controls={settings} />
           <label className="field">
-            <span>MIN ODDS</span>
+            <span>MIN. EV · {minEv}%</span>
             <input
-              inputMode="numeric"
-              placeholder="-200"
-              value={minOdds}
-              maxLength={6}
-              onChange={(e) => setMinOdds(e.target.value.trim())}
+              type="range"
+              min="0"
+              max="10"
+              step="0.25"
+              value={minEv}
+              onChange={(e) => setMinEv(e.target.value)}
             />
           </label>
           <label className="field">
-            <span>MAX ODDS</span>
-            <input
-              inputMode="numeric"
-              placeholder="+300"
-              value={maxOdds}
-              maxLength={6}
-              onChange={(e) =>
-                setMaxOdds(e.target.value.trim().replace(/^\+/, ""))
-              }
-            />
-          </label>
-        </div>
-        <fieldset className="ev-books">
-          <legend>
-            MY SPORTSBOOKS{" "}
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setOffBooks(new Set())}
-            >
-              all
-            </button>{" "}
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setOffBooks(new Set(books.map(([id]) => id)))}
-            >
-              none
-            </button>
-          </legend>
-          {books.map(([id, label]) => (
-            <label key={id}>
-              <input
-                type="checkbox"
-                checked={!offBooks.has(id)}
-                onChange={() =>
-                  setOffBooks((prev) => {
-                    const next = new Set(prev);
-                    if (!next.delete(id)) next.add(id);
-                    return next;
-                  })
-                }
-              />
-              {label}
-            </label>
-          ))}
-          {books.length === 0 && <small>No books yet.</small>}
-        </fieldset>
-      </aside>
-      <div className="ev-main">
-        <div className="ev-count">
-          <SlipToggle
-            count={slip.length}
-            onClick={() => setSlipOpen((o) => !o)}
-          />
-          <strong>{visible.length}</strong> of {all.length} bets · prices as of{" "}
-          {date(data.meta.captured_at)}
-          <FeedChangeNote change={change} />
-          <label className="ev-sort">
-            Sort by{" "}
+            <span>SPORT</span>
             <select
-              value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              value={sportFilter}
+              onChange={(e) => setSportKey(e.target.value)}
             >
-              {SORT_LABELS.map(([k, l]) => (
-                <option key={k} value={k}>
-                  {l}
+              <option value="">All sports</option>
+              {sports.map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
                 </option>
               ))}
             </select>
           </label>
-        </div>
-        {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
-        <div role="table" aria-label="Positive EV bets" className="ev-grid">
-          <div role="row" className="ev-head">
-            <span role="columnheader">EV</span>
-            <span role="columnheader">Event</span>
-            <span role="columnheader">Market &amp; line</span>
-            <span role="columnheader">Soft book</span>
-            <span role="columnheader">Win chance &amp; fair odds</span>
-            <span role="columnheader">Scanned</span>
+          <div className="ev-odds-range">
+            <label className="field">
+              <span>MIN ODDS</span>
+              <input
+                inputMode="numeric"
+                placeholder="-200"
+                value={minOdds}
+                maxLength={6}
+                onChange={(e) => setMinOdds(e.target.value.trim())}
+              />
+            </label>
+            <label className="field">
+              <span>MAX ODDS</span>
+              <input
+                inputMode="numeric"
+                placeholder="+300"
+                value={maxOdds}
+                maxLength={6}
+                onChange={(e) =>
+                  setMaxOdds(e.target.value.trim().replace(/^\+/, ""))
+                }
+              />
+            </label>
           </div>
-          {visible.length === 0 ? (
-            <div className="empty-state">
-              <h3>No +EV bets right now</h3>
-              <p>
-                Lower the minimum EV, re-enable books, or press Refresh odds.
-                Bets need at least two sharp books pricing the same line.
-              </p>
-            </div>
-          ) : (
-            <div
-              ref={viewport}
-              className="ev-viewport"
-              style={{ height: Math.min(viewHeight, visible.length * height) }}
-              onScroll={onScroll}
-            >
-              <div
-                className="ev-spacer"
-                role="rowgroup"
-                style={{ height: visible.length * height }}
+          <fieldset className="ev-books">
+            <legend>
+              MY SPORTSBOOKS{" "}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setOffBooks(new Set())}
               >
-                {visible.slice(first, last).map((vm, i) => (
-                  <Row
-                    key={vm.id}
-                    vm={vm}
-                    top={(first + i) * height}
-                    selected={vm.id === selected}
-                    flash={flashes.get(vm.id)}
-                    onSelect={select}
-                  />
+                all
+              </button>{" "}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setOffBooks(new Set(books.map(([id]) => id)))}
+              >
+                none
+              </button>
+            </legend>
+            {books.map(([id, label]) => (
+              <label key={id}>
+                <input
+                  type="checkbox"
+                  checked={!offBooks.has(id)}
+                  onChange={() =>
+                    setOffBooks((prev) => {
+                      const next = new Set(prev);
+                      if (!next.delete(id)) next.add(id);
+                      return next;
+                    })
+                  }
+                />
+                {label}
+              </label>
+            ))}
+            {books.length === 0 && <small>No books yet.</small>}
+          </fieldset>
+        </aside>
+        <div className="ev-main">
+          <div className="ev-count">
+            <SlipToggle
+              count={slip.length}
+              onClick={() => setSlipOpen((o) => !o)}
+            />
+            <strong>{visible.length}</strong> of {all.length} bets · prices as
+            of {date(data.meta.captured_at)}
+            <FeedChangeNote change={change} />
+            <label className="ev-sort">
+              Sort by{" "}
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+              >
+                {SORT_LABELS.map(([k, l]) => (
+                  <option key={k} value={k}>
+                    {l}
+                  </option>
                 ))}
-              </div>
+              </select>
+            </label>
+          </div>
+          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
+          <div role="table" aria-label="Positive EV bets" className="ev-grid">
+            <div role="row" className="ev-head">
+              <span role="columnheader">EV</span>
+              <span role="columnheader">Event</span>
+              <span role="columnheader">Market &amp; line</span>
+              <span role="columnheader">Soft book</span>
+              <span role="columnheader">Win chance &amp; fair odds</span>
+              <span role="columnheader">Scanned</span>
             </div>
-          )}
+            {visible.length === 0 ? (
+              <div className="empty-state">
+                <h3>No +EV bets right now</h3>
+                <p>
+                  Lower the minimum EV, re-enable books, or press Refresh odds.
+                  Bets need at least two sharp books pricing the same line.
+                </p>
+              </div>
+            ) : (
+              <div
+                ref={viewport}
+                className="ev-viewport"
+                style={{
+                  height: Math.min(viewHeight, visible.length * height),
+                }}
+                onScroll={onScroll}
+              >
+                <div
+                  className="ev-spacer"
+                  role="rowgroup"
+                  style={{ height: visible.length * height }}
+                >
+                  {visible.slice(first, last).map((vm, i) => (
+                    <Row
+                      key={vm.id}
+                      vm={vm}
+                      top={(first + i) * height}
+                      selected={vm.id === selected}
+                      flash={flashes.get(vm.id)}
+                      onSelect={select}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      {shown && (
-        <div className="kelly-backdrop" onClick={() => setSelected(null)} />
-      )}
-      <KellyWidget
-        vm={shown}
-        unavailable={unavailable}
-        bankroll={bankroll}
-        setBankroll={setBankroll}
-        multiplier={multiplier}
-        setMultiplier={setMultiplier}
-        onClose={() => setSelected(null)}
-        onLogged={refreshSlip}
-      />
-    </section>
+        {shown && (
+          <div className="kelly-backdrop" onClick={() => setSelected(null)} />
+        )}
+        <KellyWidget
+          vm={shown}
+          unavailable={unavailable}
+          bankroll={bankroll}
+          setBankroll={setBankroll}
+          multiplier={multiplier}
+          setMultiplier={setMultiplier}
+          onClose={() => setSelected(null)}
+          onLogged={refreshSlip}
+        />
+      </section>
+    </PlacedProvider>
   );
 }

@@ -25,6 +25,7 @@ import {
   type SizingSettings,
 } from "./ev-feed";
 import { BetLinkButton } from "./bet-link";
+import { PlacedChip, PlacedProvider } from "./placed";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
@@ -435,357 +436,360 @@ export default function PropsFeed({ reload }: { reload: number }) {
     groups.set(m.group, [...(groups.get(m.group) ?? []), m]);
 
   return (
-    <section className="ev-layout props-layout" aria-label="Player props">
-      <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
-        <h3>Filters</h3>
-        <SettingsBar controls={settings} />
-        <label className="field">
-          <span>MIN. EV · {minEv}%</span>
-          <input
-            type="range"
-            min="0"
-            max="10"
-            step="0.25"
-            value={minEv}
-            onChange={(e) => setMinEv(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>SPORT</span>
-          <select
-            value={activeSport}
-            onChange={(e) => {
-              setSportKey(e.target.value);
-              setMarketKey("");
-              setEventId("");
-            }}
-          >
-            <option value="">All sports</option>
-            {sports.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>PROP MARKET</span>
-          <select
-            value={activeMarket}
-            onChange={(e) => setMarketKey(e.target.value)}
-          >
-            <option value="">All props</option>
-            {markets.map(([group, items]) => (
-              <optgroup key={group} label={group}>
-                {items.map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>GAME</span>
-          <select
-            value={activeEvent}
-            onChange={(e) => setEventId(e.target.value)}
-          >
-            <option value="">All games</option>
-            {events.map((v) => (
-              <option key={v.gameId} value={v.gameId}>
-                {v.matchup}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>PLAYER</span>
-          <input
-            placeholder="Search player"
-            value={search}
-            maxLength={60}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-        <div className="ev-odds-range">
+    <PlacedProvider slip={slip}>
+      <section className="ev-layout props-layout" aria-label="Player props">
+        <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
+          <h3>Filters</h3>
+          <SettingsBar controls={settings} />
           <label className="field">
-            <span>MIN ODDS</span>
+            <span>MIN. EV · {minEv}%</span>
             <input
-              inputMode="numeric"
-              placeholder="-200"
-              value={minOdds}
-              maxLength={6}
-              onChange={(e) => setMinOdds(e.target.value.trim())}
+              type="range"
+              min="0"
+              max="10"
+              step="0.25"
+              value={minEv}
+              onChange={(e) => setMinEv(e.target.value)}
             />
           </label>
           <label className="field">
-            <span>MAX ODDS</span>
-            <input
-              inputMode="numeric"
-              placeholder="+300"
-              value={maxOdds}
-              maxLength={6}
-              onChange={(e) =>
-                setMaxOdds(e.target.value.trim().replace(/^\+/, ""))
-              }
-            />
-          </label>
-        </div>
-        <fieldset className="ev-books">
-          <legend>
-            MY SPORTSBOOKS{" "}
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setOffBooks(new Set())}
-            >
-              all
-            </button>{" "}
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setOffBooks(new Set(books))}
-            >
-              none
-            </button>
-          </legend>
-          {books.map((id) => (
-            <label key={id}>
-              <input
-                type="checkbox"
-                checked={!offBooks.has(id)}
-                onChange={() =>
-                  setOffBooks((prev) => {
-                    const next = new Set(prev);
-                    if (!next.delete(id)) next.add(id);
-                    return next;
-                  })
-                }
-              />
-              {bookName(id)}
-            </label>
-          ))}
-        </fieldset>
-        <h3>Fetch prop odds</h3>
-        <label className="field">
-          <span>LEAGUE</span>
-          <select
-            value={fetchSport}
-            onChange={(e) => setFetchSport(e.target.value)}
-          >
-            {status.sports.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <fieldset className="ev-books">
-          <legend>
-            MARKETS TO FETCH{" "}
-            <button
-              type="button"
-              className="link-button"
-              onClick={() =>
-                setFetchMarkets(
-                  catalog.filter((m) => m.default).map((m) => m.key),
-                )
-              }
-            >
-              default
-            </button>{" "}
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setFetchMarkets([])}
-            >
-              none
-            </button>
-          </legend>
-          {[...groups].map(([group, items]) => (
-            <div key={group} className="props-group">
-              <small>{group}</small>
-              {items.map((m) => (
-                <label key={m.key}>
-                  <input
-                    type="checkbox"
-                    checked={fetchMarkets.includes(m.key)}
-                    onChange={() =>
-                      setFetchMarkets((prev) =>
-                        prev.includes(m.key)
-                          ? prev.filter((k) => k !== m.key)
-                          : [...prev, m.key],
-                      )
-                    }
-                  />
-                  {m.label}
-                </label>
-              ))}
-            </div>
-          ))}
-        </fieldset>
-        <label className="field">
-          <span>GAMES (SOONEST FIRST) · {fetchEvents}</span>
-          <input
-            type="range"
-            min="1"
-            max={status.max_events}
-            value={fetchEvents}
-            onChange={(e) => setFetchEvents(Number(e.target.value))}
-          />
-        </label>
-        <button
-          className="button"
-          disabled={busy || !fetchMarkets.length}
-          onClick={fetchNow}
-        >
-          {busy ? "Fetching…" : `Fetch props (≤ ${credits(estimate)})`}
-        </button>
-        {notice && (
-          <small
-            role={notice.ok ? "status" : "alert"}
-            className={notice.ok ? "props-ok" : "mid-loss"}
-          >
-            {notice.text}
-          </small>
-        )}
-      </aside>
-      <div className="ev-main">
-        <div className="ev-count">
-          <SlipToggle
-            count={slip.length}
-            onClick={() => setSlipOpen((o) => !o)}
-          />
-          <strong>{visible.length}</strong> of {all.length} bets
-          {status.last_success_at && (
-            <> · fetched {date(status.last_success_at)}</>
-          )}
-          <FeedChangeNote change={change} />
-          <label className="ev-sort">
-            Sort by{" "}
+            <span>SPORT</span>
             <select
-              value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              value={activeSport}
+              onChange={(e) => {
+                setSportKey(e.target.value);
+                setMarketKey("");
+                setEventId("");
+              }}
             >
-              {SORT_LABELS.map(([k, l]) => (
-                <option key={k} value={k}>
-                  {l}
+              <option value="">All sports</option>
+              {sports.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
                 </option>
               ))}
             </select>
           </label>
-        </div>
-        {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
-        <div
-          role="table"
-          aria-label="Player prop bets"
-          className="ev-grid props-grid"
-        >
-          <div role="row" className="ev-head">
-            <span role="columnheader">EV</span>
-            <span role="columnheader">Event</span>
-            <span role="columnheader">Player &amp; bet</span>
-            <span role="columnheader">Soft book</span>
-            <span role="columnheader">Win chance &amp; fair odds</span>
-            <span role="columnheader">Scanned</span>
-          </div>
-          {visible.length === 0 ? (
-            <div className="empty-state">
-              <h3>No +EV prop bets right now</h3>
-              <p>
-                {hiddenAsOld
-                  ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. Fetch prop odds again.`
-                  : "Fetch prop odds, lower the minimum EV, or re-enable books. Bets need at least two sharp books pricing both sides of the same line."}
-              </p>
-            </div>
-          ) : (
-            <div role="rowgroup">
-              {visible.slice(0, shown).map((v) => (
-                <div
-                  key={v.id}
-                  role="row"
-                  tabIndex={0}
-                  aria-selected={v.id === selected}
-                  className={`props-row ${v.id === selected ? "selected" : ""}`}
-                  onClick={() => setSelected(v.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelected(v.id);
-                    }
-                  }}
-                >
-                  <div role="cell" className="ev-cell ev-edge">
-                    <span className="ev-badge">{percent(v.ev, true)}</span>
-                  </div>
-                  <div role="cell" className="ev-cell ev-event">
-                    <Matchup text={v.matchup} sportKey={v.sportKey} />
-                    <small>{date(v.startsAt)}</small>
-                  </div>
-                  <div role="cell" className="ev-cell ev-market">
-                    <span className="player-line">
-                      <Avatar
-                        kind="player"
-                        name={v.player}
-                        sportKey={v.sportKey}
-                        size={36}
-                      />
-                      <span className="player-text">
-                        <small>{v.market}</small>
-                        <strong>{v.line}</strong>
-                      </span>
-                    </span>
-                  </div>
-                  <div role="cell" className="ev-cell ev-soft">
-                    <span className="ev-action">
-                      <span>{v.bookLabel}</span>
-                      <b>@ {v.odds}</b>
-                      <BetLinkButton
-                        compact
-                        links={v.links}
-                        bookLabel={v.bookLabel}
-                        startsAt={v.startsAt}
-                      />
-                    </span>
-                  </div>
-                  <div role="cell" className="ev-cell ev-sharp">
-                    <strong>{percent(v.fair)} chance</strong>
-                    <small>
-                      Fair {v.fairOdds ?? "—"} · {v.sharps}
-                    </small>
-                  </div>
-                  <div role="cell" className="ev-cell ev-time">
-                    <Age value={v.observedAt} />
-                  </div>
-                </div>
+          <label className="field">
+            <span>PROP MARKET</span>
+            <select
+              value={activeMarket}
+              onChange={(e) => setMarketKey(e.target.value)}
+            >
+              <option value="">All props</option>
+              {markets.map(([group, items]) => (
+                <optgroup key={group} label={group}>
+                  {items.map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
-              {shown < visible.length && (
-                <button
-                  className="button secondary"
-                  onClick={() => setShown((n) => n + PAGE)}
-                >
-                  Show more ({visible.length - shown} left)
-                </button>
-              )}
-            </div>
+            </select>
+          </label>
+          <label className="field">
+            <span>GAME</span>
+            <select
+              value={activeEvent}
+              onChange={(e) => setEventId(e.target.value)}
+            >
+              <option value="">All games</option>
+              {events.map((v) => (
+                <option key={v.gameId} value={v.gameId}>
+                  {v.matchup}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>PLAYER</span>
+            <input
+              placeholder="Search player"
+              value={search}
+              maxLength={60}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <div className="ev-odds-range">
+            <label className="field">
+              <span>MIN ODDS</span>
+              <input
+                inputMode="numeric"
+                placeholder="-200"
+                value={minOdds}
+                maxLength={6}
+                onChange={(e) => setMinOdds(e.target.value.trim())}
+              />
+            </label>
+            <label className="field">
+              <span>MAX ODDS</span>
+              <input
+                inputMode="numeric"
+                placeholder="+300"
+                value={maxOdds}
+                maxLength={6}
+                onChange={(e) =>
+                  setMaxOdds(e.target.value.trim().replace(/^\+/, ""))
+                }
+              />
+            </label>
+          </div>
+          <fieldset className="ev-books">
+            <legend>
+              MY SPORTSBOOKS{" "}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setOffBooks(new Set())}
+              >
+                all
+              </button>{" "}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setOffBooks(new Set(books))}
+              >
+                none
+              </button>
+            </legend>
+            {books.map((id) => (
+              <label key={id}>
+                <input
+                  type="checkbox"
+                  checked={!offBooks.has(id)}
+                  onChange={() =>
+                    setOffBooks((prev) => {
+                      const next = new Set(prev);
+                      if (!next.delete(id)) next.add(id);
+                      return next;
+                    })
+                  }
+                />
+                {bookName(id)}
+              </label>
+            ))}
+          </fieldset>
+          <h3>Fetch prop odds</h3>
+          <label className="field">
+            <span>LEAGUE</span>
+            <select
+              value={fetchSport}
+              onChange={(e) => setFetchSport(e.target.value)}
+            >
+              {status.sports.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <fieldset className="ev-books">
+            <legend>
+              MARKETS TO FETCH{" "}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() =>
+                  setFetchMarkets(
+                    catalog.filter((m) => m.default).map((m) => m.key),
+                  )
+                }
+              >
+                default
+              </button>{" "}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setFetchMarkets([])}
+              >
+                none
+              </button>
+            </legend>
+            {[...groups].map(([group, items]) => (
+              <div key={group} className="props-group">
+                <small>{group}</small>
+                {items.map((m) => (
+                  <label key={m.key}>
+                    <input
+                      type="checkbox"
+                      checked={fetchMarkets.includes(m.key)}
+                      onChange={() =>
+                        setFetchMarkets((prev) =>
+                          prev.includes(m.key)
+                            ? prev.filter((k) => k !== m.key)
+                            : [...prev, m.key],
+                        )
+                      }
+                    />
+                    {m.label}
+                  </label>
+                ))}
+              </div>
+            ))}
+          </fieldset>
+          <label className="field">
+            <span>GAMES (SOONEST FIRST) · {fetchEvents}</span>
+            <input
+              type="range"
+              min="1"
+              max={status.max_events}
+              value={fetchEvents}
+              onChange={(e) => setFetchEvents(Number(e.target.value))}
+            />
+          </label>
+          <button
+            className="button"
+            disabled={busy || !fetchMarkets.length}
+            onClick={fetchNow}
+          >
+            {busy ? "Fetching…" : `Fetch props (≤ ${credits(estimate)})`}
+          </button>
+          {notice && (
+            <small
+              role={notice.ok ? "status" : "alert"}
+              className={notice.ok ? "props-ok" : "mid-loss"}
+            >
+              {notice.text}
+            </small>
           )}
+        </aside>
+        <div className="ev-main">
+          <div className="ev-count">
+            <SlipToggle
+              count={slip.length}
+              onClick={() => setSlipOpen((o) => !o)}
+            />
+            <strong>{visible.length}</strong> of {all.length} bets
+            {status.last_success_at && (
+              <> · fetched {date(status.last_success_at)}</>
+            )}
+            <FeedChangeNote change={change} />
+            <label className="ev-sort">
+              Sort by{" "}
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+              >
+                {SORT_LABELS.map(([k, l]) => (
+                  <option key={k} value={k}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
+          <div
+            role="table"
+            aria-label="Player prop bets"
+            className="ev-grid props-grid"
+          >
+            <div role="row" className="ev-head">
+              <span role="columnheader">EV</span>
+              <span role="columnheader">Event</span>
+              <span role="columnheader">Player &amp; bet</span>
+              <span role="columnheader">Soft book</span>
+              <span role="columnheader">Win chance &amp; fair odds</span>
+              <span role="columnheader">Scanned</span>
+            </div>
+            {visible.length === 0 ? (
+              <div className="empty-state">
+                <h3>No +EV prop bets right now</h3>
+                <p>
+                  {hiddenAsOld
+                    ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. Fetch prop odds again.`
+                    : "Fetch prop odds, lower the minimum EV, or re-enable books. Bets need at least two sharp books pricing both sides of the same line."}
+                </p>
+              </div>
+            ) : (
+              <div role="rowgroup">
+                {visible.slice(0, shown).map((v) => (
+                  <div
+                    key={v.id}
+                    role="row"
+                    tabIndex={0}
+                    aria-selected={v.id === selected}
+                    className={`props-row ${v.id === selected ? "selected" : ""}`}
+                    onClick={() => setSelected(v.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelected(v.id);
+                      }
+                    }}
+                  >
+                    <div role="cell" className="ev-cell ev-edge">
+                      <span className="ev-badge">{percent(v.ev, true)}</span>
+                      <PlacedChip leg={v} />
+                    </div>
+                    <div role="cell" className="ev-cell ev-event">
+                      <Matchup text={v.matchup} sportKey={v.sportKey} />
+                      <small>{date(v.startsAt)}</small>
+                    </div>
+                    <div role="cell" className="ev-cell ev-market">
+                      <span className="player-line">
+                        <Avatar
+                          kind="player"
+                          name={v.player}
+                          sportKey={v.sportKey}
+                          size={36}
+                        />
+                        <span className="player-text">
+                          <small>{v.market}</small>
+                          <strong>{v.line}</strong>
+                        </span>
+                      </span>
+                    </div>
+                    <div role="cell" className="ev-cell ev-soft">
+                      <span className="ev-action">
+                        <span>{v.bookLabel}</span>
+                        <b>@ {v.odds}</b>
+                        <BetLinkButton
+                          compact
+                          links={v.links}
+                          bookLabel={v.bookLabel}
+                          startsAt={v.startsAt}
+                        />
+                      </span>
+                    </div>
+                    <div role="cell" className="ev-cell ev-sharp">
+                      <strong>{percent(v.fair)} chance</strong>
+                      <small>
+                        Fair {v.fairOdds ?? "—"} · {v.sharps}
+                      </small>
+                    </div>
+                    <div role="cell" className="ev-cell ev-time">
+                      <Age value={v.observedAt} />
+                    </div>
+                  </div>
+                ))}
+                {shown < visible.length && (
+                  <button
+                    className="button secondary"
+                    onClick={() => setShown((n) => n + PAGE)}
+                  >
+                    Show more ({visible.length - shown} left)
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      {openBet && (
-        <div className="kelly-backdrop" onClick={() => setSelected(null)} />
-      )}
-      <KellyWidget
-        vm={openBet}
-        unavailable={unavailable}
-        bankroll={bankroll}
-        setBankroll={setBankroll}
-        multiplier={multiplier}
-        setMultiplier={setMultiplier}
-        onClose={() => setSelected(null)}
-        onLogged={refreshSlip}
-      />
-    </section>
+        {openBet && (
+          <div className="kelly-backdrop" onClick={() => setSelected(null)} />
+        )}
+        <KellyWidget
+          vm={openBet}
+          unavailable={unavailable}
+          bankroll={bankroll}
+          setBankroll={setBankroll}
+          multiplier={multiplier}
+          setMultiplier={setMultiplier}
+          onClose={() => setSelected(null)}
+          onLogged={refreshSlip}
+        />
+      </section>
+    </PlacedProvider>
   );
 }
