@@ -70,7 +70,14 @@ Maven 3.9+ (only for the `/games` Spring service).
 
 ## Run
 
-Start each process in its own terminal and stop it with Ctrl+C.
+All three at once (each opens in its own window; `-MaxAgeSeconds 259200` also counts older stored odds):
+
+```powershell
+.\scripts\start-services.ps1
+.\scripts\stop-services.ps1
+```
+
+Or start each process in its own terminal and stop it with Ctrl+C.
 
 ```powershell
 # 1. Tools API (stored odds, no provider calls)
@@ -100,7 +107,7 @@ otherwise built once at startup. If you change `web/next.config.ts`, restart `pn
 | `/positive_ev` | +EV bets with no-vig fair probabilities from sharp books and uncapped Kelly stakes |
 | `/arbitrage` | Two-way arbitrage only (no three-way outcomes) |
 | `/middle` | Spread and total middles with window and EV |
-| `/props` | Player prop +EV bets against the sharp books, with the Kelly calculator |
+| `/props` | Player prop +EV bets against the sharp books (plus FanDuel, as a reference for props only; FanDuel props are still listed and are priced against the other references), with the Kelly calculator |
 | `/promo` | Bonus bet, site credit, risk-free bet and profit boost conversion with a stake calculator |
 | `/games` | Schedule: upcoming games by day, with the best main-line spread, total and moneyline |
 | `/login` | Sign in or create an account (username + password); `/account` changes your password |

@@ -13,6 +13,10 @@ from corner.links import clean_links
 SHARP_BOOKS = frozenset(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
                         if b.strip()) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi'})
 MIN_SHARPS = 2  # the +EV feed requires at least two sharp books fully pricing the line
+# Books that also count as a reference for player props only. They still appear as bets: a book's own bet is
+# priced against the other reference books, never against itself.
+PROP_EXTRA_SHARPS = frozenset({'fanduel'})
+PROP_SHARP_BOOKS = SHARP_BOOKS | PROP_EXTRA_SHARPS
 # Over/Under or Yes/No priced on both sides ('two_way'), or a Yes-only / winner list ('yes_only').
 TWO_WAY, YES_ONLY = 'two_way', 'yes_only'
 
@@ -202,12 +206,12 @@ def _prob(price):
     return Decimal(1) / Decimal(price)
 
 
-def _fair_first_side(prices):
-    """No-vig probability of side 0, averaged over the sharp books pricing both sides.
+def _fair_first_side(prices, exclude=None):
+    """No-vig probability of side 0, averaged over the reference books pricing both sides.
 
-    Needs at least MIN_SHARPS such books, exactly as the main +EV feed does.
+    Needs at least MIN_SHARPS such books, exactly as the main +EV feed does. `exclude` is the book being priced.
     """
-    used = sorted(b for b, p in prices.items() if b in SHARP_BOOKS and 0 in p and 1 in p)
+    used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS and b != exclude and 0 in p and 1 in p)
     probs = [_prob(prices[b][0]) / (_prob(prices[b][0]) + _prob(prices[b][1])) for b in used]
     return (sum(probs) / len(probs), used) if len(probs) >= MIN_SHARPS else (None, [])
 
@@ -219,8 +223,9 @@ def _q(value):
 def build_bets(events):
     """events: {event_id: {meta, markets:{market_key:{quotes:[...]}}}} -> one bet per soft-book side.
 
-    A bet exists only where at least two sharp books price both sides of the same player line,
-    so its fair probability is their no-vig consensus. Other lines are omitted.
+    A bet exists only where at least two reference books (the sharp books, plus FanDuel for props) price both
+    sides of the same player line, so its fair probability is their no-vig consensus. A book's own bet never
+    counts that book as a reference. Other lines are omitted.
     """
     bets = []
     for event_id, ev in events.items():
@@ -234,11 +239,11 @@ def build_bets(events):
                 grouped.setdefault((q['player'], q['point']), {}).setdefault(q['book'], {})[q['side']] = q
             for (player, point), by_book in grouped.items():
                 prices = {b: {s: Decimal(q['price']) for s, q in sides.items()} for b, sides in by_book.items()}
-                fair, used = _fair_first_side(prices)
-                if fair is None:
-                    continue
                 for book, sides in sorted(prices.items()):
                     if book in SHARP_BOOKS:
+                        continue
+                    fair, used = _fair_first_side(prices, exclude=book)
+                    if fair is None:
                         continue
                     for side, price in sorted(sides.items()):
                         win = fair if side == 0 else 1 - fair
