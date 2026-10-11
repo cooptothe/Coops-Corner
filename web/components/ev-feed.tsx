@@ -1,4 +1,5 @@
 "use client";
+import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   MARKETS,
@@ -510,6 +511,7 @@ export function KellyWidget({
 }
 
 export default function EvFeed({ data }: { data: Data }) {
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [rows, setRows] = useState<EvRow[] | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -655,6 +657,7 @@ export default function EvFeed({ data }: { data: Data }) {
       all
         .filter(
           (v) =>
+            matchesTime(v.startsAt) &&
             !offBooks.has(v.bookId) &&
             (!sportFilter || v.sportKey === sportFilter) &&
             compareDecimal(v.ev, minRatio) >= 0 &&
@@ -662,7 +665,7 @@ export default function EvFeed({ data }: { data: Data }) {
             (hi === null || Number(v.decimalOdds) <= hi),
         )
         .sort(SORTS[sortKey]),
-    [all, offBooks, sportFilter, minRatio, lo, hi, sortKey],
+    [matchesTime, all, offBooks, sportFilter, minRatio, lo, hi, sortKey],
   );
 
   const [compact, setCompact] = useState(false);
@@ -676,6 +679,10 @@ export default function EvFeed({ data }: { data: Data }) {
   const height = compact ? ROW_HEIGHT.compact : ROW_HEIGHT.wide;
   const viewport = useRef<HTMLDivElement>(null);
   const [scroll, setScroll] = useState(0);
+  useEffect(() => {
+    setScroll(0);
+    if (viewport.current) viewport.current.scrollTop = 0;
+  }, [timeFilter]);
   const frame = useRef(0);
   const onScroll = useCallback(() => {
     cancelAnimationFrame(frame.current);
@@ -710,6 +717,7 @@ export default function EvFeed({ data }: { data: Data }) {
         <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
           <h3>Filters</h3>
           <SettingsBar controls={settings} />
+          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
           <label className="field">
             <span>MIN. EV · {minEv}%</span>
             <input

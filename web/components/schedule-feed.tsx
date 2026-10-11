@@ -1,4 +1,5 @@
 "use client";
+import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { useEffect, useMemo, useState } from "react";
 import { american, date, point as signed } from "../../frontend/format.mjs";
 import { list, sorted, text } from "../lib/settings-fields";
@@ -152,6 +153,7 @@ const SCHEDULE_DEFAULTS: ScheduleSettings = {
 };
 
 export default function ScheduleFeed({ data }: { data: Data }) {
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [league, setLeague] = useState("");
   const [search, setSearch] = useState("");
   const [offBooks, setOffBooks] = useState<Set<string>>(
@@ -173,7 +175,10 @@ export default function ScheduleFeed({ data }: { data: Data }) {
       return saved;
     },
   });
-  useEffect(() => setDayCount(FIRST_DAYS), [league, search, offBooks]);
+  useEffect(
+    () => setDayCount(FIRST_DAYS),
+    [league, search, offBooks, timeFilter],
+  );
 
   const bookNames = useMemo(
     () => new Map(data.caps.books.map((b) => [b.id, shortBook(b.name)])),
@@ -203,7 +208,7 @@ export default function ScheduleFeed({ data }: { data: Data }) {
           a.competition.localeCompare(b.competition) ||
           a.name.localeCompare(b.name),
       );
-  }, [data]);
+  }, [data, matchesTime]);
   const leagues = useMemo(() => {
     const counts = new Map<string, { label: string; n: number }>();
     for (const g of upcoming) {
@@ -221,10 +226,11 @@ export default function ScheduleFeed({ data }: { data: Data }) {
     const term = search.trim().toLowerCase();
     return upcoming.filter(
       (g) =>
+        matchesTime(g.starts_at) &&
         (!activeLeague || g.sport_key === activeLeague) &&
         (!term || `${g.name} ${g.competition}`.toLowerCase().includes(term)),
     );
-  }, [upcoming, activeLeague, search]);
+  }, [matchesTime, upcoming, activeLeague, search]);
   const days = useMemo(() => {
     const groups = new Map<string, Game[]>();
     for (const g of visible) {
@@ -244,6 +250,7 @@ export default function ScheduleFeed({ data }: { data: Data }) {
     <section className="sched" aria-label="Upcoming games">
       <div className="sched-bar">
         <SettingsBar controls={settings} />
+        <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
         <div className="sched-chips" role="group" aria-label="League">
           <button
             type="button"

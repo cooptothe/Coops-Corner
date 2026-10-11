@@ -1,4 +1,5 @@
 "use client";
+import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ageLabel,
@@ -586,6 +587,7 @@ export function Menu({
 }
 
 export default function ArbFeed({ data }: { data: Data }) {
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [rows, setRows] = useState<ArbRow[] | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -687,12 +689,13 @@ export default function ArbFeed({ data }: { data: Data }) {
       all
         .filter(
           (v) =>
+            matchesTime(v.startsAt) &&
             !offSports.has(v.sportKey) &&
             v.legs.every((l) => !offBooks.has(l.bookId)) &&
             compareDecimal(v.profit, minRatio) >= 0,
         )
         .sort(SORTS[sortKey]),
-    [all, offBooks, offSports, minRatio, sortKey],
+    [matchesTime, all, offBooks, offSports, minRatio, sortKey],
   );
 
   const [compact, setCompact] = useState(false);
@@ -706,6 +709,10 @@ export default function ArbFeed({ data }: { data: Data }) {
   const height = compact ? ROW_HEIGHT.compact : ROW_HEIGHT.wide;
   const viewport = useRef<HTMLDivElement>(null);
   const [scroll, setScroll] = useState(0);
+  useEffect(() => {
+    setScroll(0);
+    if (viewport.current) viewport.current.scrollTop = 0;
+  }, [timeFilter]);
   const frame = useRef(0);
   const onScroll = useCallback(() => {
     cancelAnimationFrame(frame.current);
@@ -740,6 +747,7 @@ export default function ArbFeed({ data }: { data: Data }) {
     <section className="arb-layout" aria-label="Arbitrage feed">
       <div className="arb-bar">
         <SettingsBar controls={settings} />
+        <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
         <Menu
           title="Sportsbooks"
           items={bookItems}

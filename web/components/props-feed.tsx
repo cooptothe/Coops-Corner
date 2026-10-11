@@ -1,4 +1,5 @@
 "use client";
+import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -190,6 +191,7 @@ const PROPS_DEFAULTS: PropsSettings = {
 };
 
 export default function PropsFeed({ reload }: { reload: number }) {
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [status, setStatus] = useState<PropsStatus | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -346,6 +348,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     return inSport
       .filter(
         (v) =>
+          matchesTime(v.startsAt) &&
           !offBooks.has(v.bookId) &&
           (!activeMarket || v.marketKey === activeMarket) &&
           (!activeEvent || v.gameId === activeEvent) &&
@@ -356,6 +359,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
       )
       .sort(SORTS[sortKey]);
   }, [
+    matchesTime,
     inSport,
     offBooks,
     activeMarket,
@@ -369,6 +373,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
   useEffect(
     () => setShown(PAGE),
     [
+      timeFilter,
       sportKey,
       marketKey,
       eventId,
@@ -441,6 +446,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
           <h3>Filters</h3>
           <SettingsBar controls={settings} />
+          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
           <label className="field">
             <span>MIN. EV · {minEv}%</span>
             <input

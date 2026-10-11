@@ -1236,3 +1236,4 @@
 .placed-note{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:8px;font-size:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5)}
 .placed-note strong{font-size:13px}
 .ev-row:has(.placed-badge),.props-row:has(.placed-badge){background:rgba(239,68,68,.06)}
+.feed-time-filter{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;width:100%}.feed-time-filter button{font:inherit;font-size:12px;padding:7px 11px;border:1px solid rgba(128,128,128,.35);border-radius:7px;background:var(--panel,#2e2a2a);color:inherit;cursor:pointer}.feed-time-filter button[aria-pressed="true"]{background:#481920;border-color:#b51c2a;color:#fff;font-weight:600}.feed-time-filter button:focus-visible{outline:2px solid #b51c2a;outline-offset:2px}

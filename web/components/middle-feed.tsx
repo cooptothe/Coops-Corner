@@ -1,4 +1,5 @@
 "use client";
+import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   MARKETS,
@@ -431,6 +432,7 @@ function Calculator({
 }
 
 export default function MiddleFeed({ data }: { data: Data }) {
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [rows, setRows] = useState<MidRow[] | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -540,6 +542,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
       all
         .filter(
           (v) =>
+            matchesTime(v.startsAt) &&
             !offSports.has(v.sportKey) &&
             !offMarkets.has(v.marketKey) &&
             v.legs.every((l) => !offBooks.has(l.bookId)) &&
@@ -547,7 +550,16 @@ export default function MiddleFeed({ data }: { data: Data }) {
             (widthLimit === null || v.width >= widthLimit),
         )
         .sort(SORTS[sortKey]),
-    [all, offBooks, offSports, offMarkets, missLimit, widthLimit, sortKey],
+    [
+      matchesTime,
+      all,
+      offBooks,
+      offSports,
+      offMarkets,
+      missLimit,
+      widthLimit,
+      sortKey,
+    ],
   );
 
   const finite = visible.filter((v) => v.width < 1e9);
@@ -569,6 +581,10 @@ export default function MiddleFeed({ data }: { data: Data }) {
   const height = compact ? ROW_HEIGHT.compact : ROW_HEIGHT.wide;
   const viewport = useRef<HTMLDivElement>(null);
   const [scroll, setScroll] = useState(0);
+  useEffect(() => {
+    setScroll(0);
+    if (viewport.current) viewport.current.scrollTop = 0;
+  }, [timeFilter]);
   const frame = useRef(0);
   const onScroll = useCallback(() => {
     cancelAnimationFrame(frame.current);
@@ -603,6 +619,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
     <section className="arb-layout" aria-label="Middles feed">
       <div className="arb-bar">
         <SettingsBar controls={settings} />
+        <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
         <Menu
           title="Sportsbooks"
           items={bookItems}

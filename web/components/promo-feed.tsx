@@ -1,4 +1,5 @@
 "use client";
+import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   MARKETS,
@@ -892,6 +893,7 @@ const PROMO_DEFAULTS: PromoSettings = {
 };
 
 export default function PromoFeed({ data }: { data: Data }) {
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [type, setType] = useState<PromoType>("bonus");
   const [face, setFace] = useState("100");
   const [refund, setRefund] = useState("75");
@@ -1112,7 +1114,11 @@ export default function PromoFeed({ data }: { data: Data }) {
   const visible = useMemo(
     () =>
       all
-        .filter((v) => rateLimit === null || v.rate >= rateLimit)
+        .filter(
+          (v) =>
+            matchesTime(v.startsAt) &&
+            (rateLimit === null || v.rate >= rateLimit),
+        )
         .sort((a, b) => {
           switch (sortKey) {
             case "time":
@@ -1126,7 +1132,7 @@ export default function PromoFeed({ data }: { data: Data }) {
           }
         })
         .slice(0, 500),
-    [all, rateLimit, sortKey],
+    [matchesTime, all, rateLimit, sortKey],
   );
   const byId = useMemo(() => new Map(all.map((v) => [v.id, v])), [all]);
   // Membership follows these settings, so changing one is not a data update.
@@ -1159,6 +1165,10 @@ export default function PromoFeed({ data }: { data: Data }) {
   const height = compact ? ROW_HEIGHT.compact : ROW_HEIGHT.wide;
   const viewport = useRef<HTMLDivElement>(null);
   const [scroll, setScroll] = useState(0);
+  useEffect(() => {
+    setScroll(0);
+    if (viewport.current) viewport.current.scrollTop = 0;
+  }, [timeFilter]);
   const frame = useRef(0);
   const onScroll = useCallback(() => {
     cancelAnimationFrame(frame.current);
@@ -1196,6 +1206,7 @@ export default function PromoFeed({ data }: { data: Data }) {
     <section className="arb-layout" aria-label="Promo converter">
       <div className="arb-bar">
         <SettingsBar controls={settings} />
+        <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
         <div
           className="arb-modes pr-types"
           role="group"
