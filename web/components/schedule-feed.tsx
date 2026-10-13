@@ -1,9 +1,10 @@
 "use client";
+import "../app/schedule-markets.css";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { useEffect, useMemo, useState } from "react";
-import { american, date, point as signed } from "../../frontend/format.mjs";
+import { date } from "../../frontend/format.mjs";
 import { list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
 import type { Capabilities, Game, Meta, Quote } from "../lib/contracts";
@@ -14,10 +15,10 @@ import {
   dayHeading,
   dayKey,
   timeLabel,
-  type BestPrice,
   type GameLines,
   type LineMarket,
 } from "../lib/schedule";
+import { ScheduleQuote } from "./schedule-quote";
 import { Menu, shortBook } from "./arb-feed";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Avatar } from "./media";
@@ -33,37 +34,6 @@ const COLUMNS: { key: LineMarket; label: string }[] = [
   { key: "totals", label: "Total" },
   { key: "h2h", label: "Moneyline" },
 ];
-
-function linePrefix(market: LineMarket, side: string, p: BestPrice): string {
-  if (market === "h2h" || p.point == null) return "";
-  if (market === "totals") return `${side === "over" ? "O" : "U"} ${p.point}`;
-  return p.point === 0 ? "PK" : signed(String(p.point));
-}
-
-function Quote_({
-  market,
-  side,
-  price,
-  bookName,
-}: {
-  market: LineMarket;
-  side: string;
-  price: BestPrice | undefined;
-  bookName: (id: string) => string;
-}) {
-  if (!price) return <div className="sched-quote empty">—</div>;
-  const line = linePrefix(market, side, price);
-  return (
-    <div
-      className="sched-quote"
-      title={`Best price: ${bookName(price.bookId)}`}
-    >
-      {line && <span className="sched-line">{line}</span>}
-      <b className="sched-price">{american(String(price.decimal))}</b>
-      <small className="sched-book">{bookName(price.bookId)}</small>
-    </div>
-  );
-}
 
 function GameRow({
   game,
@@ -125,10 +95,11 @@ function GameRow({
             <span className="sched-label">{label}</span>
             {main ? (
               order.map((side) => (
-                <Quote_
+                <ScheduleQuote
                   key={side}
                   market={key}
                   side={side}
+                  startsAt={game.starts_at}
                   price={main.sides[side]}
                   bookName={bookName}
                 />

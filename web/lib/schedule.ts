@@ -1,3 +1,4 @@
+import type { QuoteLinks } from "./bet-links";
 import type { Quote } from "./contracts";
 
 export type LineMarket = "spreads" | "totals" | "h2h";
@@ -8,6 +9,7 @@ export interface BestPrice {
   bookId: string;
   decimal: number;
   point: number | null;
+  links?: QuoteLinks | null;
 }
 // The main line of one market: the best price on each side, all at the same line.
 export interface MainLine {
@@ -75,6 +77,7 @@ function candidate(
         bookId: q.sportsbook_id,
         decimal,
         point: num(q.point),
+        links: q.links ?? null,
       };
   }
   const [a, b] = REQUIRED[market];
