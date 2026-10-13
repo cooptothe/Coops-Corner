@@ -57,7 +57,7 @@ export default function FreshOdds({
     if (
       !chosen.length ||
       !window.confirm(
-        `Fetch fresh pre-game odds for ${chosen.length} league(s) and recalculate all opportunities? Each in-season league costs 3 API credits (up to ${chosen.length * 3}); out-of-season leagues are free.`,
+        `Fetch fresh pre-game odds for ${chosen.length} league(s) and recalculate all opportunities? Each in-season league costs 6 API credits (up to ${chosen.length * 6}); out-of-season leagues are free.`,
       )
     )
       return;

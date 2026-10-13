@@ -1,4 +1,5 @@
 "use client";
+import { feedBooks, PROP_BOOKS } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
@@ -54,7 +55,8 @@ const BETTING_BOOKS = [
   "novig",
   "espnbet",
 ];
-const bookName = (id: string) => BOOK_NAMES[id] ?? id;
+const bookName = (id: string) =>
+  PROP_BOOKS.find((b) => b.id === id)?.name ?? BOOK_NAMES[id] ?? id;
 const SETTINGS_KEY = "corner.props-settings";
 const credits = (n: number) => `${n} credit${n === 1 ? "" : "s"}`;
 const PAGE = 100;
@@ -293,11 +295,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
   }, [fetchSport, catalogKey]);
 
   const all = useMemo(
-    () =>
-      (status?.bets ?? [])
-        .filter((b) => BETTING_BOOKS.includes(b.book))
-        .map(toVm)
-        .sort(SORTS.ev),
+    () => (status?.bets ?? []).map(toVm).sort(SORTS.ev),
     [status],
   );
   const sports = useMemo(
@@ -336,8 +334,13 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const activeEvent = events.some((v) => v.gameId === eventId) ? eventId : "";
   const books = useMemo(
     () =>
-      [...BETTING_BOOKS].sort((a, b) => bookName(a).localeCompare(bookName(b))),
-    [],
+      [
+        ...new Set([
+          ...PROP_BOOKS.map((b) => b.id),
+          ...all.map((b) => b.bookId),
+        ]),
+      ].sort((a, b) => bookName(a).localeCompare(bookName(b))),
+    [all],
   );
 
   const minRatio = shiftDecimal(minEv, -2);
@@ -402,7 +405,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     Date.now() - new Date(status.last_success_at).getTime() >
       status.max_age_seconds * 1000;
 
-  const estimate = fetchEvents * fetchMarkets.length;
+  const estimate = fetchEvents * fetchMarkets.length * 2;
   const fetchNow = useCallback(async () => {
     if (!fetchSport || !fetchMarkets.length) return;
     if (

@@ -1,4 +1,5 @@
 "use client";
+import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { useEffect, useMemo, useState } from "react";
 import { american, date, point as signed } from "../../frontend/format.mjs";
@@ -149,16 +150,14 @@ type ScheduleSettings = { league: string; search: string; offBooks: string[] };
 const SCHEDULE_DEFAULTS: ScheduleSettings = {
   league: "",
   search: "",
-  offBooks: sorted(REFERENCE_BOOKS),
+  offBooks: [],
 };
 
 export default function ScheduleFeed({ data }: { data: Data }) {
   const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [league, setLeague] = useState("");
   const [search, setSearch] = useState("");
-  const [offBooks, setOffBooks] = useState<Set<string>>(
-    () => new Set(REFERENCE_BOOKS),
-  );
+  const [offBooks, setOffBooks] = useState<Set<string>>(() => new Set());
   const [dayCount, setDayCount] = useState(FIRST_DAYS);
   const settings = useToolSettings<ScheduleSettings>({
     tool: "games",
@@ -191,8 +190,7 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   );
   const bookItems = useMemo(() => {
     const present = new Set(data.quotes.map((q) => q.sportsbook_id));
-    return data.caps.books
-      .filter((b) => present.has(b.id))
+    return feedBooks(data.caps.books)
       .map((b): [string, string] => [b.id, shortBook(b.name)])
       .sort((a, b) => a[1].localeCompare(b[1]));
   }, [data]);

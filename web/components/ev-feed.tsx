@@ -1,4 +1,5 @@
 "use client";
+import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -638,8 +639,8 @@ export default function EvFeed({ data }: { data: Data }) {
 
   const books = useMemo(() => {
     const list = new Map(all.map((v) => [v.bookId, v.bookLabel]));
-    for (const b of data.caps.books)
-      if (!SHARP_BOOKS.has(b.id)) list.set(b.id, shortBook(b.name));
+    for (const b of feedBooks(data.caps.books))
+      list.set(b.id, shortBook(b.name));
     return [...list].sort((a, b) => a[1].localeCompare(b[1]));
   }, [all, data]);
   const sports = useMemo(() => {

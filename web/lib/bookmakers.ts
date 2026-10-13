@@ -1,0 +1,31 @@
+export const MAIN_BOOKS = [
+  { id: "draftkings", name: "DraftKings" },
+  { id: "fanduel", name: "FanDuel" },
+  { id: "espnbet", name: "theScore Bet" },
+  { id: "betmgm", name: "BetMGM" },
+  { id: "novig", name: "Novig" },
+  { id: "betrivers", name: "BetRivers" },
+  { id: "pinnacle", name: "Pinnacle" },
+  { id: "betfair_ex_uk", name: "Betfair Exchange" },
+  { id: "prophetx", name: "ProphetX" },
+  { id: "kalshi", name: "Kalshi" },
+  { id: "betopenly", name: "BetOpenly" },
+  { id: "polymarket", name: "Polymarket" },
+];
+export const PROP_BOOKS = [
+  ...MAIN_BOOKS,
+  { id: "prizepicks", name: "PrizePicks" },
+  { id: "underdog", name: "Underdog" },
+];
+
+// Keep configured sources selectable before their first usable capture.
+export function feedBooks(
+  captured: { id: string; name: string }[],
+  props = false,
+) {
+  const books = new Map(
+    (props ? PROP_BOOKS : MAIN_BOOKS).map((b) => [b.id, b]),
+  );
+  for (const book of captured) books.set(book.id, book);
+  return [...books.values()];
+}

@@ -179,7 +179,7 @@ class FixtureCatalog:
         self.game_for_contract = {}
         references = tuple(raw['required_reference_books'])
         targets = set(raw['target_books'])
-        if not targets or not targets <= book_map.keys() or targets.intersection(references):
+        if not targets or not targets <= book_map.keys() or (self.data_mode != 'database' and targets.intersection(references)):
             raise ValueError('invalid target/reference routing')
         line_bets, rows = [], []
         for contract in raw['contracts']:
@@ -226,9 +226,13 @@ class FixtureCatalog:
             complete_refs = len(full) >= 2 if self.data_mode == 'database' else len(full) == len(references)
             refs = [o for o in refs if o.sportsbook_id in used]
             for target in (o for o in current if o.sportsbook_id in targets and complete_refs):
-                result = calculate_featured_ev(market, target, refs, required_reference_books=used, stake=D(100))
+                target_used = tuple(b for b in used if b != target.sportsbook_id)
+                target_refs = [o for o in refs if o.sportsbook_id in target_used]
+                if len(target_used) < 2:
+                    continue
+                result = calculate_featured_ev(market, target, target_refs, required_reference_books=target_used, stake=D(100))
                 if result.conditional_ev_ratio_on_capital > 0:
-                    ids = [target.quote_id] + [o.quote_id for o in refs]
+                    ids = [target.quote_id] + [o.quote_id for o in target_refs]
                     rows.append(EVRow(**self._row(game_id, contract_id, target.market_key, ids, 'positive_ev', result,
                                                  result.capital_at_risk, ev=result.conditional_ev_ratio_on_capital), calculation=result))
             cover = calculate_back_cover(market, back, total_stake=D(200))

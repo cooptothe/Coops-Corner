@@ -17,9 +17,9 @@ from corner.links import clean_links
 log = logging.getLogger('corner.api.database')
 
 SETTLEMENT_IDENTITY = 'the-odds-api-main-lines-full-game/1'
-# Sharp books (Odds API keys): Pinnacle, Betfair exchange UK, ProphetX, Kalshi.
-DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi')
-# Empty = every non-sharp book present in the data is a bettable target; the user filters in the UI.
+# Main-line references; these books remain eligible betting targets too.
+DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket')
+# Empty = every book present in the data is a bettable target; the user filters in the UI.
 DEFAULT_TARGETS = ()
 FALLBACK_TARGET = 'draftkings'
 MARKET_KEYS = {'moneyline': 'h2h', 'spread': 'spreads', 'total': 'totals'}
@@ -160,7 +160,7 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
                               competition=_label(r['competition_code'], r['competition_name']), name=f'{away} at {home}', starts_at=_iso(r['scheduled_start']),
                               scope='full_game', participants=sorted([home, away])))
     captured = max(observed) if observed else now
-    targets = tuple(targets) if targets else tuple(sorted(set(books) - set(references))) or (FALLBACK_TARGET,)
+    targets = tuple(targets) if targets else tuple(sorted(books)) or (FALLBACK_TARGET,)
     book_ids = sorted(set(books) | set(references) | set(targets))
     return dict(format='corner.product_fixture/1', data_mode='database', captured_at=_iso(captured), observed_at=_iso(captured),
                 refund_possible=True, settlement_identity=SETTLEMENT_IDENTITY,

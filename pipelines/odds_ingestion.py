@@ -1,4 +1,4 @@
-"""Odds API ingestion: Odds API -> retained payload -> normalization -> PostgreSQL, per league, <=3 credits each.
+"""Odds API ingestion: Odds API -> retained payload -> normalization -> PostgreSQL, per league, <=6 credits each.
 
 No automatic retries, recurring calls, lifecycle processing, or quote re-dating.
 Replay ingestion from the retained manifest spends zero provider credits.
@@ -26,9 +26,11 @@ from corner.ingestion import (_seed_provider, _create_batch, _create_payload, _r
 ROOT=Path(__file__).resolve().parents[1]
 BASE='https://api.the-odds-api.com/v4/sports'
 SPORT='americanfootball_nfl'
-# Ten bookmakers is the most one request can name before it bills a second region (3 credits per league).
-# Soft: draftkings, fanduel, espnbet, betmgm, novig, betrivers. Sharp: pinnacle, betfair_ex_uk, prophetx, kalshi.
-PARAMS={'bookmakers':'draftkings,fanduel,espnbet,betmgm,novig,betrivers,pinnacle,betfair_ex_uk,prophetx,kalshi','markets':'h2h,spreads,totals',
+# Twelve named books count as two regions (six credits for three main-line markets).
+# Main-line references include pinnacle, betfair_ex_uk, prophetx, kalshi, betopenly and polymarket.
+BOOKMAKER_REGIONS = 2
+CREDITS_PER_SPORT = 6
+PARAMS={'bookmakers':'draftkings,fanduel,espnbet,betmgm,novig,betrivers,pinnacle,betfair_ex_uk,prophetx,kalshi,betopenly,polymarket','markets':'h2h,spreads,totals',
         'oddsFormat':'decimal','dateFormat':'iso','includeLinks':'true','includeSids':'true'}
 SAFE_HEADERS={'date','content-type','x-requests-used','x-requests-remaining','x-requests-last'}
 
@@ -80,7 +82,7 @@ def capture(destination, extra_params=None, sport=SPORT):
         session.trust_env=False
         status,catalog,quota=fetch(session,BASE+'/',{}) # documented zero-credit catalog
         if status!=200: raise ValueError(f'Catalog HTTP {status}; odds not requested')
-        if int(quota.get('x-requests-remaining','0'))<3: raise ValueError('Fewer than three credits remain')
+        if int(quota.get('x-requests-remaining','0'))<CREDITS_PER_SPORT: raise ValueError('Fewer than six credits remain')
         if not any(s['key']==sport and s.get('active') for s in json.loads(catalog)):
             raise InactiveSport(f'{sport} is not listed as active; no paid request made')
         started=datetime.now(timezone.utc).isoformat()
@@ -96,11 +98,11 @@ def capture(destination, extra_params=None, sport=SPORT):
     manifest={'format':'corner.board_capture/1','endpoint':BASE+'/'+sport+'/odds/','sport':sport,
               'parameters':params,'requested_at':started,'received_at':received,'http_status':status,
               'sha256':hashlib.sha256(body).hexdigest(),'response_headers':headers,
-              'catalog_quota':quota,'planned_credits':3,'automatic_retries':0,'production_authorized':False}
+              'catalog_quota':quota,'planned_credits':CREDITS_PER_SPORT,'automatic_retries':0,'production_authorized':False}
     (destination/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     print(json.dumps({'capture':str(destination),'http_status':status,'quota':headers}))
     if status!=200: raise ValueError('Provider error retained; no ingestion performed')
-    if int(headers.get('x-requests-last','0'))>3: raise ValueError('Unexpected provider charge; no further calls permitted')
+    if int(headers.get('x-requests-last','0'))>CREDITS_PER_SPORT: raise ValueError('Unexpected provider charge; no further calls permitted')
 
 
 def _bind(conn,provider,snapshot,raw,sport):

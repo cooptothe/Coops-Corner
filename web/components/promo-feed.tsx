@@ -1,4 +1,5 @@
 "use client";
+import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -1002,7 +1003,7 @@ export default function PromoFeed({ data }: { data: Data }) {
 
   const bookItems = useMemo(
     () =>
-      data.caps.books
+      feedBooks(data.caps.books)
         .map((b): [string, string] => [b.id, shortBook(b.name)])
         .sort((a, b) => a[1].localeCompare(b[1])),
     [data],

@@ -1,6 +1,6 @@
 """Player-prop capture: free events list, then one paid per-event odds call per event.
 
-Cost is about one credit per market returned per event (all ten books fit in one region).
+Cost is about two credits per market returned per event (fourteen books count as two regions).
 Nothing runs on a timer and nothing retries. Normalized quotes are merged into
 retained/props/latest.json.
 """
@@ -17,7 +17,8 @@ from pipelines.odds_ingestion import BASE, PARAMS, fetch
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / 'retained' / 'props' / 'latest.json'
-BOOKS = PARAMS['bookmakers']
+BOOKS = PARAMS['bookmakers'] + ',prizepicks,underdog'
+BOOKMAKER_REGIONS = 2
 # Prop prices move fast, so a fetch older than this stops counting (the main tools use two hours).
 MAX_AGE = int(os.environ.get('CORNER_PROPS_MAX_AGE_SECONDS', '3600'))
 
@@ -105,7 +106,7 @@ def capture(sport, markets, max_events):
         _save(data)
         for event in events:
             # The only guard: a call the key cannot pay for would just be rejected.
-            if int((quota or {}).get('x-requests-remaining', '999')) < len(markets):
+            if int((quota or {}).get('x-requests-remaining', '999')) < len(markets) * BOOKMAKER_REGIONS:
                 stopped = 'out_of_credits'
                 break
             status, body, headers = fetch(session, f"{BASE}/{sport}/events/{event['id']}/odds", {

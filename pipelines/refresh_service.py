@@ -64,7 +64,7 @@ LABELS = {'americanfootball_nfl': 'NFL', 'americanfootball_ncaaf': 'NCAAF', 'bas
           'soccer_epl': 'Premier League', 'soccer_spain_la_liga': 'La Liga',
           'soccer_germany_bundesliga': 'Bundesliga', 'soccer_italy_serie_a': 'Serie A',
           'soccer_france_ligue_one': 'Ligue 1', 'soccer_uefa_champs_league': 'Champions League'}
-CREDITS_PER_SPORT = 3
+CREDITS_PER_SPORT = board.CREDITS_PER_SPORT
 CREDITS_PER_REFRESH = CREDITS_PER_SPORT * len(SPORTS)  # ceiling; out-of-season leagues cost nothing
 _lock = threading.Lock()
 
@@ -223,7 +223,7 @@ def props_message(label, markets, result, found=None):
     progress = f"Fetched {games(done)} of {planned}, {credits(used)} used." if done else 'Nothing was fetched.'
     if stopped == 'out_of_credits':
         left = (f'only {credits(remaining)} left' if remaining is not None else 'too few credits are left')
-        return f'Stopped: {left} on your Odds API key, and each game needs {credits(len(markets))}. {progress}'
+        return f'Stopped: {left} on your Odds API key, and each game needs {credits(len(markets) * props.BOOKMAKER_REGIONS)}. {progress}'
     if stopped:
         code = stopped.rsplit('_', 1)[-1]
         reason = {'401': 'The Odds API rejected the key or says it is out of credits (HTTP 401).',

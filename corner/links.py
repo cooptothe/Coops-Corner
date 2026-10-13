@@ -21,6 +21,10 @@ BOOK_DOMAINS = {
     'kalshi': ('kalshi.com',),
     'pinnacle': ('pinnacle.com',),
     'betfair_ex_uk': ('betfair.com',),
+    'betopenly': ('betopenly.com',),
+    'polymarket': ('polymarket.com',),
+    'prizepicks': ('prizepicks.com',),
+    'underdog': ('underdogfantasy.com',),
 }
 _PLACEHOLDER = re.compile(r'\{([^{}]*)\}')
 _HOST = re.compile(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$')

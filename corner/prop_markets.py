@@ -11,11 +11,11 @@ from corner.links import clean_links
 
 # Same reference books (and environment override) as the main +EV feed in api/database.py.
 SHARP_BOOKS = frozenset(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
-                        if b.strip()) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi'})
+                        if b.strip()) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket'})
 MIN_SHARPS = 2  # the +EV feed requires at least two sharp books fully pricing the line
 # Books that also count as a reference for player props only. They still appear as bets: a book's own bet is
 # priced against the other reference books, never against itself.
-PROP_EXTRA_SHARPS = frozenset({'fanduel'})
+PROP_EXTRA_SHARPS = frozenset({'fanduel', 'prizepicks', 'underdog'})
 PROP_SHARP_BOOKS = SHARP_BOOKS | PROP_EXTRA_SHARPS
 # Over/Under or Yes/No priced on both sides ('two_way'), or a Yes-only / winner list ('yes_only').
 TWO_WAY, YES_ONLY = 'two_way', 'yes_only'
@@ -240,8 +240,6 @@ def build_bets(events):
             for (player, point), by_book in grouped.items():
                 prices = {b: {s: Decimal(q['price']) for s, q in sides.items()} for b, sides in by_book.items()}
                 for book, sides in sorted(prices.items()):
-                    if book in SHARP_BOOKS:
-                        continue
                     fair, used = _fair_first_side(prices, exclude=book)
                     if fair is None:
                         continue
