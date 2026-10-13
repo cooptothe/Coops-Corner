@@ -8,14 +8,16 @@ from decimal import Decimal, ROUND_HALF_EVEN
 import os
 
 from corner.links import clean_links
+from corner.reference_policy import sufficient_references
+from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
 
 # Same reference books (and environment override) as the main +EV feed in api/database.py.
 SHARP_BOOKS = frozenset(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
-                        if b.strip()) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket'})
+                        if b.strip()) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket', 'betonlineag'})
 MIN_SHARPS = 2  # the +EV feed requires at least two sharp books fully pricing the line
 # Books that also count as a reference for player props only. They still appear as bets: a book's own bet is
 # priced against the other reference books, never against itself.
-PROP_EXTRA_SHARPS = frozenset({'fanduel', 'prizepicks', 'underdog'})
+PROP_EXTRA_SHARPS = frozenset({'fanduel', 'prizepicks', 'underdog', 'novig'})
 PROP_SHARP_BOOKS = SHARP_BOOKS | PROP_EXTRA_SHARPS
 # Over/Under or Yes/No priced on both sides ('two_way'), or a Yes-only / winner list ('yes_only').
 TWO_WAY, YES_ONLY = 'two_way', 'yes_only'
@@ -206,14 +208,17 @@ def _prob(price):
     return Decimal(1) / Decimal(price)
 
 
-def _fair_first_side(prices, exclude=None):
+def _fair_first_side(prices, exclude=None, sport_key=''):
     """No-vig probability of side 0, averaged over the reference books pricing both sides.
 
     Needs at least MIN_SHARPS such books, exactly as the main +EV feed does. `exclude` is the book being priced.
     """
     used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS and b != exclude and 0 in p and 1 in p)
-    probs = [_prob(prices[b][0]) / (_prob(prices[b][0]) + _prob(prices[b][1])) for b in used]
-    return (sum(probs) / len(probs), used) if len(probs) >= MIN_SHARPS else (None, [])
+    if not sufficient_references(used, sport_key, player_props=True):
+        return None, []
+    weights = normalized_reference_weights(used, sport_key, player_props=True)
+    fair = sum((_prob(prices[b][0]) / (_prob(prices[b][0]) + _prob(prices[b][1]))) * weights[b] for b in used)
+    return fair, used
 
 
 def _q(value):
@@ -240,7 +245,7 @@ def build_bets(events):
             for (player, point), by_book in grouped.items():
                 prices = {b: {s: Decimal(q['price']) for s, q in sides.items()} for b, sides in by_book.items()}
                 for book, sides in sorted(prices.items()):
-                    fair, used = _fair_first_side(prices, exclude=book)
+                    fair, used = _fair_first_side(prices, exclude=book, sport_key=sport)
                     if fair is None:
                         continue
                     for side, price in sorted(sides.items()):
@@ -252,7 +257,7 @@ def build_bets(events):
                             'market_key': market_key, 'market_label': meta.label, 'group': meta.group,
                             'player': player, 'point': point, 'side': meta.sides[side], 'book': book,
                             'price': str(price), 'ev': _q(win * price - 1), 'fair_probability': _q(win),
-                            'sharps': used, 'observed_at': by_book[book][side].get('updated_at')
+                            'sharps': used, 'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()}, 'reference_weight_version': WEIGHT_VERSION, 'observed_at': by_book[book][side].get('updated_at')
                             or stored.get('captured_at'),
                             'links': by_book[book][side].get('links')})
     return bets

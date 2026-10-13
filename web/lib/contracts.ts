@@ -78,6 +78,7 @@ export interface FeaturedEV {
     sportsbook_id: string;
     probabilities: [string, DecimalText][];
     quote_ids: string[];
+    weight?: DecimalText;
   }[];
 }
 export interface Cover {

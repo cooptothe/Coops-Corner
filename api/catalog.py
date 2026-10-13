@@ -12,6 +12,7 @@ from pathlib import Path
 
 from corner.featured_tools import MatchedMarket, Offer, ToolInputError, calculate_back_cover, calculate_back_lay
 from corner.featured_ev import calculate_featured_ev
+from corner.reference_policy import sufficient_references
 from corner.featured_middles import LineBet, calculate_middle, find_middles
 from corner.featured_promos import PromoTerms, convert_promo, convert_promo_back_hedge
 from api.models import Game, Book, Quote, EVRow, CoverRow, MiddleRow, Meta, PromoResponse
@@ -223,14 +224,15 @@ class FixtureCatalog:
             full = tuple(r for r in references if sum(o.sportsbook_id == r for o in refs) == len(selections))
             # Fixtures need every named reference; database mode uses whichever sharp books fully price this contract (min 2).
             used = full if self.data_mode == 'database' else references
-            complete_refs = len(full) >= 2 if self.data_mode == 'database' else len(full) == len(references)
+            sport_key = game_meta[game_id]['sport_key']
+            complete_refs = sufficient_references(full, sport_key) if self.data_mode == 'database' else len(full) == len(references)
             refs = [o for o in refs if o.sportsbook_id in used]
             for target in (o for o in current if o.sportsbook_id in targets and complete_refs):
                 target_used = tuple(b for b in used if b != target.sportsbook_id)
                 target_refs = [o for o in refs if o.sportsbook_id in target_used]
-                if len(target_used) < 2:
+                if not sufficient_references(target_used, sport_key):
                     continue
-                result = calculate_featured_ev(market, target, target_refs, required_reference_books=target_used, stake=D(100))
+                result = calculate_featured_ev(market, target, target_refs, required_reference_books=target_used, stake=D(100), sport_key=sport_key)
                 if result.conditional_ev_ratio_on_capital > 0:
                     ids = [target.quote_id] + [o.quote_id for o in target_refs]
                     rows.append(EVRow(**self._row(game_id, contract_id, target.market_key, ids, 'positive_ev', result,

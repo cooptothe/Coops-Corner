@@ -11,6 +11,7 @@ PLACEHOLDERS = frozenset({'state', 'wager', 'wagerAmount', 'pickType'})
 MAX_LENGTH = 2048
 # Provider bookmaker key -> domains its links may use (the domain itself and any subdomain).
 BOOK_DOMAINS = {
+    'betonlineag': ('betonline.ag',),
     'fanduel': ('fanduel.com',),
     'draftkings': ('draftkings.com',),
     'betmgm': ('betmgm.com',),

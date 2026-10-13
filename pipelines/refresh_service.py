@@ -214,7 +214,7 @@ def props_found(sport):
     return {'bets': len(mine), 'positive': sum(1 for b in mine if float(b['ev']) >= 0)}
 
 
-def props_message(label, markets, result, found=None):
+def props_message(label, markets, result, found=None, sport_key=None):
     """What happened, in words, so a fetch that bought nothing never looks like a click that did nothing."""
     done, planned, used = result['events'], result.get('planned', 0), result['credits_used']
     stopped, remaining = result.get('stopped'), result.get('remaining')
@@ -237,6 +237,13 @@ def props_message(label, markets, result, found=None):
     if found is None:
         return base
     if not found['bets']:
+        if sport_key and sport_key.startswith('soccer_'):
+            message = (f'{base} No {label} bets can be shown: each comparable player line needs two other sharp '
+                       'books pricing both sides, or one Pinnacle, Betfair Exchange or FanDuel reference pricing both sides. '
+                       'Novig alone does not qualify for the soccer exception.')
+            if any((meta := prop_markets.market_meta(sport_key, key)) and meta.kind != prop_markets.TWO_WAY for key in markets):
+                message += ' Yes-only goalscorer markets are not currently priced by this feed.'
+            return message
         return (f'{base} No {label} bets can be shown: none of these lines had two sharp books pricing both '
                 'sides, which a bet needs to be priced.')
     return f"{base} {found['bets']} {label} bets priced, {found['positive']} with positive EV."
@@ -258,7 +265,7 @@ def run_props_refresh(sport, markets, max_events, capture=props.capture):
         found = props_found(sport)
         return 200, {'refreshed': result['events'] > 0, 'stopped': result.get('stopped'),
                      'bets_found': found['bets'],
-                     'message': props_message(LABELS[sport], markets, result, found), **props_status()}
+                     'message': props_message(LABELS[sport], markets, result, found, sport_key=sport), **props_status()}
     finally:
         _lock.release()
 

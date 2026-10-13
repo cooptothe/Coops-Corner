@@ -114,7 +114,12 @@ function toVm(b: PropBet): Vm {
     fairOdds,
     prob: Number(b.fair_probability),
     fair: b.fair_probability,
-    sharps: b.sharps.map(bookName).join(" + "),
+    sharps: b.sharps
+      .map(
+        (id) =>
+          `${bookName(id)}${b.reference_weights?.[id] ? ` (${Math.round(Number(b.reference_weights[id]) * 100)}%)` : ""}`,
+      )
+      .join(" + "),
     observedAt: b.observed_at,
     strategy: "prop",
     fairProb: b.fair_probability,

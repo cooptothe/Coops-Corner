@@ -18,7 +18,7 @@ log = logging.getLogger('corner.api.database')
 
 SETTLEMENT_IDENTITY = 'the-odds-api-main-lines-full-game/1'
 # Main-line references; these books remain eligible betting targets too.
-DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket')
+DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket', 'betonlineag')
 # Empty = every book present in the data is a bettable target; the user filters in the UI.
 DEFAULT_TARGETS = ()
 FALLBACK_TARGET = 'draftkings'

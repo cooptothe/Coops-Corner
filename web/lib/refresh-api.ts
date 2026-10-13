@@ -87,6 +87,8 @@ export interface PropBet {
   ev: string;
   fair_probability: string;
   sharps: string[];
+  reference_weights?: Record<string, string>;
+  reference_weight_version?: string;
   observed_at: string | null;
   links?: QuoteLinks | null;
 }

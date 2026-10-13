@@ -1,4 +1,5 @@
 export const MAIN_BOOKS = [
+  { id: "betonlineag", name: "BetOnline" },
   { id: "draftkings", name: "DraftKings" },
   { id: "fanduel", name: "FanDuel" },
   { id: "espnbet", name: "theScore Bet" },

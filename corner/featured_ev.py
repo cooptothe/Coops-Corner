@@ -7,6 +7,8 @@ explicit payoff model when those branches have supplied probabilities.
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
+from corner.reference_policy import sufficient_references
+from corner.reference_weights import reference_weight, WEIGHT_VERSION
 
 from corner.featured_tools import MatchedMarket, Offer, LAY_MARKETS, _require, _decimal_ratio, _decimal, _id
 
@@ -19,6 +21,7 @@ class ReferenceProbability:
     quote_ids: tuple[str, ...]
     probabilities: tuple[tuple[str, Decimal], ...]
     implied_probability_sum: Decimal
+    weight: Decimal = Decimal('1')
 
 
 @dataclass(frozen=True)
@@ -35,7 +38,8 @@ class FeaturedEV:
     capital_at_risk: Decimal
     calculation_basis: str = "decisive_settlement_conditional"
     probability_basis: str = "named_selection_wins_given_decisive_settlement"
-    devig_method: str = "proportional_equal_book_consensus"
+    devig_method: str = "proportional_reputation_weighted_consensus"
+    reference_weight_version: str = WEIGHT_VERSION
     nondecisive_probability_model: None = None
     unconditional_ev_ratio: None = None
     format: str = FORMAT
@@ -43,7 +47,7 @@ class FeaturedEV:
 
 
 def calculate_featured_ev(market, target, reference_offers, *, required_reference_books,
-                         stake=Decimal("1")):
+                         stake=Decimal("1"), sport_key=''):
     """Use every explicitly required complete reference book; never silently drop one.
 
     Three-way h2h includes draw, outrights includes every declared entrant. Spread
@@ -60,7 +64,7 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
     books = tuple(required_reference_books)
     for book in books:
         _id(book)
-    _require(len(books) >= 2 and len(set(books)) == len(books), "at least two distinct required reference books")
+    _require(sufficient_references(books, sport_key) and len(set(books)) == len(books), "at least two distinct required reference books")
     _require(target.sportsbook_id not in books, "target cannot be its own reference")
     offers = tuple(reference_offers)
     _require(all(type(o) is Offer for o in offers), "validated references required")
@@ -73,6 +77,8 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
         _require(offer.selection_id in market.selection_ids and offer.commission_rate == 0,
                  "unexpected selection or unsupported reference commission")
     consensus = {s: Fraction(0) for s in market.selection_ids}
+    weights = {book: Fraction(reference_weight(book, sport_key)) for book in books}
+    total_weight = sum(weights.values())
     references = []
     for book in sorted(books):
         entries = [o for o in offers if o.sportsbook_id == book]
@@ -82,9 +88,9 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
         total = sum(implied.values())
         probabilities = {s: p / total for s, p in implied.items()}
         for selection, probability in probabilities.items():
-            consensus[selection] += probability / len(books)
+            consensus[selection] += probability * weights[book] / total_weight
         references.append(ReferenceProbability(book, tuple(o.quote_id for o in sorted(entries, key=lambda o: o.selection_id)),
-                          tuple((s, _decimal_ratio(probabilities[s])) for s in sorted(probabilities)), _decimal_ratio(total)))
+                          tuple((s, _decimal_ratio(probabilities[s])) for s in sorted(probabilities)), _decimal_ratio(total), _decimal_ratio(weights[book] / total_weight)))
     p = consensus[target.selection_id]
     odds, amount, commission = map(Fraction, (target.decimal_odds, stake, target.commission_rate))
     if target.market_key in LAY_MARKETS:
