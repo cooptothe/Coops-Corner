@@ -29,6 +29,7 @@ export function betKey(ref: Ref, book: string): string | null {
 }
 
 export interface PlacedBet {
+  parlayCount?: number;
   count: number;
   stakeCents: number;
 }
@@ -39,13 +40,19 @@ export function placedIndex(bets: TrackerBet[]): PlacedIndex {
   const index: PlacedIndex = new Map();
   for (const bet of bets) {
     if (bet.status !== "pending") continue;
-    const key = betKey(bet.ref, bet.book);
-    if (!key) continue;
-    const seen = index.get(key) ?? { count: 0, stakeCents: 0 };
-    index.set(key, {
-      count: seen.count + 1,
-      stakeCents: seen.stakeCents + bet.stake_cents,
-    });
+    for (const ref of bet.legs?.length
+      ? bet.legs.map((leg) => leg.ref)
+      : [bet.ref]) {
+      const key = betKey(ref, bet.book);
+      if (!key) continue;
+      const seen = index.get(key) ?? { count: 0, stakeCents: 0 };
+      const parlays = (seen.parlayCount ?? 0) + (bet.legs?.length ? 1 : 0);
+      index.set(key, {
+        count: seen.count + 1,
+        stakeCents: seen.stakeCents + (bet.legs?.length ? 0 : bet.stake_cents),
+        ...(parlays ? { parlayCount: parlays } : {}),
+      });
+    }
   }
   return index;
 }
@@ -56,6 +63,7 @@ export interface PlacedLeg {
   bookLabel: string;
 }
 export interface PlacedState {
+  parlayLegs?: number;
   legs: number;
   placed: number;
   stakeCents: number;
@@ -68,13 +76,20 @@ export function placedState(
 ): PlacedState {
   let placed = 0;
   let stakeCents = 0;
+  let parlayLegs = 0;
   for (const leg of legs) {
     const key = betKey(leg.ref, bookCode(leg.bookLabel));
     const hit = key ? index.get(key) : undefined;
     if (hit) {
       placed++;
       stakeCents += hit.stakeCents;
+      if (hit.parlayCount) parlayLegs++;
     }
   }
-  return { legs: legs.length, placed, stakeCents };
+  return {
+    legs: legs.length,
+    placed,
+    stakeCents,
+    ...(parlayLegs ? { parlayLegs } : {}),
+  };
 }

@@ -44,7 +44,7 @@ function render(
 }
 test("schedule price and book share a clickable market with safe new-tab behavior", () => {
   const html = render({ market: "https://polymarket.com/event/game" });
-  assert.ok(html.includes('href="https://polymarket.com/event/game"'));
+  assert.ok(html.includes('href="https://polymarket.us/event/game"'));
   assert.ok(html.includes('class="sched-price-book"'));
   assert.ok(html.includes('rel="noopener noreferrer"'));
   assert.ok(html.includes("Polymarket"));

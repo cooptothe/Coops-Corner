@@ -115,6 +115,7 @@ export const STRATEGY_LABEL: Record<string, string> = {
   promo: "Promo",
   prop: "Prop",
   manual: "Manual",
+  parlay: "Parlay",
 };
 
 export const LEAGUE_KEYS = Object.keys(LEAGUE_LABELS);

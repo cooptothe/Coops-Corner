@@ -18,7 +18,8 @@ import threading
 import uuid
 
 from corner import tool_settings
-STRATEGIES = ('ev', 'arbitrage', 'middle', 'promo', 'prop', 'manual')
+from corner.parlay_tracker import prepare_legs, suggested_result, LEG_RESULTS
+STRATEGIES = ('ev', 'arbitrage', 'middle', 'promo', 'prop', 'manual', 'parlay')
 STATUSES = ('pending', 'won', 'lost', 'push', 'void', 'cashout')
 RESULTS = ('won', 'lost', 'push', 'void', 'cashout')
 CASH_KINDS = ('deposit', 'withdrawal', 'transfer', 'adjustment')
@@ -62,6 +63,7 @@ CREATE TABLE IF NOT EXISTS bets (
   ref TEXT NOT NULL DEFAULT '{}',
   clv TEXT,
   notes TEXT NOT NULL DEFAULT '',
+  parlay_legs TEXT NOT NULL DEFAULT '[]',
   UNIQUE (user_id, client_key)
 );
 CREATE INDEX IF NOT EXISTS bets_user_placed ON bets(user_id, placed_at);
@@ -248,6 +250,10 @@ def _bet_row(row):
     bet.pop('user_id', None)
     bet['ref'] = json.loads(bet['ref'] or '{}')
     bet['clv'] = json.loads(bet['clv']) if bet['clv'] else None
+    legs = json.loads(bet.pop('parlay_legs', '[]'))
+    if legs:
+        bet['legs'] = legs
+        bet['suggested_result'] = suggested_result(legs)
     return bet
 
 
@@ -291,6 +297,8 @@ class TrackerStore:
         self._upgrade_unscoped_tables()
         self._add_session_epoch()
         self._db.executescript(SCHEMA)
+        if 'parlay_legs' not in [r['name'] for r in self._db.execute('PRAGMA table_info(bets)')]:
+            self._db.execute("ALTER TABLE bets ADD COLUMN parlay_legs TEXT NOT NULL DEFAULT '[]'")
         self._copy_unscoped_rows()
 
     def close(self):
@@ -423,12 +431,17 @@ class Ledger:
         if stake_type not in STAKE_TYPES:
             _fail('stake type: cash or bonus')
         placed = parse_when(data.get('placed_at'), 'placed at', default_now=True)
+        legs = prepare_legs(data.get('legs'), book_code(data.get('book')), fail=_fail, text=text,
+                            parse_odds=parse_odds, parse_when=parse_when, clean_ref=clean_ref) if strategy == 'parlay' else []
+        if strategy != 'parlay' and data.get('legs'):
+            _fail('Only a parlay can contain child legs')
         if datetime.fromisoformat(placed) > datetime.now(timezone.utc) + timedelta(days=1):
             _fail('placed at: cannot be in the future')
         return {
             'group_id': text(data.get('group_id'), 'group', limit=64) or None,
             'placed_at': placed,
             'strategy': strategy,
+            'parlay_legs': json.dumps(legs, separators=(',', ':')),
             'sport_key': text(data.get('sport_key'), 'league', limit=60),
             'matchup': text(data.get('matchup'), 'event', required=True, limit=200),
             'starts_at': parse_when(data.get('starts_at'), 'start time'),
@@ -464,11 +477,11 @@ class Ledger:
                     bet_id = uuid.uuid4().hex
                     self._db.execute(
                         'INSERT INTO bets(id,user_id,client_key,group_id,created_at,placed_at,strategy,sport_key,matchup,starts_at,'
-                        'market,selection,book,odds,stake_cents,stake_type,fair_prob,ev_ratio,ref,notes) '
-                        'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                        'market,selection,book,odds,stake_cents,stake_type,fair_prob,ev_ratio,ref,notes,parlay_legs) '
+                        'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                         (bet_id, self.user_id, key, v['group_id'], now_iso(), v['placed_at'], v['strategy'], v['sport_key'],
                          v['matchup'], v['starts_at'], v['market'], v['selection'], v['book'], v['odds'],
-                         v['stake_cents'], v['stake_type'], v['fair_prob'], v['ev_ratio'], v['ref'], v['notes']))
+                         v['stake_cents'], v['stake_type'], v['fair_prob'], v['ev_ratio'], v['ref'], v['notes'], v['parlay_legs']))
                     saved.append(_bet_row(self._db.execute('SELECT * FROM bets WHERE id=?', (bet_id,)).fetchone()))
                 self._db.execute('COMMIT')
             except Exception:
@@ -478,12 +491,31 @@ class Ledger:
 
     EDITABLE = ('placed_at', 'strategy', 'matchup', 'market', 'selection', 'book', 'odds', 'stake', 'stake_type', 'notes')
 
+    def set_parlay_leg(self, bet_id, key, result):
+        if result not in LEG_RESULTS:
+            _fail('Invalid parlay leg result')
+        with self._lock:
+            bet = self.bet(bet_id)
+            if bet['strategy'] != 'parlay' or bet['status'] != 'pending':
+                _fail('Reopen this parlay before changing its legs')
+            legs = bet.get('legs', [])
+            leg = next((leg for leg in legs if leg['key'] == key), None)
+            if leg is None:
+                _fail('That leg no longer exists', 404, 'not_found')
+            leg['status'] = result
+            self._db.execute('UPDATE bets SET parlay_legs=? WHERE id=? AND user_id=?',
+                             (json.dumps(legs, separators=(',', ':')), bet_id, self.user_id))
+            return self.bet(bet_id)
+
     def update_bet(self, bet_id, data):
         """Correct a bet. Fields not sent are kept; a settled bet's payout is recalculated from its result."""
+        if isinstance(data, dict) and 'parlay_leg_key' in data:
+            return self.set_parlay_leg(bet_id, data['parlay_leg_key'], data.get('parlay_leg_result'))
         bet = self.bet(bet_id)
         if not isinstance(data, dict) or not any(k in data for k in self.EDITABLE):
             _fail('Nothing to change')
         merged = {
+            'legs': bet.get('legs'),
             'client_key': bet['client_key'], 'group_id': bet['group_id'], 'placed_at': bet['placed_at'],
             'strategy': bet['strategy'], 'sport_key': bet['sport_key'], 'matchup': bet['matchup'],
             'starts_at': bet['starts_at'], 'market': bet['market'], 'selection': bet['selection'],
@@ -494,7 +526,7 @@ class Ledger:
         merged.update({k: data[k] for k in self.EDITABLE if k in data})
         v = self._bet_values(merged)
         returned = bet['returned_cents']
-        if bet['status'] in ('won', 'lost', 'push', 'void'):
+        if bet['status'] in ('won', 'lost', 'push', 'void') and not bet.get('legs'):
             returned = payout_cents(v['stake_cents'], v['odds'], v['stake_type'], bet['status'])
         with self._lock:
             self._db.execute(
@@ -506,10 +538,14 @@ class Ledger:
 
     def settle_bet(self, bet_id, result, *, returned=None, settled_at=None):
         bet = self.bet(bet_id)
+        if bet.get('legs') and result == 'won' and any(l['status'] in ('void', 'push') for l in bet['legs']) and returned is None:
+            _fail('Enter the actual returned amount for a parlay with void or pushed legs')
         cashout = None
         if result == 'cashout':
             cashout = to_cents(returned, 'cash-out amount', allow_zero=True)
         total = payout_cents(bet['stake_cents'], bet['odds'], bet['stake_type'], result, cashout_cents=cashout)
+        if bet.get('legs') and result == 'won' and returned is not None:
+            total = to_cents(returned, 'actual returned amount', allow_zero=True)
         when = parse_when(settled_at, 'settled at', default_now=True)
         if when < bet['placed_at']:
             when = bet['placed_at']

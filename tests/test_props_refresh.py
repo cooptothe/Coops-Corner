@@ -28,7 +28,7 @@ class FakeProvider:
             return 200, json.dumps(EVENTS).encode(), {'x-requests-remaining': str(self.remaining)}
         if self.fail_with:
             return self.fail_with, b'{}', {'x-requests-remaining': str(self.remaining)}
-        cost = len(params['markets'].split(','))  # the provider bills one credit per market
+        cost = len(params['markets'].split(',')) * ing.BOOKMAKER_REGIONS
         self.paid += 1
         self.remaining -= cost
         return 200, json.dumps({**ODDS, 'id': url.split('/')[-2]}).encode(), {
@@ -50,17 +50,17 @@ class Capture(unittest.TestCase):
         provider = FakeProvider()
         result = self.run_capture(provider)
         self.assertEqual((result['events'], result['planned'], result['credits_used'], result['stopped']),
-                         (4, 4, 4, None))
+                         (4, 4, 8, None))
         self.assertEqual(provider.paid, 4)
 
     def test_a_low_balance_no_longer_blocks_a_call_it_can_pay_for(self):
         # 9 credits left used to be refused by a hard 20-credit floor.
-        provider = FakeProvider(remaining=9)
+        provider = FakeProvider(remaining=17)
         result = self.run_capture(provider, markets=('player_points', 'player_rebounds'), count=4)
         self.assertEqual((result['events'], result['stopped'], result['remaining']), (4, None, 1))
 
     def test_stops_only_when_the_key_cannot_afford_the_next_game(self):
-        provider = FakeProvider(remaining=3)
+        provider = FakeProvider(remaining=5)
         result = self.run_capture(provider, markets=('player_points', 'player_rebounds'), count=4)
         self.assertEqual((result['events'], result['stopped'], result['remaining']), (1, 'out_of_credits', 1))
         self.assertEqual(provider.paid, 1)
@@ -82,7 +82,7 @@ class Messages(unittest.TestCase):
     def test_out_of_credits_says_so_and_what_was_done(self):
         text = self.say(stopped='out_of_credits', remaining=1)
         self.assertIn('only 1 credit left on your Odds API key', text)
-        self.assertIn('each game needs 2 credits', text)
+        self.assertIn('each game needs 4 credits', text)
         self.assertIn('Nothing was fetched.', text)
         self.assertIn('Fetched 1 game of 4, 2 credits used.', self.say(events=1, credits_used=2,
                                                                           stopped='out_of_credits', remaining=0))
@@ -93,7 +93,7 @@ class Messages(unittest.TestCase):
         self.assertEqual(text, 'Fetched props for 3 games, 6 credits used. 12 NBA bets priced, 3 with positive EV.')
         none = svc.props_message('NBA', ['player_points', 'player_assists'], base, {'bets': 0, 'positive': 0})
         self.assertIn('No NBA bets can be shown', none)
-        self.assertIn('two sharp books', none)
+        self.assertIn('two other sharp books', none)
 
     def test_no_games_and_provider_errors(self):
         self.assertEqual(self.say(planned=0), 'No upcoming NBA games to fetch.')

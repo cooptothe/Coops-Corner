@@ -8,6 +8,7 @@ from decimal import Decimal, ROUND_HALF_EVEN
 import os
 
 from corner.links import clean_links
+from corner.native_ids import native_ids
 from corner.reference_policy import sufficient_references
 from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
 
@@ -201,6 +202,8 @@ def normalize_event(event, market_key, meta, book_filter=None):
                                'point': None if point is None else str(Decimal(str(point))),
                                'price': str(Decimal(str(price))),
                                'updated_at': market.get('last_update') or book.get('last_update')})
+                quotes[-1]['source_ids'] = native_ids(book['key'], event=book.get('sid'), market=market.get('sid'),
+                                                     outcome=o.get('sid'), link=(links or {}).get('outcome'))
     return quotes
 
 
@@ -267,4 +270,5 @@ def build_bets(events):
                             'observed_at': by_book[book][side].get('updated_at')
                             or stored.get('captured_at'),
                             'links': by_book[book][side].get('links')})
+                        bets[-1]['source_ids'] = by_book[book][side].get('source_ids')
     return bets

@@ -46,6 +46,11 @@ export interface Game {
   phase: "unknown";
 }
 export interface Quote {
+  source_ids?: {
+    event?: string | null;
+    market?: string | null;
+    outcome?: string | null;
+  } | null;
   id: string;
   game_id: string;
   contract_id: string;

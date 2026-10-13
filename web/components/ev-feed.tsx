@@ -1,4 +1,6 @@
 "use client";
+import { ParlayToolbar, useParlay } from "./parlay-builder";
+import { builderLeg } from "../lib/parlay";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -50,6 +52,7 @@ import { ErrorCard, Loading } from "./workspace";
 type EvRow = Extract<ToolRow, { kind: "positive_ev" }>;
 type Flash = "up" | "down";
 interface Vm {
+  sourceIds?: Quote["source_ids"];
   id: string;
   gameId: string;
   matchup: string;
@@ -196,6 +199,7 @@ function toVm(
     fairProb: row.calculation.conditional_fair_probability,
     ref: quoteRef(q),
     links: q.links ?? null,
+    sourceIds: q.source_ids,
   };
 }
 
@@ -258,11 +262,13 @@ const Row = memo(
     top,
     selected,
     flash,
+    parlaySelected,
     onSelect,
   }: {
     vm: Vm;
     top: number;
     selected: boolean;
+    parlaySelected?: boolean;
     flash?: { odds?: Flash; ev?: Flash; tick: number };
     onSelect: (id: string) => void;
   }) {
@@ -270,8 +276,8 @@ const Row = memo(
       <div
         role="row"
         tabIndex={0}
-        aria-selected={selected}
-        className={`ev-row ev-tall ${selected ? "selected" : ""}`}
+        aria-selected={parlaySelected ?? selected}
+        className={`ev-row ev-tall ${selected ? "selected" : ""} ${parlaySelected ? "parlay-selected" : ""}`}
         style={{ transform: `translateY(${top}px)` }}
         onClick={() => onSelect(vm.id)}
         onKeyDown={(e) => {
@@ -282,6 +288,11 @@ const Row = memo(
         }}
       >
         <div role="cell" className="ev-cell ev-edge">
+          {parlaySelected && (
+            <span className="parlay-check" aria-label="Added to parlay">
+              ✓
+            </span>
+          )}
           <span
             key={`ev-${flash?.tick ?? 0}`}
             className={`ev-badge ${flash?.ev ? `flash-${flash.ev}` : ""}`}
@@ -333,6 +344,8 @@ const Row = memo(
     a.vm.observedAt === b.vm.observedAt &&
     a.top === b.top &&
     a.selected === b.selected &&
+    a.parlaySelected === b.parlaySelected &&
+    a.onSelect === b.onSelect &&
     a.flash?.tick === b.flash?.tick,
 );
 
@@ -515,6 +528,10 @@ export function KellyWidget({
 }
 
 export default function EvFeed({ data }: { data: Data }) {
+  const parlay = useParlay();
+  useEffect(() => {
+    if (parlay?.draft.active) setSelected(null);
+  }, [parlay?.draft.active]);
   const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [rows, setRows] = useState<EvRow[] | null>(null);
   const [error, setError] = useState("");
@@ -618,6 +635,10 @@ export default function EvFeed({ data }: { data: Data }) {
   );
 
   // Flash only the cells whose price or edge moved since the last snapshot.
+  const parlayLegs = useMemo(() => all.map((v) => builderLeg(v, "ev")), [all]);
+  useEffect(() => {
+    if (rows !== null) parlay?.register("ev", parlayLegs);
+  }, [parlay?.register, parlayLegs, rows]);
   useEffect(() => {
     const next = new Map<string, { odds?: Flash; ev?: Flash; tick: number }>();
     for (const v of all) {
@@ -664,14 +685,27 @@ export default function EvFeed({ data }: { data: Data }) {
         .filter(
           (v) =>
             matchesTime(v.startsAt) &&
-            !offBooks.has(v.bookId) &&
+            (parlay?.draft.active
+              ? v.bookId === parlay.draft.book && !v.lay
+              : !offBooks.has(v.bookId)) &&
             (!sportFilter || v.sportKey === sportFilter) &&
             compareDecimal(v.ev, minRatio) >= 0 &&
             (lo === null || Number(v.decimalOdds) >= lo) &&
             (hi === null || Number(v.decimalOdds) <= hi),
         )
         .sort(SORTS[sortKey]),
-    [matchesTime, all, offBooks, sportFilter, minRatio, lo, hi, sortKey],
+    [
+      matchesTime,
+      all,
+      offBooks,
+      sportFilter,
+      minRatio,
+      lo,
+      hi,
+      sortKey,
+      parlay?.draft.active,
+      parlay?.draft.book,
+    ],
   );
 
   const [compact, setCompact] = useState(false);
@@ -703,7 +737,15 @@ export default function EvFeed({ data }: { data: Data }) {
     visible.length,
     Math.ceil((scroll + viewHeight) / height) + OVERSCAN,
   );
-  const select = useCallback((id: string) => setSelected(id), []);
+  const select = useCallback(
+    (id: string) => {
+      if (parlay?.draft.active) {
+        const bet = all.find((v) => v.id === id);
+        if (bet) parlay.toggle(builderLeg(bet, "ev"));
+      } else setSelected(id);
+    },
+    [parlay, all],
+  );
   const active = visible.find((v) => v.id === selected) ?? null;
   const present = useMemo(
     () => selected !== null && all.some((v) => v.id === selected),
@@ -723,6 +765,7 @@ export default function EvFeed({ data }: { data: Data }) {
         <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
           <h3>Filters</h3>
           <SettingsBar controls={settings} />
+          <ParlayToolbar />
           <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
           <label className="field">
             <span>MIN. EV · {minEv}%</span>
@@ -871,6 +914,11 @@ export default function EvFeed({ data }: { data: Data }) {
                       vm={vm}
                       top={(first + i) * height}
                       selected={vm.id === selected}
+                      parlaySelected={
+                        parlay?.draft.active
+                          ? parlay.selected(builderLeg(vm, "ev").key)
+                          : undefined
+                      }
                       flash={flashes.get(vm.id)}
                       onSelect={select}
                     />

@@ -214,6 +214,7 @@ class FixtureCatalog:
                             observed_at=D_TS(contract.get('observed', {}).get(book_id, raw['observed_at']), self.captured_at),
                             provider_updated_at=None,
                             links=book_links[position] if book_links and direction == key else None,
+                            source_ids=(contract.get('source_ids', {}).get(book_id) or [None] * len(selections))[position] if direction == key else None,
                             evidence_kind='retained_provider_quote' if self.data_mode == 'database' else 'synthetic_fixture')
                         if key in {'spreads', 'totals'}:
                             shared = f'{game_id}:{key}:{raw["settlement_identity"]}'

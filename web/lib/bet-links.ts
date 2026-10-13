@@ -92,6 +92,8 @@ export function safeUrl(value: string): string | null {
       !url.hostname.includes(".")
     )
       return null;
+    if (url.hostname === "polymarket.com" || url.hostname === "www.polymarket.com")
+      url.hostname = "polymarket.us";
     return url.toString();
   } catch {
     return null;

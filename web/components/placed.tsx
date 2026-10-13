@@ -36,7 +36,11 @@ export function usePlaced(legs: PlacedLeg[]): PlacedState {
 export const isPlaced = (s: PlacedState) => s.legs > 0 && s.placed > 0;
 
 const label = (s: PlacedState) =>
-  s.placed === s.legs ? "Placed" : `${s.placed} of ${s.legs} placed`;
+  s.parlayLegs === s.legs
+    ? "Placed in parlay"
+    : s.placed === s.legs
+      ? "Placed"
+      : `${s.placed} of ${s.legs} placed`;
 
 // Shown on a feed row.
 export function PlacedBadge({ state }: { state: PlacedState }) {

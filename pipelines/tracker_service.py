@@ -159,6 +159,10 @@ def create_router(ctx, fetch=fetch_cached, close_fetch=None):
     async def update(bet_id: str, request: Request):
         return await with_body(request, lambda ledger, data: {'bet': ledger.update_bet(bet_id, data)})
 
+    @router.post('/bets/{bet_id}/legs')
+    async def grade_leg(bet_id: str, request: Request):
+        return await with_body(request, lambda ledger, data: {'bet': ledger.set_parlay_leg(bet_id, data.get('key'), data.get('result'))})
+
     @router.post('/bets/{bet_id}/settle')
     async def settle(bet_id: str, request: Request):
         def work(ledger, data):

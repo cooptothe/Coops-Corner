@@ -1,0 +1,236 @@
+.parlay-toolbar,
+.parlay-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.parlay-toolbar {
+  width: 100%;
+}
+.parlay-toolbar > span {
+  font-size: 12px;
+}
+.parlay-panel {
+  position: fixed;
+  right: 16px;
+  top: 100px;
+  bottom: 20px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  overflow: auto;
+  z-index: 55;
+  padding: 22px;
+  background: #242020;
+  border: 1px solid #76605f;
+  border-radius: 14px;
+  box-shadow: 0 16px 48px #0008;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.parlay-panel h2 {
+  font-size: 20px;
+  margin: 0 25px 6px 0;
+}
+.parlay-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: 6px;
+}
+.parlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: #0009;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.parlay-book-picker {
+  position: relative;
+  background: #242020;
+  color: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow: auto;
+}
+.parlay-books {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.parlay-books button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+.parlay-books small {
+  font-size: 11px;
+  opacity: 0.7;
+}
+.parlay-legs {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.parlay-legs li {
+  position: relative;
+  padding: 12px 48px 12px 12px;
+  background: #ffffff08;
+  border: 1px solid #ffffff16;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.parlay-legs span,
+.parlay-panel small {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.parlay-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+}
+.parlay-legs .bet-link-compact {
+  position: static;
+  align-self: flex-start;
+  min-width: 36px;
+  min-height: 36px;
+  margin-top: 4px;
+  background: #ffffff0d;
+}
+.parlay-remove:hover,
+.parlay-remove:focus-visible {
+  background: #ffffff16;
+}
+.parlay-error {
+  color: #fca5a5;
+}
+.parlay-toast {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 70;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: #164c35;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 24px #0005;
+}
+.parlay-toast a {
+  color: white;
+  text-decoration: underline;
+}
+.parlay-toast button {
+  background: none;
+  border: 0;
+  color: white;
+  cursor: pointer;
+}
+.parlay-record {
+  padding-top: 12px;
+  border-top: 1px solid #ffffff25;
+}
+.parlay-record summary {
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.parlay-record label {
+  display: block;
+  margin: 10px 0;
+}
+.parlay-mobile-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+}
+.parlay-selected {
+  outline: 2px solid #34d399;
+  outline-offset: -2px;
+  background: #34d39912 !important;
+}
+.parlay-check {
+  display: inline-block;
+  color: #34d399;
+  margin-right: 4px;
+}
+.parlay-tracked-legs {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+}
+.parlay-tracked-legs li {
+  padding: 10px;
+  background: #ffffff08;
+  border-radius: 8px;
+}
+.parlay-leg-status {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.parlay-leg-status button {
+  font-size: 11px;
+  padding: 5px 7px;
+}
+.parlay-leg-status button[aria-pressed="true"] {
+  outline: 1px solid #34d399;
+}
+@media (min-width: 1500px) {
+  .parlay-panel-open #main {
+    padding-right: 400px;
+  }
+}
+@media (max-width: 700px) {
+  .parlay-panel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: 80px;
+  }
+  .parlay-book-picker {
+    padding: 20px;
+  }
+  .parlay-books {
+    grid-template-columns: 1fr 1fr;
+  }
+  .parlay-mobile-toggle {
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    justify-content: center;
+  }
+}

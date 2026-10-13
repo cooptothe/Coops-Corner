@@ -30,6 +30,14 @@ const NOVIG = {
 };
 
 describe("resolveLink", () => {
+  it("uses Polymarket US for stored links while preserving the market path", () => {
+    assert.equal(resolveLink({ market: "https://polymarket.com/event/game?side=yes#market" }).url,
+      "https://polymarket.us/event/game?side=yes#market");
+    assert.equal(resolveLink({ event: "https://polymarket.us/event/game" }).url,
+      "https://polymarket.us/event/game");
+    assert.equal(resolveLink({ event: "https://polymarket.com.evil.test/event/game" }).url,
+      "https://polymarket.com.evil.test/event/game");
+  });
   it("prefers the betslip link, then the market, then the game", () => {
     assert.deepEqual(resolveLink(FD), {
       url: FD.outcome,

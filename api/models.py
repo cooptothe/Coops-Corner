@@ -72,8 +72,14 @@ class QuoteLinks(Model):
     market: str | None = None
     outcome: str | None = None
 
+class NativeIds(Model):
+    event: str | None = None
+    market: str | None = None
+    outcome: str | None = None
+
 
 class Quote(Model):
+    source_ids: NativeIds | None = None
     id: str
     game_id: str
     contract_id: str

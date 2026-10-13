@@ -124,7 +124,13 @@ export function trackerReducer(
 
 export function matchesFilters(bet: TrackerBet, f: Filters): boolean {
   if (f.books.length && !f.books.includes(bet.book)) return false;
-  if (f.leagues.length && !f.leagues.includes(bet.sport_key)) return false;
+  if (
+    f.leagues.length &&
+    ![bet.sport_key, ...(bet.legs ?? []).map((leg) => leg.sport_key)].some(
+      (sport) => f.leagues.includes(sport),
+    )
+  )
+    return false;
   if (f.strategy !== "all" && bet.strategy !== f.strategy) return false;
   if (f.status === "active" && bet.status !== "pending") return false;
   if (f.status === "settled" && bet.status === "pending") return false;
@@ -138,7 +144,7 @@ export function matchesFilters(bet: TrackerBet, f: Filters): boolean {
   const q = f.query.trim().toLowerCase();
   if (q) {
     const hay =
-      `${bet.selection} ${bet.matchup} ${bet.market} ${bet.book} ${leagueLabel(bet.sport_key)} ${bet.notes}`.toLowerCase();
+      `${bet.selection} ${bet.matchup} ${bet.market} ${bet.book} ${leagueLabel(bet.sport_key)} ${bet.notes} ${(bet.legs ?? []).map((leg) => `${leg.selection} ${leg.matchup} ${leg.market} ${leagueLabel(leg.sport_key)}`).join(" ")}`.toLowerCase();
     if (!q.split(/\s+/).every((word) => hay.includes(word))) return false;
   }
   return true;

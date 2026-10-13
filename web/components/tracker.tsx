@@ -85,6 +85,7 @@ const STRATEGY_CHOICES = [
   "promo",
   "prop",
   "manual",
+  "parlay",
 ] as const;
 const LIVE_EVERY = 30000;
 const LIVE_LEAD = 20 * 60000;
@@ -240,7 +241,14 @@ export default function Tracker() {
     [view.bets],
   );
   const leagueCodes = useMemo(
-    () => [...new Set(view.bets.map((b) => b.sport_key))],
+    () => [
+      ...new Set(
+        view.bets.flatMap((b) => [
+          b.sport_key,
+          ...(b.legs ?? []).map((leg) => leg.sport_key),
+        ]),
+      ),
+    ],
     [view.bets],
   );
   // A saved book or league you have no bets with any more must not hide everything.

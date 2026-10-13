@@ -1,4 +1,5 @@
 "use client";
+import { ParlayLegList } from "./parlay-tracker";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { american, americanToDecimal, usd } from "../../frontend/format.mjs";
 import { splitMatchup } from "../lib/media";
@@ -477,6 +478,7 @@ export function BetDrawer({
               <small>returned {money(bet.returned_cents ?? 0)}</small>
             </div>
           )}
+          <ParlayLegList bet={bet} onUpdate={onUpdate} />
           {live && bet.status === "pending" && live.state !== "pre" && (
             <div className="trk-live-box">
               <strong>
@@ -547,14 +549,28 @@ export function BetDrawer({
                   type="button"
                   className={`${r} ${bet.status === r ? "active" : ""}`}
                   disabled={act.busy || bet.status === r}
-                  onClick={() => act.run(() => onSettle(bet.id, r))}
+                  onClick={() =>
+                    act.run(() =>
+                      onSettle(
+                        bet.id,
+                        r,
+                        bet.legs?.length && r === "won" && cashout
+                          ? cashout
+                          : undefined,
+                      ),
+                    )
+                  }
                 >
                   {label}
                 </button>
               ))}
             </div>
             <label className="field">
-              <span>OR CASHED OUT FOR ($)</span>
+              <span>
+                {bet.legs?.length
+                  ? "ACTUAL RETURN / CASHOUT ($)"
+                  : "OR CASHED OUT FOR ($)"}
+              </span>
               <div className="trk-inline">
                 <input
                   inputMode="decimal"
@@ -849,11 +865,13 @@ export function LogDrawer({
           value={strategy}
           onChange={(e) => setStrategy(e.target.value as Strategy)}
         >
-          {Object.entries(STRATEGY_LABEL).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
+          {Object.entries(STRATEGY_LABEL)
+            .filter(([k]) => k !== "parlay")
+            .map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
         </select>
       </label>
       <label className="field">

@@ -1,4 +1,5 @@
 "use client";
+import { ParlayProvider } from "./parlay-builder";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -166,7 +167,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (status === "loading") return <Splash />;
   if (status === "signed-out" && !isLogin) return <Splash />;
   if (status === "signed-in" && user && !isLogin)
-    return <SettingsProvider key={user.id}>{children}</SettingsProvider>;
+    return (
+      <SettingsProvider key={user.id}>
+        <ParlayProvider>{children}</ParlayProvider>
+      </SettingsProvider>
+    );
   return <>{children}</>;
 }
 

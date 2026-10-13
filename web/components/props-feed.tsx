@@ -1,4 +1,6 @@
 "use client";
+import { ParlayToolbar, useParlay } from "./parlay-builder";
+import { builderLeg } from "../lib/parlay";
 import { restoredFetchMarkets } from "../lib/props-fetch-settings";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks, PROP_BOOKS } from "../lib/bookmakers";
@@ -64,6 +66,7 @@ const credits = (n: number) => `${n} credit${n === 1 ? "" : "s"}`;
 const PAGE = 100;
 
 interface Vm extends KellyVm {
+  sourceIds?: PropBet["source_ids"];
   gameId: string;
   sportKey: string;
   marketKey: string;
@@ -119,6 +122,7 @@ function toVm(b: PropBet): Vm {
     strategy: "prop",
     fairProb: b.fair_probability,
     links: b.links ?? null,
+    sourceIds: b.source_ids,
     ref: {
       game_id: b.event_id,
       market_key: "prop",
@@ -203,6 +207,10 @@ const PROPS_DEFAULTS: PropsSettings = {
 };
 
 export default function PropsFeed({ reload }: { reload: number }) {
+  const parlay = useParlay();
+  useEffect(() => {
+    if (parlay?.draft.active) setSelected(null);
+  }, [parlay?.draft.active]);
   const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [status, setStatus] = useState<PropsStatus | null>(null);
   const [error, setError] = useState("");
@@ -355,6 +363,17 @@ export default function PropsFeed({ reload }: { reload: number }) {
     () => (status?.bets ?? []).map(toVm).sort(SORTS.ev),
     [status],
   );
+  const parlayLegs = useMemo(
+    () => all.map((v) => builderLeg(v, "prop")),
+    [all],
+  );
+  useEffect(() => {
+    if (status !== null) parlay?.register("prop", parlayLegs);
+  }, [parlay?.register, parlayLegs, status]);
+  const select = (v: Vm) =>
+    parlay?.draft.active
+      ? parlay.toggle(builderLeg(v, "prop"))
+      : setSelected(v.id);
   const sports = useMemo(
     () =>
       status
@@ -409,7 +428,9 @@ export default function PropsFeed({ reload }: { reload: number }) {
       .filter(
         (v) =>
           matchesTime(v.startsAt) &&
-          !offBooks.has(v.bookId) &&
+          (parlay?.draft.active
+            ? v.bookId === parlay.draft.book
+            : !offBooks.has(v.bookId)) &&
           (!activeMarket || v.marketKey === activeMarket) &&
           (!activeEvent || v.gameId === activeEvent) &&
           (!needle || v.player.toLowerCase().includes(needle)) &&
@@ -419,6 +440,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
       )
       .sort(SORTS[sortKey]);
   }, [
+    parlay?.draft.active,
+    parlay?.draft.book,
     matchesTime,
     inSport,
     offBooks,
@@ -506,6 +529,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
           <h3>Filters</h3>
           <SettingsBar controls={settings} />
+          <ParlayToolbar />
           <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
           <label className="field">
             <span>MIN. EV · {minEv}%</span>
@@ -779,17 +803,30 @@ export default function PropsFeed({ reload }: { reload: number }) {
                     key={v.id}
                     role="row"
                     tabIndex={0}
-                    aria-selected={v.id === selected}
-                    className={`props-row ${v.id === selected ? "selected" : ""}`}
-                    onClick={() => setSelected(v.id)}
+                    aria-selected={
+                      parlay?.draft.active
+                        ? parlay.selected(builderLeg(v, "prop").key)
+                        : v.id === selected
+                    }
+                    className={`props-row ${v.id === selected ? "selected" : ""} ${parlay?.draft.active && parlay.selected(builderLeg(v, "prop").key) ? "parlay-selected" : ""}`}
+                    onClick={() => select(v)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setSelected(v.id);
+                        select(v);
                       }
                     }}
                   >
                     <div role="cell" className="ev-cell ev-edge">
+                      {parlay?.draft.active &&
+                        parlay.selected(builderLeg(v, "prop").key) && (
+                          <span
+                            className="parlay-check"
+                            aria-label="Added to parlay"
+                          >
+                            ✓
+                          </span>
+                        )}
                       <span className="ev-badge">{percent(v.ev, true)}</span>
                       <PlacedChip leg={v} />
                     </div>

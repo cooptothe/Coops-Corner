@@ -6,7 +6,7 @@ Settings are whatever small JSON object a tool's filters serialise to. The serve
 import json
 import re
 
-TOOLS = ('positive_ev', 'arbitrage', 'middle', 'props', 'promo', 'games', 'tracker', 'sizing', 'account')
+TOOLS = ('positive_ev', 'arbitrage', 'middle', 'props', 'promo', 'games', 'tracker', 'sizing', 'account', 'parlay')
 MAX_BYTES = 8192
 MAX_DEPTH = 4
 MAX_ITEMS = 300

@@ -5,6 +5,7 @@ import "../../frontend/corner.css";
 import "./stored-odds.css";
 import "./personal.css";
 import "./auth.css";
+import "./parlay.css";
 import { AuthGate, AuthProvider } from "../components/auth-provider";
 
 export const metadata: Metadata = {

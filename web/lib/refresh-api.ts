@@ -70,6 +70,11 @@ export interface PropMarketInfo {
   default: boolean;
 }
 export interface PropBet {
+  source_ids?: {
+    event?: string | null;
+    market?: string | null;
+    outcome?: string | null;
+  } | null;
   id: string;
   event_id: string;
   sport_key: string;

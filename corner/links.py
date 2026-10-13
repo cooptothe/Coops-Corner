@@ -23,7 +23,7 @@ BOOK_DOMAINS = {
     'pinnacle': ('pinnacle.com',),
     'betfair_ex_uk': ('betfair.com',),
     'betopenly': ('betopenly.com',),
-    'polymarket': ('polymarket.com',),
+    'polymarket': ('polymarket.com', 'polymarket.us'),
     'prizepicks': ('prizepicks.com',),
     'underdog': ('underdogfantasy.com',),
 }

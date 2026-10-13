@@ -13,6 +13,7 @@ import time
 
 from api.catalog import FixtureCatalog, _verify_selections
 from corner.links import clean_links
+from corner.native_ids import native_ids
 
 log = logging.getLogger('corner.api.database')
 
@@ -142,6 +143,8 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
                         # One entry per selection, in the same order as the prices; None where a book gave no usable link.
                         links={b: [clean_links(b, c[s].get('event_url'), c[s].get('market_url'), c[s].get('outcome_url')) for s in sides]
                                for b, c in sorted(complete.items())},
+                        source_ids={b: [native_ids(b, link=c[s].get('outcome_url')) for s in sides]
+                                    for b, c in sorted(complete.items())},
                         observed={b: _iso(min(c[s]['observed_at'] for s in sides)) for b, c in complete.items()})
         game = dict(id=event, sport_key=SPORT_KEYS.get(games[event]['competition_code'], games[event]['competition_code']),
                     competition=_label(games[event]['competition_code'], games[event]['competition_name']), name=f'{away} at {home}',

@@ -1,7 +1,7 @@
 import { notifyUnauthorized } from "./auth-api";
 
 export type Strategy =
-  "ev" | "arbitrage" | "middle" | "promo" | "prop" | "manual";
+  "ev" | "arbitrage" | "middle" | "promo" | "prop" | "manual" | "parlay";
 export type BetStatus =
   "pending" | "won" | "lost" | "push" | "void" | "cashout";
 export type Result = Exclude<BetStatus, "pending">;
@@ -21,6 +21,8 @@ export interface Clv {
 }
 
 export interface TrackerBet {
+  legs?: ParlayTrackedLeg[];
+  suggested_result?: Result | null;
   id: string;
   client_key: string;
   group_id: string | null;
@@ -72,6 +74,7 @@ export interface LiveView {
 }
 
 export interface NewBetBody {
+  legs?: ParlayTrackedLeg[];
   client_key: string;
   strategy: Strategy;
   matchup: string;
@@ -89,6 +92,21 @@ export interface NewBetBody {
   placed_at?: string;
   notes?: string;
   ref?: Record<string, RefValue>;
+}
+
+export interface ParlayTrackedLeg {
+  key: string;
+  event_id: string;
+  source: "ev" | "prop";
+  book: string;
+  matchup: string;
+  starts_at: string;
+  sport_key: string;
+  market: string;
+  selection: string;
+  odds: string;
+  ref: Record<string, RefValue>;
+  status?: "pending" | "won" | "lost" | "push" | "void";
 }
 
 export interface NewCashBody {
@@ -159,6 +177,8 @@ export const settleBet = (
   call<{ bet: TrackerBet }>("POST", `/bets/${id}/settle`, { result, ...extra });
 export const reopenBet = (id: string) =>
   call<{ bet: TrackerBet }>("POST", `/bets/${id}/reopen`, {});
+export const gradeParlayLeg = (id: string, key: string, result: string) =>
+  call<{ bet: TrackerBet }>("POST", `/bets/${id}/legs`, { key, result });
 export const deleteBet = (id: string) =>
   call<{ ok: true }>("DELETE", `/bets/${id}`);
 export const addCash = (entry: NewCashBody) =>
