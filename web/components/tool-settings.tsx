@@ -137,8 +137,9 @@ export function useToolSettings<T extends Settings>(
   }, [store, tool, activeId, remember]);
   const reset = useCallback(() => {
     latest.current.apply({ ...latest.current.defaults });
+    store.put(tool, { ...latest.current.defaults });
     remember(null);
-  }, [remember]);
+  }, [remember, store, tool]);
 
   return {
     presets: list,
@@ -290,7 +291,7 @@ export function SettingsBar({ controls }: { controls: ToolSettingsControls }) {
             c.reset();
           }}
         >
-          Reset to defaults
+          Default settings
         </button>
       </div>
       <div className="settings-notes" aria-live="polite">

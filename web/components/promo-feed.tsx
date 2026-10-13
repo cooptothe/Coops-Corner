@@ -1,4 +1,5 @@
 "use client";
+import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -863,6 +864,7 @@ function Calculator({
 }
 
 type PromoSettings = {
+  timeFilter: string;
   type: string;
   face: string;
   refund: string;
@@ -878,6 +880,7 @@ type PromoSettings = {
   offMarkets: string[];
 };
 const PROMO_DEFAULTS: PromoSettings = {
+  timeFilter: "default",
   type: "bonus",
   face: "100",
   refund: "75",
@@ -919,6 +922,7 @@ export default function PromoFeed({ data }: { data: Data }) {
     tool: "promo",
     defaults: PROMO_DEFAULTS,
     snapshot: {
+      timeFilter,
       type,
       face,
       refund,
@@ -934,6 +938,7 @@ export default function PromoFeed({ data }: { data: Data }) {
       offMarkets: sorted(offMarkets),
     },
     apply: (s) => {
+      setTimeFilter(savedTimeFilter(s.timeFilter));
       setType(
         choice(
           s.type,
@@ -976,7 +981,7 @@ export default function PromoFeed({ data }: { data: Data }) {
     },
   });
   const books = useMemo(
-    () => new Map(data.caps.books.map((b) => [b.id, b.name])),
+    () => new Map(feedBooks(data.caps.books).map((b) => [b.id, b.name])),
     [data],
   );
   const games = useMemo(

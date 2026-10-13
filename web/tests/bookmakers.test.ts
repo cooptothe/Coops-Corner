@@ -2,6 +2,23 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { feedBooks } from "../lib/bookmakers";
 
+test("canonical capitalization wins over raw provider IDs", () => {
+  const books = feedBooks(
+    ["betopenly", "polymarket", "prizepicks", "underdog"].map((id) => ({
+      id,
+      name: id,
+    })),
+    true,
+  );
+  for (const [id, name] of [
+    ["betopenly", "BetOpenly"],
+    ["polymarket", "Polymarket"],
+    ["prizepicks", "PrizePicks"],
+    ["underdog", "Underdog"],
+  ])
+    assert.equal(books.find((b) => b.id === id)?.name, name);
+});
+
 test("main filters include the new books without stored quotes", () => {
   const ids = feedBooks([]).map((b) => b.id);
   assert.ok(ids.includes("betopenly"));

@@ -23,3 +23,9 @@ export function matchesFeedTime(
   const hours = { "8h": 8, "24h": 24, "3d": 72, "1w": 168 }[filter];
   return start <= now + hours * 60 * 60 * 1000;
 }
+
+export function savedTimeFilter(value: unknown): TimeFilter {
+  return TIME_FILTERS.some(([key]) => key === value)
+    ? (value as TimeFilter)
+    : "default";
+}

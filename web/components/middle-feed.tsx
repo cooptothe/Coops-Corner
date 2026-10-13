@@ -1,4 +1,5 @@
 "use client";
+import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -68,6 +69,7 @@ const OVERSCAN = 6;
 const SETTINGS_KEY = "corner.middle-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
 type MiddleSettings = {
+  timeFilter: string;
   offBooks: string[];
   offSports: string[];
   offMarkets: string[];
@@ -77,6 +79,7 @@ type MiddleSettings = {
   stake: string;
 };
 const MIDDLE_DEFAULTS: MiddleSettings = {
+  timeFilter: "default",
   offBooks: [],
   offSports: [],
   offMarkets: [],
@@ -456,6 +459,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
     tool: "middle",
     defaults: MIDDLE_DEFAULTS,
     snapshot: {
+      timeFilter,
       offBooks: sorted(offBooks),
       offSports: sorted(offSports),
       offMarkets: sorted(offMarkets),
@@ -465,6 +469,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
       stake,
     },
     apply: (s) => {
+      setTimeFilter(savedTimeFilter(s.timeFilter));
       setOffBooks(new Set(list(s.offBooks)));
       setOffSports(new Set(list(s.offSports)));
       setOffMarkets(new Set(list(s.offMarkets)));
@@ -502,7 +507,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
     () => ({
       quotes: new Map(data.quotes.map((q) => [q.id, q])),
       games: new Map(data.games.map((g) => [g.id, g])),
-      books: new Map(data.caps.books.map((b) => [b.id, b.name])),
+      books: new Map(feedBooks(data.caps.books).map((b) => [b.id, b.name])),
     }),
     [data],
   );

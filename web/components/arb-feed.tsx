@@ -1,4 +1,5 @@
 "use client";
+import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -94,6 +95,7 @@ const SETTINGS_KEY = "corner.arb-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
 const PROFIT_PATTERN = /^\d{1,2}(\.\d{1,2})?$/;
 type ArbSettings = {
+  timeFilter: string;
   offBooks: string[];
   offSports: string[];
   minProfit: string;
@@ -101,6 +103,7 @@ type ArbSettings = {
   stake: string;
 };
 const ARB_DEFAULTS: ArbSettings = {
+  timeFilter: "default",
   offBooks: [],
   offSports: [],
   minProfit: "0",
@@ -609,6 +612,7 @@ export default function ArbFeed({ data }: { data: Data }) {
     tool: "arbitrage",
     defaults: ARB_DEFAULTS,
     snapshot: {
+      timeFilter,
       offBooks: sorted(offBooks),
       offSports: sorted(offSports),
       minProfit,
@@ -616,6 +620,7 @@ export default function ArbFeed({ data }: { data: Data }) {
       stake,
     },
     apply: (s) => {
+      setTimeFilter(savedTimeFilter(s.timeFilter));
       setOffBooks(new Set(list(s.offBooks)));
       setOffSports(new Set(list(s.offSports)));
       setMinProfit(text(s.minProfit, PROFIT_PATTERN, ARB_DEFAULTS.minProfit));
@@ -651,7 +656,7 @@ export default function ArbFeed({ data }: { data: Data }) {
     () => ({
       quotes: new Map(data.quotes.map((q) => [q.id, q])),
       games: new Map(data.games.map((g) => [g.id, g])),
-      books: new Map(data.caps.books.map((b) => [b.id, b.name])),
+      books: new Map(feedBooks(data.caps.books).map((b) => [b.id, b.name])),
     }),
     [data],
   );

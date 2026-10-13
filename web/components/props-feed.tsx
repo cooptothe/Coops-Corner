@@ -1,9 +1,11 @@
 "use client";
+import { restoredFetchMarkets } from "../lib/props-fetch-settings";
+import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks, PROP_BOOKS } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   american,
   ageLabel,
@@ -170,6 +172,10 @@ function Age({ value }: { value: string | null }) {
 }
 
 type PropsSettings = {
+  timeFilter: string;
+  fetchSport: string;
+  fetchMarkets: string[] | null;
+  fetchEvents: number;
   sportKey: string;
   marketKey: string;
   eventId: string;
@@ -181,6 +187,10 @@ type PropsSettings = {
   offBooks: string[];
 };
 const PROPS_DEFAULTS: PropsSettings = {
+  timeFilter: "default",
+  fetchSport: "",
+  fetchMarkets: null,
+  fetchEvents: 8,
   sportKey: "",
   marketKey: "",
   eventId: "",
@@ -216,6 +226,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     setOpen: setSlipOpen,
     refresh: refreshSlip,
   } = useSlip();
+  const fetchInitialized = useRef(false);
   const [fetchSport, setFetchSport] = useState("");
   const [fetchMarkets, setFetchMarkets] = useState<string[]>([]);
   const [fetchEvents, setFetchEvents] = useState(8);
@@ -226,8 +237,21 @@ export default function PropsFeed({ reload }: { reload: number }) {
 
   const settings = useToolSettings<PropsSettings>({
     tool: "props",
-    defaults: PROPS_DEFAULTS,
+    defaults: {
+      ...PROPS_DEFAULTS,
+      fetchSport: status?.sports[0]?.key ?? "",
+      fetchMarkets: status
+        ? restoredFetchMarkets(
+            null,
+            status.markets[status.sports[0]?.key ?? ""] ?? [],
+          )
+        : null,
+    },
     snapshot: {
+      timeFilter,
+      fetchSport,
+      fetchMarkets: fetchInitialized.current ? fetchMarkets : null,
+      fetchEvents,
       sportKey,
       marketKey,
       eventId,
@@ -239,6 +263,31 @@ export default function PropsFeed({ reload }: { reload: number }) {
       offBooks: sorted(offBooks),
     },
     apply: (s) => {
+      setTimeFilter(savedTimeFilter(s.timeFilter));
+      const fetchKey =
+        text(s.fetchSport, /^[a-z0-9_]{0,60}$/, "") ||
+        status?.sports[0]?.key ||
+        "";
+      const fetchCatalog = status?.markets[fetchKey] ?? [];
+      fetchInitialized.current =
+        Array.isArray(s.fetchMarkets) || fetchCatalog.length > 0;
+      setFetchMarkets(
+        Array.isArray(s.fetchMarkets)
+          ? list(s.fetchMarkets)
+          : restoredFetchMarkets(null, fetchCatalog),
+      );
+      setFetchSport(
+        text(s.fetchSport, /^[a-z0-9_]{0,60}$/, "") ||
+          status?.sports[0]?.key ||
+          "",
+      );
+      setFetchEvents(
+        Number.isInteger(s.fetchEvents) &&
+          s.fetchEvents >= 1 &&
+          s.fetchEvents <= 20
+          ? s.fetchEvents
+          : 8,
+      );
       setSportKey(text(s.sportKey, /^[a-z0-9_]{0,60}$/, ""));
       setMarketKey(text(s.marketKey, /^[a-z0-9_]{0,60}$/, ""));
       setEventId(text(s.eventId, /^[A-Za-z0-9_-]{0,80}$/, ""));
@@ -290,7 +339,15 @@ export default function PropsFeed({ reload }: { reload: number }) {
   // replaced after every fetch, which used to wipe the user's chosen markets.
   const catalogKey = catalog.map((m) => m.key).join(",");
   useEffect(() => {
-    setFetchMarkets(catalog.filter((m) => m.default).map((m) => m.key));
+    if (!catalog.length) return;
+    if (!fetchInitialized.current) {
+      fetchInitialized.current = true;
+      setFetchMarkets(catalog.filter((m) => m.default).map((m) => m.key));
+    } else {
+      setFetchMarkets((current) =>
+        current.filter((key) => catalog.some((m) => m.key === key)),
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchSport, catalogKey]);
 
@@ -584,7 +641,11 @@ export default function PropsFeed({ reload }: { reload: number }) {
             <span>LEAGUE</span>
             <select
               value={fetchSport}
-              onChange={(e) => setFetchSport(e.target.value)}
+              onChange={(e) => {
+                fetchInitialized.current = false;
+                setFetchSport(e.target.value);
+                setFetchMarkets([]);
+              }}
             >
               {status.sports.map((s) => (
                 <option key={s.key} value={s.key}>

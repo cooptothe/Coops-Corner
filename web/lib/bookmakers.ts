@@ -18,6 +18,10 @@ export const PROP_BOOKS = [
   { id: "underdog", name: "Underdog" },
 ];
 
+export function bookDisplayName(id: string, fallback = id) {
+  return PROP_BOOKS.find((book) => book.id === id)?.name ?? fallback;
+}
+
 // Keep configured sources selectable before their first usable capture.
 export function feedBooks(
   captured: { id: string; name: string }[],
@@ -26,6 +30,7 @@ export function feedBooks(
   const books = new Map(
     (props ? PROP_BOOKS : MAIN_BOOKS).map((b) => [b.id, b]),
   );
-  for (const book of captured) books.set(book.id, book);
+  for (const book of captured)
+    books.set(book.id, { ...book, name: bookDisplayName(book.id, book.name) });
   return [...books.values()];
 }

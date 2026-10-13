@@ -1,4 +1,5 @@
 "use client";
+import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { useEffect, useMemo, useState } from "react";
@@ -145,9 +146,15 @@ function GameRow({
   );
 }
 
-type ScheduleSettings = { league: string; search: string; offBooks: string[] };
+type ScheduleSettings = {
+  timeFilter: string;
+  league: string;
+  search: string;
+  offBooks: string[];
+};
 // The sharp reference books are off by default, so the schedule shows prices you can actually bet.
 const SCHEDULE_DEFAULTS: ScheduleSettings = {
+  timeFilter: "default",
   league: "",
   search: "",
   offBooks: [],
@@ -162,8 +169,9 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   const settings = useToolSettings<ScheduleSettings>({
     tool: "games",
     defaults: SCHEDULE_DEFAULTS,
-    snapshot: { league, search, offBooks: sorted(offBooks) },
+    snapshot: { timeFilter, league, search, offBooks: sorted(offBooks) },
     apply: (s) => {
+      setTimeFilter(savedTimeFilter(s.timeFilter));
       setLeague(text(s.league, /^[a-z0-9_]{0,60}$/, ""));
       setSearch(text(s.search, /^.{0,60}$/, ""));
       setOffBooks(new Set(list(s.offBooks)));
@@ -180,7 +188,8 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   );
 
   const bookNames = useMemo(
-    () => new Map(data.caps.books.map((b) => [b.id, shortBook(b.name)])),
+    () =>
+      new Map(feedBooks(data.caps.books).map((b) => [b.id, shortBook(b.name)])),
     [data],
   );
   const bookName = (id: string) => bookNames.get(id) ?? id;

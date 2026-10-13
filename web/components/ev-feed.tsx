@@ -1,4 +1,5 @@
 "use client";
+import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -124,6 +125,7 @@ export function legacySizing(): Partial<SizingSettings> | null {
     : null;
 }
 type EvSettings = {
+  timeFilter: string;
   offBooks: string[];
   minEv: string;
   sortKey: string;
@@ -132,6 +134,7 @@ type EvSettings = {
   sportKey: string;
 };
 const EV_DEFAULTS: EvSettings = {
+  timeFilter: "default",
   offBooks: [],
   minEv: "0",
   sortKey: "ev",
@@ -541,6 +544,7 @@ export default function EvFeed({ data }: { data: Data }) {
     tool: "positive_ev",
     defaults: EV_DEFAULTS,
     snapshot: {
+      timeFilter,
       offBooks: sorted(offBooks),
       minEv,
       sortKey,
@@ -549,6 +553,7 @@ export default function EvFeed({ data }: { data: Data }) {
       sportKey,
     },
     apply: (s) => {
+      setTimeFilter(savedTimeFilter(s.timeFilter));
       setOffBooks(new Set(list(s.offBooks)));
       setMinEv(text(s.minEv, /^\d{1,2}(\.\d{1,2})?$/, EV_DEFAULTS.minEv));
       setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "ev"));
@@ -599,7 +604,7 @@ export default function EvFeed({ data }: { data: Data }) {
     () => ({
       quotes: new Map(data.quotes.map((q) => [q.id, q])),
       games: new Map(data.games.map((g) => [g.id, g])),
-      books: new Map(data.caps.books.map((b) => [b.id, b.name])),
+      books: new Map(feedBooks(data.caps.books).map((b) => [b.id, b.name])),
     }),
     [data],
   );
