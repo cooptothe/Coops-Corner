@@ -1,4 +1,4 @@
-"""Player-prop market catalog, payload normalization and no-vig edge calculation.
+"""Player-prop market catalog, payload normalization and sharp-price EV calculation.
 
 Pure functions only: no network, no database. Prop quotes are kept apart from the strict
 featured (h2h/spreads/totals) pipeline because they are priced per player and per line.
@@ -208,17 +208,21 @@ def _prob(price):
     return Decimal(1) / Decimal(price)
 
 
-def _fair_first_side(prices, exclude=None, sport_key=''):
-    """No-vig probability of side 0, averaged over the reference books pricing both sides.
+def _sharp_side_probability(prices, side, exclude=None, sport_key=''):
+    """Weighted implied probability from two other sharp books quoting this exact side.
 
-    Needs at least MIN_SHARPS such books, exactly as the main +EV feed does. `exclude` is the book being priced.
+    Opposite sides are not required or inferred. These prices retain bookmaker margin.
     """
-    used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS and b != exclude and 0 in p and 1 in p)
+    used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS and b != exclude and side in p)
     if not sufficient_references(used, sport_key, player_props=True):
         return None, []
     weights = normalized_reference_weights(used, sport_key, player_props=True)
-    fair = sum((_prob(prices[b][0]) / (_prob(prices[b][0]) + _prob(prices[b][1]))) * weights[b] for b in used)
+    fair = sum(_prob(prices[b][side]) * weights[b] for b in used)
     return fair, used
+
+
+def _fair_first_side(prices, exclude=None, sport_key=''):
+    return _sharp_side_probability(prices, 0, exclude, sport_key)
 
 
 def _q(value):
@@ -228,16 +232,16 @@ def _q(value):
 def build_bets(events):
     """events: {event_id: {meta, markets:{market_key:{quotes:[...]}}}} -> one bet per soft-book side.
 
-    A bet exists only where at least two reference books (the sharp books, plus FanDuel for props) price both
-    sides of the same player line, so its fair probability is their no-vig consensus. A book's own bet never
-    counts that book as a reference. Other lines are omitted.
+    Two other sharp books must quote the same player, market, line and selection.
+    Their weighted implied probabilities estimate EV without requiring an opposite
+    side or removing margin. The target never contributes to its own estimate.
     """
     bets = []
     for event_id, ev in events.items():
         sport = ev['sport_key']
         for market_key, stored in ev['markets'].items():
             meta = market_meta(sport, market_key)
-            if not meta or meta.kind != TWO_WAY:
+            if not meta:
                 continue
             grouped = {}
             for q in stored['quotes']:
@@ -245,11 +249,10 @@ def build_bets(events):
             for (player, point), by_book in grouped.items():
                 prices = {b: {s: Decimal(q['price']) for s, q in sides.items()} for b, sides in by_book.items()}
                 for book, sides in sorted(prices.items()):
-                    fair, used = _fair_first_side(prices, exclude=book, sport_key=sport)
-                    if fair is None:
-                        continue
                     for side, price in sorted(sides.items()):
-                        win = fair if side == 0 else 1 - fair
+                        win, used = _sharp_side_probability(prices, side, exclude=book, sport_key=sport)
+                        if win is None:
+                            continue
                         bets.append({
                             'id': f'{event_id}:{market_key}:{player}:{point or ""}:{book}:{side}',
                             'event_id': event_id, 'sport_key': sport, 'home': ev['home_team'],
@@ -257,7 +260,11 @@ def build_bets(events):
                             'market_key': market_key, 'market_label': meta.label, 'group': meta.group,
                             'player': player, 'point': point, 'side': meta.sides[side], 'book': book,
                             'price': str(price), 'ev': _q(win * price - 1), 'fair_probability': _q(win),
-                            'sharps': used, 'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()}, 'reference_weight_version': WEIGHT_VERSION, 'observed_at': by_book[book][side].get('updated_at')
+                            'sharps': used,
+                            'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()},
+                            'reference_weight_version': WEIGHT_VERSION,
+                            'probability_basis': 'weighted_sharp_implied',
+                            'observed_at': by_book[book][side].get('updated_at')
                             or stored.get('captured_at'),
                             'links': by_book[book][side].get('links')})
     return bets

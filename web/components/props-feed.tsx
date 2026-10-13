@@ -114,12 +114,7 @@ function toVm(b: PropBet): Vm {
     fairOdds,
     prob: Number(b.fair_probability),
     fair: b.fair_probability,
-    sharps: b.sharps
-      .map(
-        (id) =>
-          `${bookName(id)}${b.reference_weights?.[id] ? ` (${Math.round(Number(b.reference_weights[id]) * 100)}%)` : ""}`,
-      )
-      .join(" + "),
+    sharps: b.sharps.map(bookName).join(" + "),
     observedAt: b.observed_at,
     strategy: "prop",
     fairProb: b.fair_probability,
@@ -774,7 +769,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 <p>
                   {hiddenAsOld
                     ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. Fetch prop odds again.`
-                    : "Fetch prop odds, lower the minimum EV, or re-enable books. Bets need at least two sharp books pricing both sides of the same line."}
+                    : "Fetch prop odds, lower the minimum EV, or re-enable books. Bets need at least two other sharp books quoting the same player, market, line and side."}
                 </p>
               </div>
             ) : (

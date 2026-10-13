@@ -7,9 +7,9 @@ class SoccerPropsMessage(unittest.TestCase):
         message = props_message('Champions League', ['player_shots', 'player_goal_scorer_anytime'], result,
                                 {'bets': 0, 'positive': 0}, sport_key='soccer_uefa_champs_league')
         self.assertIn('32 credits used', message)
-        self.assertIn('one Pinnacle, Betfair Exchange or FanDuel', message)
-        self.assertIn('Novig alone does not qualify', message)
-        self.assertIn('Yes-only goalscorer markets', message)
+        self.assertIn('two other sharp books', message)
+        self.assertIn('An opposite-side price is not required', message)
+        self.assertNotIn('exception', message)
 
     def test_supported_soccer_markets_do_not_get_goalscorer_warning(self):
         message = props_message('Champions League', ['player_shots'],

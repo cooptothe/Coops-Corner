@@ -30,7 +30,7 @@ class Weights(unittest.TestCase):
         prices = {'fanduel': {0:D(2),1:D(3)}, 'pinnacle':{0:D(3),1:D(2)}, 'draftkings':{0:D(2),1:D(2)}}
         fair, used = pm._fair_first_side(prices, exclude='draftkings', sport_key='basketball_nba')
         self.assertEqual(set(used), {'fanduel','pinnacle'})
-        self.assertAlmostEqual(float(fair), (0.6*5+0.4*2)/7)
+        self.assertAlmostEqual(float(fair), (0.5*5+(1/3)*2)/7)
         self.assertEqual((None,[]), pm._fair_first_side(prices, exclude='fanduel', sport_key='basketball_nba'))
         weights = normalized_reference_weights(['fanduel'], 'soccer_epl', player_props=True)
         self.assertEqual(weights, {'fanduel':D(1)})

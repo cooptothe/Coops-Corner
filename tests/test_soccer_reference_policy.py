@@ -45,19 +45,7 @@ class SoccerReferences(unittest.TestCase):
         return build_bets({'e': {'sport_key': sport, 'home_team': 'H', 'away_team': 'A',
             'commence_time': '2030-01-01T00:00:00Z', 'markets': {key: {'captured_at': 'x', 'quotes': normalize_event(payload, key, meta)}}}})
 
-    def test_soccer_props_use_same_exception_and_exclude_self(self):
-        for book in ('pinnacle', 'betfair_ex_uk'):
-            bets = self.props(book, 'soccer_epl')
-            self.assertTrue(bets)
-            self.assertEqual({'draftkings'}, {b['book'] for b in bets})
-            self.assertTrue(all(b['sharps'] == [book] for b in bets))
-        self.assertEqual([], self.props('polymarket', 'soccer_epl'))
-        self.assertEqual([], self.props('pinnacle', 'basketball_nba'))
-
-    def test_fanduel_single_reference_is_only_for_soccer_props(self):
-        bets = self.props('fanduel', 'soccer_epl')
-        self.assertTrue(bets)
-        self.assertEqual({'draftkings'}, {b['book'] for b in bets})
-        self.assertTrue(all(b['sharps'] == ['fanduel'] for b in bets))
-        self.assertEqual([], self.props('fanduel', 'basketball_nba'))
-        self.assertFalse([r for r in self.main_catalog('fanduel').rows if r.kind == 'positive_ev'])
+    def test_soccer_props_require_two_references_for_every_sharp(self):
+        for book in ('pinnacle', 'betfair_ex_uk', 'fanduel', 'polymarket'):
+            self.assertEqual([], self.props(book, 'soccer_epl'))
+            self.assertEqual([], self.props(book, 'basketball_nba'))

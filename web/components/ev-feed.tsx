@@ -171,10 +171,7 @@ function toVm(
   if (!q || row.conditional_ev_ratio == null) return null;
   const g = games.get(row.game_id);
   const sharps = row.calculation.reference_books
-    .map(
-      (b) =>
-        `${shortBook(books.get(b.sportsbook_id) ?? b.sportsbook_id)}${b.weight ? ` (${Math.round(Number(b.weight) * 100)}%)` : ""}`,
-    )
+    .map((b) => shortBook(books.get(b.sportsbook_id) ?? b.sportsbook_id))
     .join(" + ");
   return {
     id: row.id,

@@ -237,15 +237,8 @@ def props_message(label, markets, result, found=None, sport_key=None):
     if found is None:
         return base
     if not found['bets']:
-        if sport_key and sport_key.startswith('soccer_'):
-            message = (f'{base} No {label} bets can be shown: each comparable player line needs two other sharp '
-                       'books pricing both sides, or one Pinnacle, Betfair Exchange or FanDuel reference pricing both sides. '
-                       'Novig alone does not qualify for the soccer exception.')
-            if any((meta := prop_markets.market_meta(sport_key, key)) and meta.kind != prop_markets.TWO_WAY for key in markets):
-                message += ' Yes-only goalscorer markets are not currently priced by this feed.'
-            return message
-        return (f'{base} No {label} bets can be shown: none of these lines had two sharp books pricing both '
-                'sides, which a bet needs to be priced.')
+        return (f'{base} No {label} bets can be shown: each selection needs two other sharp books '
+                'quoting the same player, market, line and side. An opposite-side price is not required.')
     return f"{base} {found['bets']} {label} bets priced, {found['positive']} with positive EV."
 
 def run_props_refresh(sport, markets, max_events, capture=props.capture):
