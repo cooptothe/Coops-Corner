@@ -316,6 +316,8 @@
 .ev-cell{display:flex;flex-direction:column;gap:2px;min-width:0}
 .ev-cell strong,.ev-cell small,.ev-league{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev-cell small{opacity:.7;font-size:12px}
+.ev-sharp.ev-cell strong,.ev-sharp.ev-cell small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:18px}
+@media (max-width:900px){.ev-row .ev-sharp.ev-cell{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px}}
 .ev-league{font-size:11px;font-weight:600;opacity:.75}
 .ev-badge{display:inline-block;padding:5px 9px;border-radius:6px;font-weight:700;font-variant-numeric:tabular-nums;color:#15803d;background:rgba(34,197,94,.15)}
 .ev-action{display:inline-flex;flex-direction:column;padding:6px 10px;border-radius:8px;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.45)}
@@ -1237,3 +1239,54 @@
 .placed-note strong{font-size:13px}
 .ev-row:has(.placed-badge),.props-row:has(.placed-badge){background:rgba(239,68,68,.06)}
 .feed-time-filter{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;width:100%}.feed-time-filter button{font:inherit;font-size:12px;padding:7px 11px;border:1px solid rgba(128,128,128,.35);border-radius:7px;background:var(--panel,#2e2a2a);color:inherit;cursor:pointer}.feed-time-filter button[aria-pressed="true"]{background:#481920;border-color:#b51c2a;color:#fff;font-weight:600}.feed-time-filter button:focus-visible{outline:2px solid #b51c2a;outline-offset:2px}
+
+/* Full-width +EV feeds with filters above the results. */
+.ev-layout{grid-template-columns:minmax(0,1fr);gap:12px}
+.ev-layout>.ev-filters{position:static;max-height:none;overflow:visible;display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-end;gap:12px 16px}
+.ev-layout>.ev-filters>h3{flex-basis:100%;margin:0}
+.ev-layout>.ev-filters>.field{flex:1 1 160px;max-width:260px}
+.ev-layout>.ev-filters>.ev-odds-range{flex:0 1 240px}
+.ev-layout>.ev-filters>.ev-books{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px 16px;max-height:180px;padding-bottom:4px}
+.ev-layout>.ev-filters>.ev-books>legend{margin-bottom:8px}
+.ev-layout>.ev-filters>.ev-books>.props-group{flex:1 1 180px}
+.ev-main{min-width:0;width:100%}
+.ev-layout:not(.props-layout) .ev-head,.ev-layout:not(.props-layout) .ev-row,
+.props-layout .props-grid>.ev-head,.props-layout .props-grid .props-row{grid-template-columns:92px minmax(160px,1.3fr) minmax(150px,1fr) minmax(150px,1fr) minmax(420px,2.4fr) 70px}
+.ev-layout .ev-grid>.ev-head,.ev-layout .ev-grid>.ev-viewport,.props-layout .props-grid .props-row{min-width:1180px}
+.ev-layout .ev-sharp.ev-cell{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;align-items:baseline}
+.ev-layout .ev-sharp.ev-cell>small:last-child{grid-column:1/-1}
+.props-layout .props-grid>.ev-head{display:grid}
+@media (min-width:901px){
+  .props-layout .props-grid .props-row .ev-cell{grid-column:auto;grid-row:auto}
+  .props-layout .props-grid .props-row .ev-time{flex-direction:column;align-items:flex-start}
+  .props-layout .props-grid .props-row .ev-time::before{content:none}
+}
+@media (max-width:900px){
+  .ev-layout .ev-grid>.ev-head{display:none}
+  .ev-layout .ev-grid>.ev-viewport,.props-layout .props-grid .props-row{min-width:0}
+  .ev-layout:not(.props-layout) .ev-row{grid-template-columns:84px minmax(0,1fr)}
+  .props-layout .props-grid .props-row{grid-template-columns:84px minmax(0,1fr) minmax(0,1fr)}
+  .ev-layout .ev-sharp.ev-cell{display:flex;flex-direction:row;flex-wrap:wrap;gap:2px 12px}
+  .ev-layout .ev-sharp.ev-cell>small:last-child{flex-basis:100%;white-space:nowrap;overflow-x:auto;max-width:100%;padding-bottom:2px}
+  .props-layout .props-row .ev-sharp{grid-column:1/-1}
+}
+
+/* Compact filter actions and sportsbook dropdowns on the +EV feeds. */
+.ev-filter-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;flex:1 1 100%;min-width:0}
+.ev-filter-actions .parlay-toolbar{width:auto;flex:0 1 auto;margin:0}
+.ev-filter-actions .feed-time-filter{display:contents}
+.ev-layout>.ev-filters>.arb-menu{flex:0 1 auto;min-width:0}
+.ev-layout>.ev-filters>.arb-menu>summary{box-sizing:border-box}
+.ev-layout>.ev-filters .arb-menu-pop{box-sizing:border-box;width:280px;min-width:0;max-width:calc(100vw - 56px)}
+.props-fetch-menu .ev-books{max-height:none;overflow:visible;margin:0}
+.ev-layout>.ev-filters>.settings-bar{flex-basis:100%;min-width:0;flex-wrap:wrap}
+@media (max-width:600px){
+  .ev-layout>.ev-filters{padding:12px;gap:10px}
+  .ev-layout>.ev-filters>.field{flex:1 1 130px;max-width:none}
+  .ev-layout>.ev-filters>.ev-odds-range{flex:1 1 100%}
+  .ev-filter-actions{gap:8px}
+  .ev-filter-actions .parlay-toolbar .button{font-size:12px;padding:7px 11px}
+  .ev-layout>.ev-filters>.arb-menu{flex:1 1 130px}
+  .ev-layout>.ev-filters>.arb-menu>summary{width:100%;white-space:normal}
+  .ev-layout>.ev-filters .props-fetch-menu .arb-menu-pop{left:auto;right:0}
+}

@@ -1,5 +1,6 @@
 "use client";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
+import { Menu } from "./arb-feed";
 import { builderLeg } from "../lib/parlay";
 import { restoredFetchMarkets } from "../lib/props-fetch-settings";
 import { savedTimeFilter } from "../lib/feed-time";
@@ -33,7 +34,7 @@ import {
 import { BetLinkButton } from "./bet-link";
 import { PlacedChip, PlacedProvider } from "./placed";
 import { SettingsBar, useToolSettings } from "./tool-settings";
-import { SlipLog, SlipToggle, useSlip } from "./bet-slip";
+import { useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
 import { ErrorCard, Loading } from "./workspace";
@@ -228,12 +229,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [bankroll, setBankroll] = useState("1000");
   const [multiplier, setMultiplier] = useState("0.25");
-  const {
-    slip,
-    open: slipOpen,
-    setOpen: setSlipOpen,
-    refresh: refreshSlip,
-  } = useSlip();
+  const { slip, refresh: refreshSlip } = useSlip();
   const fetchInitialized = useRef(false);
   const [fetchSport, setFetchSport] = useState("");
   const [fetchMarkets, setFetchMarkets] = useState<string[]>([]);
@@ -527,10 +523,11 @@ export default function PropsFeed({ reload }: { reload: number }) {
     <PlacedProvider slip={slip}>
       <section className="ev-layout props-layout" aria-label="Player props">
         <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
-          <h3>Filters</h3>
           <SettingsBar controls={settings} />
-          <ParlayToolbar />
-          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          <div className="ev-filter-actions">
+            <ParlayToolbar />
+            <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          </div>
           <label className="field">
             <span>MIN. EV · {minEv}%</span>
             <input
@@ -625,41 +622,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
               />
             </label>
           </div>
-          <fieldset className="ev-books">
-            <legend>
-              MY SPORTSBOOKS{" "}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => setOffBooks(new Set())}
-              >
-                all
-              </button>{" "}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => setOffBooks(new Set(books))}
-              >
-                none
-              </button>
-            </legend>
-            {books.map((id) => (
-              <label key={id}>
-                <input
-                  type="checkbox"
-                  checked={!offBooks.has(id)}
-                  onChange={() =>
-                    setOffBooks((prev) => {
-                      const next = new Set(prev);
-                      if (!next.delete(id)) next.add(id);
-                      return next;
-                    })
-                  }
-                />
-                {bookName(id)}
-              </label>
-            ))}
-          </fieldset>
+          <Menu
+            title="Sportsbooks"
+            items={books.map((id): [string, string] => [id, bookName(id)])}
+            off={offBooks}
+            setOff={setOffBooks}
+          />
           <h3>Fetch prop odds</h3>
           <label className="field">
             <span>LEAGUE</span>
@@ -678,50 +646,55 @@ export default function PropsFeed({ reload }: { reload: number }) {
               ))}
             </select>
           </label>
-          <fieldset className="ev-books">
-            <legend>
-              MARKETS TO FETCH{" "}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() =>
-                  setFetchMarkets(
-                    catalog.filter((m) => m.default).map((m) => m.key),
-                  )
-                }
-              >
-                default
-              </button>{" "}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => setFetchMarkets([])}
-              >
-                none
-              </button>
-            </legend>
-            {[...groups].map(([group, items]) => (
-              <div key={group} className="props-group">
-                <small>{group}</small>
-                {items.map((m) => (
-                  <label key={m.key}>
-                    <input
-                      type="checkbox"
-                      checked={fetchMarkets.includes(m.key)}
-                      onChange={() =>
-                        setFetchMarkets((prev) =>
-                          prev.includes(m.key)
-                            ? prev.filter((k) => k !== m.key)
-                            : [...prev, m.key],
-                        )
-                      }
-                    />
-                    {m.label}
-                  </label>
+          <details className="arb-menu props-fetch-menu">
+            <summary>Markets to fetch ({fetchMarkets.length})</summary>
+            <div className="arb-menu-pop">
+              <fieldset className="ev-books">
+                <legend>
+                  MARKETS TO FETCH{" "}
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() =>
+                      setFetchMarkets(
+                        catalog.filter((m) => m.default).map((m) => m.key),
+                      )
+                    }
+                  >
+                    default
+                  </button>{" "}
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => setFetchMarkets([])}
+                  >
+                    none
+                  </button>
+                </legend>
+                {[...groups].map(([group, items]) => (
+                  <div key={group} className="props-group">
+                    <small>{group}</small>
+                    {items.map((m) => (
+                      <label key={m.key}>
+                        <input
+                          type="checkbox"
+                          checked={fetchMarkets.includes(m.key)}
+                          onChange={() =>
+                            setFetchMarkets((prev) =>
+                              prev.includes(m.key)
+                                ? prev.filter((k) => k !== m.key)
+                                : [...prev, m.key],
+                            )
+                          }
+                        />
+                        {m.label}
+                      </label>
+                    ))}
+                  </div>
                 ))}
-              </div>
-            ))}
-          </fieldset>
+              </fieldset>
+            </div>
+          </details>
           <label className="field">
             <span>GAMES (SOONEST FIRST) · {fetchEvents}</span>
             <input
@@ -750,10 +723,6 @@ export default function PropsFeed({ reload }: { reload: number }) {
         </aside>
         <div className="ev-main">
           <div className="ev-count">
-            <SlipToggle
-              count={slip.length}
-              onClick={() => setSlipOpen((o) => !o)}
-            />
             <strong>{visible.length}</strong> of {all.length} bets
             {status.last_success_at && (
               <> · fetched {date(status.last_success_at)}</>
@@ -773,7 +742,6 @@ export default function PropsFeed({ reload }: { reload: number }) {
               </select>
             </label>
           </div>
-          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
           <div
             role="table"
             aria-label="Player prop bets"
@@ -862,9 +830,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
                     </div>
                     <div role="cell" className="ev-cell ev-sharp">
                       <strong>{percent(v.fair)} chance</strong>
-                      <small>
-                        Fair {v.fairOdds ?? "—"} · {v.sharps}
-                      </small>
+                      <small>Fair {v.fairOdds ?? "—"}</small>
+                      <small>{v.sharps}</small>
                     </div>
                     <div role="cell" className="ev-cell ev-time">
                       <Age value={v.observedAt} />

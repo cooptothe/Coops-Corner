@@ -1,5 +1,6 @@
 "use client";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
+import { Menu } from "./arb-feed";
 import { builderLeg } from "../lib/parlay";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
@@ -35,13 +36,7 @@ import type {
 import { quoteRef, type NewBet } from "../lib/slip";
 import type { RefValue, Strategy } from "../lib/tracker-api";
 import { bookCode, bookLabel, dollars } from "../lib/tracker-math";
-import {
-  LogBetButton,
-  SlipLog,
-  SlipToggle,
-  useSlip,
-  useTrackedBankroll,
-} from "./bet-slip";
+import { LogBetButton, useSlip, useTrackedBankroll } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
 import { BetLinkButton } from "./bet-link";
@@ -260,6 +255,7 @@ const Row = memo(
   function Row({
     vm,
     top,
+    height,
     selected,
     flash,
     parlaySelected,
@@ -267,6 +263,7 @@ const Row = memo(
   }: {
     vm: Vm;
     top: number;
+    height: number;
     selected: boolean;
     parlaySelected?: boolean;
     flash?: { odds?: Flash; ev?: Flash; tick: number };
@@ -278,7 +275,7 @@ const Row = memo(
         tabIndex={0}
         aria-selected={parlaySelected ?? selected}
         className={`ev-row ev-tall ${selected ? "selected" : ""} ${parlaySelected ? "parlay-selected" : ""}`}
-        style={{ transform: `translateY(${top}px)` }}
+        style={{ transform: `translateY(${top}px)`, height }}
         onClick={() => onSelect(vm.id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -327,9 +324,8 @@ const Row = memo(
         </div>
         <div role="cell" className="ev-cell ev-sharp">
           <strong>{chance(vm.prob)} chance</strong>
-          <small>
-            Fair {vm.fairOdds ?? "—"} · {vm.sharps}
-          </small>
+          <small>Fair {vm.fairOdds ?? "—"}</small>
+          <small>{vm.sharps}</small>
         </div>
         <div role="cell" className="ev-cell ev-time">
           <Age value={vm.observedAt} />
@@ -343,6 +339,7 @@ const Row = memo(
     a.vm.decimalOdds === b.vm.decimalOdds &&
     a.vm.observedAt === b.vm.observedAt &&
     a.top === b.top &&
+    a.height === b.height &&
     a.selected === b.selected &&
     a.parlaySelected === b.parlaySelected &&
     a.onSelect === b.onSelect &&
@@ -541,12 +538,7 @@ export default function EvFeed({ data }: { data: Data }) {
   const [sortKey, setSortKey] = useState<SortKey>("ev");
   const [minOdds, setMinOdds] = useState("");
   const [maxOdds, setMaxOdds] = useState("");
-  const {
-    slip,
-    open: slipOpen,
-    setOpen: setSlipOpen,
-    refresh: refreshSlip,
-  } = useSlip();
+  const { slip, refresh: refreshSlip } = useSlip();
   const [sportKey, setSportKey] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [bankroll, setBankroll] = useState("1000");
@@ -763,10 +755,11 @@ export default function EvFeed({ data }: { data: Data }) {
     <PlacedProvider slip={slip}>
       <section className="ev-layout" aria-label="Positive EV feed">
         <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
-          <h3>Filters</h3>
           <SettingsBar controls={settings} />
-          <ParlayToolbar />
-          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          <div className="ev-filter-actions">
+            <ParlayToolbar />
+            <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          </div>
           <label className="field">
             <span>MIN. EV · {minEv}%</span>
             <input
@@ -816,49 +809,15 @@ export default function EvFeed({ data }: { data: Data }) {
               />
             </label>
           </div>
-          <fieldset className="ev-books">
-            <legend>
-              MY SPORTSBOOKS{" "}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => setOffBooks(new Set())}
-              >
-                all
-              </button>{" "}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => setOffBooks(new Set(books.map(([id]) => id)))}
-              >
-                none
-              </button>
-            </legend>
-            {books.map(([id, label]) => (
-              <label key={id}>
-                <input
-                  type="checkbox"
-                  checked={!offBooks.has(id)}
-                  onChange={() =>
-                    setOffBooks((prev) => {
-                      const next = new Set(prev);
-                      if (!next.delete(id)) next.add(id);
-                      return next;
-                    })
-                  }
-                />
-                {label}
-              </label>
-            ))}
-            {books.length === 0 && <small>No books yet.</small>}
-          </fieldset>
+          <Menu
+            title="Sportsbooks"
+            items={books}
+            off={offBooks}
+            setOff={setOffBooks}
+          />
         </aside>
         <div className="ev-main">
           <div className="ev-count">
-            <SlipToggle
-              count={slip.length}
-              onClick={() => setSlipOpen((o) => !o)}
-            />
             <strong>{visible.length}</strong> of {all.length} bets · prices as
             of {date(data.meta.captured_at)}
             <FeedChangeNote change={change} />
@@ -876,7 +835,6 @@ export default function EvFeed({ data }: { data: Data }) {
               </select>
             </label>
           </div>
-          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
           <div role="table" aria-label="Positive EV bets" className="ev-grid">
             <div role="row" className="ev-head">
               <span role="columnheader">EV</span>
@@ -913,6 +871,7 @@ export default function EvFeed({ data }: { data: Data }) {
                       key={vm.id}
                       vm={vm}
                       top={(first + i) * height}
+                      height={height}
                       selected={vm.id === selected}
                       parlaySelected={
                         parlay?.draft.active
