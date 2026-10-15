@@ -49,10 +49,10 @@ class DatabaseCatalogTests(unittest.TestCase):
         self.assertTrue(all(x.evidence_kind == 'retained_provider_quote' for x in catalog.quotes))
         self.assertEqual(NOW - timedelta(seconds=60), catalog.captured_at)
 
-    def test_every_non_sharp_book_is_a_target(self):
+    def test_every_supported_book_is_a_target(self):
         rows = board() + [q('fanduel', 'moneyline', 'home', '2.30'), q('fanduel', 'moneyline', 'away', '1.90')]
         raw = build_raw(rows, PEOPLE, now=NOW)
-        self.assertEqual(['draftkings', 'fanduel'], raw['target_books'])
+        self.assertEqual(['draftkings', 'fanduel', 'pinnacle', 'prophetx'], raw['target_books'])
         catalog = FixtureCatalog(raw=raw)
         ev_books = {b for r in catalog.rows if r.kind == 'positive_ev' for b in r.sportsbook_ids}
         self.assertIn('fanduel', ev_books)

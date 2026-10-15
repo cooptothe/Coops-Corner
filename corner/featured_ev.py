@@ -61,7 +61,10 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
              "target contract mismatch")
     _require(target.market_key == market.market_key or LAY_MARKETS.get(target.market_key) == market.market_key,
              "target market mismatch")
+    from corner.book_policy import supported_book
     books = tuple(required_reference_books)
+    _require(supported_book(target.sportsbook_id) and all(supported_book(b) for b in books),
+             "withdrawn sportsbook is not supported")
     for book in books:
         _id(book)
     _require(sufficient_references(books, sport_key) and len(set(books)) == len(books), "at least two distinct required reference books")

@@ -1,6 +1,6 @@
 """Player-prop capture: free events list, then one paid per-event odds call per event.
 
-Cost is about two credits per market returned per event (fifteen books count as two regions).
+Cost is about two credits per market returned per event (fourteen books count as two regions).
 Nothing runs on a timer and nothing retries. Normalized quotes are merged into
 retained/props/latest.json.
 """

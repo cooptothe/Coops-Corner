@@ -14,12 +14,13 @@ import time
 from api.catalog import FixtureCatalog, _verify_selections
 from corner.links import clean_links
 from corner.native_ids import native_ids
+from corner.book_policy import supported_book, supported_books
 
 log = logging.getLogger('corner.api.database')
 
 SETTLEMENT_IDENTITY = 'the-odds-api-main-lines-full-game/1'
 # Main-line references; these books remain eligible betting targets too.
-DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket', 'betonlineag')
+DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket')
 # Empty = every book present in the data is a bettable target; the user filters in the UI.
 DEFAULT_TARGETS = ()
 FALLBACK_TARGET = 'draftkings'
@@ -96,11 +97,14 @@ def _iso(value):
 
 def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCES, targets=DEFAULT_TARGETS):
     """Pure transformation of DB rows into the catalog's raw contract shape."""
+    references, targets = supported_books(references), supported_books(targets)
     people = {}
     for event_id, role, name in participant_rows:
         people.setdefault(str(event_id), {})[role] = name
     games, books, grouped = {}, {}, {}
     for r in quote_rows:
+        if not supported_book(r['book_code']):
+            continue
         event = str(r['event_id'])
         if set(people.get(event, {})) != {'home', 'away'} or r['market_code'] not in MARKET_KEYS:
             continue

@@ -14,3 +14,5 @@ __pycache__/
 /server/target/
 
 /retained/
+/tmp/pdfs/
+/tmp/pdf-deps/

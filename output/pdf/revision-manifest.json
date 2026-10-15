@@ -1,0 +1,44 @@
+[
+  {
+    "source": "C:\\Users\\edwar\\Desktop\\the-corner-10-member-private-beta-plan.pdf",
+    "output": "C:\\Users\\edwar\\Documents\\GitHub\\coops-corner\\output\\pdf\\the-corner-10-member-private-beta-plan-updated.pdf",
+    "pages": 31,
+    "inline_edits": 4
+  },
+  {
+    "source": "C:\\Users\\edwar\\Desktop\\the-corner-packages-affiliates-cfo-plan.pdf",
+    "output": "C:\\Users\\edwar\\Documents\\GitHub\\coops-corner\\output\\pdf\\the-corner-packages-affiliates-cfo-plan-updated.pdf",
+    "pages": 20,
+    "inline_edits": 0
+  },
+  {
+    "source": "C:\\Users\\edwar\\Desktop\\the-corner-six-month-cfo-plan.pdf",
+    "output": "C:\\Users\\edwar\\Documents\\GitHub\\coops-corner\\output\\pdf\\the-corner-six-month-cfo-plan-updated.pdf",
+    "pages": 18,
+    "inline_edits": 1
+  },
+  {
+    "source": "C:\\Users\\edwar\\Downloads\\the-corner-bluehost-beta-release-plan.pdf",
+    "output": "C:\\Users\\edwar\\Documents\\GitHub\\coops-corner\\output\\pdf\\the-corner-bluehost-beta-release-plan-updated.pdf",
+    "pages": 32,
+    "inline_edits": 13
+  },
+  {
+    "source": "C:\\Users\\edwar\\Downloads\\the-corner-bluehost-beta-release-plan (1).pdf",
+    "output": "C:\\Users\\edwar\\Documents\\GitHub\\coops-corner\\output\\pdf\\the-corner-bluehost-beta-release-plan-rev7-updated.pdf",
+    "pages": 32,
+    "inline_edits": 13
+  },
+  {
+    "source": "C:\\Users\\edwar\\Documents\\TheCorner\\corner-api-budget-plan.pdf",
+    "output": "C:\\Users\\edwar\\Documents\\GitHub\\coops-corner\\output\\pdf\\corner-api-budget-plan-updated.pdf",
+    "pages": 4,
+    "inline_edits": 3
+  },
+  {
+    "source": "C:\\Users\\edwar\\Documents\\TheCorner\\TheCorner app architecture.pdf",
+    "output": "C:\\Users\\edwar\\Documents\\GitHub\\coops-corner\\output\\pdf\\TheCorner app architecture-updated.pdf",
+    "pages": 6,
+    "inline_edits": 0
+  }
+]

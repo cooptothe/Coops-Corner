@@ -114,3 +114,5 @@ approval, quote availability, qualification or Opportunity is implied.
 
 Accounts/authentication, tool-to-real-data integration, tracker/bankroll and CLV
 remain separate work. Do not expose these loopback development services publicly.
+
+Historical capture costs above describe the original requests. BetOnline is withdrawn from current product feeds as of October 15, 2026.

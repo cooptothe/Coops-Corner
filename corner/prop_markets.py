@@ -9,12 +9,13 @@ import os
 
 from corner.links import clean_links
 from corner.native_ids import native_ids
+from corner.book_policy import supported_book, supported_books
 from corner.reference_policy import sufficient_references
 from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
 
 # Same reference books (and environment override) as the main +EV feed in api/database.py.
-SHARP_BOOKS = frozenset(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
-                        if b.strip()) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket', 'betonlineag'})
+SHARP_BOOKS = frozenset(supported_books(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
+                        if b.strip())) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket'})
 MIN_SHARPS = 2  # the +EV feed requires at least two sharp books fully pricing the line
 # Books that also count as a reference for player props only. They still appear as bets: a book's own bet is
 # priced against the other reference books, never against itself.
@@ -174,6 +175,8 @@ def normalize_event(event, market_key, meta, book_filter=None):
     """
     quotes = []
     for book in event.get('bookmakers', []):
+        if not supported_book(book['key']):
+            continue
         if book_filter and book['key'] not in book_filter:
             continue
         for market in book.get('markets', []):
@@ -248,6 +251,8 @@ def build_bets(events):
                 continue
             grouped = {}
             for q in stored['quotes']:
+                if not supported_book(q['book']):
+                    continue
                 grouped.setdefault((q['player'], q['point']), {}).setdefault(q['book'], {})[q['side']] = q
             for (player, point), by_book in grouped.items():
                 prices = {b: {s: Decimal(q['price']) for s, q in sides.items()} for b, sides in by_book.items()}

@@ -130,7 +130,7 @@ has open sign-up and signed-in users can spend Odds API credits, so use `-BasicA
 Each bet has a **Bet on <sportsbook> ↗** link that opens the exact bet at the sportsbook (betslip, else market, else game; [details](web/README.md#views-and-boundaries)).
 
 Feeds can be sorted by EV, win probability, start time and other measures relevant
-to each tool. Sharp reference books are Pinnacle, Novig and BetOnline; the rest of
+to each tool. Sharp reference books are Pinnacle and Novig; the rest of
 the US sportsbooks are treated as recreational offers.
 
 ## Tests
@@ -154,3 +154,18 @@ disabled; this project is not a bet-placement system.
 ## License
 
 See [LICENSE](LICENSE).
+## Manual service control
+
+Double-click `Start-Corner.cmd` to start the refresh service, tools API and web app.
+Open http://localhost:3000 after startup completes. Double-click `Stop-Corner.cmd`
+to stop them. Nothing starts on boot or login through these launchers.
+
+PowerShell: `.\scripts\start-services.ps1` and `.\scripts\stop-services.ps1`.
+The optional Spring Boot board is separate and is not needed by the web tools.
+Starting services does not enable scheduled paid odds collection; refresh remains
+user-triggered. Proposed beta polling schedules in PDFs require separate implementation.
+
+BetOnline was withdrawn on October 15, 2026. Retained main-line and prop quotes
+are excluded from active feeds even when an old environment override names it.
+Historical research evidence and personal wager records remain historical records.
+Updated planning PDFs are in `output/pdf/`.

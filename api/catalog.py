@@ -169,7 +169,8 @@ class FixtureCatalog:
         self.observed_at = datetime.fromisoformat(raw['observed_at'].replace('Z', '+00:00'))
         if self.captured_at.utcoffset() is None or self.observed_at.utcoffset() is None or self.observed_at > self.captured_at:
             raise ValueError('invalid fixture capture chronology')
-        self.books = tuple(Book.model_validate(book) for book in raw['books'])
+        from corner.book_policy import supported_book
+        self.books = tuple(Book.model_validate(book) for book in raw['books'] if supported_book(book['id']))
         book_map = {b.id: b for b in self.books}
         if len(book_map) != len(self.books):
             raise ValueError('duplicate fixture book')
@@ -178,8 +179,8 @@ class FixtureCatalog:
         if len(game_meta) != len(raw['games']):
             raise ValueError('duplicate fixture game')
         self.game_for_contract = {}
-        references = tuple(raw['required_reference_books'])
-        targets = set(raw['target_books'])
+        references = tuple(b for b in raw['required_reference_books'] if supported_book(b))
+        targets = {b for b in raw['target_books'] if supported_book(b)}
         if not targets or not targets <= book_map.keys() or (self.data_mode != 'database' and targets.intersection(references)):
             raise ValueError('invalid target/reference routing')
         line_bets, rows = [], []
@@ -200,6 +201,8 @@ class FixtureCatalog:
             current = []
             for direction, prices in ((key, contract['prices']), (key + '_lay', contract['lay_prices'])):
                 for book_id, odds in prices.items():
+                    if not supported_book(book_id):
+                        continue
                     if len(odds) != len(selections):
                         raise ValueError('incomplete fixture price population')
                     book_links = contract.get('links', {}).get(book_id)

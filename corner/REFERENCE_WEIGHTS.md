@@ -1,21 +1,21 @@
 # Reference weighting
 
-`reputation-priors/1` assigns relative influence to each complete, eligible book's
+`reputation-priors/2` assigns relative influence to each complete, eligible book's
 proportional no-vig probabilities. These are explicit heuristic choices based on
 the supplied reference guide; they are not fitted accuracy scores or verified
 liquidity. We normalize over available references after excluding the target.
 
 ## Main lines
 
-| Sport family | Pinnacle | Betfair Exchange | BetOnline | Other configured exchanges |
-| --- | ---: | ---: | ---: | ---: |
-| Soccer | 4 | 3 | 1 | 0.5 |
-| Tennis | 4 | 3 | 1 | 0.5 |
-| Basketball | 4 | 1 | 1 | 0.5 |
-| MLB/baseball | 4 | 1 | 1 | 0.5 |
-| NFL/football | 4 | 1 | 2 | 0.5 |
-| NHL/hockey | 5 | 1 | 1 | 0.5 |
-| MMA/boxing | 3 | 1 | 4 | 0.5 |
+| Sport family | Pinnacle | Betfair Exchange | Other configured exchanges |
+| --- | ---: | ---: | ---: |
+| Soccer | 4 | 3 | 0.5 |
+| Tennis | 4 | 3 | 0.5 |
+| Basketball | 4 | 1 | 0.5 |
+| MLB/baseball | 4 | 1 | 0.5 |
+| NFL/football | 4 | 1 | 0.5 |
+| NHL/hockey | 5 | 1 | 0.5 |
+| MMA/boxing | 3 | 1 | 0.5 |
 
 WNBA and sport keys explicitly identifying challengers use equal weights because
 the guide does not establish a reliable dominant source there. Unlisted sources
@@ -26,7 +26,7 @@ no sport context retain equal weights.
 ## Player props
 
 FanDuel: 5 for basketball, football, baseball and hockey; 4 for soccer; 2 otherwise.
-Pinnacle and BetOnline: 2. Betfair Exchange: 2 for soccer, 1 otherwise.
+Pinnacle: 2. Betfair Exchange: 2 for soccer, 1 otherwise.
 PrizePicks and Underdog: 0.5. Other configured references, including Novig: 1.
 
 Existing reference-count rules, target exclusion, exact-line matching and full
@@ -40,8 +40,8 @@ show rounded percentages; these can differ slightly from a summed 100%.
 
 ## Source availability and scope
 
-BetOnline (`betonlineag`) is added to provider requests, references and filters.
-13 main-line and 15 props books remain within two ten-book billing groups:
+BetOnline is withdrawn from requests, references, targets and filters.
+12 main-line and 14 props books remain within two ten-book billing groups:
 up to 6 credits per main league request, 2 per returned prop market/event.
 
 The Odds API's current public bookmaker list does not include Circa,

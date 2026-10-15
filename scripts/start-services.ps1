@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-  Starts all three Coop's Corner services, each in its own PowerShell window.
+  Manually starts all three Coop's Corner services with logs in retained\service-logs.
 
 .DESCRIPTION
   1. Refresh service  (python -m pipelines.refresh_service)  port 8766  (started first: it creates the login secret)
   2. Tools API        (python -m api.run_local)               port 8765
   3. Web app          (pnpm dev)                              port 3000
 
-  Ctrl+C in a window stops that service cleanly. scripts\stop-services.ps1 stops everything at once.
+  scripts\stop-services.ps1 stops everything at once. No startup task or Windows service is registered.
 
 .PARAMETER MaxAgeSeconds
   How old stored odds may be and still count (CORNER_TOOLS_MAX_AGE_SECONDS). Leave out to use the app's default
@@ -82,8 +82,11 @@ if ($busy) {
 if ($MaxAgeSeconds -gt 0) { $env:CORNER_TOOLS_MAX_AGE_SECONDS = "$MaxAgeSeconds" }
 
 function Start-Window([string]$title, [string]$workdir, [string]$command) {
-    $inner = "`$Host.UI.RawUI.WindowTitle = '$title'; Set-Location '$workdir'; $command"
-    Start-Process -FilePath powershell -ArgumentList '-NoLogo', '-NoExit', '-NoProfile', '-Command', $inner -PassThru
+    $logDirectory = Join-Path $root 'retained\service-logs'
+    New-Item -ItemType Directory -Force $logDirectory | Out-Null
+    $logFile = Join-Path $logDirectory (($title -replace '[^a-zA-Z0-9-]', '_') + '.log')
+    $inner = "Set-Location '$workdir'; $command *>> '$logFile'"
+    Start-Process -FilePath powershell -WindowStyle Hidden -ArgumentList '-NoLogo', '-NoExit', '-NoProfile', '-Command', $inner -PassThru
 }
 
 function Wait-Port([string]$name, [int]$port, [int]$seconds, $window) {
@@ -91,11 +94,11 @@ function Wait-Port([string]$name, [int]$port, [int]$seconds, $window) {
     $deadline = (Get-Date).AddSeconds($seconds)
     while ((Get-Date) -lt $deadline) {
         if (Get-Listener $port) { Write-Host ' up' -ForegroundColor Green; return }
-        if ($window.HasExited) { throw "$name's window closed before it started. Run its command by hand to see the error." }
+        if ($window.HasExited) { throw "$name exited before startup. Check retained\service-logs." }
         Write-Host '.' -NoNewline
         Start-Sleep -Milliseconds 700
     }
-    throw "$name did not start listening on :$port within $seconds seconds. Check its window."
+    throw "$name did not start listening on :$port within $seconds seconds. Check retained\service-logs."
 }
 
 $windows = [ordered]@{}

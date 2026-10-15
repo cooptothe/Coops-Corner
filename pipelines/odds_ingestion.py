@@ -30,7 +30,7 @@ SPORT='americanfootball_nfl'
 # Main-line references include pinnacle, betfair_ex_uk, prophetx, kalshi, betopenly and polymarket.
 BOOKMAKER_REGIONS = 2
 CREDITS_PER_SPORT = 6
-PARAMS={'bookmakers':'draftkings,fanduel,espnbet,betmgm,novig,betrivers,pinnacle,betfair_ex_uk,prophetx,kalshi,betopenly,polymarket,betonlineag','markets':'h2h,spreads,totals',
+PARAMS={'bookmakers':'draftkings,fanduel,espnbet,betmgm,novig,betrivers,pinnacle,betfair_ex_uk,prophetx,kalshi,betopenly,polymarket','markets':'h2h,spreads,totals',
         'oddsFormat':'decimal','dateFormat':'iso','includeLinks':'true','includeSids':'true'}
 SAFE_HEADERS={'date','content-type','x-requests-used','x-requests-remaining','x-requests-last'}
 
@@ -58,6 +58,10 @@ def sanitize(body):
     events=json.loads(body)
     changed=False
     for event in events:
+        from corner.book_policy import supported_book
+        allowed = [b for b in event.get('bookmakers', []) if supported_book(b['key'])]
+        changed |= len(allowed) != len(event.get('bookmakers', []))
+        event['bookmakers'] = allowed
         for book in event.get('bookmakers',[]):
             keep=[m for m in book.get('markets',[]) if all(o['price']>1 for o in m.get('outcomes',[]))]
             changed|=len(keep)!=len(book.get('markets',[]))
@@ -78,6 +82,10 @@ def active_sport_keys(prefix):
 def capture(destination, extra_params=None, sport=SPORT):
     if not ODDS_API_KEY: raise ValueError('ODDS_API_KEY is not configured')
     if destination.exists(): raise ValueError('Capture destination already exists; use --ingest to reuse it')
+    from corner.book_policy import supported_book
+    params={**PARAMS,**(extra_params or {})}
+    if any(not supported_book(b) for b in params.get('bookmakers', '').split(',')):
+        raise ValueError('Withdrawn sportsbook cannot be requested')
     with requests.Session() as session:
         session.trust_env=False
         status,catalog,quota=fetch(session,BASE+'/',{}) # documented zero-credit catalog
@@ -86,7 +94,6 @@ def capture(destination, extra_params=None, sport=SPORT):
         if not any(s['key']==sport and s.get('active') for s in json.loads(catalog)):
             raise InactiveSport(f'{sport} is not listed as active; no paid request made')
         started=datetime.now(timezone.utc).isoformat()
-        params={**PARAMS,**(extra_params or {})}
         status,body,headers=fetch(session,BASE+'/'+sport+'/odds/',params)
         received=datetime.now(timezone.utc).isoformat()
     destination.mkdir(parents=True,exist_ok=False)

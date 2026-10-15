@@ -120,7 +120,7 @@ public class MarketRepository {
                 SELECT DISTINCT b.id::text,b.display_name AS name FROM corner.sportsbooks b
                 JOIN corner.odds_observations obs ON obs.sportsbook_id=b.id
                 JOIN corner.outcomes o ON o.id=obs.outcome_id JOIN corner.markets m ON m.id=o.market_id
-                """+MARKET_JOIN+" WHERE m.event_id=? AND "+FEATURED+" ORDER BY b.id::text LIMIT 101",event);
+                """+MARKET_JOIN+" WHERE m.event_id=? AND b.code NOT IN ('betonlineag','betonline') AND "+FEATURED+" ORDER BY b.id::text LIMIT 101",event);
             if(books.size()>100) throw new MarketProblem(422,"board_too_large","Event exceeds 100 books.");
             var args=new ArrayList<Object>(); args.add(event);
             if(type!=null) args.add(type);
