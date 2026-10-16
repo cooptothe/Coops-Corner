@@ -1,4 +1,5 @@
 "use client";
+import { useDialogFocus } from "./use-dialog-focus";
 import { ParlayLegList } from "./parlay-tracker";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { american, americanToDecimal, usd } from "../../frontend/format.mjs";
@@ -440,11 +441,15 @@ export function BetDrawer({
         notes,
       });
     });
+  const dialogRef = useDialogFocus(Boolean(bet));
   return (
     <aside
+      ref={dialogRef}
+      role="dialog"
+      aria-modal={Boolean(bet) ? true : undefined}
+      aria-hidden={!Boolean(bet)}
       className={`kelly-panel trk-drawer ${bet ? "open" : ""}`}
       aria-label="Bet details"
-      style={{ background: "#2e2a2a" }}
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
         ✕
@@ -800,11 +805,15 @@ export function LogDrawer({
       setWinPct("");
     });
 
+  const dialogRef = useDialogFocus(open);
   return (
     <aside
+      ref={dialogRef}
+      role="dialog"
+      aria-modal={open ? true : undefined}
+      aria-hidden={!open}
       className={`kelly-panel trk-drawer ${open ? "open" : ""}`}
       aria-label="Log a bet"
-      style={{ background: "#2e2a2a" }}
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
         ✕

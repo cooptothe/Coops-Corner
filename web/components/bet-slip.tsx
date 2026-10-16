@@ -94,7 +94,7 @@ export function SlipLog({
   return (
     <div className="ev-slip">
       {slip.length === 0 ? (
-        <p>No open bets. Select a bet and use One-click bet to track it.</p>
+        <p>No open bets. Select a bet and use Record bet to track it.</p>
       ) : (
         <table>
           <tbody>
@@ -174,8 +174,8 @@ export function LogBetButton({
               : placed
                 ? "Already placed · log again"
                 : legs.length > 1
-                  ? "One-click bet (all legs)"
-                  : "One-click bet"}
+                  ? "Record all legs"
+                  : "Record bet"}
       </button>
       {state === "error" ? (
         <small className="kelly-note" role="alert">
@@ -185,12 +185,12 @@ export function LogBetButton({
         <small className="kelly-note">
           {state === "done" ? (
             <>
-              Saved to your tracker. Nothing was placed at the sportsbook —
-              place it there and re-check the price.{" "}
+              Recorded in your tracker. Review the accepted odds and stake
+              against your sportsbook receipt.{" "}
               <Link href="/tracker">Open tracker</Link>
             </>
           ) : (
-            "Records the bet in your tracker. It does not place a wager."
+            "Record this after placing it at the sportsbook. No wager is placed here."
           )}
         </small>
       )}

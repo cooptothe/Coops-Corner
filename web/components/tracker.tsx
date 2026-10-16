@@ -1,4 +1,6 @@
 "use client";
+import { FeedFilters } from "./feed-filters";
+import { PersonalNav } from "./personal-nav";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
@@ -361,6 +363,7 @@ export default function Tracker() {
           <UserMenu />
         </div>
       </header>
+      <PersonalNav current="tracker" />
 
       {notice && (
         <div role="alert" className="arb-alert trk-notice">
@@ -454,7 +457,7 @@ export default function Tracker() {
             />
           ) : (
             <>
-              <div className="arb-bar trk-filters">
+              <FeedFilters active={!settings.atDefaults}>
                 <SettingsBar controls={settings} />
                 <PickMenu
                   title="Sportsbooks"
@@ -524,15 +527,15 @@ export default function Tracker() {
                     Clear filters
                   </button>
                 )}
-              </div>
+              </FeedFilters>
 
               {view.bets.length === 0 ? (
                 <div className="empty-state">
                   <h3>No bets yet</h3>
                   <p>
-                    Use One-click bet in any tool to record a play with its
-                    odds, edge and teams, or log one by hand. Deposits on the
-                    Bankroll tab let Kelly size bets against your real balances.
+                    Use Record bet in any tool to record a play with its odds,
+                    edge and teams, or log one by hand. Deposits on the Bankroll
+                    tab let Kelly size bets against your real balances.
                   </p>
                   <button
                     className="button"

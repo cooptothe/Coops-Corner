@@ -103,6 +103,78 @@ test("a placed bet shows a badge with its stake and a warning note", () => {
 });
 
 test("a bet that was not placed shows nothing", () => {
-  assert.equal(render([bet({})], quoteRef(quote), "DraftKings"), "");
+  assert.match(render([bet({})], quoteRef(quote), "DraftKings"), /same-market/);
   assert.equal(render([], quoteRef(quote), "FanDuel"), "");
+});
+
+test("player exposure is yellow in another market and red across lines, sides and books in the same market", () => {
+  const slip = [bet({ ref: propRef, book: "draftkings" })];
+  const otherMarket = render(
+    slip,
+    { ...propRef, prop_market: "player_assists" },
+    "FanDuel",
+  );
+  assert.match(otherMarket, /placed-badge related/);
+  assert.match(otherMarket, /Player bet placed/);
+  assert.doesNotMatch(otherMarket, /placed-badge same-market/);
+  const sameMarket = render(
+    slip,
+    { ...propRef, point: 27.5, side: "under" },
+    "FanDuel",
+  );
+  assert.match(sameMarket, /placed-badge same-market/);
+  assert.match(sameMarket, /Same market/);
+  assert.equal(
+    render(slip, { ...propRef, player: "Another Player" }, "DraftKings"),
+    "",
+  );
+  assert.equal(
+    render(slip, { ...propRef, game_id: "another-game" }, "DraftKings"),
+    "",
+  );
+});
+
+test("team exposure matches the same team across markets and either side of the same market", () => {
+  const slip = [bet({})];
+  const spread = quoteRef({
+    ...quote,
+    contract_id: "g1:spreads:-3.5",
+    market_key: "spreads",
+    point: "-3.5",
+  });
+  assert.match(render(slip, spread, "DraftKings"), /Team bet placed/);
+  assert.match(render(slip, spread, "DraftKings"), /placed-badge related/);
+  assert.equal(render(slip, { ...spread, side: "away" }, "DraftKings"), "");
+  assert.match(
+    render(slip, quoteRef({ ...quote, side: "away" }), "DraftKings"),
+    /placed-badge same-market/,
+  );
+});
+
+test("settled bets and settled parlay legs do not create exposure badges", () => {
+  const related = { ...propRef, prop_market: "player_assists" };
+  assert.equal(
+    render([bet({ ref: propRef, status: "won" })], related, "FanDuel"),
+    "",
+  );
+  const parlay = bet({
+    strategy: "parlay",
+    legs: [{ ref: propRef, book: "draftkings", status: "won" } as never],
+  });
+  assert.equal(render([parlay], related, "FanDuel"), "");
+  parlay.legs![0].status = "pending";
+  assert.match(render([parlay], related, "FanDuel"), /placed-badge related/);
+});
+
+test("an exact placed bet takes priority over related exposure without disabling other-book recording", () => {
+  const index = placedIndex([bet({ ref: propRef, book: "draftkings" })]);
+  const otherBook = placedState(index, [
+    { ref: propRef, bookLabel: "FanDuel" },
+  ]);
+  assert.equal(otherBook.placed, 0);
+  assert.equal(otherBook.related?.level, "market");
+  assert.equal(
+    placedState(index, [{ ref: propRef, bookLabel: "DraftKings" }]).related,
+    undefined,
+  );
 });

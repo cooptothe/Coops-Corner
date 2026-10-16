@@ -6,11 +6,13 @@ import "./stored-odds.css";
 import "./personal.css";
 import "./auth.css";
 import "./parlay.css";
+import "./polish.css";
 import { AuthGate, AuthProvider } from "../components/auth-provider";
 
 export const metadata: Metadata = {
   title: "The Corner — Sports market intelligence",
-  description: "The Corner betting workspace. Local fixture market analysis.",
+  description:
+    "Compare pre-game odds, explore betting opportunities, and manage your bets and bankroll in The Corner.",
   // The tab icon is a 64px rendition (a few KB) of the brand logo; the 600 KB original is never downloaded for it.
   icons: { icon: "/_next/image?url=%2Fassets%2Fcorner-logo.png&w=64&q=75" },
 };

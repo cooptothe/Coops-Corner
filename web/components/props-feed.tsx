@@ -3,6 +3,10 @@ import { ParlayToolbar, useParlay } from "./parlay-builder";
 import { Menu } from "./arb-feed";
 import { builderLeg } from "../lib/parlay";
 import { restoredFetchMarkets } from "../lib/props-fetch-settings";
+import { RangeFilter } from "./range-filter";
+import { FeedFilters } from "./feed-filters";
+import { EvFilterLimits } from "./ev-filter-limits";
+import { LIMIT_PATTERN, matchesEvLimits } from "../lib/ev-filters";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks, PROP_BOOKS } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -79,6 +83,7 @@ interface Vm extends KellyVm {
   fairOdds: string | null;
   prob: number;
   fair: string;
+  marketWidth: number | null;
   sharps: string;
   observedAt: string | null;
 }
@@ -118,6 +123,8 @@ function toVm(b: PropBet): Vm {
     fairOdds,
     prob: Number(b.fair_probability),
     fair: b.fair_probability,
+    marketWidth:
+      b.market_width_cents == null ? null : Number(b.market_width_cents),
     sharps: b.sharps.map(bookName).join(" + "),
     observedAt: b.observed_at,
     strategy: "prop",
@@ -186,6 +193,8 @@ type PropsSettings = {
   eventId: string;
   search: string;
   minEv: string;
+  maxEv: string;
+  maxWidth: string;
   minOdds: string;
   maxOdds: string;
   sortKey: string;
@@ -201,6 +210,8 @@ const PROPS_DEFAULTS: PropsSettings = {
   eventId: "",
   search: "",
   minEv: "0",
+  maxEv: "",
+  maxWidth: "",
   minOdds: "",
   maxOdds: "",
   sortKey: "ev",
@@ -221,6 +232,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const [search, setSearch] = useState("");
   const [eventId, setEventId] = useState("");
   const [minEv, setMinEv] = useState("0");
+  const [maxEv, setMaxEv] = useState("");
+  const [maxWidth, setMaxWidth] = useState("");
   const [minOdds, setMinOdds] = useState("");
   const [maxOdds, setMaxOdds] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("ev");
@@ -261,6 +274,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
       eventId,
       search,
       minEv,
+      maxEv,
+      maxWidth,
       minOdds,
       maxOdds,
       sortKey,
@@ -297,6 +312,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
       setEventId(text(s.eventId, /^[A-Za-z0-9_-]{0,80}$/, ""));
       setSearch(text(s.search, /^.{0,60}$/, ""));
       setMinEv(text(s.minEv, /^\d{1,2}(\.\d{1,2})?$/, "0"));
+      setMaxEv(text(s.maxEv, LIMIT_PATTERN, ""));
+      setMaxWidth(text(s.maxWidth, LIMIT_PATTERN, ""));
       setMinOdds(text(s.minOdds, /^-?\d{0,5}$/, ""));
       setMaxOdds(text(s.maxOdds, /^-?\d{0,5}$/, ""));
       setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "ev"));
@@ -431,6 +448,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
           (!activeEvent || v.gameId === activeEvent) &&
           (!needle || v.player.toLowerCase().includes(needle)) &&
           compareDecimal(v.ev, minRatio) >= 0 &&
+          matchesEvLimits(v.ev, v.marketWidth, maxEv, maxWidth) &&
           (lo === null || Number(v.decimalOdds) >= lo) &&
           (hi === null || Number(v.decimalOdds) <= hi),
       )
@@ -445,6 +463,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
     activeEvent,
     search,
     minRatio,
+    maxEv,
+    maxWidth,
     lo,
     hi,
     sortKey,
@@ -458,6 +478,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
       eventId,
       search,
       minEv,
+      maxEv,
+      maxWidth,
       minOdds,
       maxOdds,
       sortKey,
@@ -522,23 +544,29 @@ export default function PropsFeed({ reload }: { reload: number }) {
   return (
     <PlacedProvider slip={slip}>
       <section className="ev-layout props-layout" aria-label="Player props">
-        <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
+        <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
           <div className="ev-filter-actions">
             <ParlayToolbar />
             <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
           </div>
-          <label className="field">
-            <span>MIN. EV · {minEv}%</span>
-            <input
-              type="range"
-              min="0"
-              max="10"
-              step="0.25"
-              value={minEv}
-              onChange={(e) => setMinEv(e.target.value)}
-            />
-          </label>
+          <RangeFilter
+            label="Minimum EV"
+            value={minEv}
+            onChange={(value) => {
+              setMinEv(value);
+              if (maxEv && Number(value) > Number(maxEv)) setMaxEv(value);
+            }}
+          />
+          <EvFilterLimits
+            maxEv={maxEv}
+            maxWidth={maxWidth}
+            setMaxEv={(value) => {
+              setMaxEv(value);
+              if (value && Number(value) < Number(minEv)) setMinEv(value);
+            }}
+            setMaxWidth={setMaxWidth}
+          />
           <label className="field">
             <span>SPORT</span>
             <select
@@ -720,7 +748,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
               {notice.text}
             </small>
           )}
-        </aside>
+        </FeedFilters>
         <div className="ev-main">
           <div className="ev-count">
             <strong>{visible.length}</strong> of {all.length} bets
@@ -751,18 +779,31 @@ export default function PropsFeed({ reload }: { reload: number }) {
               <span role="columnheader">EV</span>
               <span role="columnheader">Event</span>
               <span role="columnheader">Player &amp; bet</span>
-              <span role="columnheader">Soft book</span>
+              <span role="columnheader">Sportsbook</span>
               <span role="columnheader">Win chance &amp; fair odds</span>
               <span role="columnheader">Scanned</span>
             </div>
             {visible.length === 0 ? (
               <div className="empty-state">
-                <h3>No +EV prop bets right now</h3>
+                <h3>
+                  {all.length
+                    ? "No props match your filters"
+                    : "No EV props available yet"}
+                </h3>
                 <p>
                   {hiddenAsOld
                     ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. Fetch prop odds again.`
-                    : "Fetch prop odds, lower the minimum EV, or re-enable books. Bets need at least two other sharp books quoting the same player, market, line and side."}
+                    : "Fetch prop odds, adjust the EV or market-width limits, or re-enable books. Bets need at least two other sharp books quoting the same player, market, line and side."}
                 </p>
+                {!settings.atDefaults && (
+                  <button
+                    className="button secondary"
+                    type="button"
+                    onClick={settings.reset}
+                  >
+                    Reset filters
+                  </button>
+                )}
               </div>
             ) : (
               <div role="rowgroup">

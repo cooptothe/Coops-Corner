@@ -1,7 +1,16 @@
 "use client";
+import { useDialogFocus } from "./use-dialog-focus";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
 import { Menu } from "./arb-feed";
 import { builderLeg } from "../lib/parlay";
+import { RangeFilter } from "./range-filter";
+import { FeedFilters } from "./feed-filters";
+import { EvFilterLimits } from "./ev-filter-limits";
+import {
+  LIMIT_PATTERN,
+  matchesEvLimits,
+  widestMarket,
+} from "../lib/ev-filters";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -59,6 +68,7 @@ interface Vm {
   bookId: string;
   bookLabel: string;
   lay: boolean;
+  marketWidth: number | null;
   ev: string;
   decimalOdds: string;
   odds: string;
@@ -126,6 +136,8 @@ type EvSettings = {
   timeFilter: string;
   offBooks: string[];
   minEv: string;
+  maxEv: string;
+  maxWidth: string;
   sortKey: string;
   minOdds: string;
   maxOdds: string;
@@ -135,6 +147,8 @@ const EV_DEFAULTS: EvSettings = {
   timeFilter: "default",
   offBooks: [],
   minEv: "0",
+  maxEv: "",
+  maxWidth: "",
   sortKey: "ev",
   minOdds: "",
   maxOdds: "",
@@ -183,6 +197,11 @@ function toVm(
     bookId: q.sportsbook_id,
     bookLabel: shortBook(books.get(q.sportsbook_id) ?? q.sportsbook_id),
     lay: q.market_key.endsWith("_lay"),
+    marketWidth: widestMarket(
+      row.calculation.reference_books.map((b) =>
+        b.quote_ids.map((id) => quotes.get(id)?.decimal_odds ?? ""),
+      ),
+    ),
     ev: row.conditional_ev_ratio,
     decimalOdds: q.decimal_odds,
     odds: american(q.decimal_odds),
@@ -403,11 +422,15 @@ export function KellyWidget({
   const trackedDollars = tracked.ready ? dollars(tracked.bankroll) : "";
   const bookCash = vm ? tracked.liquid(bookCode(vm.bookLabel)) : null;
   const stakeCents = result ? Math.round(Number(result.stake) * 100) : 0;
+  const dialogRef = useDialogFocus(Boolean(vm));
   return (
     <aside
+      ref={dialogRef}
+      role="dialog"
+      aria-modal={vm ? true : undefined}
+      aria-hidden={!vm}
       className={`kelly-panel ${vm ? "open" : ""}`}
       aria-label="Kelly calculator"
-      style={{ background: "#2e2a2a" }}
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
         ✕
@@ -535,6 +558,8 @@ export default function EvFeed({ data }: { data: Data }) {
   const [retry, setRetry] = useState(0);
   const [offBooks, setOffBooks] = useState<Set<string>>(new Set());
   const [minEv, setMinEv] = useState("0");
+  const [maxEv, setMaxEv] = useState("");
+  const [maxWidth, setMaxWidth] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("ev");
   const [minOdds, setMinOdds] = useState("");
   const [maxOdds, setMaxOdds] = useState("");
@@ -556,6 +581,8 @@ export default function EvFeed({ data }: { data: Data }) {
       timeFilter,
       offBooks: sorted(offBooks),
       minEv,
+      maxEv,
+      maxWidth,
       sortKey,
       minOdds,
       maxOdds,
@@ -566,6 +593,8 @@ export default function EvFeed({ data }: { data: Data }) {
       setOffBooks(new Set(list(s.offBooks)));
       setMinEv(text(s.minEv, /^\d{1,2}(\.\d{1,2})?$/, EV_DEFAULTS.minEv));
       setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "ev"));
+      setMaxEv(text(s.maxEv, LIMIT_PATTERN, ""));
+      setMaxWidth(text(s.maxWidth, LIMIT_PATTERN, ""));
       setMinOdds(text(s.minOdds, /^-?\d{0,5}$/, ""));
       setMaxOdds(text(s.maxOdds, /^-?\d{0,5}$/, ""));
       setSportKey(text(s.sportKey, /^[a-z0-9_]{0,60}$/, ""));
@@ -682,6 +711,7 @@ export default function EvFeed({ data }: { data: Data }) {
               : !offBooks.has(v.bookId)) &&
             (!sportFilter || v.sportKey === sportFilter) &&
             compareDecimal(v.ev, minRatio) >= 0 &&
+            matchesEvLimits(v.ev, v.marketWidth, maxEv, maxWidth) &&
             (lo === null || Number(v.decimalOdds) >= lo) &&
             (hi === null || Number(v.decimalOdds) <= hi),
         )
@@ -692,6 +722,8 @@ export default function EvFeed({ data }: { data: Data }) {
       offBooks,
       sportFilter,
       minRatio,
+      maxEv,
+      maxWidth,
       lo,
       hi,
       sortKey,
@@ -702,7 +734,7 @@ export default function EvFeed({ data }: { data: Data }) {
 
   const [compact, setCompact] = useState(false);
   useEffect(() => {
-    const media = matchMedia("(max-width:900px)");
+    const media = matchMedia("(max-width:1100px)");
     const change = () => setCompact(media.matches);
     change();
     media.addEventListener("change", change);
@@ -754,23 +786,29 @@ export default function EvFeed({ data }: { data: Data }) {
   return (
     <PlacedProvider slip={slip}>
       <section className="ev-layout" aria-label="Positive EV feed">
-        <aside className="ev-filters" style={{ background: "#2e2a2a" }}>
+        <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
           <div className="ev-filter-actions">
             <ParlayToolbar />
             <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
           </div>
-          <label className="field">
-            <span>MIN. EV · {minEv}%</span>
-            <input
-              type="range"
-              min="0"
-              max="10"
-              step="0.25"
-              value={minEv}
-              onChange={(e) => setMinEv(e.target.value)}
-            />
-          </label>
+          <RangeFilter
+            label="Minimum EV"
+            value={minEv}
+            onChange={(value) => {
+              setMinEv(value);
+              if (maxEv && Number(value) > Number(maxEv)) setMaxEv(value);
+            }}
+          />
+          <EvFilterLimits
+            maxEv={maxEv}
+            maxWidth={maxWidth}
+            setMaxEv={(value) => {
+              setMaxEv(value);
+              if (value && Number(value) < Number(minEv)) setMinEv(value);
+            }}
+            setMaxWidth={setMaxWidth}
+          />
           <label className="field">
             <span>SPORT</span>
             <select
@@ -815,7 +853,7 @@ export default function EvFeed({ data }: { data: Data }) {
             off={offBooks}
             setOff={setOffBooks}
           />
-        </aside>
+        </FeedFilters>
         <div className="ev-main">
           <div className="ev-count">
             <strong>{visible.length}</strong> of {all.length} bets · prices as
@@ -840,17 +878,31 @@ export default function EvFeed({ data }: { data: Data }) {
               <span role="columnheader">EV</span>
               <span role="columnheader">Event</span>
               <span role="columnheader">Market &amp; line</span>
-              <span role="columnheader">Soft book</span>
+              <span role="columnheader">Sportsbook</span>
               <span role="columnheader">Win chance &amp; fair odds</span>
               <span role="columnheader">Scanned</span>
             </div>
             {visible.length === 0 ? (
               <div className="empty-state">
-                <h3>No +EV bets right now</h3>
+                <h3>
+                  {all.length
+                    ? "No bets match your filters"
+                    : "No EV bets available yet"}
+                </h3>
                 <p>
-                  Lower the minimum EV, re-enable books, or press Refresh odds.
-                  Bets need at least two sharp books pricing the same line.
+                  Adjust the EV or market-width limits, re-enable books, or
+                  press Refresh odds. Bets need at least two sharp books pricing
+                  the same line.
                 </p>
+                {!settings.atDefaults && (
+                  <button
+                    className="button secondary"
+                    type="button"
+                    onClick={settings.reset}
+                  >
+                    Reset filters
+                  </button>
+                )}
               </div>
             ) : (
               <div

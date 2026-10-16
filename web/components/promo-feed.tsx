@@ -1,4 +1,7 @@
 "use client";
+import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
+import { FeedFilters } from "./feed-filters";
+import { useDialogFocus } from "./use-dialog-focus";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -300,6 +303,7 @@ const Row = memo(
       refund,
       boost,
     );
+    const exposure = usePlaced([vm.promo, vm.hedge]);
     return (
       <div
         role="row"
@@ -322,6 +326,7 @@ const Row = memo(
           <span className="ev-league">{vm.league}</span>
           <Matchup text={vm.matchup} sportKey={vm.sportKey} />
           <small>{vm.startsAt ? date(vm.startsAt) : ""}</small>
+          <PlacedBadge state={exposure} />
         </div>
         <div role="cell" className="ev-cell promo-leg">
           <span className="promo-tag">Promo · {vm.promo.bookLabel}</span>
@@ -620,8 +625,14 @@ function Calculator({
           },
         ]
       : [];
+  const exposure = usePlaced(vm ? [vm.promo, vm.hedge] : []);
+  const dialogRef = useDialogFocus(Boolean(vm));
   return (
     <aside
+      ref={dialogRef}
+      role="dialog"
+      aria-modal={vm ? true : undefined}
+      aria-hidden={!vm}
       className={`kelly-panel arb-calc ${vm ? "open" : ""}`}
       aria-label="Promo calculator"
     >
@@ -841,6 +852,7 @@ function Calculator({
                 startsAt={vm.startsAt}
                 unavailable={shift === "dropped"}
               />
+              <PlacedNote state={exposure} />
               <LogBetButton
                 legs={logLegs}
                 resetKey={`${vm.id}|${vm.sig}|${type}|${face}|${refund}|${JSON.stringify(boostFields)}`}
@@ -1209,324 +1221,329 @@ export default function PromoFeed({ data }: { data: Data }) {
   const help = TYPES.find((t) => t.id === type)?.help;
 
   return (
-    <section className="arb-layout" aria-label="Promo converter">
-      <div className="arb-bar">
-        <SettingsBar controls={settings} />
-        <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
-        <div
-          className="arb-modes pr-types"
-          role="group"
-          aria-label="Promo type"
-        >
-          {TYPES.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={type === t.id ? "active" : ""}
-              aria-pressed={type === t.id}
-              onClick={() => changeType(t.id)}
-            >
-              {t.name}
-            </button>
-          ))}
-        </div>
-        <label className="field mid-small">
-          <span>PROMO SPORTSBOOK</span>
-          <select
-            value={promoBook}
-            onChange={(e) => setPromoBook(e.target.value)}
+    <PlacedProvider slip={slip}>
+      <section className="arb-layout" aria-label="Promo converter">
+        <FeedFilters active={!settings.atDefaults}>
+          <SettingsBar controls={settings} />
+          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          <div
+            className="arb-modes pr-types"
+            role="group"
+            aria-label="Promo type"
           >
-            <option value="">Choose a book…</option>
-            {bookItems.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
+            {TYPES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={type === t.id ? "active" : ""}
+                aria-pressed={type === t.id}
+                onClick={() => changeType(t.id)}
+              >
+                {t.name}
+              </button>
             ))}
-          </select>
-        </label>
-        <label className="field mid-small">
-          <span>{sizeLabel(type)}</span>
-          <input
-            inputMode="decimal"
-            value={face}
-            maxLength={10}
-            aria-invalid={!AMOUNT.test(face)}
-            onChange={(e) => setFace(e.target.value.trim())}
-          />
-        </label>
-        <label className="field mid-small">
-          <span>MIN PROMO ODDS</span>
-          <input
-            inputMode="numeric"
-            placeholder="any"
-            value={minOdds}
-            maxLength={6}
-            aria-invalid={minOdds !== "" && lowOdds === null}
-            onChange={(e) => setMinOdds(e.target.value.trim())}
-          />
-        </label>
-        <label className="field mid-small">
-          <span>MAX PROMO ODDS</span>
-          <input
-            inputMode="numeric"
-            placeholder="any"
-            value={maxOdds}
-            maxLength={6}
-            aria-invalid={maxOdds !== "" && highOdds === null}
-            onChange={(e) => setMaxOdds(e.target.value.trim())}
-          />
-        </label>
-        {type === "nosweat" && (
+          </div>
           <label className="field mid-small">
-            <span>VOUCHER VALUE %</span>
+            <span>PROMO SPORTSBOOK</span>
+            <select
+              value={promoBook}
+              onChange={(e) => setPromoBook(e.target.value)}
+            >
+              <option value="">Choose a book…</option>
+              {bookItems.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field mid-small">
+            <span>{sizeLabel(type)}</span>
             <input
-              inputMode="numeric"
-              value={refund}
-              maxLength={3}
-              aria-invalid={!PCT.test(refund)}
-              onChange={(e) => setRefund(e.target.value.trim())}
+              inputMode="decimal"
+              value={face}
+              maxLength={10}
+              aria-invalid={!AMOUNT.test(face)}
+              onChange={(e) => setFace(e.target.value.trim())}
             />
           </label>
-        )}
-        {type === "boost" && (
-          <>
-            <label className="field mid-small">
-              <span>PROFIT BOOST %</span>
-              <input
-                inputMode="decimal"
-                value={boostFields.percent}
-                maxLength={7}
-                aria-invalid={!BOOST_PCT.test(boostFields.percent)}
-                onChange={(e) =>
-                  setBoostFields({
-                    ...boostFields,
-                    percent: e.target.value.trim(),
-                  })
-                }
-              />
-            </label>
-            <label className="field mid-small">
-              <span>MAX BOOSTED STAKE ($)</span>
-              <input
-                inputMode="decimal"
-                placeholder="no limit"
-                value={boostFields.maxStake}
-                maxLength={10}
-                aria-invalid={!limitOk(boostFields.maxStake)}
-                onChange={(e) =>
-                  setBoostFields({
-                    ...boostFields,
-                    maxStake: e.target.value.trim(),
-                  })
-                }
-              />
-            </label>
-            <label className="field mid-small">
-              <span>MAX EXTRA WINNINGS ($)</span>
-              <input
-                inputMode="decimal"
-                placeholder="no cap"
-                value={boostFields.maxExtra}
-                maxLength={10}
-                aria-invalid={!limitOk(boostFields.maxExtra)}
-                onChange={(e) =>
-                  setBoostFields({
-                    ...boostFields,
-                    maxExtra: e.target.value.trim(),
-                  })
-                }
-              />
-            </label>
-          </>
-        )}
-        <label className="field mid-small">
-          <span>{type === "boost" ? "MIN RETURN %" : "MIN CONVERSION %"}</span>
-          <input
-            inputMode="numeric"
-            placeholder="any"
-            value={minRate}
-            maxLength={3}
-            aria-invalid={minRate !== "" && rateLimit === null}
-            onChange={(e) => setMinRate(e.target.value.trim())}
-          />
-        </label>
-        <label className="field mid-small">
-          <span>HEDGE LIMIT ($)</span>
-          <input
-            inputMode="decimal"
-            value={limitText}
-            maxLength={9}
-            aria-invalid={!AMOUNT.test(limitText) || Number(limitText) <= 0}
-            onChange={(e) => setLimitText(e.target.value.trim())}
-          />
-        </label>
-        <label className="field mid-small">
-          <span>SORT BY</span>
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-          >
-            {SORT_LABELS.map(([k, l]) => (
-              <option key={k} value={k}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Menu
-          title="Hedge books"
-          items={bookItems}
-          off={offBooks}
-          setOff={setOffBooks}
-        />
-        <Menu
-          title="Leagues"
-          items={sportItems}
-          off={offSports}
-          setOff={setOffSports}
-        />
-        <Menu
-          title="Markets"
-          items={marketItems}
-          off={offMarkets}
-          setOff={setOffMarkets}
-        />
-        <span className="arb-status" role="status">
-          <i className="arb-pulse" aria-hidden="true" />
-          Prices as of {date(data.meta.captured_at)}
-        </span>
-      </div>
-      <div className="mid-metrics" aria-label="Promo summary">
-        <div>
-          <span>CONVERSIONS FOUND</span>
-          <b>{visible.length}</b>
-        </div>
-        <div>
-          <span>AVG. CONVERSION</span>
-          <b>{avg === null ? "—" : pct(avg)}</b>
-        </div>
-        <div>
-          <span>BEST CONVERSION</span>
-          <b className="arb-net">
-            {visible.length
-              ? pct(Math.max(...visible.map((v) => v.rate)))
-              : "—"}
-          </b>
-        </div>
-      </div>
-      <div className="arb-body">
-        <div className="ev-main">
-          <div className="ev-count">
-            <SlipToggle
-              count={slip.length}
-              onClick={() => setSlipOpen((o) => !o)}
+          <label className="field mid-small">
+            <span>MIN PROMO ODDS</span>
+            <input
+              inputMode="numeric"
+              placeholder="any"
+              value={minOdds}
+              maxLength={6}
+              aria-invalid={minOdds !== "" && lowOdds === null}
+              onChange={(e) => setMinOdds(e.target.value.trim())}
             />
-            <strong>{visible.length}</strong> conversions · {help} Hedges are
-            two-way markets only.
-            <FeedChangeNote change={change} />
+          </label>
+          <label className="field mid-small">
+            <span>MAX PROMO ODDS</span>
+            <input
+              inputMode="numeric"
+              placeholder="any"
+              value={maxOdds}
+              maxLength={6}
+              aria-invalid={maxOdds !== "" && highOdds === null}
+              onChange={(e) => setMaxOdds(e.target.value.trim())}
+            />
+          </label>
+          {type === "nosweat" && (
+            <label className="field mid-small">
+              <span>VOUCHER VALUE %</span>
+              <input
+                inputMode="numeric"
+                value={refund}
+                maxLength={3}
+                aria-invalid={!PCT.test(refund)}
+                onChange={(e) => setRefund(e.target.value.trim())}
+              />
+            </label>
+          )}
+          {type === "boost" && (
+            <>
+              <label className="field mid-small">
+                <span>PROFIT BOOST %</span>
+                <input
+                  inputMode="decimal"
+                  value={boostFields.percent}
+                  maxLength={7}
+                  aria-invalid={!BOOST_PCT.test(boostFields.percent)}
+                  onChange={(e) =>
+                    setBoostFields({
+                      ...boostFields,
+                      percent: e.target.value.trim(),
+                    })
+                  }
+                />
+              </label>
+              <label className="field mid-small">
+                <span>MAX BOOSTED STAKE ($)</span>
+                <input
+                  inputMode="decimal"
+                  placeholder="no limit"
+                  value={boostFields.maxStake}
+                  maxLength={10}
+                  aria-invalid={!limitOk(boostFields.maxStake)}
+                  onChange={(e) =>
+                    setBoostFields({
+                      ...boostFields,
+                      maxStake: e.target.value.trim(),
+                    })
+                  }
+                />
+              </label>
+              <label className="field mid-small">
+                <span>MAX EXTRA WINNINGS ($)</span>
+                <input
+                  inputMode="decimal"
+                  placeholder="no cap"
+                  value={boostFields.maxExtra}
+                  maxLength={10}
+                  aria-invalid={!limitOk(boostFields.maxExtra)}
+                  onChange={(e) =>
+                    setBoostFields({
+                      ...boostFields,
+                      maxExtra: e.target.value.trim(),
+                    })
+                  }
+                />
+              </label>
+            </>
+          )}
+          <label className="field mid-small">
+            <span>
+              {type === "boost" ? "MIN RETURN %" : "MIN CONVERSION %"}
+            </span>
+            <input
+              inputMode="numeric"
+              placeholder="any"
+              value={minRate}
+              maxLength={3}
+              aria-invalid={minRate !== "" && rateLimit === null}
+              onChange={(e) => setMinRate(e.target.value.trim())}
+            />
+          </label>
+          <label className="field mid-small">
+            <span>HEDGE LIMIT ($)</span>
+            <input
+              inputMode="decimal"
+              value={limitText}
+              maxLength={9}
+              aria-invalid={!AMOUNT.test(limitText) || Number(limitText) <= 0}
+              onChange={(e) => setLimitText(e.target.value.trim())}
+            />
+          </label>
+          <label className="field mid-small">
+            <span>SORT BY</span>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+            >
+              {SORT_LABELS.map(([k, l]) => (
+                <option key={k} value={k}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Menu
+            title="Hedge books"
+            items={bookItems}
+            off={offBooks}
+            setOff={setOffBooks}
+          />
+          <Menu
+            title="Leagues"
+            items={sportItems}
+            off={offSports}
+            setOff={setOffSports}
+          />
+          <Menu
+            title="Markets"
+            items={marketItems}
+            off={offMarkets}
+            setOff={setOffMarkets}
+          />
+          <span className="arb-status" role="status">
+            <i className="arb-pulse" aria-hidden="true" />
+            Prices as of {date(data.meta.captured_at)}
+          </span>
+        </FeedFilters>
+        <div className="mid-metrics" aria-label="Promo summary">
+          <div>
+            <span>CONVERSIONS FOUND</span>
+            <b>{visible.length}</b>
           </div>
-          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
-          <div
-            role="table"
-            aria-label="Promo conversions"
-            className="ev-grid promo-grid"
-          >
-            <div role="row" className="ev-head">
-              <span role="columnheader">Market</span>
-              <span role="columnheader">Promo leg</span>
-              <span role="columnheader">Hedge leg</span>
-              <span role="columnheader">Promo type</span>
-              <span role="columnheader">Efficiency</span>
-              <span role="columnheader">Action</span>
-            </div>
-            {!promoBook ? (
-              <div className="empty-state">
-                <h3>Pick your promo sportsbook</h3>
-                <p>
-                  Choose the book that holds your bonus, then every game is
-                  scanned for the best cash hedge at the other books.
-                </p>
-              </div>
-            ) : boostBad ? (
-              <div className="empty-state">
-                <h3>Check the boost terms</h3>
-                <p>
-                  Enter the boost percentage, such as 50, and dollar limits or
-                  leave a limit empty if the sportsbook sets none.
-                </p>
-              </div>
-            ) : oddsBad ? (
-              <div className="empty-state">
-                <h3>Check the odds range</h3>
-                <p>
-                  Use American odds such as +200 or -110, or leave a box empty.
-                </p>
-              </div>
-            ) : visible.length === 0 ? (
-              <div className="empty-state">
-                <h3>No conversions match</h3>
-                <p>
-                  Widen the promo odds range, lower the minimum conversion,
-                  re-enable hedge books, leagues or markets, or press Refresh
-                  odds.
-                </p>
-              </div>
-            ) : (
-              <div
-                ref={viewport}
-                className="ev-viewport"
-                style={{
-                  height: Math.min(VIEW_HEIGHT, visible.length * height),
-                }}
-                onScroll={onScroll}
-              >
-                <div
-                  className="ev-spacer"
-                  role="rowgroup"
-                  style={{ height: visible.length * height }}
-                >
-                  {visible.slice(first, last).map((vm, i) => (
-                    <Row
-                      key={vm.id}
-                      vm={vm}
-                      face={faceValue}
-                      type={type}
-                      refund={refundRate}
-                      boost={boost}
-                      limit={limit}
-                      top={(first + i) * height}
-                      selected={vm.id === selected?.id}
-                      onSelect={select}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          <div>
+            <span>AVG. CONVERSION</span>
+            <b>{avg === null ? "—" : pct(avg)}</b>
+          </div>
+          <div>
+            <span>BEST CONVERSION</span>
+            <b className="arb-net">
+              {visible.length
+                ? pct(Math.max(...visible.map((v) => v.rate)))
+                : "—"}
+            </b>
           </div>
         </div>
-        {selected && (
-          <div className="kelly-backdrop" onClick={() => setSelected(null)} />
-        )}
-        <Calculator
-          vm={shown}
-          shift={shift}
-          onAccept={() => current && setSelected(current)}
-          globalType={type}
-          face={face}
-          setFace={setFace}
-          refund={refund}
-          setRefund={setRefund}
-          boostFields={boostFields}
-          setBoostFields={setBoostFields}
-          onConvertVoucher={(amount) => {
-            changeType("bonus");
-            setFace(amount);
-          }}
-          limit={limit}
-          onClose={() => setSelected(null)}
-          onLogged={refreshSlip}
-        />
-      </div>
-    </section>
+        <div className="arb-body">
+          <div className="ev-main">
+            <div className="ev-count">
+              <SlipToggle
+                count={slip.length}
+                onClick={() => setSlipOpen((o) => !o)}
+              />
+              <strong>{visible.length}</strong> conversions · {help} Hedges are
+              two-way markets only.
+              <FeedChangeNote change={change} />
+            </div>
+            {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
+            <div
+              role="table"
+              aria-label="Promo conversions"
+              className="ev-grid promo-grid"
+            >
+              <div role="row" className="ev-head">
+                <span role="columnheader">Market</span>
+                <span role="columnheader">Promo leg</span>
+                <span role="columnheader">Hedge leg</span>
+                <span role="columnheader">Promo type</span>
+                <span role="columnheader">Efficiency</span>
+                <span role="columnheader">Action</span>
+              </div>
+              {!promoBook ? (
+                <div className="empty-state">
+                  <h3>Pick your promo sportsbook</h3>
+                  <p>
+                    Choose the book that holds your bonus, then every game is
+                    scanned for the best cash hedge at the other books.
+                  </p>
+                </div>
+              ) : boostBad ? (
+                <div className="empty-state">
+                  <h3>Check the boost terms</h3>
+                  <p>
+                    Enter the boost percentage, such as 50, and dollar limits or
+                    leave a limit empty if the sportsbook sets none.
+                  </p>
+                </div>
+              ) : oddsBad ? (
+                <div className="empty-state">
+                  <h3>Check the odds range</h3>
+                  <p>
+                    Use American odds such as +200 or -110, or leave a box
+                    empty.
+                  </p>
+                </div>
+              ) : visible.length === 0 ? (
+                <div className="empty-state">
+                  <h3>No conversions match</h3>
+                  <p>
+                    Widen the promo odds range, lower the minimum conversion,
+                    re-enable hedge books, leagues or markets, or press Refresh
+                    odds.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  ref={viewport}
+                  className="ev-viewport"
+                  style={{
+                    height: Math.min(VIEW_HEIGHT, visible.length * height),
+                  }}
+                  onScroll={onScroll}
+                >
+                  <div
+                    className="ev-spacer"
+                    role="rowgroup"
+                    style={{ height: visible.length * height }}
+                  >
+                    {visible.slice(first, last).map((vm, i) => (
+                      <Row
+                        key={vm.id}
+                        vm={vm}
+                        face={faceValue}
+                        type={type}
+                        refund={refundRate}
+                        boost={boost}
+                        limit={limit}
+                        top={(first + i) * height}
+                        selected={vm.id === selected?.id}
+                        onSelect={select}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {selected && (
+            <div className="kelly-backdrop" onClick={() => setSelected(null)} />
+          )}
+          <Calculator
+            vm={shown}
+            shift={shift}
+            onAccept={() => current && setSelected(current)}
+            globalType={type}
+            face={face}
+            setFace={setFace}
+            refund={refund}
+            setRefund={setRefund}
+            boostFields={boostFields}
+            setBoostFields={setBoostFields}
+            onConvertVoucher={(amount) => {
+              changeType("bonus");
+              setFace(amount);
+            }}
+            limit={limit}
+            onClose={() => setSelected(null)}
+            onLogged={refreshSlip}
+          />
+        </div>
+      </section>
+    </PlacedProvider>
   );
 }

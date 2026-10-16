@@ -1,4 +1,7 @@
 "use client";
+import { PlacedProvider } from "./placed";
+import { useSlip } from "./bet-slip";
+import { FeedFilters } from "./feed-filters";
 import "../app/schedule-markets.css";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
@@ -132,6 +135,7 @@ const SCHEDULE_DEFAULTS: ScheduleSettings = {
 };
 
 export default function ScheduleFeed({ data }: { data: Data }) {
+  const { slip } = useSlip();
   const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [league, setLeague] = useState("");
   const [search, setSearch] = useState("");
@@ -225,119 +229,124 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   const usable = bookItems.filter(([id]) => !offBooks.has(id)).length;
 
   return (
-    <section className="sched" aria-label="Upcoming games">
-      <div className="sched-bar">
-        <SettingsBar controls={settings} />
-        <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
-        <div className="sched-chips" role="group" aria-label="League">
-          <button
-            type="button"
-            className={!activeLeague ? "active" : ""}
-            aria-pressed={!activeLeague}
-            onClick={() => setLeague("")}
-          >
-            All leagues <small>{upcoming.length}</small>
-          </button>
-          {leagues.map((l) => (
+    <PlacedProvider slip={slip}>
+      <section className="sched" aria-label="Upcoming games">
+        <FeedFilters active={!settings.atDefaults}>
+          <SettingsBar controls={settings} />
+          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          <div className="sched-chips" role="group" aria-label="League">
             <button
               type="button"
-              key={l.key}
-              className={activeLeague === l.key ? "active" : ""}
-              aria-pressed={activeLeague === l.key}
-              onClick={() => setLeague(l.key)}
+              className={!activeLeague ? "active" : ""}
+              aria-pressed={!activeLeague}
+              onClick={() => setLeague("")}
             >
-              {l.label} <small>{l.n}</small>
+              All leagues <small>{upcoming.length}</small>
             </button>
-          ))}
+            {leagues.map((l) => (
+              <button
+                type="button"
+                key={l.key}
+                className={activeLeague === l.key ? "active" : ""}
+                aria-pressed={activeLeague === l.key}
+                onClick={() => setLeague(l.key)}
+              >
+                {l.label} <small>{l.n}</small>
+              </button>
+            ))}
+          </div>
+          <div className="sched-tools">
+            <Menu
+              title="Odds from"
+              items={bookItems}
+              off={offBooks}
+              setOff={setOffBooks}
+            />
+            <input
+              className="odds-search"
+              type="search"
+              maxLength={100}
+              placeholder="Search a team or league"
+              aria-label="Search games"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <span className="arb-status" role="status">
+              <i className="arb-pulse" aria-hidden="true" />
+              {visible.length} upcoming · prices as of{" "}
+              {date(data.meta.captured_at)}
+            </span>
+          </div>
+        </FeedFilters>
+        <div className="ev-count">
+          <strong>{visible.length}</strong> upcoming games
         </div>
-        <div className="sched-tools">
-          <Menu
-            title="Odds from"
-            items={bookItems}
-            off={offBooks}
-            setOff={setOffBooks}
-          />
-          <input
-            className="odds-search"
-            type="search"
-            maxLength={100}
-            placeholder="Search a team or league"
-            aria-label="Search games"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <span className="arb-status" role="status">
-            <i className="arb-pulse" aria-hidden="true" />
-            {visible.length} upcoming · prices as of{" "}
-            {date(data.meta.captured_at)}
-          </span>
-        </div>
-      </div>
-      {visible.length === 0 ? (
-        <div className="empty-state">
-          <h3>No upcoming games</h3>
-          <p>
-            Pick another league, clear the search, or press Refresh odds to
-            fetch the latest pre-game schedule.
-          </p>
-        </div>
-      ) : (
-        <>
-          {usable === 0 && (
-            <div role="status" className="arb-alert">
-              <strong>No sportsbooks selected</strong>
-              <span>
-                Choose at least one under “Odds from” to see the best lines.
-              </span>
-            </div>
-          )}
-          {shownDays.map(([key, games]) => (
-            <section className="sched-day" key={key} aria-label={key}>
-              <h2 className="sched-date">
-                {dayHeading(key, now)}
-                <small>
-                  {games.length} {games.length === 1 ? "game" : "games"}
-                </small>
-              </h2>
-              <div role="table" className="sched-table" aria-label={key}>
-                <div role="row" className="sched-head">
-                  <span role="columnheader">Time</span>
-                  <span role="columnheader">Matchup</span>
-                  {COLUMNS.map((c) => (
-                    <span role="columnheader" key={c.key}>
-                      {c.label}
-                    </span>
+        {visible.length === 0 ? (
+          <div className="empty-state">
+            <h3>No upcoming games</h3>
+            <p>
+              Pick another league, clear the search, or press Refresh odds to
+              fetch the latest pre-game schedule.
+            </p>
+          </div>
+        ) : (
+          <>
+            {usable === 0 && (
+              <div role="status" className="arb-alert">
+                <strong>No sportsbooks selected</strong>
+                <span>
+                  Choose at least one under “Odds from” to see the best lines.
+                </span>
+              </div>
+            )}
+            {shownDays.map(([key, games]) => (
+              <section className="sched-day" key={key} aria-label={key}>
+                <h2 className="sched-date">
+                  {dayHeading(key, now)}
+                  <small>
+                    {games.length} {games.length === 1 ? "game" : "games"}
+                  </small>
+                </h2>
+                <div role="table" className="sched-table" aria-label={key}>
+                  <div role="row" className="sched-head">
+                    <span role="columnheader">Time</span>
+                    <span role="columnheader">Matchup</span>
+                    {COLUMNS.map((c) => (
+                      <span role="columnheader" key={c.key}>
+                        {c.label}
+                      </span>
+                    ))}
+                  </div>
+                  {games.map((g) => (
+                    <GameRow
+                      key={g.id}
+                      game={g}
+                      lines={lines.get(g.id)}
+                      today={key === today}
+                      bookName={bookName}
+                    />
                   ))}
                 </div>
-                {games.map((g) => (
-                  <GameRow
-                    key={g.id}
-                    game={g}
-                    lines={lines.get(g.id)}
-                    today={key === today}
-                    bookName={bookName}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
-          {days.length > dayCount && (
-            <button
-              type="button"
-              className="button secondary sched-more"
-              onClick={() => setDayCount((n) => n + MORE_DAYS)}
-            >
-              Show more days ({days.length - dayCount} more)
-            </button>
-          )}
-        </>
-      )}
-      <p className="odds-note">
-        Each line is the main line (the one most sportsbooks quote) with the
-        best available price on every side, from the books chosen under “Odds
-        from”. Prices are the last stored snapshot; press Refresh odds for new
-        prices and re-check at the sportsbook.
-      </p>
-    </section>
+              </section>
+            ))}
+            {days.length > dayCount && (
+              <button
+                type="button"
+                className="button secondary sched-more"
+                onClick={() => setDayCount((n) => n + MORE_DAYS)}
+              >
+                Show more days ({days.length - dayCount} more)
+              </button>
+            )}
+          </>
+        )}
+        <p className="odds-note">
+          Each line is the main line (the one most sportsbooks quote) with the
+          best available price on every side, from the books chosen under “Odds
+          from”. Prices are the last stored snapshot; press Refresh odds for new
+          prices and re-check at the sportsbook.
+        </p>
+      </section>
+    </PlacedProvider>
   );
 }

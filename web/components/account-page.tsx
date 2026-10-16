@@ -1,4 +1,5 @@
 "use client";
+import { PersonalNav } from "./personal-nav";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
@@ -69,6 +70,7 @@ export default function AccountPage() {
           <UserMenu />
         </div>
       </header>
+      <PersonalNav current="account" />
       <section className="trk-card account-card" aria-labelledby="state-title">
         <h3 id="state-title">Betting state</h3>
         <p className="trk-muted">

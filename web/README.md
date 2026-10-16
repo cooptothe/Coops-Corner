@@ -184,3 +184,5 @@ Shared exact-format/API regressions run from the repository root:
 node --test tests/frontend.test.mjs
 .\.venv-api\Scripts\python.exe -m unittest discover -s tests -p 'test_product_api.py' -q
 ```
+
+EV and props feeds support a saved maximum EV percentage and maximum market width in American-odds cents. Blank limits are unrestricted. Width is the widest complete two-sided reference market used for that bet; unknown, one-sided and three-way widths are excluded only when the width limit is enabled. For example, -110/-110 has a 20-cent width. Both limits are inclusive and included in account settings and presets.

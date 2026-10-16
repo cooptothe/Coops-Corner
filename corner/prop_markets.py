@@ -12,6 +12,7 @@ from corner.native_ids import native_ids
 from corner.book_policy import supported_book, supported_books
 from corner.reference_policy import sufficient_references
 from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
+from corner.market_width import widest_market_width
 
 # Same reference books (and environment override) as the main +EV feed in api/database.py.
 SHARP_BOOKS = frozenset(supported_books(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
@@ -269,6 +270,8 @@ def build_bets(events):
                             'player': player, 'point': point, 'side': meta.sides[side], 'book': book,
                             'price': str(price), 'ev': _q(win * price - 1), 'fair_probability': _q(win),
                             'sharps': used,
+                            'market_width_cents': widest_market_width([list(prices[b].values()) for b in used])
+                            if meta.kind == TWO_WAY else None,
                             'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()},
                             'reference_weight_version': WEIGHT_VERSION,
                             'probability_basis': 'weighted_sharp_implied',

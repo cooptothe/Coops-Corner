@@ -1,10 +1,12 @@
 import type { QuoteLinks } from "./bet-links";
 import type { Quote } from "./contracts";
+import { quoteRef } from "./slip";
 
 export type LineMarket = "spreads" | "totals" | "h2h";
 export const LINE_MARKETS: LineMarket[] = ["spreads", "totals", "h2h"];
 
 export interface BestPrice {
+  ref?: ReturnType<typeof quoteRef>;
   quoteId: string;
   bookId: string;
   decimal: number;
@@ -73,6 +75,7 @@ function candidate(
       (decimal === held.decimal && q.sportsbook_id < held.bookId)
     )
       best[q.side] = {
+        ref: quoteRef(q),
         quoteId: q.id,
         bookId: q.sportsbook_id,
         decimal,

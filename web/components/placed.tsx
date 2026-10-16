@@ -33,22 +33,31 @@ export function usePlaced(legs: PlacedLeg[]): PlacedState {
   return index ? placedState(index, legs) : NOT_PLACED;
 }
 
-export const isPlaced = (s: PlacedState) => s.legs > 0 && s.placed > 0;
+export const isPlaced = (s: PlacedState) =>
+  s.legs > 0 && (s.placed > 0 || !!s.related);
 
 const label = (s: PlacedState) =>
-  s.parlayLegs === s.legs
-    ? "Placed in parlay"
-    : s.placed === s.legs
-      ? "Placed"
-      : `${s.placed} of ${s.legs} placed`;
+  s.related
+    ? s.related.level === "market"
+      ? "Same market"
+      : `${s.related.kind === "player" ? "Player" : s.related.kind === "team" ? "Team" : "Event"} bet placed`
+    : s.parlayLegs === s.legs
+      ? "In parlay"
+      : s.placed === s.legs
+        ? "Placed"
+        : `${s.placed}/${s.legs} placed`;
 
 // Shown on a feed row.
 export function PlacedBadge({ state }: { state: PlacedState }) {
   if (!isPlaced(state)) return null;
   return (
     <span
-      className={`placed-badge ${state.placed === state.legs ? "all" : "some"}`}
-      title="You already tracked this bet. Check your tracker before betting again."
+      className={`placed-badge ${state.related?.level === "entity" ? "related" : "same-market"} ${state.placed === state.legs ? "all" : "some"}`}
+      title={
+        state.related?.level === "entity"
+          ? `You have an open bet on this ${state.related.kind} in another market for this event.`
+          : "You have an open bet on this market. Check your tracker before betting again."
+      }
     >
       <span aria-hidden="true">✓</span> {label(state)}
     </span>
@@ -58,9 +67,28 @@ export function PlacedBadge({ state }: { state: PlacedState }) {
 // Shown in a drawer, above the button that would track it again.
 export function PlacedNote({ state }: { state: PlacedState }) {
   if (!isPlaced(state)) return null;
+  if (state.related)
+    return (
+      <div
+        role="status"
+        className={`placed-note ${state.related.level === "entity" ? "related" : "same-market"}`}
+      >
+        <strong>
+          {state.related.level === "market"
+            ? "Bet placed on this market"
+            : label(state)}
+        </strong>
+        <span>
+          {state.related.level === "market"
+            ? "You have an open bet on this market, possibly at another line, side, or sportsbook."
+            : `You have an open bet on this ${state.related.kind} in a different market for this event.`}{" "}
+          Review your tracker before adding more exposure.
+        </span>
+      </div>
+    );
   const all = state.placed === state.legs;
   return (
-    <div role="status" className="placed-note">
+    <div role="status" className="placed-note same-market">
       <strong>
         {all
           ? state.legs === 1

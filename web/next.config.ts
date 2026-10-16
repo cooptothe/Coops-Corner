@@ -4,6 +4,22 @@ import { resolve } from "node:path";
 // Keep browser requests same-origin. Do not accept an arbitrary upstream or expose secrets.
 const apiOrigin = process.env.CORNER_API_ORIGIN ?? "http://127.0.0.1:8765";
 const parsed = new URL(apiOrigin);
+const refresh = new URL(
+  process.env.CORNER_REFRESH_ORIGIN ?? "http://127.0.0.1:8766",
+);
+if (
+  !["127.0.0.1", "localhost", "[::1]"].includes(refresh.hostname) ||
+  refresh.protocol !== "http:" ||
+  refresh.username ||
+  refresh.password ||
+  refresh.pathname !== "/" ||
+  refresh.search ||
+  refresh.hash
+) {
+  throw new Error(
+    "CORNER_REFRESH_ORIGIN must be a plain loopback HTTP origin.",
+  );
+}
 if (
   !["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname) ||
   parsed.protocol !== "http:" ||
@@ -29,6 +45,8 @@ const publicHosts = (process.env.CORNER_PUBLIC_ORIGINS ?? "")
     }
   });
 const config: NextConfig = {
+  // Keep disposable UI checks isolated from an operator's running dev server.
+  distDir: process.env.CORNER_UI_REVIEW === "1" ? ".next-ui-review" : ".next",
   turbopack: { root: resolve(process.cwd(), "..") },
   allowedDevOrigins: publicHosts,
   // A multi-league refresh takes over a minute; the default proxy timeout is 30 seconds.
@@ -37,7 +55,7 @@ const config: NextConfig = {
     return [
       {
         source: "/api/refresh/v1/:path*",
-        destination: "http://127.0.0.1:8766/api/refresh/v1/:path*",
+        destination: `${refresh.origin}/api/refresh/v1/:path*`,
       },
       {
         source: "/api/v1/sports/:path*",

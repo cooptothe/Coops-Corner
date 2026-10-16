@@ -32,19 +32,21 @@ import MiddleFeed from "./middle-feed";
 import ScheduleFeed from "./schedule-feed";
 import PropsFeed from "./props-feed";
 import FreshOdds from "./fresh-odds";
+import { FeedGuide } from "./feed-guide";
 
 const DESCRIPTIONS: Record<View, string> = {
-  positive_ev: "Compare offered odds with a complete reference-book estimate.",
+  positive_ev:
+    "Find prices above a reference-book estimate, then review the bet and your stake.",
   arbitrage:
-    "Explore complementary positions and their decisive-settlement payoffs.",
+    "Compare both sides of a market and see the stake and payoff for each leg.",
   middle:
     "Find cross-line windows. See the upside and the cost of missing the middle.",
   props:
-    "Player prop bets priced against the same sharp books as the Positive EV feed.",
+    "Compare player props with reference prices and find bets that fit your filters.",
   games:
     "Upcoming games by day, with the best main-line spread, total and moneyline available.",
   promo:
-    "Explore bonus and refund economics without confusing tokens with cash.",
+    "Compare bonus offers, calculate a hedge, and see the cash you could receive.",
 };
 const ICONS: Record<View, string> = {
   positive_ev: "↗",
@@ -302,7 +304,7 @@ export default function Workspace({ view }: { view: View }) {
         </Link>
         <div className="workspace-label">
           <span className="workspace-dot" />
-          LOCAL WORKSPACE <span className="version">01</span>
+          PREGAME WORKSPACE
         </div>
         <nav>
           <p className="nav-label">FIND AN EDGE</p>
@@ -342,7 +344,7 @@ export default function Workspace({ view }: { view: View }) {
               : "Fixture environment"}{" "}
             · No live execution
           </small>
-          <span>Next.js · TypeScript</span>
+          <Link href="/account">Account &amp; preferences →</Link>
         </div>
       </aside>
       <div className="workspace">
@@ -365,21 +367,6 @@ export default function Workspace({ view }: { view: View }) {
           </div>
         </header>
         <main id="main" tabIndex={-1}>
-          <section className="corner-banner" aria-label="The Corner community">
-            <Image
-              src="/assets/corner-banner.png"
-              alt="Coop's Corner"
-              width={1500}
-              height={500}
-              sizes="(max-width: 600px) 360px, 330px"
-              fetchPriority="high"
-            />
-            <div className="corner-banner-copy">
-              <p>THE COMMUNITY. THE INTELLIGENCE. THE EDGE.</p>
-              <h2>Your edge. Your Corner.</h2>
-              <span>Compare the market. Understand the payoff.</span>
-            </div>
-          </section>
           <div className="page-heading">
             <div>
               <p className="eyebrow">THE MARKET, IN FOCUS</p>
@@ -390,6 +377,7 @@ export default function Workspace({ view }: { view: View }) {
               {ICONS[view]}
             </span>
           </div>
+          <FeedGuide view={view} />
           {bootError ? (
             <ErrorCard
               message={bootError}

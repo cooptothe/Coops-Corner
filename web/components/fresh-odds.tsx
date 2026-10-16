@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { userStorage } from "../lib/user-storage";
 import { reloadTools, refreshOdds, refreshStatus } from "../lib/refresh-api";
 import type { RefreshStatus } from "../lib/refresh-api";
+import { useDialogFocus } from "./use-dialog-focus";
 
 const STORAGE = "corner.refresh.leagues";
 
@@ -17,6 +18,15 @@ export default function FreshOdds({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const reviewRef = useDialogFocus(confirming);
+  useEffect(() => {
+    if (!confirming) return;
+    const close = (event: KeyboardEvent) =>
+      event.key === "Escape" && setConfirming(false);
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [confirming]);
 
   useEffect(() => {
     try {
@@ -54,13 +64,8 @@ export default function FreshOdds({
   };
 
   async function fetchFresh() {
-    if (
-      !chosen.length ||
-      !window.confirm(
-        `Fetch fresh pre-game odds for ${chosen.length} league(s) and recalculate all opportunities? Each in-season league costs 6 API credits (up to ${chosen.length * 6}); out-of-season leagues are free.`,
-      )
-    )
-      return;
+    if (!chosen.length || busy) return;
+    setConfirming(false);
     setBusy(true);
     setError("");
     setNote("");
@@ -96,11 +101,61 @@ export default function FreshOdds({
       <button
         className="button"
         disabled={busy || !chosen.length || status?.can_refresh === false}
-        onClick={fetchFresh}
-        title="Calls The Odds API (uses credits), then recalculates every tool"
+        onClick={() => setConfirming(true)}
+        title={
+          status?.can_refresh === false
+            ? "Refresh is currently unavailable. Open Leagues for the last fetch and available details."
+            : "Fetch updated odds for your selected leagues. This uses API credits."
+        }
       >
         {busy ? "Fetching odds…" : "↻ Refresh odds"}
       </button>
+      {confirming && (
+        <div
+          className="refresh-review-backdrop"
+          onClick={() => setConfirming(false)}
+        >
+          <section
+            className="refresh-review"
+            ref={reviewRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="refresh-review-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="eyebrow">UPDATE YOUR FEEDS</p>
+            <h2 id="refresh-review-title">Refresh odds?</h2>
+            <p>
+              Fetch the latest pre-game odds for{" "}
+              <strong>
+                {chosen.length} selected{" "}
+                {chosen.length === 1 ? "league" : "leagues"}
+              </strong>
+              . All tools will use the updated prices.
+            </p>
+            <div className="refresh-cost">
+              <span>Maximum estimated cost</span>
+              <strong>{chosen.length * 6} API credits</strong>
+            </div>
+            <p className="muted">
+              Out-of-season leagues use no credits. Filtering stored results is
+              always free.
+            </p>
+            <div className="refresh-review-actions">
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => setConfirming(false)}
+              >
+                Cancel
+              </button>
+              <button type="button" className="button" onClick={fetchFresh}>
+                Refresh {chosen.length === 1 ? "league" : "leagues"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
       <details className="fresh-odds-menu">
         <summary>Leagues ({chosen.length})</summary>
         <div className="fresh-odds-panel">

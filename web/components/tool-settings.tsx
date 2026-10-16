@@ -195,6 +195,7 @@ export function SettingsBar({ controls }: { controls: ToolSettingsControls }) {
         <label className="field settings-select">
           <span>PRESET</span>
           <select
+            disabled={busy}
             value={c.active?.id ?? ""}
             onChange={(e) => {
               setError("");
@@ -291,10 +292,13 @@ export function SettingsBar({ controls }: { controls: ToolSettingsControls }) {
             c.reset();
           }}
         >
-          Default settings
+          Reset settings
         </button>
       </div>
       <div className="settings-notes" aria-live="polite">
+        {!c.syncError && !error && (
+          <small>Changes save to your account automatically.</small>
+        )}
         {c.modified && c.active && !error && (
           <small>Changed since “{c.active.name}” was saved.</small>
         )}

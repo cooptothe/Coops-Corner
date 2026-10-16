@@ -1,4 +1,7 @@
 "use client";
+import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
+import { FeedFilters } from "./feed-filters";
+import { useDialogFocus } from "./use-dialog-focus";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -194,6 +197,7 @@ const Row = memo(
     selected: boolean;
     onSelect: (vm: Vm) => void;
   }) {
+    const exposure = usePlaced(vm.legs);
     return (
       <div
         role="row"
@@ -211,6 +215,7 @@ const Row = memo(
       >
         <div role="cell" className="ev-cell ev-edge">
           <span className="ev-badge arb-badge">{percent(vm.profit, true)}</span>
+          <PlacedBadge state={exposure} />
         </div>
         <div role="cell" className="ev-cell ev-event">
           <span className="ev-league">{vm.league}</span>
@@ -344,11 +349,16 @@ function Calculator({
           ? vm.legs.map((l, i) => legBet(l, "", sizing.stakes[i]))
           : [];
 
+  const exposure = usePlaced(vm ? vm.legs : []);
+  const dialogRef = useDialogFocus(Boolean(vm));
   return (
     <aside
+      ref={dialogRef}
+      role="dialog"
+      aria-modal={vm ? true : undefined}
+      aria-hidden={!vm}
       className={`kelly-panel arb-calc ${vm ? "open" : ""}`}
       aria-label="Arbitrage calculator"
-      style={{ background: "#2e2a2a" }}
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
         ✕
@@ -526,6 +536,7 @@ function Calculator({
             startsAt={vm.startsAt}
             unavailable={shift === "dropped"}
           />
+          <PlacedNote state={exposure} />
           <LogBetButton
             legs={logLegs}
             resetKey={`${vm.id}|${vm.sig}|${stake}|${mode}|${favored}`}
@@ -548,8 +559,30 @@ export function Menu({
   off: Set<string>;
   setOff: (next: Set<string>) => void;
 }) {
+  const root = useRef<HTMLDetailsElement>(null);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (root.current?.open && !root.current.contains(event.target as Node))
+        root.current.open = false;
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+  const choices = items.filter(([, label]) =>
+    label.toLowerCase().includes(query.toLowerCase()),
+  );
   return (
-    <details className="arb-menu">
+    <details
+      className="arb-menu"
+      ref={root}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && root.current) {
+          root.current.open = false;
+          root.current.querySelector("summary")?.focus();
+        }
+      }}
+    >
       <summary>
         {title} ({items.filter(([id]) => !off.has(id)).length}/{items.length})
       </summary>
@@ -560,17 +593,27 @@ export function Menu({
             className="link-button"
             onClick={() => setOff(new Set())}
           >
-            all
+            Select all
           </button>{" "}
           <button
             type="button"
             className="link-button"
             onClick={() => setOff(new Set(items.map(([id]) => id)))}
           >
-            none
+            Clear all
           </button>
         </div>
-        {items.map(([id, label]) => (
+        {items.length > 6 && (
+          <input
+            className="menu-search"
+            type="search"
+            placeholder={`Search ${title.toLowerCase()}`}
+            aria-label={`Search ${title.toLowerCase()}`}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        )}
+        {choices.map(([id, label]) => (
           <label key={id}>
             <input
               type="checkbox"
@@ -585,6 +628,9 @@ export function Menu({
           </label>
         ))}
         {items.length === 0 && <small>None yet.</small>}
+        {!!items.length && !choices.length && (
+          <small>No matches. Try another name.</small>
+        )}
       </div>
     </details>
   );
@@ -706,7 +752,7 @@ export default function ArbFeed({ data }: { data: Data }) {
 
   const [compact, setCompact] = useState(false);
   useEffect(() => {
-    const media = matchMedia("(max-width:900px)");
+    const media = matchMedia("(max-width:1100px)");
     const change = () => setCompact(media.matches);
     change();
     media.addEventListener("change", change);
@@ -750,132 +796,134 @@ export default function ArbFeed({ data }: { data: Data }) {
   if (!rows) return <Loading text="Scanning for arbitrage…" />;
 
   return (
-    <section className="arb-layout" aria-label="Arbitrage feed">
-      <div className="arb-bar">
-        <SettingsBar controls={settings} />
-        <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
-        <Menu
-          title="Sportsbooks"
-          items={bookItems}
-          off={offBooks}
-          setOff={setOffBooks}
-        />
-        <Menu
-          title="Leagues"
-          items={sportItems}
-          off={offSports}
-          setOff={setOffSports}
-        />
-        <label className="field arb-min">
-          <span>MIN. PROFIT · {minProfit || "0"}%</span>
-          <span className="arb-min-inputs">
-            <input
-              type="range"
-              min="0"
-              max="10"
-              step="0.25"
-              value={PROFIT_PATTERN.test(minProfit) ? minProfit : "0"}
-              onChange={(e) => setMinProfit(e.target.value)}
-            />
-            <input
-              inputMode="decimal"
-              value={minProfit}
-              maxLength={5}
-              aria-invalid={!PROFIT_PATTERN.test(minProfit)}
-              onChange={(e) => setMinProfit(e.target.value.trim())}
-            />
+    <PlacedProvider slip={slip}>
+      <section className="arb-layout" aria-label="Arbitrage feed">
+        <FeedFilters active={!settings.atDefaults}>
+          <SettingsBar controls={settings} />
+          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          <Menu
+            title="Sportsbooks"
+            items={bookItems}
+            off={offBooks}
+            setOff={setOffBooks}
+          />
+          <Menu
+            title="Leagues"
+            items={sportItems}
+            off={offSports}
+            setOff={setOffSports}
+          />
+          <label className="field arb-min">
+            <span>MIN. PROFIT · {minProfit || "0"}%</span>
+            <span className="arb-min-inputs">
+              <input
+                type="range"
+                min="0"
+                max="10"
+                step="0.25"
+                value={PROFIT_PATTERN.test(minProfit) ? minProfit : "0"}
+                onChange={(e) => setMinProfit(e.target.value)}
+              />
+              <input
+                inputMode="decimal"
+                value={minProfit}
+                maxLength={5}
+                aria-invalid={!PROFIT_PATTERN.test(minProfit)}
+                onChange={(e) => setMinProfit(e.target.value.trim())}
+              />
+            </span>
+          </label>
+          <label className="field mid-small">
+            <span>SORT BY</span>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+            >
+              {SORT_LABELS.map(([k, l]) => (
+                <option key={k} value={k}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="arb-status" role="status">
+            <i className="arb-pulse" aria-hidden="true" />
+            Connected · prices as of {date(data.meta.captured_at)}
           </span>
-        </label>
-        <label className="field mid-small">
-          <span>SORT BY</span>
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-          >
-            {SORT_LABELS.map(([k, l]) => (
-              <option key={k} value={k}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </label>
-        <span className="arb-status" role="status">
-          <i className="arb-pulse" aria-hidden="true" />
-          Connected · prices as of {date(data.meta.captured_at)}
-        </span>
-      </div>
-      <div className="arb-body">
-        <div className="ev-main">
-          <div className="ev-count">
-            <SlipToggle
-              count={slip.length}
-              onClick={() => setSlipOpen((o) => !o)}
-            />
-            <strong>{visible.length}</strong> of {all.length} opportunities ·
-            best first
-            <FeedChangeNote change={change} />
-          </div>
-          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
-          <div
-            role="table"
-            aria-label="Arbitrage opportunities"
-            className="ev-grid arb-grid"
-          >
-            <div role="row" className="ev-head">
-              <span role="columnheader">Profit</span>
-              <span role="columnheader">Event</span>
-              <span role="columnheader">Legs</span>
-              <span role="columnheader">Scanned</span>
+        </FeedFilters>
+        <div className="arb-body">
+          <div className="ev-main">
+            <div className="ev-count">
+              <SlipToggle
+                count={slip.length}
+                onClick={() => setSlipOpen((o) => !o)}
+              />
+              <strong>{visible.length}</strong> of {all.length} opportunities ·
+              best first
+              <FeedChangeNote change={change} />
             </div>
-            {visible.length === 0 ? (
-              <div className="empty-state">
-                <h3>No arbitrage right now</h3>
-                <p>
-                  Lower the minimum profit, re-enable books or leagues, or press
-                  Refresh odds. Real arbitrage is rare and short-lived.
-                </p>
+            {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
+            <div
+              role="table"
+              aria-label="Arbitrage opportunities"
+              className="ev-grid arb-grid"
+            >
+              <div role="row" className="ev-head">
+                <span role="columnheader">Profit</span>
+                <span role="columnheader">Event</span>
+                <span role="columnheader">Legs</span>
+                <span role="columnheader">Scanned</span>
               </div>
-            ) : (
-              <div
-                ref={viewport}
-                className="ev-viewport"
-                style={{
-                  height: Math.min(viewHeight, visible.length * height),
-                }}
-                onScroll={onScroll}
-              >
-                <div
-                  className="ev-spacer"
-                  role="rowgroup"
-                  style={{ height: visible.length * height }}
-                >
-                  {visible.slice(first, last).map((vm, i) => (
-                    <Row
-                      key={vm.id}
-                      vm={vm}
-                      top={(first + i) * height}
-                      selected={vm.id === selected?.id}
-                      onSelect={select}
-                    />
-                  ))}
+              {visible.length === 0 ? (
+                <div className="empty-state">
+                  <h3>No arbitrage right now</h3>
+                  <p>
+                    Lower the minimum profit, re-enable books or leagues, or
+                    press Refresh odds. Real arbitrage is rare and short-lived.
+                  </p>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div
+                  ref={viewport}
+                  className="ev-viewport"
+                  style={{
+                    height: Math.min(viewHeight, visible.length * height),
+                  }}
+                  onScroll={onScroll}
+                >
+                  <div
+                    className="ev-spacer"
+                    role="rowgroup"
+                    style={{ height: visible.length * height }}
+                  >
+                    {visible.slice(first, last).map((vm, i) => (
+                      <Row
+                        key={vm.id}
+                        vm={vm}
+                        top={(first + i) * height}
+                        selected={vm.id === selected?.id}
+                        onSelect={select}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+          {selected && (
+            <div className="kelly-backdrop" onClick={() => setSelected(null)} />
+          )}
+          <Calculator
+            vm={shown}
+            shift={shift}
+            onAccept={() => current && setSelected(current)}
+            stake={stake}
+            setStake={setStake}
+            onClose={() => setSelected(null)}
+            onLogged={refreshSlip}
+          />
         </div>
-        {selected && (
-          <div className="kelly-backdrop" onClick={() => setSelected(null)} />
-        )}
-        <Calculator
-          vm={shown}
-          shift={shift}
-          onAccept={() => current && setSelected(current)}
-          stake={stake}
-          setStake={setStake}
-          onClose={() => setSelected(null)}
-          onLogged={refreshSlip}
-        />
-      </div>
-    </section>
+      </section>
+    </PlacedProvider>
   );
 }

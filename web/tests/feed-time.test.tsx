@@ -48,12 +48,12 @@ test("buttons expose all choices and mark the active filter accessibly", () => {
   assert.equal((html.match(/<button /g) ?? []).length, 6);
   assert.equal((html.match(/aria-pressed="true"/g) ?? []).length, 1);
   for (const label of [
-    "Default",
-    "Upcoming (Next 8 Hours)",
-    "Today Only",
+    "All available",
+    "Next 8 hours",
+    "Today",
     "Next 24 hours",
-    "Within 3 days",
-    "1 week",
+    "Next 3 days",
+    "Next 7 days",
   ])
     assert.ok(html.includes(label));
 });

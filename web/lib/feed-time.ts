@@ -1,12 +1,12 @@
 import { dayKey } from "./schedule";
 
 export const TIME_FILTERS = [
-  ["default", "Default"],
-  ["8h", "Upcoming (Next 8 Hours)"],
-  ["today", "Today Only"],
+  ["default", "All available"],
+  ["8h", "Next 8 hours"],
+  ["today", "Today"],
   ["24h", "Next 24 hours"],
-  ["3d", "Within 3 days"],
-  ["1w", "1 week"],
+  ["3d", "Next 3 days"],
+  ["1w", "Next 7 days"],
 ] as const;
 export type TimeFilter = (typeof TIME_FILTERS)[number][0];
 

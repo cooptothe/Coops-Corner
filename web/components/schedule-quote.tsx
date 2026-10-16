@@ -4,6 +4,7 @@ import { linkBlock, linkLabel, resolveLink } from "../lib/bet-links";
 import type { BestPrice, LineMarket } from "../lib/schedule";
 import { useBettingPrefs } from "./betting-prefs";
 import { StatePicker } from "./bet-link";
+import { PlacedBadge, usePlaced } from "./placed";
 
 export function ScheduleQuote({
   market,
@@ -19,6 +20,9 @@ export function ScheduleQuote({
   startsAt: string;
 }) {
   const { state } = useBettingPrefs();
+  const placed = usePlaced(
+    price ? [{ ref: price.ref, bookLabel: bookName(price.bookId) }] : [],
+  );
   if (!price) return <div className="sched-quote empty">—</div>;
   const book = bookName(price.bookId);
   const odds = american(String(price.decimal));
@@ -40,6 +44,7 @@ export function ScheduleQuote({
         <b className="sched-price">{odds}</b>
         <small className="sched-book">{book}</small>
       </span>
+      <PlacedBadge state={placed} />
     </>
   );
   if (!started && resolved.url && resolved.kind)

@@ -110,9 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {status === "unreachable" ? (
         <Splash>
           <p role="alert">
-            The account service is not running, so the app cannot sign you in.
+            Your workspace is offline. Start The Corner, then try connecting
+            again.
           </p>
-          <code>python -m pipelines.refresh_service</code>
+          <p>
+            On this computer, double-click <strong>Start-Corner.cmd</strong> in
+            your app folder.
+          </p>
           <button
             className="button"
             onClick={() => {
@@ -120,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setAttempt((n) => n + 1);
             }}
           >
-            Try again
+            Reconnect
           </button>
         </Splash>
       ) : (

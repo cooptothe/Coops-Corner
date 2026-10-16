@@ -103,6 +103,7 @@ export default function LoginPage() {
           <button
             type="button"
             className={!signup ? "active" : ""}
+            disabled={busy}
             aria-pressed={!signup}
             onClick={() => switchMode("signin")}
           >
@@ -111,6 +112,7 @@ export default function LoginPage() {
           <button
             type="button"
             className={signup ? "active" : ""}
+            disabled={busy}
             aria-pressed={signup}
             onClick={() => switchMode("signup")}
           >

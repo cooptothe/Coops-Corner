@@ -1,4 +1,7 @@
 "use client";
+import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
+import { FeedFilters } from "./feed-filters";
+import { useDialogFocus } from "./use-dialog-focus";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -208,6 +211,7 @@ const Row = memo(
     selected: boolean;
     onSelect: (vm: Vm) => void;
   }) {
+    const exposure = usePlaced(vm.legs);
     return (
       <div
         role="row"
@@ -227,6 +231,7 @@ const Row = memo(
           <span className="ev-badge arb-badge">
             {pct(vm.best / vm.capital)}
           </span>
+          <PlacedBadge state={exposure} />
           <small className="mid-loss">Miss {pct(vm.worst / vm.capital)}</small>
         </div>
         <div role="cell" className="ev-cell ev-event">
@@ -321,8 +326,14 @@ function Calculator({
         }))
       : [];
 
+  const exposure = usePlaced(vm ? vm.legs : []);
+  const dialogRef = useDialogFocus(Boolean(vm));
   return (
     <aside
+      ref={dialogRef}
+      role="dialog"
+      aria-modal={vm ? true : undefined}
+      aria-hidden={!vm}
       className={`kelly-panel arb-calc ${vm ? "open" : ""}`}
       aria-label="Middle calculator"
     >
@@ -424,6 +435,7 @@ function Calculator({
             startsAt={vm.startsAt}
             unavailable={shift === "dropped"}
           />
+          <PlacedNote state={exposure} />
           <LogBetButton
             legs={validStake ? logLegs : []}
             resetKey={`${vm.id}|${vm.sig}|${stake}`}
@@ -578,7 +590,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
 
   const [compact, setCompact] = useState(false);
   useEffect(() => {
-    const media = matchMedia("(max-width:900px)");
+    const media = matchMedia("(max-width:1100px)");
     const change = () => setCompact(media.matches);
     change();
     media.addEventListener("change", change);
@@ -622,158 +634,160 @@ export default function MiddleFeed({ data }: { data: Data }) {
   if (!rows) return <Loading text="Scanning for middles…" />;
 
   return (
-    <section className="arb-layout" aria-label="Middles feed">
-      <div className="arb-bar">
-        <SettingsBar controls={settings} />
-        <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
-        <Menu
-          title="Sportsbooks"
-          items={bookItems}
-          off={offBooks}
-          setOff={setOffBooks}
-        />
-        <Menu
-          title="Leagues"
-          items={sportItems}
-          off={offSports}
-          setOff={setOffSports}
-        />
-        <Menu
-          title="Markets"
-          items={marketItems}
-          off={offMarkets}
-          setOff={setOffMarkets}
-        />
-        <label className="field mid-small">
-          <span>MAX MISS COST %</span>
-          <input
-            inputMode="numeric"
-            placeholder="any"
-            value={maxMiss}
-            maxLength={3}
-            aria-invalid={maxMiss !== "" && missLimit === null}
-            onChange={(e) => setMaxMiss(e.target.value.trim())}
+    <PlacedProvider slip={slip}>
+      <section className="arb-layout" aria-label="Middles feed">
+        <FeedFilters active={!settings.atDefaults}>
+          <SettingsBar controls={settings} />
+          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          <Menu
+            title="Sportsbooks"
+            items={bookItems}
+            off={offBooks}
+            setOff={setOffBooks}
           />
-        </label>
-        <label className="field mid-small">
-          <span>MIN WINDOW (PTS)</span>
-          <input
-            inputMode="decimal"
-            placeholder="any"
-            value={minWindow}
-            maxLength={7}
-            aria-invalid={minWindow !== "" && widthLimit === null}
-            onChange={(e) => setMinWindow(e.target.value.trim())}
+          <Menu
+            title="Leagues"
+            items={sportItems}
+            off={offSports}
+            setOff={setOffSports}
           />
-        </label>
-        <label className="field mid-small">
-          <span>SORT</span>
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-          >
-            <option value="ratio">Best reward vs. miss</option>
-            <option value="best">Biggest payoff</option>
-            <option value="miss">Smallest miss cost</option>
-            <option value="window">Widest window</option>
-            <option value="time">Event time (soonest)</option>
-            <option value="scanned">Newest scan</option>
-          </select>
-        </label>
-        <span className="arb-status" role="status">
-          <i className="arb-pulse" aria-hidden="true" />
-          Prices as of {date(data.meta.captured_at)}
-        </span>
-      </div>
-      <div className="mid-metrics" aria-label="Middle summary">
-        <div>
-          <span>MIDDLES FOUND</span>
-          <b>{visible.length}</b>
-        </div>
-        <div>
-          <span>AVG. WINDOW (PTS)</span>
-          <b>{avgWidth === null ? "—" : avgWidth.toFixed(1)}</b>
-        </div>
-        <div>
-          <span>BEST PAYOFF</span>
-          <b className="arb-net">
-            {bestPayoff === null ? "—" : pct(bestPayoff)}
-          </b>
-        </div>
-      </div>
-      <div className="arb-body">
-        <div className="ev-main">
-          <div className="ev-count">
-            <SlipToggle
-              count={slip.length}
-              onClick={() => setSlipOpen((o) => !o)}
+          <Menu
+            title="Markets"
+            items={marketItems}
+            off={offMarkets}
+            setOff={setOffMarkets}
+          />
+          <label className="field mid-small">
+            <span>MAX MISS COST %</span>
+            <input
+              inputMode="numeric"
+              placeholder="any"
+              value={maxMiss}
+              maxLength={3}
+              aria-invalid={maxMiss !== "" && missLimit === null}
+              onChange={(e) => setMaxMiss(e.target.value.trim())}
             />
-            <strong>{visible.length}</strong> of {all.length} middles · green is
-            the payoff in the window, red is what a miss costs
-            <FeedChangeNote change={change} />
+          </label>
+          <label className="field mid-small">
+            <span>MIN WINDOW (PTS)</span>
+            <input
+              inputMode="decimal"
+              placeholder="any"
+              value={minWindow}
+              maxLength={7}
+              aria-invalid={minWindow !== "" && widthLimit === null}
+              onChange={(e) => setMinWindow(e.target.value.trim())}
+            />
+          </label>
+          <label className="field mid-small">
+            <span>SORT</span>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+            >
+              <option value="ratio">Best reward vs. miss</option>
+              <option value="best">Biggest payoff</option>
+              <option value="miss">Smallest miss cost</option>
+              <option value="window">Widest window</option>
+              <option value="time">Event time (soonest)</option>
+              <option value="scanned">Newest scan</option>
+            </select>
+          </label>
+          <span className="arb-status" role="status">
+            <i className="arb-pulse" aria-hidden="true" />
+            Prices as of {date(data.meta.captured_at)}
+          </span>
+        </FeedFilters>
+        <div className="mid-metrics" aria-label="Middle summary">
+          <div>
+            <span>MIDDLES FOUND</span>
+            <b>{visible.length}</b>
           </div>
-          {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
-          <div
-            role="table"
-            aria-label="Middle opportunities"
-            className="ev-grid arb-grid"
-          >
-            <div role="row" className="ev-head">
-              <span role="columnheader">Payoff</span>
-              <span role="columnheader">Event &amp; window</span>
-              <span role="columnheader">Legs</span>
-              <span role="columnheader">Scanned</span>
-            </div>
-            {visible.length === 0 ? (
-              <div className="empty-state">
-                <h3>No middles match</h3>
-                <p>
-                  Raise the max miss cost, re-enable books, leagues or markets,
-                  or press Refresh odds. A middle needs two books quoting
-                  different lines on the same game.
-                </p>
-              </div>
-            ) : (
-              <div
-                ref={viewport}
-                className="ev-viewport"
-                style={{
-                  height: Math.min(viewHeight, visible.length * height),
-                }}
-                onScroll={onScroll}
-              >
-                <div
-                  className="ev-spacer"
-                  role="rowgroup"
-                  style={{ height: visible.length * height }}
-                >
-                  {visible.slice(first, last).map((vm, i) => (
-                    <Row
-                      key={vm.id}
-                      vm={vm}
-                      top={(first + i) * height}
-                      selected={vm.id === selected?.id}
-                      onSelect={select}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          <div>
+            <span>AVG. WINDOW (PTS)</span>
+            <b>{avgWidth === null ? "—" : avgWidth.toFixed(1)}</b>
+          </div>
+          <div>
+            <span>BEST PAYOFF</span>
+            <b className="arb-net">
+              {bestPayoff === null ? "—" : pct(bestPayoff)}
+            </b>
           </div>
         </div>
-        {selected && (
-          <div className="kelly-backdrop" onClick={() => setSelected(null)} />
-        )}
-        <Calculator
-          vm={shown}
-          shift={shift}
-          onAccept={() => current && setSelected(current)}
-          stake={stake}
-          setStake={setStake}
-          onClose={() => setSelected(null)}
-          onLogged={refreshSlip}
-        />
-      </div>
-    </section>
+        <div className="arb-body">
+          <div className="ev-main">
+            <div className="ev-count">
+              <SlipToggle
+                count={slip.length}
+                onClick={() => setSlipOpen((o) => !o)}
+              />
+              <strong>{visible.length}</strong> of {all.length} middles · green
+              is the payoff in the window, red is what a miss costs
+              <FeedChangeNote change={change} />
+            </div>
+            {slipOpen && <SlipLog slip={slip} onCleared={refreshSlip} />}
+            <div
+              role="table"
+              aria-label="Middle opportunities"
+              className="ev-grid arb-grid"
+            >
+              <div role="row" className="ev-head">
+                <span role="columnheader">Payoff</span>
+                <span role="columnheader">Event &amp; window</span>
+                <span role="columnheader">Legs</span>
+                <span role="columnheader">Scanned</span>
+              </div>
+              {visible.length === 0 ? (
+                <div className="empty-state">
+                  <h3>No middles match</h3>
+                  <p>
+                    Raise the max miss cost, re-enable books, leagues or
+                    markets, or press Refresh odds. A middle needs two books
+                    quoting different lines on the same game.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  ref={viewport}
+                  className="ev-viewport"
+                  style={{
+                    height: Math.min(viewHeight, visible.length * height),
+                  }}
+                  onScroll={onScroll}
+                >
+                  <div
+                    className="ev-spacer"
+                    role="rowgroup"
+                    style={{ height: visible.length * height }}
+                  >
+                    {visible.slice(first, last).map((vm, i) => (
+                      <Row
+                        key={vm.id}
+                        vm={vm}
+                        top={(first + i) * height}
+                        selected={vm.id === selected?.id}
+                        onSelect={select}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {selected && (
+            <div className="kelly-backdrop" onClick={() => setSelected(null)} />
+          )}
+          <Calculator
+            vm={shown}
+            shift={shift}
+            onAccept={() => current && setSelected(current)}
+            stake={stake}
+            setStake={setStake}
+            onClose={() => setSelected(null)}
+            onLogged={refreshSlip}
+          />
+        </div>
+      </section>
+    </PlacedProvider>
   );
 }

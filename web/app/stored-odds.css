@@ -317,7 +317,7 @@
 .ev-cell strong,.ev-cell small,.ev-league{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev-cell small{opacity:.7;font-size:12px}
 .ev-sharp.ev-cell strong,.ev-sharp.ev-cell small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:18px}
-@media (max-width:900px){.ev-row .ev-sharp.ev-cell{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px}}
+@media (max-width:1100px){.ev-row .ev-sharp.ev-cell{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px}}
 .ev-league{font-size:11px;font-weight:600;opacity:.75}
 .ev-badge{display:inline-block;padding:5px 9px;border-radius:6px;font-weight:700;font-variant-numeric:tabular-nums;color:#15803d;background:rgba(34,197,94,.15)}
 .ev-action{display:inline-flex;flex-direction:column;padding:6px 10px;border-radius:8px;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.45)}
@@ -338,7 +338,7 @@
 .kelly-stake{font-size:28px;color:#16a34a}
 .kelly-note,.kelly-empty{font-size:12px;opacity:.75}
 .kelly-bet{width:100%}
-@media (max-width:900px){
+@media (max-width:1100px){
   .ev-layout{grid-template-columns:1fr}
   .ev-filters{position:static;max-height:none}.ev-books{max-height:200px}
   .ev-head{display:none}
@@ -350,7 +350,7 @@
   .kelly-panel{left:0;right:0;bottom:0;top:auto;width:auto;border-radius:16px 16px 0 0;transform:translateY(105%);max-height:75vh}
   .kelly-backdrop{background:rgba(0,0,0,.4)}
 }
-@media (min-width:901px){.ev-row{height:88px}}
+@media (min-width:1101px){.ev-row{height:88px}}
 @media (prefers-reduced-motion:reduce){.flash-up,.flash-down{animation:none}.kelly-panel{transition:none}}.ev-odds-range{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:10px}.ev-filters{box-sizing:border-box;min-width:0;max-height:calc(100vh - 24px);overflow-y:auto;display:flex;flex-direction:column;gap:10px}.ev-filters .field{min-width:0;margin:0}.ev-filters input:not([type=checkbox]):not([type=range]),.ev-filters select{width:100%;min-width:0;box-sizing:border-box}.ev-filters input[type=range]{width:100%}.ev-filters .ev-odds-range{margin-top:0}.ev-filters .ev-books{margin:0}
 .link-button{background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer;font-size:11px}
 .ev-slip{margin:0 0 10px;padding:10px;border:1px solid rgba(128,128,128,.25);border-radius:10px;font-size:13px;overflow-x:auto}
@@ -387,7 +387,7 @@
 .arb-summary{display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:12px;border-radius:10px;background:rgba(32, 17, 15, 0.392);color:#f8fafc;font-size:13px}
 .arb-summary b{text-align:right;font-variant-numeric:tabular-nums}
 .arb-summary .arb-net{color:#4ade80;font-size:18px}
-@media (max-width:900px){
+@media (max-width:1100px){
   .arb-body{grid-template-columns:1fr}
   .arb-status{margin-left:0}
   .arb-grid>.ev-head,.arb-grid>.ev-viewport,.arb-grid>.empty-state{min-width:0}
@@ -497,9 +497,9 @@
 .kelly-head .matchup-name{font-size:14px}
 /* Middles rows carry an extra line (countdown and window) under the two-line matchup. */
 .ev-row.mid-row{height:116px}
-@media (max-width:900px){.ev-row.mid-row{height:236px}}
+@media (max-width:1100px){.ev-row.mid-row{height:236px}}
 @media (max-width:700px){.pr-types{grid-template-columns:repeat(2,1fr);width:100%}.pr-types button{white-space:normal}}
-@media (max-width:900px){.ev-row.ev-tall{height:244px}}
+@media (max-width:1100px){.ev-row.ev-tall{height:244px}}
 /* Schedule */
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sched{display:flex;flex-direction:column;gap:14px}
@@ -1256,12 +1256,12 @@
 .ev-layout .ev-sharp.ev-cell{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;align-items:baseline}
 .ev-layout .ev-sharp.ev-cell>small:last-child{grid-column:1/-1}
 .props-layout .props-grid>.ev-head{display:grid}
-@media (min-width:901px){
+@media (min-width:1101px){
   .props-layout .props-grid .props-row .ev-cell{grid-column:auto;grid-row:auto}
   .props-layout .props-grid .props-row .ev-time{flex-direction:column;align-items:flex-start}
   .props-layout .props-grid .props-row .ev-time::before{content:none}
 }
-@media (max-width:900px){
+@media (max-width:1100px){
   .ev-layout .ev-grid>.ev-head{display:none}
   .ev-layout .ev-grid>.ev-viewport,.props-layout .props-grid .props-row{min-width:0}
   .ev-layout:not(.props-layout) .ev-row{grid-template-columns:84px minmax(0,1fr)}
