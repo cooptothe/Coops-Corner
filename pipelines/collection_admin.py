@@ -1,5 +1,6 @@
 """Offline, audited billing setup/recovery. Never calls a provider or publishes."""
 import argparse
+from contextlib import ExitStack
 from datetime import datetime, timezone
 from getpass import getpass
 import json
@@ -9,6 +10,7 @@ import sqlite3
 
 from corner.collection_policy import parse
 from corner.collection_quota import LiveGovernor, key_identity
+from corner.collection_maintenance import maintenance_lock
 
 
 def main():
@@ -27,6 +29,7 @@ def main():
     if args.command == 'init' and path.exists():
         parser.error('State already exists; init cannot overwrite or reset it')
     g = None
+    maintenance = ExitStack()
     try:
         if args.command == 'status':
             db = sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)
@@ -39,6 +42,7 @@ def main():
             finally:
                 db.close()
             return 0
+        maintenance.enter_context(maintenance_lock(exclusive=True))
         request = json.loads(Path(args.request).read_text(encoding='utf-8')) if args.request else {}
         now = datetime.now(timezone.utc)
         if args.command == 'init':
@@ -86,6 +90,7 @@ def main():
     finally:
         if g:
             g.close()
+        maintenance.close()
 
 
 if __name__ == '__main__':

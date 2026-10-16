@@ -12,6 +12,7 @@ from corner.collection_activation import activation, STATE, RETAINED
 from corner.collection_policy import parse
 from corner.collection_quota import LiveGovernor, key_identity
 from corner.credit_governor import Refused
+from corner.collection_maintenance import maintenance_lock, MaintenanceBusy
 from pipelines.collection_provider import Provider
 from pipelines.collection_publication import MainPublisher
 from pipelines.collection_runner import Runner
@@ -100,24 +101,26 @@ def main():
             print(json.dumps({'activation_evidence': 'accepted', 'live_collection_started': False,
                               'remaining_checks': 'Bound ledger and writer are checked at actual startup'}))
             return 0
-        g = LiveGovernor(STATE)
-        with g.transaction() as db:
-            binding = g._binding(db, clock())
-            if binding['cycle_id'] != approval['cycle_id'] or binding['key_hash'] != key_identity(os.environ['ODDS_API_KEY']):
-                raise Refused('Approval and bound credential/billing cycle disagree')
-            if binding['used'] != approval['provider_used'] or not 0 <= clock().timestamp() - binding['checked'] < 300:
-                raise Refused('Fresh ledger reconciliation must match activation quota approval')
-            cycle = db.execute('SELECT starts,ends FROM cycles WHERE id=?', (binding['cycle_id'],)).fetchone()
-            if tuple(cycle) != (parse(approval['cycle_start']).timestamp(), parse(approval['cycle_end']).timestamp()):
-                raise Refused('Approved billing dates differ from durable ledger')
-        conn = writer()
-        conn.close()
-        runner = Runner(g, None, None, publisher=MainPublisher(RETAINED, writer), clock=clock,
-                        should_stop=lambda: stop[0])
-        provider = LiveProvider(g, runner.owner, key=os.environ['ODDS_API_KEY'], enabled=True,
-                                exchange_verified=True, clock=clock, should_stop=lambda: stop[0])
-        runner.discover = provider.discover
-        runner.transport = provider.odds
+        with maintenance_lock(should_stop=lambda: stop[0]):
+            approval = activation(clock(), startup=True)
+            g = LiveGovernor(STATE)
+            with g.transaction() as db:
+                binding = g._binding(db, clock())
+                if binding['cycle_id'] != approval['cycle_id'] or binding['key_hash'] != key_identity(os.environ['ODDS_API_KEY']):
+                    raise Refused('Approval and bound credential/billing cycle disagree')
+                if binding['used'] != approval['provider_used'] or not 0 <= clock().timestamp() - binding['checked'] < 300:
+                    raise Refused('Fresh ledger reconciliation must match activation quota approval')
+                cycle = db.execute('SELECT starts,ends FROM cycles WHERE id=?', (binding['cycle_id'],)).fetchone()
+                if tuple(cycle) != (parse(approval['cycle_start']).timestamp(), parse(approval['cycle_end']).timestamp()):
+                    raise Refused('Approved billing dates differ from durable ledger')
+            conn = writer()
+            conn.close()
+            runner = Runner(g, None, None, publisher=MainPublisher(RETAINED, writer), clock=clock,
+                            should_stop=lambda: stop[0])
+            provider = LiveProvider(g, runner.owner, key=os.environ['ODDS_API_KEY'], enabled=True,
+                                    exchange_verified=True, clock=clock, should_stop=lambda: stop[0])
+            runner.discover = provider.discover
+            runner.transport = provider.odds
         def stopping(*args):
             stop[0] = True
         signal.signal(signal.SIGTERM, stopping)
@@ -125,7 +128,11 @@ def main():
         entered_loop = True
         while not stop[0]:
             activation(clock())
-            result = runner.tick()
+            try:
+                with maintenance_lock(timeout=0, should_stop=lambda: stop[0]):
+                    result = runner.tick()
+            except MaintenanceBusy:
+                result = {'state': 'backup_maintenance', 'executed': 0}
             print(json.dumps(result, sort_keys=True), flush=True)
             # Shutdown intent prohibits any subsequent HTTP after the current call.
             for _ in range(10):
@@ -144,8 +151,9 @@ def main():
         if g:
             try:
                 if runner:
-                    g.release(runner.owner)
-            except Refused:
+                    with maintenance_lock(timeout=0):
+                        g.release(runner.owner)
+            except (Refused, MaintenanceBusy):
                 pass  # Inflight reservations remain held until conservative recovery.
             g.close()
 
