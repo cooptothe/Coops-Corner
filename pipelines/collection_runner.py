@@ -18,7 +18,7 @@ from pipelines.collection_worker import fixture_transport
 
 class Runner:
     def __init__(self, governor, discover, transport, *, clock=None, publisher=None,
-                 owner=None, max_jobs=4):
+                 owner=None, max_jobs=4, should_stop=None):
         if not 1 <= max_jobs <= 20:
             raise ValueError('max_jobs must be between 1 and 20')
         self.g = governor
@@ -28,6 +28,7 @@ class Runner:
         self.publisher = publisher
         self.owner = owner or secrets.token_hex(16)
         self.max_jobs = max_jobs
+        self.should_stop = should_stop or (lambda: False)
         self.g.db.executescript('''
           CREATE TABLE IF NOT EXISTS runner_inventory (
             id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT, captured REAL,
@@ -45,6 +46,8 @@ class Runner:
             db.execute('UPDATE controls SET paused=? WHERE id=1', (reason,))
 
     def tick(self):
+        if self.should_stop():
+            return {'state': 'stopping', 'executed': 0}
         now = self.now()
         if not self.g.acquire(self.owner, now):
             return {'state': 'another_worker', 'executed': 0}
@@ -106,7 +109,7 @@ class Runner:
         executed = 0
         for job in jobs:
             now = self.now()
-            if executed >= self.max_jobs or not open_now(now):
+            if self.should_stop() or executed >= self.max_jobs or not open_now(now):
                 break
             if not self.g.acquire(self.owner, now):
                 break

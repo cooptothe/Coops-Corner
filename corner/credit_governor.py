@@ -127,7 +127,7 @@ class Governor:
                 raise Refused('Job already reserved, blocked or not due')
             # Coarse due bands must accelerate on entering a nearer-start band.
             # ready() adjusts due times using the last dispatch, never replaying missed ticks.
-            sums=dict(db.execute('SELECT pool,sum(coalesce(actual,reserved)) FROM attempts WHERE cycle_id=? GROUP BY pool',(cycle[0],)).fetchall())
+            sums=self.accounted(db,cycle[0])
             if sums.get(job.kind,0)+job.cost>POOLS[job.kind]: raise Refused('Pool limit')
             if sum(sums.values())+job.cost>TOTAL-PROTECTED: raise Refused('Protected reserve')
             token=secrets.token_hex(24)
@@ -237,10 +237,13 @@ class Governor:
             count+=1
         return count
 
+    def accounted(self,db,cycle_id):
+        return dict(db.execute('SELECT pool,sum(coalesce(actual,reserved)) FROM attempts WHERE cycle_id=? GROUP BY pool',(cycle_id,)).fetchall())
+
     def status(self):
         cycles=[]
         for cycle in self.db.execute('SELECT * FROM cycles ORDER BY starts'):
-            amounts=dict(self.db.execute('SELECT pool,sum(coalesce(actual,reserved)) FROM attempts WHERE cycle_id=? GROUP BY pool',(cycle['id'],)).fetchall())
+            amounts=self.accounted(self.db,cycle['id'])
             cycles.append({'id':cycle['id'],'accounted':amounts,'remaining_pools':{k:v-amounts.get(k,0) for k,v in POOLS.items()}})
         return {'cycles':cycles,'paused':self.db.execute('SELECT paused FROM controls WHERE id=1').fetchone()[0],
                 'unknown_attempts':self.db.execute("SELECT count(*) FROM attempts WHERE state='unknown'").fetchone()[0],
