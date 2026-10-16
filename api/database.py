@@ -13,6 +13,7 @@ import time
 
 from api.catalog import FixtureCatalog, _verify_selections
 from corner.links import clean_links
+from corner.collection_readers import store_path as scheduled_store_path, main_scopes
 from corner.native_ids import native_ids
 from corner.book_policy import supported_book, supported_books
 
@@ -77,6 +78,10 @@ def keep_latest_capture(rows):
     would otherwise stay "current" until it ages out and show up as a phantom bet. Each capture is the
     full board for its games, so anything absent from the newest one is gone.
     """
+    if scheduled_store_path() is not None:
+        # main_scopes has already checked each book/market against the current
+        # scheduler snapshot. Never discard standard books after a fast-group update.
+        return rows
     newest = {}
     for r in rows:
         key = (r['observed_at'], str(r.get('provider_payload_id', '')))
@@ -216,7 +221,11 @@ def read_source(conn, *, now, max_age, cache=None):
         rows = [r for r in cache['rows'] if r['scheduled_start'] > now and r['observed_at'] >= oldest]
         return rows, cache['participants']
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(QUOTE_SQL, dict(market_codes=list(MARKET_KEYS), now=now, oldest=oldest))
+        query=QUOTE_SQL
+        if scheduled_store_path() is not None:
+            query=query.replace('SELECT e.id AS event_id,','SELECT epi.external_id AS source_event_id, e.id AS event_id,')
+            query=query.replace('WHERE e.scheduled_start', "LEFT JOIN corner.event_provider_identities epi ON epi.event_id=e.id AND epi.active AND epi.provider_id=(SELECT id FROM corner.providers WHERE code='the_odds_api')\nWHERE e.scheduled_start")
+        cur.execute(query, dict(market_codes=list(MARKET_KEYS), now=now, oldest=oldest))
         rows = cur.fetchall()
         events = sorted({r['event_id'] for r in rows})
         participants = []
@@ -232,6 +241,9 @@ def read_source(conn, *, now, max_age, cache=None):
 
 def load_raw(conn, *, now, max_age, references, targets, cache=None):
     rows, participants = read_source(conn, now=now, max_age=max_age, cache=cache)
+    path=scheduled_store_path()
+    if path is not None:
+        rows=main_scopes(rows,path,now)
     rows = keep_latest_capture(rows)
     return build_raw(rows, [(p['event_id'], p['role'], p['display_name']) for p in participants],
                      now=now, references=references, targets=targets)
@@ -251,7 +263,7 @@ class LiveCatalog:
 
     def __init__(self, connect, *, ttl_seconds=None, max_age_seconds=None, references=None, targets=None, clock=None):
         self._connect = connect
-        self._ttl = ttl_seconds
+        self._ttl = ttl_seconds if ttl_seconds is not None else (15 if scheduled_store_path() is not None else None)
         self._max_age = timedelta(seconds=max_age_seconds if max_age_seconds is not None
                                   else int(os.environ.get('CORNER_TOOLS_MAX_AGE_SECONDS', '7200')))
         self._references = tuple(references) if references else _env_books('CORNER_TOOLS_REFERENCE_BOOKS', DEFAULT_REFERENCES)
@@ -289,6 +301,8 @@ class LiveCatalog:
                     try:
                         self._rebuild()
                     except Exception:
+                        if scheduled_store_path() is not None:
+                            raise  # fail closed rather than serve stale actionable bets
                         log.exception('catalog rebuild failed; serving last good snapshot')
                         self._built = time.monotonic()
         return self._inner

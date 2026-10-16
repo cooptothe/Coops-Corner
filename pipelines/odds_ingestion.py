@@ -174,7 +174,7 @@ def refresh_links(directory):
     finally:
         conn.rollback();conn.close()
 
-def ingest(directory):
+def ingest(directory, *, connect=None):
     manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
     raw=(directory/'response.body').read_bytes()
     if manifest['http_status']!=200 or hashlib.sha256(raw).hexdigest()!=manifest['sha256']:
@@ -184,7 +184,7 @@ def ingest(directory):
     snapshot=normalize_featured_payload(raw,received_at=at)
     if any(q.sport_key!=sport or q.market_key not in ('h2h','spreads','totals','h2h_lay') for q in snapshot.quotes):
         raise ValueError('Capture exceeds the explicit main-market scope')
-    conn=psycopg2.connect(**DB_CONFIG)
+    conn=connect() if connect is not None else psycopg2.connect(**DB_CONFIG)
     try:
         # Reuses exact retained payload on rerun. The process does not fetch again.
         with conn.cursor() as cur:
@@ -197,7 +197,7 @@ def ingest(directory):
                 print(json.dumps({'payload_id':str(old[0]),'observations':count,'reused':True}));return
         provider=_seed_provider(conn)
         bindings,books=_bind(conn,provider,snapshot,raw,sport)
-        batch=_create_batch(conn,provider,{'source':'one_shot_board_capture','capture_sha256':manifest['sha256'],'parameters':PARAMS})
+        batch=_create_batch(conn,provider,{'source':'scheduled_board_capture' if manifest.get('scheduled_reservation') else 'one_shot_board_capture','capture_sha256':manifest['sha256'],'parameters':manifest.get('parameters',PARAMS)})
         payload=str(_create_payload(conn,batch,provider,at,raw))
         receipt=ingest_featured_payload(conn,payload_id=payload,bindings=bindings)
         stored_links=upsert_links(conn,link_rows(snapshot,bindings),at)

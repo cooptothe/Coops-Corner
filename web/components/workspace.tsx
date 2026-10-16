@@ -23,7 +23,7 @@ import type {
   Page,
 } from "../lib/contracts";
 import { VIEWS } from "../lib/contracts";
-import { UserMenu } from "./auth-provider";
+import { UserMenu, useAuth } from "./auth-provider";
 import { Cards, Details, OddsMatrix } from "./market-views";
 import PromoFeed from "./promo-feed";
 import EvFeed from "./ev-feed";
@@ -131,6 +131,8 @@ export function ErrorCard({
 }
 export default function Workspace({ view }: { view: View }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const [scheduledTick, setScheduledTick] = useState(0);
   const [data, setData] = useState<Data | null>(null),
     [bootError, setBootError] = useState(""),
     [reload, setReload] = useState(0),
@@ -164,11 +166,25 @@ export default function Workspace({ view }: { view: View }) {
   }, []);
   // The props feed brings its own data, so for it only the small capabilities call is made, and it is shown at once.
   const light = view === "props";
+  // Reads retained snapshots only. Background tabs and an in-flight load do not
+  // start another poll; local non-beta use keeps its manual-fetch workflow.
+  useEffect(() => {
+    if (!user?.role || updating) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const later = () => {
+      timer = setTimeout(() => {
+        if (document.hidden) later();
+        else setScheduledTick((value) => value + 1);
+      }, 15000);
+    };
+    later();
+    return () => clearTimeout(timer);
+  }, [user?.role, updating, scheduledTick]);
   useEffect(() => {
     const controller = new AbortController();
     // Keep the current data on screen while an update loads: clearing it would unmount the
     // feed, close an open calculator and lose scroll position. The new data replaces it at once.
-    setDetail(null);
+    if (scheduledTick === 0) setDetail(null);
     setBootError("");
     setUpdating(true);
     (async () => {
@@ -216,7 +232,7 @@ export default function Workspace({ view }: { view: View }) {
     })();
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reload, light]);
+  }, [reload, light, scheduledTick]);
   useEffect(() => {
     if (!data || view === "promo" || isEv(view)) return;
     const controller = new AbortController();
@@ -384,7 +400,7 @@ export default function Workspace({ view }: { view: View }) {
               retry={() => setReload((v) => v + 1)}
             />
           ) : view === "props" ? (
-            <PropsFeed reload={reload} />
+            <PropsFeed reload={reload + scheduledTick} />
           ) : !data ? (
             <Loading text="Connecting to your local workspace…" />
           ) : view === "promo" ? (

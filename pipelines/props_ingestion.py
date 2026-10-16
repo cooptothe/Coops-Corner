@@ -28,6 +28,11 @@ def _when(text):
 
 
 def load():
+    from corner.collection_readers import store_path
+    path=store_path()
+    if path is not None:
+        from pipelines.collection_publication import read_props
+        return read_props(path)
     try:
         return json.loads(STORE.read_text(encoding='utf-8'))
     except (OSError, ValueError):

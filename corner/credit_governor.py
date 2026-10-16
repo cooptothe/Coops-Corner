@@ -5,6 +5,7 @@ until operator reconciliation. A stale process cannot publish after lease loss.
 """
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from dataclasses import asdict
 import json
 from pathlib import Path
 import secrets
@@ -51,6 +52,13 @@ class Governor:
           source_at REAL NOT NULL, captured_at REAL NOT NULL,
           expires_at REAL NOT NULL, payload TEXT NOT NULL,
           PRIMARY KEY(kind,sport,event_id,book,market));
+        CREATE TABLE IF NOT EXISTS dispatches (
+          token TEXT PRIMARY KEY REFERENCES attempts(token), authorized_at REAL NOT NULL);
+        CREATE TABLE IF NOT EXISTS publication_outbox (
+          token TEXT PRIMARY KEY REFERENCES attempts(token), payload TEXT NOT NULL,
+          published_at REAL);
+        CREATE INDEX IF NOT EXISTS collection_live_snapshots
+          ON snapshots(kind,expires_at,starts_at);
         ''')
 
     def close(self): self.db.close()
@@ -169,6 +177,10 @@ class Governor:
                 db.execute("UPDATE jobs SET state='blocked',last_error=? WHERE key=?",(reason,job.key))
                 return 'paused'
             self._publish(db,job,payload,now)
+            if job.kind=='main':
+                db.execute('INSERT INTO publication_outbox(token,payload) VALUES(?,?)',
+                           (token,json.dumps({'job':asdict(job),'events':payload,'captured_at':now.isoformat(),
+                                              'simulation':attempt['cycle_id'].startswith('simulation-') or 'simulation' in self.path.name.lower()},separators=(',',':'))))
             db.execute("UPDATE jobs SET state='idle',last_error='' WHERE key=?",(job.key,))
             return 'published'
 
@@ -211,6 +223,19 @@ class Governor:
     def snapshots(self,now):
         stamp=aware(now).timestamp()
         return [json.loads(row[0]) for row in self.db.execute('SELECT payload FROM snapshots WHERE expires_at>? AND starts_at>? ORDER BY kind,sport,event_id,book,market',(stamp,stamp))]
+
+    def publish_pending(self,owner,now,publish):
+        """Publisher must be idempotent across DB commit / outbox acknowledgement crashes."""
+        self._fence(self.db,owner,aware(now).timestamp())
+        count=0
+        for row in self.db.execute('SELECT token,payload FROM publication_outbox WHERE published_at IS NULL ORDER BY rowid').fetchall():
+            self._fence(self.db,owner,aware(now).timestamp())
+            publish(row['token'],json.loads(row['payload']))
+            with self.transaction() as db:
+                self._fence(db,owner,aware(now).timestamp())
+                db.execute('UPDATE publication_outbox SET published_at=? WHERE token=? AND published_at IS NULL',(aware(now).timestamp(),row['token']))
+            count+=1
+        return count
 
     def status(self):
         cycles=[]
