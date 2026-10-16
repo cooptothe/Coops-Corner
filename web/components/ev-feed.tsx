@@ -890,9 +890,9 @@ export default function EvFeed({ data }: { data: Data }) {
                     : "No EV bets available yet"}
                 </h3>
                 <p>
-                  Adjust the EV or market-width limits, re-enable books, or
-                  press Refresh odds. Bets need at least two sharp books pricing
-                  the same line.
+                  Adjust the EV or market-width limits, re-enable books, or wait
+                  for the next scheduled capture. Bets need at least two sharp
+                  books pricing the same line.
                 </p>
                 {!settings.atDefaults && (
                   <button

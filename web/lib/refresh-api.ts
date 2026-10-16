@@ -2,6 +2,7 @@ import { notifyUnauthorized } from "./auth-api";
 import type { QuoteLinks } from "./bet-links";
 
 export interface RefreshStatus {
+  manual_fetch_enabled?: boolean;
   last_attempt_at: string | null;
   last_success_at: string | null;
   last_error: string | null;
@@ -99,6 +100,7 @@ export interface PropBet {
   links?: QuoteLinks | null;
 }
 export interface PropsStatus {
+  manual_fetch_enabled?: boolean;
   sports: { key: string; label: string }[];
   markets: Record<string, PropMarketInfo[]>;
   default_events: number;

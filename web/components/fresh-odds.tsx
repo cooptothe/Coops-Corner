@@ -64,7 +64,7 @@ export default function FreshOdds({
   };
 
   async function fetchFresh() {
-    if (!chosen.length || busy) return;
+    if (!chosen.length || busy || status?.manual_fetch_enabled !== true) return;
     setConfirming(false);
     setBusy(true);
     setError("");
@@ -96,6 +96,8 @@ export default function FreshOdds({
   }
 
   const wait = status?.retry_after_seconds ?? 0;
+  if (status?.manual_fetch_enabled !== true)
+    return <span className="muted">Scheduled collection</span>;
   return (
     <div className="fresh-odds">
       <button

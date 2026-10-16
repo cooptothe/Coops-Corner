@@ -742,8 +742,8 @@ export default function MiddleFeed({ data }: { data: Data }) {
                   <h3>No middles match</h3>
                   <p>
                     Raise the max miss cost, re-enable books, leagues or
-                    markets, or press Refresh odds. A middle needs two books
-                    quoting different lines on the same game.
+                    markets, or wait for the next scheduled capture. A middle
+                    needs two books quoting different lines on the same game.
                   </p>
                 </div>
               ) : (

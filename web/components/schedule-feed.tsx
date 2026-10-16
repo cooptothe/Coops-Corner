@@ -285,8 +285,8 @@ export default function ScheduleFeed({ data }: { data: Data }) {
           <div className="empty-state">
             <h3>No upcoming games</h3>
             <p>
-              Pick another league, clear the search, or press Refresh odds to
-              fetch the latest pre-game schedule.
+              Pick another league, clear the search, or wait for scheduled
+              collection to fetch the latest pre-game schedule.
             </p>
           </div>
         ) : (
@@ -343,8 +343,8 @@ export default function ScheduleFeed({ data }: { data: Data }) {
         <p className="odds-note">
           Each line is the main line (the one most sportsbooks quote) with the
           best available price on every side, from the books chosen under “Odds
-          from”. Prices are the last stored snapshot; press Refresh odds for new
-          prices and re-check at the sportsbook.
+          from”. Prices are the last stored snapshot; scheduled collection
+          supplies new prices and re-check at the sportsbook.
         </p>
       </section>
     </PlacedProvider>

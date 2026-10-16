@@ -7,7 +7,7 @@ const GUIDES: Record<View, [string, string]> = {
   ],
   props: [
     "Find a player prop",
-    "Choose a sport and player market, then fetch prop odds if the feed is empty. Use the EV and market-width sliders to narrow results. Select a player to review the bet and stake calculator. Fetching odds uses API credits; changing filters does not.",
+    "Choose a sport and player market from the scheduled collection. Use the EV and market-width sliders to narrow results. Select a player to review the bet and stake calculator. Filtering never triggers a provider request.",
   ],
   arbitrage: [
     "Compare both sides",

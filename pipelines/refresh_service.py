@@ -17,7 +17,7 @@ from fastapi import FastAPI, Request
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
-from corner import prop_markets
+from corner import prop_markets, beta_access
 from pipelines import accounts
 from pipelines import media as media_service
 from pipelines import settings_service
@@ -95,7 +95,8 @@ def status_view(state=None, now=None):
             'sports': [{'key': k, 'label': LABELS[k]} for k in SPORTS], 'quota': state.get('quota'),
             'cooldown_seconds': COOLDOWN, 'retry_after_seconds': wait,
             'attempts_today': attempts, 'daily_cap': DAILY_CAP, 'credits_per_refresh': CREDITS_PER_REFRESH,
-            'can_refresh': wait == 0 and attempts < DAILY_CAP}
+            'can_refresh': not beta_access.enabled() and wait == 0 and attempts < DAILY_CAP,
+            'manual_fetch_enabled': not beta_access.enabled()}
 
 
 def _quota(destination):
@@ -116,6 +117,8 @@ def run_refresh(capture=board.capture, ingest=board.ingest, now=None, sports=SPO
     Each league is captured and ingested independently so one failure keeps the others.
     A failed capture stops the run so a systemic provider fault cannot burn more credits.
     """
+    if beta_access.enabled():
+        return 403, {'error': 'Odds collection is scheduled. Manual fetching is disabled for the beta.', 'code': 'scheduled_only'}
     sports = tuple(dict.fromkeys(sports))
     if not sports or any(s not in SPORTS for s in sports):
         return 400, {'error': 'Choose one or more supported leagues.'}
@@ -205,7 +208,8 @@ def props_status():
     return {'sports': [{'key': k, 'label': LABELS[k]} for k in PROP_SPORTS],
             'markets': prop_markets.catalog_view(PROP_SPORTS),
             'default_events': PROP_DEFAULT_EVENTS, 'max_events': PROP_MAX_EVENTS,
-            'max_age_seconds': props.MAX_AGE, 'last_success_at': props.last_captured()}
+            'max_age_seconds': props.MAX_AGE, 'last_success_at': props.last_captured(),
+            'manual_fetch_enabled': not beta_access.enabled()}
 
 
 def props_found(sport):
@@ -243,6 +247,8 @@ def props_message(label, markets, result, found=None, sport_key=None):
 
 def run_props_refresh(sport, markets, max_events, capture=props.capture):
     """Returns (http_status, body). Credits are spent only as the user asks: no budget, no cooldown."""
+    if beta_access.enabled():
+        return 403, {'error': 'Props collection is scheduled. Manual fetching is disabled for the beta.', 'code': 'scheduled_only'}
     if sport not in PROP_SPORTS or not isinstance(markets, list) or not markets \
             or not all(isinstance(m, str) and prop_markets.market_meta(sport, m) for m in markets) \
             or len(set(markets)) != len(markets) \

@@ -1483,8 +1483,8 @@ export default function PromoFeed({ data }: { data: Data }) {
                   <h3>No conversions match</h3>
                   <p>
                     Widen the promo odds range, lower the minimum conversion,
-                    re-enable hedge books, leagues or markets, or press Refresh
-                    odds.
+                    re-enable hedge books, leagues or markets, or wait for
+                    scheduled collection.
                   </p>
                 </div>
               ) : (

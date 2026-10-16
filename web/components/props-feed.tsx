@@ -111,7 +111,7 @@ function toVm(b: PropBet): Vm {
     player: b.player,
     matchup: `${b.away} @ ${b.home}`,
     market: b.market_label,
-    line: `${b.player} · ${side}`,
+    line: `${b.player} Â· ${side}`,
     startsAt: b.starts_at,
     startMs: new Date(b.starts_at).getTime(),
     bookId: b.book,
@@ -160,7 +160,7 @@ const SORT_LABELS: [SortKey, string][] = [
   ["time", "Event time (soonest)"],
   ["odds_high", "Odds (highest payout)"],
   ["odds_low", "Odds (shortest price)"],
-  ["player", "Player (A–Z)"],
+  ["player", "Player (Aâ€“Z)"],
   ["scanned", "Newest scan"],
 ];
 const SORTS: Record<SortKey, (a: Vm, b: Vm) => number> = {
@@ -180,7 +180,7 @@ function Age({ value }: { value: string | null }) {
     const timer = setInterval(() => tick((n) => n + 1), 1000);
     return () => clearInterval(timer);
   }, []);
-  return <span className="ev-age">{value ? ageLabel(value) : "—"}</span>;
+  return <span className="ev-age">{value ? ageLabel(value) : "â€”"}</span>;
 }
 
 type PropsSettings = {
@@ -505,7 +505,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
 
   const estimate = fetchEvents * fetchMarkets.length * 2;
   const fetchNow = useCallback(async () => {
-    if (!fetchSport || !fetchMarkets.length) return;
+    if (
+      !fetchSport ||
+      !fetchMarkets.length ||
+      status?.manual_fetch_enabled !== true
+    )
+      return;
     if (
       !window.confirm(
         `Fetch ${fetchMarkets.length} prop market${fetchMarkets.length === 1 ? "" : "s"} for up to ${fetchEvents} game${fetchEvents === 1 ? "" : "s"}? This uses up to ${credits(estimate)}.`,
@@ -535,7 +540,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
 
   if (error)
     return <ErrorCard message={error} retry={() => setRetry((n) => n + 1)} />;
-  if (!status) return <Loading text="Scanning player props…" />;
+  if (!status) return <Loading text="Scanning player propsâ€¦" />;
 
   const groups = new Map<string, typeof catalog>();
   for (const m of catalog)
@@ -656,104 +661,110 @@ export default function PropsFeed({ reload }: { reload: number }) {
             off={offBooks}
             setOff={setOffBooks}
           />
-          <h3>Fetch prop odds</h3>
-          <label className="field">
-            <span>LEAGUE</span>
-            <select
-              value={fetchSport}
-              onChange={(e) => {
-                fetchInitialized.current = false;
-                setFetchSport(e.target.value);
-                setFetchMarkets([]);
-              }}
-            >
-              {status.sports.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <details className="arb-menu props-fetch-menu">
-            <summary>Markets to fetch ({fetchMarkets.length})</summary>
-            <div className="arb-menu-pop">
-              <fieldset className="ev-books">
-                <legend>
-                  MARKETS TO FETCH{" "}
-                  <button
-                    type="button"
-                    className="link-button"
-                    onClick={() =>
-                      setFetchMarkets(
-                        catalog.filter((m) => m.default).map((m) => m.key),
-                      )
-                    }
-                  >
-                    default
-                  </button>{" "}
-                  <button
-                    type="button"
-                    className="link-button"
-                    onClick={() => setFetchMarkets([])}
-                  >
-                    none
-                  </button>
-                </legend>
-                {[...groups].map(([group, items]) => (
-                  <div key={group} className="props-group">
-                    <small>{group}</small>
-                    {items.map((m) => (
-                      <label key={m.key}>
-                        <input
-                          type="checkbox"
-                          checked={fetchMarkets.includes(m.key)}
-                          onChange={() =>
-                            setFetchMarkets((prev) =>
-                              prev.includes(m.key)
-                                ? prev.filter((k) => k !== m.key)
-                                : [...prev, m.key],
-                            )
-                          }
-                        />
-                        {m.label}
-                      </label>
+          {status.manual_fetch_enabled === true && (
+            <>
+              <h3>Fetch prop odds</h3>
+              <label className="field">
+                <span>LEAGUE</span>
+                <select
+                  value={fetchSport}
+                  onChange={(e) => {
+                    fetchInitialized.current = false;
+                    setFetchSport(e.target.value);
+                    setFetchMarkets([]);
+                  }}
+                >
+                  {status.sports.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <details className="arb-menu props-fetch-menu">
+                <summary>Markets to fetch ({fetchMarkets.length})</summary>
+                <div className="arb-menu-pop">
+                  <fieldset className="ev-books">
+                    <legend>
+                      MARKETS TO FETCH{" "}
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() =>
+                          setFetchMarkets(
+                            catalog.filter((m) => m.default).map((m) => m.key),
+                          )
+                        }
+                      >
+                        default
+                      </button>{" "}
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => setFetchMarkets([])}
+                      >
+                        none
+                      </button>
+                    </legend>
+                    {[...groups].map(([group, items]) => (
+                      <div key={group} className="props-group">
+                        <small>{group}</small>
+                        {items.map((m) => (
+                          <label key={m.key}>
+                            <input
+                              type="checkbox"
+                              checked={fetchMarkets.includes(m.key)}
+                              onChange={() =>
+                                setFetchMarkets((prev) =>
+                                  prev.includes(m.key)
+                                    ? prev.filter((k) => k !== m.key)
+                                    : [...prev, m.key],
+                                )
+                              }
+                            />
+                            {m.label}
+                          </label>
+                        ))}
+                      </div>
                     ))}
-                  </div>
-                ))}
-              </fieldset>
-            </div>
-          </details>
-          <label className="field">
-            <span>GAMES (SOONEST FIRST) · {fetchEvents}</span>
-            <input
-              type="range"
-              min="1"
-              max={status.max_events}
-              value={fetchEvents}
-              onChange={(e) => setFetchEvents(Number(e.target.value))}
-            />
-          </label>
-          <button
-            className="button"
-            disabled={busy || !fetchMarkets.length}
-            onClick={fetchNow}
-          >
-            {busy ? "Fetching…" : `Fetch props (≤ ${credits(estimate)})`}
-          </button>
-          {notice && (
-            <small
-              role={notice.ok ? "status" : "alert"}
-              className={notice.ok ? "props-ok" : "mid-loss"}
-            >
-              {notice.text}
-            </small>
+                  </fieldset>
+                </div>
+              </details>
+              <label className="field">
+                <span>GAMES (SOONEST FIRST) Â· {fetchEvents}</span>
+                <input
+                  type="range"
+                  min="1"
+                  max={status.max_events}
+                  value={fetchEvents}
+                  onChange={(e) => setFetchEvents(Number(e.target.value))}
+                />
+              </label>
+              <button
+                className="button"
+                disabled={busy || !fetchMarkets.length}
+                onClick={fetchNow}
+              >
+                {busy
+                  ? "Fetchingâ€¦"
+                  : `Fetch props (â‰¤ ${credits(estimate)})`}
+              </button>
+              {notice && (
+                <small
+                  role={notice.ok ? "status" : "alert"}
+                  className={notice.ok ? "props-ok" : "mid-loss"}
+                >
+                  {notice.text}
+                </small>
+              )}
+            </>
           )}
         </FeedFilters>
         <div className="ev-main">
           <div className="ev-count">
             <strong>{visible.length}</strong> of {all.length} bets
             {status.last_success_at && (
-              <> · fetched {date(status.last_success_at)}</>
+              <> Â· fetched {date(status.last_success_at)}</>
             )}
             <FeedChangeNote change={change} />
             <label className="ev-sort">
@@ -792,8 +803,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 </h3>
                 <p>
                   {hiddenAsOld
-                    ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. Fetch prop odds again.`
-                    : "Fetch prop odds, adjust the EV or market-width limits, or re-enable books. Bets need at least two other sharp books quoting the same player, market, line and side."}
+                    ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. This feed will use the next scheduled capture.`
+                    : "Adjust the EV or market-width limits, or re-enable books. Bets need at least two other sharp books quoting the same player, market, line and side."}
                 </p>
                 {!settings.atDefaults && (
                   <button
@@ -833,7 +844,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                             className="parlay-check"
                             aria-label="Added to parlay"
                           >
-                            ✓
+                            âœ“
                           </span>
                         )}
                       <span className="ev-badge">{percent(v.ev, true)}</span>
@@ -871,7 +882,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                     </div>
                     <div role="cell" className="ev-cell ev-sharp">
                       <strong>{percent(v.fair)} chance</strong>
-                      <small>Fair {v.fairOdds ?? "—"}</small>
+                      <small>Fair {v.fairOdds ?? "â€”"}</small>
                       <small>{v.sharps}</small>
                     </div>
                     <div role="cell" className="ev-cell ev-time">

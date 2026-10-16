@@ -879,7 +879,8 @@ export default function ArbFeed({ data }: { data: Data }) {
                   <h3>No arbitrage right now</h3>
                   <p>
                     Lower the minimum profit, re-enable books or leagues, or
-                    press Refresh odds. Real arbitrage is rare and short-lived.
+                    wait for the next scheduled capture. Real arbitrage is rare
+                    and short-lived.
                   </p>
                 </div>
               ) : (
