@@ -136,9 +136,13 @@ def session_user(secret, token, lookup):
     """
     claims = verify_token(secret, token) if token else None
     row = lookup(claims['sub']) if claims else None
-    if not row or claims.get('ep', 0) != row.get('session_epoch', 0):
+    from corner import beta_access
+    if not row or not beta_access.active(row) or claims.get('ep', 0) != row.get('session_epoch', 0):
         return None
-    return {'id': row['id'], 'username': row['username'], 'remember': claims.get('rm', True) is not False}
+    user = {'id': row['id'], 'username': row['username'], 'remember': claims.get('rm', True) is not False}
+    if beta_access.enabled():
+        user.update(role=row.get('beta_role'), access_kind=row.get('beta_access_kind'), founder=row.get('beta_founder', False))
+    return user
 
 
 def load_secret(path):

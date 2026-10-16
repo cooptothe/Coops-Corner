@@ -1,6 +1,9 @@
 export interface User {
   id: string;
   username: string;
+  role?: "admin" | "member";
+  access_kind?: "operator" | "paid_beta" | "preview";
+  founder?: boolean;
 }
 
 export class AuthRequestError extends Error {
@@ -69,9 +72,12 @@ export async function fetchMe(): Promise<User | null> {
 // remember: a 30-day cookie; otherwise the session ends when the browser closes (or after 12 hours).
 export const signIn = (username: string, password: string, remember: boolean) =>
   call("POST", "login", { username, password, remember }) as Promise<User>;
-export const signUp = (username: string, password: string, remember: boolean) =>
-  call("POST", "register", { username, password, remember }) as Promise<User>;
+export const signUp = (username: string, password: string, remember: boolean, invite?: string) =>
+  call("POST", "register", { username, password, remember, invite }) as Promise<User>;
 export const signOut = () => call("POST", "logout", {}).then(() => undefined);
+export const signOutEverywhere = () => call("POST", "logout-all", {}).then(() => {
+  notifyUnauthorized();
+});
 // A wrong current password comes back as 403, which is shown as a message, not treated as a lost session.
 export const changePassword = (current: string, next: string) =>
   call("POST", "password", { current, new: next }).then(() => undefined);

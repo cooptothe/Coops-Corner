@@ -3,7 +3,7 @@ import { PersonalNav } from "./personal-nav";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import { PASSWORD_MIN, changePassword } from "../lib/auth-api";
+import { PASSWORD_MIN, changePassword, signOutEverywhere } from "../lib/auth-api";
 import { UserMenu, useAuth } from "./auth-provider";
 import { StatePicker } from "./bet-link";
 
@@ -15,6 +15,8 @@ export default function AccountPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [sessionsBusy, setSessionsBusy] = useState(false);
+  const [sessionsError, setSessionsError] = useState("");
 
   useEffect(() => {
     document.title = "Account — The Corner";
@@ -79,6 +81,22 @@ export default function AccountPage() {
           is saved to your account.
         </p>
         <StatePicker />
+      </section>
+      <section className="trk-card account-card" aria-labelledby="session-title">
+        <h3 id="session-title">Device sessions</h3>
+        <p className="trk-muted">Sign out every device, including this one. You will need to sign in again.</p>
+        {sessionsError && <p role="alert">{sessionsError}</p>}
+        <button type="button" className="button" disabled={sessionsBusy} onClick={async () => {
+          setSessionsBusy(true);
+          setSessionsError("");
+          try {
+            await signOutEverywhere();
+          } catch {
+            setSessionsError("Could not sign out devices. Please try again.");
+          } finally {
+            setSessionsBusy(false);
+          }
+        }}>{sessionsBusy ? "Signing out…" : "Sign out everywhere"}</button>
       </section>
       <section className="trk-card account-card" aria-labelledby="pw-title">
         <h3 id="pw-title">Change password</h3>

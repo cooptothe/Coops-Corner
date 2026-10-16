@@ -269,7 +269,8 @@ def read_user(path, user_id):
     try:
         db.row_factory = sqlite3.Row
         row = db.execute('SELECT id, username, session_epoch FROM users WHERE id=?', (user_id,)).fetchone()
-        return dict(row) if row else None
+        from corner import beta_access
+        return beta_access.decorate(db, dict(row) if row else None)
     except sqlite3.Error:
         return None
     finally:
@@ -300,6 +301,8 @@ class TrackerStore:
         if 'parlay_legs' not in [r['name'] for r in self._db.execute('PRAGMA table_info(bets)')]:
             self._db.execute("ALTER TABLE bets ADD COLUMN parlay_legs TEXT NOT NULL DEFAULT '[]'")
         self._copy_unscoped_rows()
+        from corner import beta_access
+        beta_access.initialize(self._db)
 
     def close(self):
         with self._lock:
@@ -347,7 +350,7 @@ class TrackerStore:
                 self._db.execute('ALTER TABLE users ADD COLUMN session_epoch INTEGER NOT NULL DEFAULT 0')
 
     # -- accounts -------------------------------------------------------------------------------
-    def create_user(self, username, username_key, password_hash):
+    def create_user(self, username, username_key, password_hash, invite_token=None):
         """A new account; the username must be unused (case-insensitively). The first account adopts any unowned rows."""
         user_id = uuid.uuid4().hex
         with self._lock:
@@ -356,7 +359,10 @@ class TrackerStore:
                 first = self._db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0
                 self._db.execute('INSERT INTO users(id,username,username_key,password_hash,created_at) VALUES(?,?,?,?,?)',
                                  (user_id, username, username_key, password_hash, now_iso()))
-                if first:
+                from corner import beta_access
+                if beta_access.enabled():
+                    beta_access.enroll(self._db, user_id, username_key, invite_token)
+                if first and not beta_access.enabled():
                     self._db.execute('UPDATE bets SET user_id=? WHERE user_id IS NULL', (user_id,))
                     self._db.execute('UPDATE cash SET user_id=? WHERE user_id IS NULL', (user_id,))
                 self._db.execute('COMMIT')
@@ -366,17 +372,25 @@ class TrackerStore:
             except Exception:
                 self._db.execute('ROLLBACK')
                 raise
-        return {'id': user_id, 'username': username}
+        user = {'id': user_id, 'username': username}
+        if beta_access.enabled():
+            row = self.user_by_id(user_id)
+            user.update(role=row['beta_role'], access_kind=row['beta_access_kind'], founder=row['beta_founder'])
+        return user
 
     def user_by_key(self, username_key):
         with self._lock:
             row = self._db.execute('SELECT * FROM users WHERE username_key=?', (username_key,)).fetchone()
-        return dict(row) if row else None
+        from corner import beta_access
+        with self._lock:
+            return beta_access.decorate(self._db, dict(row) if row else None)
 
     def user_by_id(self, user_id):
         with self._lock:
             row = self._db.execute('SELECT * FROM users WHERE id=?', (user_id,)).fetchone()
-        return dict(row) if row else None
+        from corner import beta_access
+        with self._lock:
+            return beta_access.decorate(self._db, dict(row) if row else None)
 
     def list_users(self):
         with self._lock:
@@ -391,6 +405,12 @@ class TrackerStore:
             if cursor.rowcount != 1:
                 _fail('That account no longer exists', 404, 'not_found')
             return self._db.execute('SELECT session_epoch FROM users WHERE id=?', (user_id,)).fetchone()[0]
+
+    def revoke_sessions(self, user_id):
+        with self._lock:
+            cursor = self._db.execute('UPDATE users SET session_epoch=session_epoch+1 WHERE id=?', (user_id,))
+            if cursor.rowcount != 1:
+                _fail('That account no longer exists', 404, 'not_found')
 
     def ledger(self, user_id):
         return Ledger(self, user_id)

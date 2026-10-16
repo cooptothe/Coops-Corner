@@ -37,6 +37,7 @@ interface Auth {
     username: string,
     password: string,
     remember: boolean,
+    invite?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -92,8 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       login: async (username, password, remember) =>
         accept(await signIn(username, password, remember)),
-      register: async (username, password, remember) =>
-        accept(await signUp(username, password, remember)),
+      register: async (username, password, remember, invite) =>
+        accept(await signUp(username, password, remember, invite)),
       logout: async () => {
         // Clear locally even if the request fails, so the screen never stays signed in by mistake.
         await signOut().catch(() => undefined);

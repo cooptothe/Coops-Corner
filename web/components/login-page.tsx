@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [invite, setInvite] = useState("");
   const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
@@ -69,7 +70,7 @@ export default function LoginPage() {
         localStorage.setItem(REMEMBER_KEY, remember ? "1" : "0");
       } catch {}
       await (signup
-        ? register(name, password, remember)
+        ? register(name, password, remember, invite.trim())
         : login(name, password, remember));
     } catch (e) {
       setError(
@@ -120,6 +121,12 @@ export default function LoginPage() {
           </button>
         </div>
         <form onSubmit={submit} noValidate>
+          {signup && <label className="field">
+            <span>INVITATION CODE</span>
+            <input value={invite} onChange={(e) => setInvite(e.target.value)}
+              autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={200} />
+            <small>Private beta access requires a code issued for your username.</small>
+          </label>}
           <label className="field">
             <span>USERNAME</span>
             <input

@@ -12,7 +12,7 @@ from fastapi import APIRouter, Request
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
-from corner import auth
+from corner import auth, beta_access
 from corner.tracker_store import TrackerError, TrackerStore
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -136,7 +136,7 @@ def create_router(ctx, logins=None, signups=None):
             raise auth.AuthError('The request body must be JSON') from None
         if not isinstance(body, dict):
             raise auth.AuthError('The request body must be an object')
-        return body.get('username'), body.get('password'), body.get('remember') is True
+        return body.get('username'), body.get('password'), body.get('remember') is True, body.get('invite')
 
     def failure(error):
         headers = {'Retry-After': str(error.retry_after)} if error.retry_after else None
@@ -153,11 +153,11 @@ def create_router(ctx, logins=None, signups=None):
             if wait:
                 raise auth.AuthError('Too many accounts were created from here. Try again later.', 429, 'throttled', wait)
             signups.fail(client)  # every attempt counts toward the cap
-            username, password, remember = await credentials(request)
+            username, password, remember, invite = await credentials(request)
             name, key = auth.clean_username(username)
             auth.check_password(password, name)
             hashed = await run_in_threadpool(auth.hash_password, password)
-            user = await run_in_threadpool(ctx.store.create_user, name, key, hashed)
+            user = await run_in_threadpool(ctx.store.create_user, name, key, hashed, invite)
         except auth.AuthError as error:
             return failure(error)
         except TrackerError as error:
@@ -170,7 +170,7 @@ def create_router(ctx, logins=None, signups=None):
         if blocked:
             return blocked
         try:
-            username, password, remember = await credentials(request)
+            username, password, remember, invite = await credentials(request)
             key = username.strip().lower() if isinstance(username, str) else ''
             wait = logins.retry_after(key)
             if wait:
@@ -186,8 +186,12 @@ def create_router(ctx, logins=None, signups=None):
                 raise auth.AuthError('Incorrect username or password.', 401, 'bad_credentials')
         except auth.AuthError as error:
             return failure(error)
+        if not beta_access.active(row):
+            return reply(403, {'error': 'This account does not have active private beta access. Contact the operator.', 'code': 'access_required'})
         logins.clear(key)
         user = {'id': row['id'], 'username': row['username']}
+        if beta_access.enabled():
+            user.update(role=row['beta_role'], access_kind=row['beta_access_kind'], founder=row['beta_founder'])
         return _set_session(reply(200, {'user': user}), request, ctx.secret, user, remember=remember,
                             epoch=row['session_epoch'])
 
@@ -231,6 +235,16 @@ def create_router(ctx, logins=None, signups=None):
         blocked = ctx.check(request, write=True)
         if blocked:
             return blocked
+        response = reply(200, {'ok': True})
+        response.delete_cookie(COOKIE, path='/', httponly=True, samesite='strict', secure=_secure(request))
+        return response
+
+    @router.post('/logout-all')
+    async def logout_all(request: Request):
+        user, denied = ctx.require(request, write=True)
+        if denied:
+            return denied
+        await run_in_threadpool(ctx.store.revoke_sessions, user['id'])
         response = reply(200, {'ok': True})
         response.delete_cookie(COOKIE, path='/', httponly=True, samesite='strict', secure=_secure(request))
         return response
