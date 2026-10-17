@@ -3,9 +3,14 @@ import { PersonalNav } from "./personal-nav";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
-import { PASSWORD_MIN, changePassword, signOutEverywhere } from "../lib/auth-api";
+import {
+  PASSWORD_MIN,
+  changePassword,
+  signOutEverywhere,
+} from "../lib/auth-api";
 import { UserMenu, useAuth } from "./auth-provider";
 import { StatePicker } from "./bet-link";
+import BetaMembership from "./beta-membership";
 
 export default function AccountPage() {
   const { user } = useAuth();
@@ -73,6 +78,7 @@ export default function AccountPage() {
         </div>
       </header>
       <PersonalNav current="account" />
+      <BetaMembership />
       <section className="trk-card account-card" aria-labelledby="state-title">
         <h3 id="state-title">Betting state</h3>
         <p className="trk-muted">
@@ -82,21 +88,34 @@ export default function AccountPage() {
         </p>
         <StatePicker />
       </section>
-      <section className="trk-card account-card" aria-labelledby="session-title">
+      <section
+        className="trk-card account-card"
+        aria-labelledby="session-title"
+      >
         <h3 id="session-title">Device sessions</h3>
-        <p className="trk-muted">Sign out every device, including this one. You will need to sign in again.</p>
+        <p className="trk-muted">
+          Sign out every device, including this one. You will need to sign in
+          again.
+        </p>
         {sessionsError && <p role="alert">{sessionsError}</p>}
-        <button type="button" className="button" disabled={sessionsBusy} onClick={async () => {
-          setSessionsBusy(true);
-          setSessionsError("");
-          try {
-            await signOutEverywhere();
-          } catch {
-            setSessionsError("Could not sign out devices. Please try again.");
-          } finally {
-            setSessionsBusy(false);
-          }
-        }}>{sessionsBusy ? "Signing out…" : "Sign out everywhere"}</button>
+        <button
+          type="button"
+          className="button"
+          disabled={sessionsBusy}
+          onClick={async () => {
+            setSessionsBusy(true);
+            setSessionsError("");
+            try {
+              await signOutEverywhere();
+            } catch {
+              setSessionsError("Could not sign out devices. Please try again.");
+            } finally {
+              setSessionsBusy(false);
+            }
+          }}
+        >
+          {sessionsBusy ? "Signing out…" : "Sign out everywhere"}
+        </button>
       </section>
       <section className="trk-card account-card" aria-labelledby="pw-title">
         <h3 id="pw-title">Change password</h3>

@@ -1,0 +1,12 @@
+{
+  "payments_enabled": false,
+  "memo_reviewed": false,
+  "receive_test_passed": false,
+  "support_email": "admin@coopscorner.tech",
+  "terms_version": "beta-2026-11-20-two-day-v1",
+  "receiving": {
+    "XRP": {"address": "rMXR663fRatNsFPJrpVursFzi2zdAiDoEY", "memo": null},
+    "XLM": {"address": "GBTOB4OXJ7AHEVRRVNZK75FAXVUJXHJCPIXRDSEXOZ5PGX6ZUGQVYTTX", "memo": null},
+    "HBAR": {"address": "0.0.10925103", "memo": null}
+  }
+}
