@@ -102,6 +102,14 @@ export interface PropBet {
   market_width_cents?: string | null;
   reference_weights?: Record<string, string>;
   reference_weight_version?: string;
+  allocation_sensitivity?: {
+    probability_min: string;
+    probability_max: string;
+    ev_min: string;
+    ev_max: string;
+    confidence_interval: false;
+    empirically_calibrated: false;
+  } | null;
   observed_at: string | null;
   links?: QuoteLinks | null;
 }

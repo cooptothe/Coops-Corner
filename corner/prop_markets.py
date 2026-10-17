@@ -15,6 +15,7 @@ from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSIO
 from corner.market_width import widest_market_width
 from corner.pricing import fee_policy, reference_eligible, no_vig_pair, VERSION as PRICING_VERSION
 from corner.pricing import one_sided_margin as validate_one_sided_margin
+from corner.scorer_research import scorer_sensitivity
 
 # Same reference books (and environment override) as the main +EV feed in api/database.py.
 SHARP_BOOKS = frozenset(supported_books(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
@@ -285,7 +286,10 @@ def build_bets(events, *, one_sided_margin=None):
         sport = ev['sport_key']
         for market_key, stored in ev['markets'].items():
             meta = market_meta(sport, market_key)
-            if not meta or (meta.kind != TWO_WAY and margin is None):
+            # Scorer markets may usually be Yes-only, but some providers supply
+            # the player's exact No price too. Let complete binary pairs qualify;
+            # never normalize prices across different potential scorers.
+            if not meta:
                 continue
             grouped = {}
             conflicts = set()
@@ -358,6 +362,17 @@ def build_bets(events, *, one_sided_margin=None):
                         proportional = transferred_lower if assumed or inferred else sum(no_vig_pair(prices[b][0], prices[b][1])[1][side] * weights[b] for b in used)
                         lower = min(win, proportional)
                         net_odds = 1 + (price-1) * (1-policy.commission)
+                        allocation = None
+                        if assumed or inferred:
+                            sensitivity_refs = []
+                            for reference in used:
+                                pair = prices[reference]
+                                high = (1/pair[0]+1/pair[1]-1) if set(pair)=={0,1} else margin if assumed else Decimal(margin_evidence[reference]['maximum'])
+                                if high is None or not 0 <= high <= Decimal('.5'):
+                                    break
+                                sensitivity_refs.append({'price':pair[side],'weight':weights[reference],'maximum_overround':high})
+                            if len(sensitivity_refs)==len(used):
+                                allocation = scorer_sensitivity(sensitivity_refs,net_decimal_odds=net_odds)
                         bets.append({
                             'id': f'{event_id}:{market_key}:{player}:{point or ""}:{book}:{side}',
                             'event_id': event_id, 'sport_key': sport, 'home': ev['home_team'],
@@ -372,10 +387,10 @@ def build_bets(events, *, one_sided_margin=None):
                             'ev_basis': 'transferred_margin_sensitivity_after_fees' if inferred else 'assumed_margin_after_fees' if assumed else 'lower_of_power_and_proportional_after_fees',
                             'assumed_margin': str(margin) if assumed else None,
                             'margin_evidence': margin_evidence,
+                            'allocation_sensitivity': allocation,
                             'settlement_basis': 'decisive_settlement_conditional' if conditional else 'binary_no_push_assumed',
                             'sharps': used,
-                            'market_width_cents': widest_market_width([list(prices[b].values()) for b in used])
-                            if meta.kind == TWO_WAY else None,
+                            'market_width_cents': widest_market_width([list(prices[b].values()) for b in used]),
                             'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()},
                             'reference_weight_version': WEIGHT_VERSION,
                             'probability_basis': 'observed_margin_transfer' if inferred else 'assumed_proportional_margin' if assumed else 'weighted_power_no_vig',

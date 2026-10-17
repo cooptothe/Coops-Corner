@@ -1,6 +1,8 @@
 # Automatic one-sided prop pricing
 
-Paired reference prices remain the default when available. Otherwise the app
+Paired reference prices remain the default when available, including exact
+Yes/No pairs for scorer markets. See `SCORER_RESEARCH.md` for independent
+one-sided sensitivity research and its limits. Otherwise the app
 estimates each reference book's margin using complete binary prices from at least
 three other players in the same event and exact prop market. Alternate lines do
 not add independent samples: each player's maximum observed overround counts once.

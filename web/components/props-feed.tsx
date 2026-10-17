@@ -89,6 +89,8 @@ interface Vm extends KellyVm {
   fair: string;
   marketWidth: number | null;
   sharps: string;
+  referenceWeights: string;
+  allocationSensitivity: PropBet["allocation_sensitivity"];
   observedAt: string | null;
 }
 
@@ -133,6 +135,14 @@ function toVm(b: PropBet): Vm {
     marketWidth:
       b.market_width_cents == null ? null : Number(b.market_width_cents),
     sharps: b.sharps.map(bookName).join(" + "),
+    referenceWeights: Object.entries(b.reference_weights ?? {})
+      .sort((a, b) => Number(b[1]) - Number(a[1]))
+      .map(
+        ([book, weight]) =>
+          `${bookName(book)} ${(Number(weight) * 100).toFixed(1)}%`,
+      )
+      .join(" · "),
+    allocationSensitivity: b.allocation_sensitivity,
     observedAt: b.observed_at,
     strategy: "prop",
     fairProb: b.fair_probability,
@@ -571,13 +581,16 @@ export default function PropsFeed({ reload }: { reload: number }) {
         <details className="feed-guide">
           <summary>One-sided props pricing</summary>
           <p>
-            One-sided props are priced automatically when two other reference
-            books have enough complete prices in this event and prop market to
-            estimate their margins. Each book needs three other players. Results
-            are labeled as modeled; EV uses the larger observed margin as a
-            sensitivity check. This is not a calibrated win rate or a confidence
-            bound. Select No limit for market width when the opposite price is
-            unavailable.
+            Anytime touchdown (ATD) and anytime goalscorer (ATG) props can be
+            priced when two other reference books quote both Yes and No for that
+            exact player. A Yes-only list does not reveal the margin: several
+            players can score in the same game. Otherwise, one-sided props are
+            priced automatically when two other reference books have enough
+            complete prices in this event and prop market to estimate their
+            margins. Each book needs three other players. Results are labeled as
+            modeled; EV uses the larger observed margin as a sensitivity check.
+            This is not a calibrated win rate or a confidence bound. Select No
+            limit for market width when the opposite price is unavailable.
           </p>
           <label className="field">
             <span>OPTIONAL MARGIN OVERRIDE (%)</span>
@@ -596,6 +609,13 @@ export default function PropsFeed({ reload }: { reload: number }) {
             Requires two other books on the exact selection. Fees still apply.
             Integer lines are conditional on no push; pick&apos;em payouts
             require a lineup model.
+          </p>
+          <p>
+            Reference influence is weighted, not equal: FanDuel carries the
+            highest current player-prop prior, followed by Pinnacle, then other
+            eligible references. These are provisional reputation weights, not
+            measured accuracy rankings. Each row shows the weights actually
+            used; the offered sportsbook never prices its own bet.
           </p>
         </details>
         <FeedFilters active={!settings.atDefaults}>
@@ -940,6 +960,25 @@ export default function PropsFeed({ reload }: { reload: number }) {
                       <strong>{percent(v.fair)} estimated chance</strong>
                       <small>Fair {v.fairOdds ?? "—"}</small>
                       <small>{v.sharps}</small>
+                      {v.referenceWeights && (
+                        <details>
+                          <summary>Reference weights</summary>
+                          <small>{v.referenceWeights}</small>
+                        </details>
+                      )}
+                      {v.allocationSensitivity && (
+                        <details>
+                          <summary>One-sided sensitivity</summary>
+                          <small>
+                            EV range {percent(v.allocationSensitivity.ev_min)}{" "}
+                            to {percent(v.allocationSensitivity.ev_max)} under
+                            the stated margin ceilings and nonnegative vig
+                            assumptions. This is not a confidence interval. The
+                            headline estimate assumes proportional margin
+                            allocation.
+                          </small>
+                        </details>
+                      )}
                       {v.inferredMargin && (
                         <small>Modeled: observed-margin estimate</small>
                       )}
