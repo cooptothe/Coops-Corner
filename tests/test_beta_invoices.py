@@ -137,3 +137,9 @@ class InvoiceLifecycle(unittest.TestCase):
         self.assertEqual(self.store.user_by_id(self.users[0])['beta_access_kind'],'preview')
         self.assertEqual(self.store._db.execute('SELECT count(*) FROM beta_payment_receipts').fetchone()[0],0)
         self.assertEqual(self.invoices.status(self.users[0],ident)['state'],'submitted')
+
+    def test_hedera_mirror_and_sdk_references_share_one_claim(self):
+        ident=self.request(asset='HBAR');self.quote(ident)
+        self.invoices.submit(self.users[0],ident,'0.0.123-1792000000-000000001')
+        self.assertEqual(self.invoices.submit(self.users[0],ident,'0.0.123@1792000000.000000001'),'submitted')
+        self.assertEqual(self.invoices.status(self.users[0],ident)['transaction_id'],'0.0.123@1792000000.000000001')

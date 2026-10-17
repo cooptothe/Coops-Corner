@@ -58,7 +58,7 @@ class BetaInvoices:
         db.execute("UPDATE beta_payment_requests SET state='expired' WHERE user_id=? AND state='quoted' AND expires_at<=?", (user_id, self.clock()))
 
     def request(self, user_id, asset, accepted_version):
-        if asset not in terms.ASSETS or accepted_version != terms.VERSION:
+        if not isinstance(asset,str) or asset not in terms.ASSETS or accepted_version != terms.VERSION:
             raise TrackerError('Choose a supported asset and accept the current terms.', 400, 'payment_terms')
         def write(db):
             self._member(db, user_id)
@@ -97,9 +97,9 @@ class BetaInvoices:
             amount = terms.quote_amount(row['asset'],usd_per_coin)
             quote = {**amount, **receivers[row['asset']], 'observed_at':observed_at,
                      'source':source.strip(),'expires_at':expires,'quote_id':ident,
-                     'rehearsal_only':True,'send_funds':False}
+                     'rehearsal_only':not receiving['payments_enabled'],'send_funds':receiving['payments_enabled']}
             db.execute("UPDATE beta_payment_requests SET state='quoted',quote_json=?,expires_at=? WHERE id=?",(json.dumps(quote,sort_keys=True),expires,ident))
-            beta.audit(db,actor,'quote_payment_rehearsal',ident)
+            beta.audit(db,actor,'quote_payment' if receiving['payments_enabled'] else 'quote_payment_rehearsal',ident)
             return quote
         return self._run(write)
 
@@ -109,7 +109,11 @@ class BetaInvoices:
             row = self._owned(db,user_id,ident)
             # Hashes/transaction references are a member claim, never proof.
             value = transaction_id.strip().lower() if isinstance(transaction_id,str) else ''
-            pattern = r'[0-9a-f]{64}' if row['asset'] in ('XRP','XLM') else r'0[.]0[.][0-9]+@[0-9]+[.][0-9]{1,9}'
+            if row['asset']=='HBAR':
+                mirror=re.fullmatch(r'(0[.]0[.][1-9][0-9]*)-([0-9]+)-([0-9]{9})',value)
+                if mirror:
+                    value=f'{mirror[1]}@{int(mirror[2])}.{mirror[3]}'
+            pattern = r'[0-9a-f]{64}' if row['asset'] in ('XRP','XLM') else r'0[.]0[.][1-9][0-9]*@(0|[1-9][0-9]*)[.][0-9]{9}'
             if not re.fullmatch(pattern,value):
                 raise TrackerError('Enter the native transaction reference.',400,'payment_reference')
             if row['state'] == 'submitted':
@@ -133,21 +137,32 @@ class BetaInvoices:
     def cancel(self,user_id,ident):
         def write(db):
             row = self._owned(db,user_id,ident)
-            if row['state'] == 'submitted':
-                raise TrackerError('A submitted payment needs operator review; do not send again.',409,'payment_pending')
+            if row['state'] in ('submitted','approved'):
+                raise TrackerError('A submitted or approved payment cannot be cancelled; contact support.',409,'payment_pending')
             if row['state'] != 'cancelled':
                 db.execute("UPDATE beta_payment_requests SET state='cancelled' WHERE id=?",(ident,))
                 beta.audit(db,user_id,'cancel_payment_request',ident)
         return self._run(write)
 
-    def status(self,user_id,ident):
+    def current(self,user_id):
+        with self.store._lock:
+            row = self.store._db.execute('SELECT id FROM beta_payment_requests WHERE user_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1',(user_id,)).fetchone()
+        return self.status(user_id,row[0]) if row else None
+
+    def status(self,user_id,ident,*,instructions=False):
         def read(db):
             self._expire(db,user_id)
             row = self._owned(db,user_id,ident)
             # Public status deliberately omits receiving instructions during rehearsal.
-            return {'id':row['id'],'asset':row['asset'],'state':row['state'],
+            result = {'id':row['id'],'asset':row['asset'],'state':row['state'],
                     'expires_at':row['expires_at'],'terms_version':row['terms_version'],
                     'transaction_id':row['transaction_id'],'payments_enabled':False}
+            if instructions and row['state']=='quoted' and row['quote_json']:
+                quote=json.loads(row['quote_json'])
+                if quote.get('send_funds') is True and quote.get('rehearsal_only') is False:
+                    result['instructions']={key:quote[key] for key in ('address','memo','amount','network','expires_at')}
+                    result['payments_enabled']=True
+            return result
         return self._run(read)
 
     def approve(self,actor,ident,*,evidence,delivered_base_units,destination,memo,received_at,transfer_index=0):

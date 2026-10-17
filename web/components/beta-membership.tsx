@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import BetaCheckout from "./beta-checkout";
 import { notifyUnauthorized } from "../lib/auth-api";
 
 export interface BetaOffer {
@@ -11,8 +12,9 @@ export interface BetaOffer {
     enforced: boolean;
   } | null;
   private_beta: boolean;
-  stage: "preparation";
-  payments_enabled: false;
+  stage: "preparation" | "manual_review";
+  payments_enabled: boolean;
+  checkout_eligible?: boolean;
   terms_version: string;
   trial_days: number;
   price_usd_cents: number;
@@ -60,7 +62,7 @@ export function MembershipOffer({ offer }: { offer: BetaOffer }) {
       </p>
       <p>Pay with {offer.assets.join(", ")}.</p>
       <p role="status">
-        Payments are not open yet.{" "}
+        {!offer.payments_enabled && "Payments are not open yet. "}
         {!offer.membership?.enforced
           ? "Your current preview access is unchanged."
           : offer.membership.state === "operator"
@@ -119,7 +121,12 @@ export default function BetaMembership() {
       </section>
     );
   return offer ? (
-    <MembershipOffer offer={offer} />
+    <>
+      <MembershipOffer offer={offer} />
+      {offer.private_beta &&
+        offer.payments_enabled &&
+        offer.checkout_eligible && <BetaCheckout offer={offer} />}
+    </>
   ) : (
     <p role="status">Loading membership details…</p>
   );

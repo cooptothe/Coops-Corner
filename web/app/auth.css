@@ -290,3 +290,24 @@
     width: 100%;
   }
 }
+
+.beta-checkout .account-form input[type="checkbox"] {
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+.beta-checkout .account-form select {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #44353a;
+  border-radius: 6px;
+  background: #121112;
+  color: #fff;
+  font: inherit;
+}
+.beta-checkout .button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
