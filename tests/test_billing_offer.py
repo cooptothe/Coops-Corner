@@ -51,3 +51,12 @@ class BillingOffer(unittest.TestCase):
         self.assertTrue(body['founder'])
         self.assertEqual(body['launch_monthly_usd_cents'],5000)
         self.assertFalse(body['payments_enabled'])
+
+    def test_real_payment_mutations_remain_disabled(self):
+        client = self.client(True)
+        for path in ('requests','requests/fixture/submit','requests/fixture/cancel'):
+            response = client.post('/api/refresh/v1/billing/'+path,json={'settled':True})
+            self.assertEqual(response.status_code,503)
+            self.assertEqual(response.json()['code'],'payments_disabled')
+            self.assertNotIn('address',json.dumps(response.json()))
+        self.assertEqual(self.client(False).post('/api/refresh/v1/billing/requests',json={}).status_code,401)

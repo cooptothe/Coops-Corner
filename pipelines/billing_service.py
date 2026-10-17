@@ -32,4 +32,15 @@ def create_router(ctx):
             'support_email': SUPPORT_EMAIL,
         }, headers={'Cache-Control':'no-store'})
 
+    @router.post('/requests')
+    @router.post('/requests/{request_id}/submit')
+    @router.post('/requests/{request_id}/cancel')
+    async def unavailable(request: Request):
+        _, denied = ctx.require(request, write=True)
+        if denied:
+            return denied
+        return JSONResponse({'error':'Payments are not open yet. No funds should be sent.',
+                             'code':'payments_disabled'}, status_code=503,
+                            headers={'Cache-Control':'no-store'})
+
     return router

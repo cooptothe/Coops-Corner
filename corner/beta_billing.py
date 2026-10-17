@@ -3,6 +3,8 @@
 All mutations own a BEGIN IMMEDIATE transaction on the existing account store.
 No public endpoint, wallet keys, pricing oracle, or automatic chain trust exists.
 """
+from contextlib import contextmanager
+import threading
 import hashlib
 import json
 import re
@@ -23,6 +25,7 @@ def text(value, name, limit=300):
 class BetaBilling:
     def __init__(self, store):
         self.store = store
+        self._review = threading.local()
         with store._lock:
             store._db.executescript('''
             CREATE TABLE IF NOT EXISTS beta_payment_receipts (
@@ -42,9 +45,21 @@ class BetaBilling:
             );
             ''')
 
+    @contextmanager
+    def atomic_review(self):
+        """Only internal invoice review may join its already locked transaction."""
+        self._review.join = True
+        try:
+            yield
+        finally:
+            self._review.join = False
+
     def _transaction(self, actor, operation):
         with self.store._lock:
             db = self.store._db
+            if getattr(self._review, 'join', False) and db.in_transaction:
+                beta.require_operator(db, actor)
+                return operation(db)
             db.execute('BEGIN IMMEDIATE')
             try:
                 beta.require_operator(db, actor)
