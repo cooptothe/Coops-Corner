@@ -29,6 +29,10 @@ class BillingOffer(unittest.TestCase):
         body = response.json()
         self.assertEqual(body['trial_days'],2)
         self.assertEqual(body['price_usd_cents'],5000)
+        self.assertEqual(body['standard_monthly_usd_cents'],12500)
+        self.assertEqual(body['founder_monthly_usd_cents'],5000)
+        self.assertEqual(body['package_label'],'Pregame standard markets')
+        self.assertEqual(body['launch_monthly_usd_cents'],12500)
         self.assertEqual(set(body['assets']),{'XRP','HBAR','XLM'})
         self.assertFalse(body['payments_enabled'])
         self.assertNotIn('address',json.dumps(body))
@@ -37,3 +41,13 @@ class BillingOffer(unittest.TestCase):
     def test_local_mode_stays_outside_private_beta(self):
         with patch.dict('os.environ', {'CORNER_PRIVATE_BETA':'0'}):
             self.assertFalse(self.client(True).get('/api/refresh/v1/billing/status').json()['private_beta'])
+
+    def test_founder_rate_is_server_selected(self):
+        ctx = Context(True)
+        ctx.require = lambda request, write: ({'id':'fixture', 'founder':True}, None)
+        app = FastAPI()
+        app.include_router(create_router(ctx))
+        body = TestClient(app).get('/api/refresh/v1/billing/status').json()
+        self.assertTrue(body['founder'])
+        self.assertEqual(body['launch_monthly_usd_cents'],5000)
+        self.assertFalse(body['payments_enabled'])

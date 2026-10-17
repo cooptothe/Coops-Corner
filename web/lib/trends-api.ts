@@ -87,6 +87,8 @@ export async function trendsRequest<T>(
   });
   if (response.status === 401) notifyUnauthorized();
   const data = await response.json().catch(() => null);
+  if (response.status === 403 && data?.code === "membership_required")
+    notifyUnauthorized();
   if (!response.ok)
     throw new Error(
       typeof data?.error === "string"

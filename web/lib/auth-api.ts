@@ -4,6 +4,12 @@ export interface User {
   role?: "admin" | "member";
   access_kind?: "operator" | "paid_beta" | "preview";
   founder?: boolean;
+  membership?: {
+    state: string;
+    expires_at: number | null;
+    allowed: boolean;
+    enforced: boolean;
+  };
 }
 
 export class AuthRequestError extends Error {
@@ -18,7 +24,7 @@ export class AuthRequestError extends Error {
 const BASE = "/api/refresh/v1/auth";
 const EVENT = "corner:unauthorized";
 
-// Any service call that comes back 401 (an expired or removed session) sends the user to sign in again.
+// Recheck the account after a denied request: membership expiry is not a lost login.
 export const notifyUnauthorized = () => {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENT));
 };

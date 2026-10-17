@@ -9,9 +9,15 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import {
+  AccountRecheck,
+  needsMembershipAccount,
+  membershipRouteAllowed,
+} from "../lib/membership-access";
 import { setStorageOwner } from "../lib/user-storage";
 import { SettingsProvider } from "./settings-provider";
 import {
@@ -55,34 +61,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [attempt, setAttempt] = useState(0);
 
-  // Hydrate once per page load: the cookie is HttpOnly, so the server is the only one who can say who we are.
-  useEffect(() => {
-    let live = true;
-    fetchMe().then(
+  const recheck = useRef<AccountRecheck | null>(null);
+  if (!recheck.current)
+    recheck.current = new AccountRecheck(
+      fetchMe,
       (me) => {
-        if (!live) return;
         setStorageOwner(me?.id ?? null);
         setUser(me);
         setStatus(me ? "signed-in" : "signed-out");
       },
-      () => live && setStatus("unreachable"),
+      () => setStatus("unreachable"),
     );
-    return () => {
-      live = false;
-    };
+
+  useEffect(() => {
+    void recheck.current!.check();
+    return () => recheck.current!.invalidate();
   }, [attempt]);
 
   useEffect(
     () =>
       onUnauthorized(() => {
-        setStorageOwner(null);
-        setUser(null);
-        setStatus("signed-out");
+        void recheck.current!.check();
       }),
     [],
   );
 
+  useEffect(() => {
+    if (status !== "signed-in" || !user?.membership?.enforced) return;
+    const refresh = () => {
+      if (document.visibilityState !== "hidden") void recheck.current!.check();
+    };
+    const interval = setInterval(refresh, 60000);
+    const expiry = user.membership.expires_at;
+    const remaining = expiry === null ? null : expiry * 1000 - Date.now();
+    const deadline =
+      remaining !== null && remaining > 0 && remaining <= 2147483647
+        ? setTimeout(
+            () => {
+              // Remove feed content at the known deadline even if the server is unreachable.
+              setUser((current) =>
+                current?.id === user.id && current.membership
+                  ? {
+                      ...current,
+                      membership: {
+                        ...current.membership,
+                        allowed: false,
+                        state: "expired",
+                      },
+                    }
+                  : current,
+              );
+              refresh();
+            },
+            Math.min(remaining, 2147483647),
+          )
+        : null;
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(interval);
+      if (deadline !== null) clearTimeout(deadline);
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [status, user]);
+
   const accept = useCallback((me: User) => {
+    recheck.current!.invalidate();
     setStorageOwner(me.id);
     setUser(me);
     setStatus("signed-in");
@@ -91,13 +136,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       user,
-      login: async (username, password, remember) =>
-        accept(await signIn(username, password, remember)),
-      register: async (username, password, remember, invite) =>
-        accept(await signUp(username, password, remember, invite)),
+      login: async (username, password, remember) => {
+        recheck.current!.invalidate();
+        accept(await signIn(username, password, remember));
+      },
+      register: async (username, password, remember, invite) => {
+        recheck.current!.invalidate();
+        accept(await signUp(username, password, remember, invite));
+      },
       logout: async () => {
+        recheck.current!.invalidate();
+        setStorageOwner(null);
+        setUser(null);
+        setStatus("signed-out");
         // Clear locally even if the request fails, so the screen never stays signed in by mistake.
         await signOut().catch(() => undefined);
+        recheck.current!.invalidate();
         setStorageOwner(null);
         setUser(null);
         setStatus("signed-out");
@@ -155,17 +209,33 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isLogin = pathname === "/login";
+  const membershipBlocked =
+    status === "signed-in" &&
+    needsMembershipAccount(user) &&
+    !membershipRouteAllowed(pathname);
 
   useEffect(() => {
-    if (status === "signed-out" && !isLogin) {
+    if (membershipBlocked) {
+      router.replace("/account");
+    } else if (status === "signed-out" && !isLogin) {
       const next =
         pathname && pathname !== "/"
           ? `?next=${encodeURIComponent(pathname)}`
           : "";
       router.replace(`/login${next}`);
     }
-  }, [status, isLogin, pathname, router]);
+  }, [status, isLogin, pathname, router, membershipBlocked]);
 
+  if (membershipBlocked)
+    return (
+      <Splash>
+        <p>Your membership access has ended or has not started.</p>
+        <p>
+          <Link href="/account">View membership</Link> |{" "}
+          <Link href="/tracker">Open your tracker</Link>
+        </p>
+      </Splash>
+    );
   if (status === "unreachable") return null;
   if (status === "loading") return <Splash />;
   if (status === "signed-out" && !isLogin) return <Splash />;

@@ -5,6 +5,9 @@ from decimal import Decimal, InvalidOperation, ROUND_CEILING, localcontext
 VERSION = 'beta-2026-11-20-two-day-v1'
 TRIAL_SECONDS = 2 * 24 * 60 * 60
 PRICE_USD_CENTS = 5000
+STANDARD_MONTHLY_USD_CENTS = 12500
+FOUNDER_MONTHLY_USD_CENTS = 5000
+PACKAGE_LABEL = "Pregame standard markets"
 ASSETS = {'XRP': ('xrpl-mainnet', 6), 'HBAR': ('hedera-mainnet', 8),
           'XLM': ('stellar-mainnet', 7)}
 # End of November 20 in America/Chicago (CST after the November DST transition).

@@ -73,3 +73,19 @@ class TrialEnforcement(unittest.TestCase):
             self.assertTrue(beta.access_status(self.store.user_by_id(self.owner['id']), beta_terms.BETA_END + 1)['allowed'])
             beta.state(self.store._db, self.owner['id'], 'alice', 'suspended')
             self.assertFalse(beta.access_status(self.row())['allowed'])
+
+    def test_expired_login_returns_membership_without_losing_account_session(self):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from pipelines.accounts import create_router
+        self.store._db.execute('UPDATE users SET password_hash=? WHERE id=?', (auth.hash_password('alice-private-password'), self.alice['id']))
+        app = FastAPI()
+        app.include_router(create_router(AuthContext(self.store, 's' * 48, {'http://localhost:3000'})))
+        with patch.dict(os.environ, {'CORNER_BETA_TRIALS': '1'}):
+            client = TestClient(app, base_url='http://localhost:3000')
+            response = client.post('/api/refresh/v1/auth/login', json={'username':'Alice', 'password':'alice-private-password', 'remember':False}, headers={'Origin':'http://localhost:3000'})
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.json()['user']['membership']['allowed'])
+            me = client.get('/api/refresh/v1/auth/me')
+            self.assertEqual(me.status_code, 200)
+            self.assertEqual(me.json()['user']['id'], self.alice['id'])

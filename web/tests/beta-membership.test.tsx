@@ -21,6 +21,12 @@ test("membership offer shows the confirmed simple terms and support", () => {
   assert.match(html, /\$50/);
   assert.match(html, /November 20, 2026/);
   assert.match(html, /No refunds/);
+  assert.match(html, /125\/month/);
+  assert.match(html, /50\/month/);
+  assert.match(html, /Pregame standard markets/);
+  assert.match(html, /locks in/);
+  assert.match(html, /skip the \$50 beta option/);
+  assert.match(html, /will not automatically become a paid subscription/);
   assert.match(html, /No automatic charges or renewal/);
   assert.match(html, /XRP, HBAR, XLM/);
   assert.match(html, /mailto:admin@coopscorner.tech/);
@@ -37,8 +43,20 @@ test("local accounts do not acquire a beta offer", () => {
 });
 
 test("expired members retain recovery information", () => {
- const html = renderToStaticMarkup(<MembershipOffer offer={{...offer, membership: {state: "expired", expires_at: 1792000000, allowed: false, enforced: true}}} />);
- assert.match(html, /membership access has ended/);
- assert.match(html, /personal tracker remain available/);
- assert.doesNotMatch(html, /preview access is unchanged/);
+  const html = renderToStaticMarkup(
+    <MembershipOffer
+      offer={{
+        ...offer,
+        membership: {
+          state: "expired",
+          expires_at: 1792000000,
+          allowed: false,
+          enforced: true,
+        },
+      }}
+    />,
+  );
+  assert.match(html, /membership access has ended/);
+  assert.match(html, /personal tracker remain available/);
+  assert.doesNotMatch(html, /preview access is unchanged/);
 });

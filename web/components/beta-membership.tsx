@@ -16,6 +16,10 @@ export interface BetaOffer {
   terms_version: string;
   trial_days: number;
   price_usd_cents: number;
+  standard_monthly_usd_cents?: number;
+  founder_monthly_usd_cents?: number;
+  package_label?: string;
+  founder?: boolean;
   access_end_label: string;
   assets: string[];
   support_email: string;
@@ -37,6 +41,22 @@ export function MembershipOffer({ offer }: { offer: BetaOffer }) {
       <p className="trk-muted">
         Paid beta access runs through {offer.access_end_label}. No refunds. No
         automatic charges or renewal.
+      </p>
+      <p>
+        If you skip the $50 beta option, you can subscribe when the app launches
+        at the standard ${(offer.standard_monthly_usd_cents ?? 12500) / 100}
+        /month. Your free trial will not automatically become a paid
+        subscription.
+      </p>
+      <p>
+        {offer.founder
+          ? "Your locked-in rate is"
+          : "Paying the $50 beta fee locks in"}{" "}
+        <strong>
+          ${(offer.founder_monthly_usd_cents ?? 5000) / 100}/month
+        </strong>{" "}
+        for the {offer.package_label ?? "Pregame standard markets"} package
+        after launch. No automatic enrollment or recurring charge.
       </p>
       <p>Pay with {offer.assets.join(", ")}.</p>
       <p role="status">

@@ -167,6 +167,8 @@ def create_router(ctx, logins=None, signups=None):
             return failure(error)
         except TrackerError as error:
             return reply(error.status, {'error': str(error), 'code': error.code})
+        if beta_access.trials_enabled():
+            user['membership'] = beta_access.access_status(ctx.store.user_by_id(user['id']))
         return _set_session(reply(200, {'user': user}), request, ctx.secret, user, remember=remember)
 
     @router.post('/login')
@@ -197,6 +199,8 @@ def create_router(ctx, logins=None, signups=None):
         user = {'id': row['id'], 'username': row['username']}
         if beta_access.enabled():
             user.update(role=row['beta_role'], access_kind=row['beta_access_kind'], founder=row['beta_founder'])
+        if beta_access.trials_enabled():
+            user['membership'] = beta_access.access_status(row)
         return _set_session(reply(200, {'user': user}), request, ctx.secret, user, remember=remember,
                             epoch=row['session_epoch'])
 
