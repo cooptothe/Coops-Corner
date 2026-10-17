@@ -128,7 +128,7 @@ def verify_token(secret, token, *, now=None):
         return None
 
 
-def session_user(secret, token, lookup):
+def session_user(secret, token, lookup, *, member_access_required=True):
     """The {id, username, remember} a session token stands for, or None.
 
     `lookup(user_id)` returns the stored account row (or None). A token stops working when the account is
@@ -139,9 +139,14 @@ def session_user(secret, token, lookup):
     from corner import beta_access
     if not row or not beta_access.active(row) or claims.get('ep', 0) != row.get('session_epoch', 0):
         return None
+    membership = beta_access.access_status(row)
+    if member_access_required and not membership['allowed']:
+        return None
     user = {'id': row['id'], 'username': row['username'], 'remember': claims.get('rm', True) is not False}
     if beta_access.enabled():
         user.update(role=row.get('beta_role'), access_kind=row.get('beta_access_kind'), founder=row.get('beta_founder', False))
+    if beta_access.trials_enabled():
+        user['membership'] = membership
     return user
 
 

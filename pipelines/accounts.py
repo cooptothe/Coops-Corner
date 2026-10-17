@@ -64,7 +64,7 @@ class AuthContext:
     def user(self, request):
         """The signed-in account for this request ({id, username}), or None."""
         token = request.cookies.get(COOKIE)
-        return auth.session_user(self.secret, token, self.store.user_by_id)
+        return auth.session_user(self.secret, token, self.store.user_by_id, member_access_required=False)
 
     def check(self, request, *, write):
         """None when the request may proceed, else the error response to send."""
@@ -82,6 +82,11 @@ class AuthContext:
         user = self.user(request)
         if not user:
             return None, reply(401, UNAUTHENTICATED)
+        allowed_paths = ('/api/refresh/v1/auth/', '/api/refresh/v1/billing/',
+                         '/api/refresh/v1/tracker/', '/api/refresh/v1/settings/')
+        membership = user.get('membership')
+        if membership and not membership['allowed'] and not request.url.path.startswith(allowed_paths):
+            return None, reply(403, {'error': 'Your membership access has ended or has not started. Open Account for details.', 'code': 'membership_required'})
         return user, None
 
     async def serve(self, request, write, work):

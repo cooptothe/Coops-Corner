@@ -22,6 +22,8 @@ def main():
                        help='Preview reason or operator-verified receipt reference; no secrets')
         if name == 'invite':
             p.add_argument('--hours', type=int, default=48)
+    p = commands.add_parser('start-trial')
+    p.add_argument('username')
     p = commands.add_parser('state')
     p.add_argument('username')
     p.add_argument('value', choices=('active','suspended','closed'))
@@ -57,6 +59,9 @@ def main():
                     elif args.command == 'grant':
                         beta.grant(db, actor, auth.clean_username(args.username)[1], args.kind, args.evidence)
                         print('Existing account granted access. Sign in again.')
+                    elif args.command == 'start-trial':
+                        started = beta.start_trial(db, actor, auth.clean_username(args.username)[1])
+                        print(f'Immutable trial start (Unix seconds): {started}')
                     elif args.command == 'state':
                         beta.state(db, actor, auth.clean_username(args.username)[1], args.value)
                         print('Member state updated; existing sessions revoked.')

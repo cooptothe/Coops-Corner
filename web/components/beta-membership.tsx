@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { notifyUnauthorized } from "../lib/auth-api";
 
 export interface BetaOffer {
+  membership?: {
+    state: string;
+    expires_at: number | null;
+    allowed: boolean;
+    enforced: boolean;
+  } | null;
   private_beta: boolean;
   stage: "preparation";
   payments_enabled: false;
@@ -34,7 +40,18 @@ export function MembershipOffer({ offer }: { offer: BetaOffer }) {
       </p>
       <p>Pay with {offer.assets.join(", ")}.</p>
       <p role="status">
-        Payments are not open yet. Your current preview access is unchanged.
+        Payments are not open yet.{" "}
+        {!offer.membership?.enforced
+          ? "Your current preview access is unchanged."
+          : offer.membership.state === "operator"
+            ? "You have operator access."
+            : offer.membership.state === "not_started"
+              ? "Your trial has not started. Contact support to begin."
+              : offer.membership.state === "expired"
+                ? "Your membership access has ended. Account and your personal tracker remain available."
+                : offer.membership.expires_at
+                  ? `Your ${offer.membership.state === "paid" ? "paid access" : "trial"} ends ${new Date(offer.membership.expires_at * 1000).toLocaleString("en-US", { timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "short" })} Central.`
+                  : "Contact support about your membership."}
       </p>
       <p>
         <a href={`mailto:${offer.support_email}`}>Contact support</a>

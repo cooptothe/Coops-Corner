@@ -11,11 +11,12 @@ def create_router(ctx):
 
     @router.get('/status')
     async def status(request: Request):
-        _, denied = ctx.require(request, write=False)
+        user, denied = ctx.require(request, write=False)
         if denied:
             return denied
         return JSONResponse({
             'private_beta': beta_access.enabled(),
+            'membership': user.get('membership'),
             'stage': 'preparation',
             'payments_enabled': False,
             'terms_version': beta_terms.VERSION,

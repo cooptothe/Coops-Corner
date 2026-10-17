@@ -35,3 +35,10 @@ test("local accounts do not acquire a beta offer", () => {
     "",
   );
 });
+
+test("expired members retain recovery information", () => {
+ const html = renderToStaticMarkup(<MembershipOffer offer={{...offer, membership: {state: "expired", expires_at: 1792000000, allowed: false, enforced: true}}} />);
+ assert.match(html, /membership access has ended/);
+ assert.match(html, /personal tracker remain available/);
+ assert.doesNotMatch(html, /preview access is unchanged/);
+});

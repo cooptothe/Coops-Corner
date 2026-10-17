@@ -49,6 +49,11 @@ def initialize(db):
       evidence TEXT NOT NULL,
       created_at REAL NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS beta_trials (
+      user_id TEXT PRIMARY KEY REFERENCES users(id),
+      started_at REAL NOT NULL,
+      started_by TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS beta_audit (
       id INTEGER PRIMARY KEY,
       actor TEXT NOT NULL,
@@ -81,7 +86,50 @@ def decorate(db, row):
                beta_state=membership[1] if membership else None,
                beta_founder=bool(membership[2]) if membership else False,
                beta_access_kind=membership[3] if membership else None)
+    if trials_enabled():
+        trial = db.execute('SELECT started_at FROM beta_trials WHERE user_id=?', (row['id'],)).fetchone()
+        row['beta_trial_started_at'] = trial[0] if trial else None
+        row['beta_member_created_at'] = db.execute('SELECT created_at FROM beta_members WHERE user_id=?', (row['id'],)).fetchone()[0] if membership else None
     return row
+
+
+def trials_enabled():
+    value = os.environ.get('CORNER_BETA_TRIALS', '0')
+    if value not in ('0', '1'):
+        raise RuntimeError('CORNER_BETA_TRIALS must be 0 or 1.')
+    return enabled() and value == '1'
+
+
+def access_status(row, now=None):
+    from corner import beta_terms
+    if not trials_enabled():
+        return {'state': 'preview', 'expires_at': None, 'allowed': active(row), 'enforced': False}
+    if not active(row):
+        return {'state': 'unavailable', 'expires_at': None, 'allowed': False, 'enforced': True}
+    kind = row.get('beta_access_kind')
+    start = row.get('beta_trial_started_at') if kind == 'preview' else row.get('beta_member_created_at')
+    if kind != 'operator' and start is None:
+        result = {'state': 'not_started', 'expires_at': None}
+    else:
+        result = beta_terms.entitlement(kind, start or 0, time.time() if now is None else now)
+    return {**result, 'allowed': result['state'] in ('operator', 'trial', 'paid'), 'enforced': True}
+
+
+def start_trial(db, actor, username_key):
+    from corner import beta_terms
+    require_operator(db, actor)
+    member = db.execute("SELECT m.user_id FROM beta_members m JOIN users u ON u.id=m.user_id WHERE u.username_key=? AND m.state='active' AND m.access_kind='preview'", (username_key,)).fetchone()
+    if not member:
+        fail('An active preview member is required.', status=409)
+    existing = db.execute('SELECT started_at FROM beta_trials WHERE user_id=?', (member[0],)).fetchone()
+    if existing:
+        return existing[0]
+    now = time.time()
+    if not beta_terms.trial_available(now):
+        fail('A full two-day trial is no longer available.', status=409)
+    db.execute('INSERT INTO beta_trials VALUES(?,?,?)', (member[0], now, actor))
+    audit(db, actor, 'start_trial', member[0])
+    return now
 
 
 def active(row):
@@ -105,6 +153,11 @@ def enroll(db, user_id, username_key, token):
     paid = invite['access_kind'] == 'paid_beta'
     db.execute('INSERT INTO beta_members VALUES(?,?,?,?,?,?,?)',
                (user_id, 'member', 'active', int(paid), invite['access_kind'], invite['evidence'], now))
+    if not paid and trials_enabled():
+        from corner import beta_terms
+        if not beta_terms.trial_available(now):
+            fail('A full two-day trial is no longer available.', status=409)
+        db.execute('INSERT INTO beta_trials VALUES(?,?,?)', (user_id, now, user_id))
     db.execute('UPDATE beta_invites SET redeemed_by=? WHERE id=?', (user_id, invite['id']))
     audit(db, user_id, 'redeem_invite', invite['id'])
 
