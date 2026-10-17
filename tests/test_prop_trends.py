@@ -90,3 +90,13 @@ class ResearchMath(unittest.TestCase):
         self.assertGreater(result['brier'],.5)
         self.assertFalse(result['edge_validated'])
         self.assertTrue(math.isfinite(result['log_loss']))
+
+
+class FullSeasonHistory(unittest.TestCase):
+    def test_full_season_does_not_expand_the_forecast_training_window(self):
+        rows=[{**g,'season':2030,'game_result':'W'} for g in games([20]*65)]
+        result=report(rows)
+        self.assertEqual(len(result['season_games']),65)
+        self.assertEqual(len(result['history_games']),40)
+        self.assertEqual(result['baseline']['games'],30)
+        self.assertTrue(all(g['game_result']=='W' for g in result['season_games']))

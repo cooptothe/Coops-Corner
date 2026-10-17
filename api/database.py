@@ -51,16 +51,22 @@ SELECT e.id AS event_id, c.code AS competition_code, c.display_name AS competiti
        p.display_name AS selection_name, b.code AS book_code, b.display_name AS book_name,
        q.decimal_odds, q.observed_at, q.provider_updated_at, q.provider_payload_id,
        ql.event_url, ql.market_url, ql.outcome_url
-FROM corner.trusted_current_quotes q
-JOIN corner.quote_states qs ON qs.id = q.quote_state_id AND qs.code = 'active'
-JOIN corner.sportsbooks b ON b.id = q.sportsbook_id AND b.active
-JOIN corner.outcomes o ON o.id = q.outcome_id
-JOIN corner.outcome_sides os ON os.id = o.outcome_side_id
-JOIN corner.markets m ON m.id = o.market_id AND m.subject_participant_id IS NULL
+FROM corner.events e
+JOIN corner.competitions c ON c.id = e.competition_id
+JOIN corner.markets m ON m.event_id = e.id AND m.subject_participant_id IS NULL
 JOIN corner.market_types mt ON mt.id = m.market_type_id AND mt.code = ANY(%(market_codes)s)
 JOIN corner.scopes sc ON sc.id = m.scope_id AND sc.code = 'full_game'
-JOIN corner.events e ON e.id = m.event_id
-JOIN corner.competitions c ON c.id = e.competition_id
+JOIN corner.outcomes o ON o.market_id = m.id
+JOIN corner.outcome_sides os ON os.id = o.outcome_side_id
+JOIN LATERAL (
+    -- Filtering a DISTINCT ON partition by its outcome preserves the same trusted
+    -- winner per book. The fence keeps PostgreSQL from scanning the entire ledger
+    -- before narrowing to upcoming exact markets. State/age filters stay outside.
+    SELECT latest.* FROM corner.trusted_current_quotes latest
+    WHERE latest.outcome_id = o.id OFFSET 0
+) q ON true
+JOIN corner.quote_states qs ON qs.id = q.quote_state_id AND qs.code = 'active'
+JOIN corner.sportsbooks b ON b.id = q.sportsbook_id AND b.active
 LEFT JOIN corner.participants p ON p.id = o.selected_participant_id
 LEFT JOIN corner.quote_links ql ON ql.outcome_id = q.outcome_id AND ql.sportsbook_id = q.sportsbook_id
 WHERE e.scheduled_start > %(now)s AND q.observed_at >= %(oldest)s AND q.decimal_odds > 1

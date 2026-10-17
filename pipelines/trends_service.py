@@ -94,7 +94,7 @@ def normalize_games(payload, sport, market, season):
                 if market in ('player_double_double','player_triple_double'):
                     value=int(sum(Decimal(str(v))>=10 for v in parts)>=(2 if market=='player_double_double' else 3))
                 output.append({'id':str(row['eventId']), 'date':event.get('gameDate'),
-                               'value':str(value),
+                               'value':str(value), 'game_result':event['gameResult'],
                                'workload':str(workload) if workload is not None else None,
                                'opponent':(event.get('opponent') or {}).get('displayName',''),
                                'home':event.get('atVs')=='vs' if event.get('atVs') in ('vs','@','at') else None, 'completed':True,

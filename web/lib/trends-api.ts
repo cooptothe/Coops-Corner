@@ -59,6 +59,7 @@ export interface TrendReport {
   opponent?: string;
   team?: string;
   history_games?: TrendReport["games"];
+  season_games?: TrendReport["games"];
   workload_label: string;
   availability_url: string;
   historical_replay: {
@@ -79,6 +80,7 @@ export interface TrendReport {
     value: string;
     opponent: string;
     home: boolean | null;
+    game_result?: "W" | "L" | "T";
     workload: string | null;
     source_url: string | null;
     season: number;

@@ -1,23 +1,49 @@
 import type { TrendReport } from "./trends-api";
-export type HistoryWindow = "5" | "10" | "20" | "h2h";
+export type HistoryWindow = "5" | "10" | "20" | "h2h" | "season";
+export interface HistorySplits {
+  venue?: "all" | "home" | "away";
+  result?: "all" | "W" | "L";
+  h2h?: boolean;
+  minWorkload?: number;
+}
 export function labHistory(
   report: TrendReport,
   window: HistoryWindow,
   line: number,
   side: "Over" | "Under",
+  splits: HistorySplits = {},
 ) {
-  const source = [...(report.history_games ?? report.games)].sort(
-    (a, b) => Date.parse(b.date) - Date.parse(a.date),
+  const source = [
+    ...(window === "season"
+      ? (report.season_games ?? report.history_games ?? report.games)
+      : (report.history_games ?? report.games)),
+  ]
+    .filter(
+      (g) =>
+        g.value.trim() !== "" &&
+        Number.isFinite(Number(g.value)) &&
+        Number.isFinite(Date.parse(g.date)),
+    )
+    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+  const season = Math.max(...source.map((g) => g.season));
+  const eligible = source.filter(
+    (g) =>
+      (splits.venue !== "home" || g.home === true) &&
+      (splits.venue !== "away" || g.home === false) &&
+      (!splits.result ||
+        splits.result === "all" ||
+        g.game_result === splits.result) &&
+      (!(splits.h2h || window === "h2h") ||
+        (!!report.opponent && g.opponent === report.opponent)) &&
+      (!(splits.minWorkload && splits.minWorkload > 0) ||
+        (g.workload != null &&
+          Number.isFinite(Number(g.workload)) &&
+          Number(g.workload) >= splits.minWorkload)) &&
+      (window !== "season" || g.season === season),
   );
-  // The report's matchup sample is descriptive; use the current away/home opponent
-  // only when the player's matched team is supplied by the source adapter.
-  const currentOpponent = report.opponent;
-  const games =
-    window === "h2h"
-      ? source.filter(
-          (game) => !!currentOpponent && game.opponent === currentOpponent,
-        )
-      : source.slice(0, Number(window));
+  const games = ["h2h", "season"].includes(window)
+    ? eligible
+    : eligible.slice(0, Number(window));
   const values = games
     .map((game) => Number(game.value))
     .filter(Number.isFinite);

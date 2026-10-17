@@ -12,13 +12,13 @@ const report: TrendReport = JSON.parse(
 test("Trends presents the requested windows, evidence, push counts and honest model labels", () => {
   const html = renderToStaticMarkup(<TrendResults report={report} />);
   for (const label of [
-    "Last 1",
-    "Last 5",
-    "Last 10",
-    "Baseline",
+    "L5",
+    "L10",
+    "L20",
+    "Season",
     "pushes",
-    "Previous games vs",
-    "Same home/away",
+    "Contextual splits",
+    "Head-to-head only",
     "Game-by-game evidence",
     "Player &amp; matchup news",
     "Historical model check",

@@ -55,3 +55,9 @@ test("Lab scorer legs preserve the real no-line Yes contract", () => {
   assert.equal(leg.ref.side, "yes");
   assert.equal(leg.ref.prop_market, "player_goal_scorer_anytime");
 });
+
+test("Lab schedule dates use Central time across UTC midnight", async () => {
+  const { labDay } = await import("../lib/lab");
+  assert.equal(labDay("2026-10-18T02:00:00Z"), "2026-10-17");
+  assert.equal(labDay("invalid"), "");
+});

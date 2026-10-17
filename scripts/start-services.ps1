@@ -98,8 +98,8 @@ function Start-Window([string]$title, [string]$workdir, [string]$command) {
     $logDirectory = Join-Path $root 'retained\service-logs'
     New-Item -ItemType Directory -Force $logDirectory | Out-Null
     $logFile = Join-Path $logDirectory (($title -replace '[^a-zA-Z0-9-]', '_') + '.log')
-    $inner = "Set-Location '$workdir'; $command *>> '$logFile'"
-    Start-Process -FilePath powershell -WindowStyle Hidden -ArgumentList '-NoLogo', '-NoExit', '-NoProfile', '-Command', $inner -PassThru
+    $inner = "Set-Location '$workdir'; $command *>> '$logFile'; exit `$LASTEXITCODE"
+    Start-Process -FilePath powershell -WindowStyle Hidden -ArgumentList '-NoLogo', '-NoProfile', '-Command', $inner -PassThru
 }
 
 function Wait-Port([string]$name, [int]$port, [int]$seconds, $window) {

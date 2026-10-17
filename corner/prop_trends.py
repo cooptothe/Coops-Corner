@@ -74,7 +74,10 @@ def analyze(games, *, line, side, price, commission, as_of, opponent='', home=No
                 conflicts.add(ident)
         else:
             unique[ident] = game
-    clean = sorted((g for i,g in unique.items() if i not in conflicts),key=lambda g:instant(g['date']),reverse=True)[:40]
+    all_clean = sorted((g for i,g in unique.items() if i not in conflicts),key=lambda g:instant(g['date']),reverse=True)
+    clean = all_clean[:40]
+    season = max((g.get('season',0) for g in all_clean),default=0)
+    season_games = [g for g in all_clean if g.get('season')==season][:400]
     windows = {str(n):summarize(clean[:n],line,side) for n in (1,5,10,20)}
     baseline = summarize(clean[:30],line,side)
     matchup = summarize([g for g in clean if opponent and g.get('opponent')==opponent],line,side)
@@ -115,7 +118,7 @@ def analyze(games, *, line, side, price, commission, as_of, opponent='', home=No
                   (workload_change is None or abs(workload_change)<.2))
     # Never convert an exploratory signal into the production fair-probability / EV feed.
     return {'version':VERSION, 'windows':windows, 'baseline':baseline, 'matchup':matchup,'opponent':opponent,
-            'venue':venue, 'games':clean[:10], 'history_games':clean, 'workload_change':workload_change,
+            'venue':venue, 'games':clean[:10], 'history_games':clean, 'season_games':season_games, 'workload_change':workload_change,
             'model_probability':p, 'model_ev':ev, 'historical_sensitivity_ev':lower_ev,
             'break_even_probability':1/net, 'research_signal':signal,
             'calibration_status':'not_empirically_calibrated', 'flags':flags,

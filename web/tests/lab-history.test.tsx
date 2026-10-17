@@ -50,3 +50,69 @@ test("dashboard renders accessible windows, target input, chart and odds compari
   assert.match(html, /role="img"/);
   assert.match(html, /No retained sportsbook quotes/);
 });
+
+test("venue and result splits exclude unknown evidence and recompute decisive hit rates", () => {
+  const rows = Array.from({ length: 12 }, (_, i) => ({
+    ...report.games[0],
+    id: String(i),
+    date: new Date(Date.UTC(2030, 0, 31 - i)).toISOString(),
+    season: 2030,
+    home: i < 10 ? i % 2 === 0 : null,
+    game_result: i % 3 === 0 ? ("L" as const) : ("W" as const),
+    value: String(i === 0 ? 10 : 12),
+    workload: i === 6 ? null : "30",
+  }));
+  const input = { ...report, history_games: rows };
+  const home = labHistory(input, "10", 10, "Over", {
+    venue: "home",
+    result: "W",
+    minWorkload: 25,
+  });
+  assert.equal(home.games.length, 3);
+  assert.ok(
+    home.games.every(
+      (g) => g.home === true && g.game_result === "W" && g.workload !== null,
+    ),
+  );
+  assert.equal(home.hitRate, 1);
+  assert.equal(
+    labHistory(
+      {
+        ...input,
+        history_games: rows.map((g) => ({ ...g, game_result: undefined })),
+      },
+      "10",
+      10,
+      "Over",
+      { result: "W" },
+    ).games.length,
+    0,
+  );
+});
+test("season view uses available full-season logs while projection history stays bounded", () => {
+  const rows = Array.from({ length: 65 }, (_, i) => ({
+    ...report.games[0],
+    id: String(i),
+    date: new Date(Date.UTC(2030, 0, 31 - i)).toISOString(),
+    season: 2030,
+    value: "12",
+  }));
+  assert.equal(
+    labHistory(
+      { ...report, history_games: rows.slice(0, 40), season_games: rows },
+      "season",
+      10,
+      "Over",
+    ).games.length,
+    65,
+  );
+  assert.equal(
+    labHistory(
+      { ...report, history_games: rows.slice(0, 40), season_games: rows },
+      "5",
+      10,
+      "Under",
+    ).hitRate,
+    0,
+  );
+});

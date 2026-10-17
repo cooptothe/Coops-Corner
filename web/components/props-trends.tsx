@@ -1,7 +1,7 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { LabChart } from "./lab-chart";
-import { labDate, labLeg } from "../lib/lab";
+import { labDate, labLeg, labDay, labGameId } from "../lib/lab";
 import { useParlay } from "./parlay-builder";
 import { PROP_BOOKS } from "../lib/bookmakers";
 import { BetLinkButton } from "./bet-link";
@@ -23,22 +23,6 @@ const marketName = (key: string) =>
 
 const bookName = (key: string) =>
   PROP_BOOKS.find((book) => book.id === key)?.name ?? key;
-
-function Window({ label, result }: { label: string; result: TrendSummary }) {
-  return (
-    <div className="trend-window">
-      <span>{label}</span>
-      <strong>{pct(result.hit_rate)}</strong>
-      <small>
-        {result.wins} hits / {result.wins + result.losses} decisive games ·{" "}
-        {result.pushes} pushes
-      </small>
-      <small>
-        Average {numeric(result.mean)} · Median {numeric(result.median)}
-      </small>
-    </div>
-  );
-}
 
 function AddToParlay({ contract }: { contract: TrendContract }) {
   const parlay = useParlay();
@@ -81,7 +65,9 @@ export function TrendResults({
         <p>
           Selected offer · {bookName(report.contract.book)}{" "}
           {american(report.contract.price)} · {report.contract.side}{" "}
-          {report.contract.point}
+          {["Over", "Under"].includes(report.contract.side)
+            ? report.contract.point
+            : ""}
         </p>
         {report.contract.observed_at && (
           <p className="trk-muted">
@@ -98,19 +84,6 @@ export function TrendResults({
         )}
         <AddToParlay contract={report.contract} />
       </header>
-      <details className="lab-window-summary">
-        <summary>Other history windows</summary>
-        <div className="trend-windows">
-          {[1, 5, 10].map((n) => (
-            <Window
-              key={n}
-              label={`Last ${n}`}
-              result={report.windows[String(n)]}
-            />
-          ))}
-          <Window label="Baseline (up to 30)" result={report.baseline} />
-        </div>
-      </details>
       <LabChart
         key={report.contract.id}
         report={report}
@@ -118,13 +91,6 @@ export function TrendResults({
         onPick={onPick}
         renderAction={(quote) => <AddToParlay contract={quote} />}
       />
-      <div className="trend-context">
-        <Window
-          label="Previous games vs this opponent"
-          result={report.matchup}
-        />
-        <Window label="Same home/away setting" result={report.venue} />
-      </div>
       {report.projection && (
         <section className="trend-model" aria-label="Statistical projection">
           <h3>Statistical projection</h3>
@@ -311,6 +277,9 @@ export default function LabResearch({
   const [query, setQuery] = useState("");
   const [sport, setSport] = useState("");
   const [market, setMarket] = useState("");
+  const [browserOpen, setBrowserOpen] = useState(true);
+  const [date, setDate] = useState("");
+  const [game, setGame] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [book, setBook] = useState("");
   const [limit, setLimit] = useState(24);
@@ -364,7 +333,11 @@ export default function LabResearch({
     return () => controller.abort();
   }, [selectedBetId, retry]);
   useEffect(() => {
-    if (!selected) return;
+    if (!selected) {
+      setBusy(false);
+      setReport(null);
+      return;
+    }
     const controller = new AbortController();
     setBusy(true);
     setReport(null);
@@ -391,7 +364,9 @@ export default function LabResearch({
     trendsRequest<{
       signals: { contract: TrendContract; recent?: TrendSummary }[];
     }>("/shortlist", controller.signal)
-      .then((data) => setSignals(data.signals))
+      .then((data) => {
+        if (!controller.signal.aborted) setSignals(data.signals);
+      })
       .catch((e) => {
         if (!controller.signal.aborted) setScanError(e.message);
       })
@@ -401,242 +376,336 @@ export default function LabResearch({
     return () => controller.abort();
   }, [scanning]);
   const activeBook = parlay?.draft.active ? parlay.draft.book : book;
+  const schedule = useMemo(
+    () =>
+      [
+        ...new Map(
+          contracts
+            .filter(
+              (c) =>
+                (!sport || c.sport_key === sport) &&
+                (!date || labDay(c.starts_at) === date),
+            )
+            .map((c) => [labGameId(c), c]),
+        ).values(),
+      ].sort(
+        (a, b) => Date.parse(a.starts_at ?? "") - Date.parse(b.starts_at ?? ""),
+      ),
+    [contracts, sport, date],
+  );
+  const activeGame = schedule.some((c) => labGameId(c) === game) ? game : "";
   const filtered = useMemo(
     () =>
       contracts.filter(
         (c) =>
           (!sport || c.sport_key === sport) &&
+          (!date || labDay(c.starts_at) === date) &&
+          (!activeGame || labGameId(c) === activeGame) &&
           (!market || c.market_key === market) &&
           (!activeBook || c.book === activeBook) &&
-          `${c.player} ${c.market_label ?? c.market_key} ${c.home} ${c.away} ${bookName(c.book)}`
+          `${c.player} ${c.market_label ?? c.market_key} ${c.home} ${c.away}`
             .toLowerCase()
             .includes(deferredQuery.toLowerCase()),
       ),
-    [contracts, sport, market, activeBook, deferredQuery],
+    [contracts, sport, date, activeGame, market, activeBook, deferredQuery],
   );
+  const players = useMemo(
+    () => [
+      ...new Map(
+        filtered.map((c) => [`${labGameId(c)}:${c.player}`, c]),
+      ).values(),
+    ],
+    [filtered],
+  );
+  const selectedContract = useMemo(
+    () => contracts.find((q) => q.id === selected),
+    [contracts, selected],
+  );
+  const clearSelection = () => {
+    setSelected("");
+    setReport(null);
+    setLimit(24);
+  };
   return (
-    <section className="lab-research" aria-label="Player research">
-      <div className="trend-controls">
-        <label className="field">
-          <span>Find a player or team</span>
-          <input
-            type="search"
-            list="lab-player-search"
-            value={query}
-            placeholder="Search players, teams or markets"
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setLimit(24);
-            }}
-          />
-          <datalist id="lab-player-search">
-            {[
-              ...new Set(
-                contracts
-                  .filter((c) => !sport || c.sport_key === sport)
-                  .map((c) => c.player),
-              ),
-            ]
-              .slice(0, 300)
-              .map((player) => (
-                <option key={player} value={player} />
-              ))}
-          </datalist>
-        </label>
-        <label className="field">
-          <span>Sport</span>
-          <select
-            value={sport}
-            onChange={(e) => {
-              setSport(e.target.value);
-              setMarket("");
-              setLimit(24);
-            }}
-          >
-            <option value="">All sports</option>
-            {[...new Set(contracts.map((c) => c.sport_key))].map((key) => (
-              <option key={key} value={key}>
-                {key.split("_").slice(1).join(" ").toUpperCase()}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Stat category</span>
-          <select
-            value={market}
-            onChange={(e) => {
-              setMarket(e.target.value);
-              setLimit(24);
-            }}
-          >
-            <option value="">All stats</option>
-            {[
-              ...new Map(
-                contracts
-                  .filter((c) => !sport || c.sport_key === sport)
-                  .map((c) => [
-                    c.market_key,
-                    c.market_label ?? marketName(c.market_key),
-                  ]),
-              ).entries(),
-            ].map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Sportsbook</span>
-          <select
-            value={activeBook}
-            disabled={!!parlay?.draft.active}
-            onChange={(e) => {
-              setBook(e.target.value);
-              setLimit(24);
-            }}
-          >
-            <option value="">All books</option>
-            {[...new Set(contracts.map((c) => c.book))].map((key) => (
-              <option key={key} value={key}>
-                {bookName(key)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="lab-discovery">
-        <p>
-          Choose a prop to see last-game, last-five and last-ten hit rates.
-          These describe past results at the current line, not a guaranteed win
-          chance.
-        </p>
+    <section className="lab-research lab-terminal" aria-label="Player research">
+      <div className="lab-mobile-toolbar">
         <button
-          className="button secondary"
           type="button"
-          disabled={scanning || loading}
-          onClick={() => setScanning(true)}
+          aria-expanded={browserOpen}
+          aria-controls="lab-browser-panel"
+          onClick={() => setBrowserOpen((v) => !v)}
         >
-          {scanning ? "Checking research…" : "Find research candidates"}
+          {browserOpen ? "Hide games & players" : "Show games & players"}
         </button>
       </div>
-      {scanError && <p role="alert">{scanError}</p>}
-      {signals && (
-        <section className="lab-candidates">
-          <h2>Research candidates</h2>
-          <p className="trk-muted">
-            Based on available cached history; these are research signals, not
-            verified +EV bets.
-          </p>
-          {signals.length ? (
-            <div className="lab-selection-grid">
-              {signals.map(({ contract: c, recent }) => (
+      <div className="lab-master-detail">
+        <aside
+          id="lab-browser-panel"
+          className="lab-browser"
+          data-collapsed={!browserOpen}
+          aria-label="Games and player filters"
+        >
+          <div className="lab-browser-heading">
+            <h2>Explore props</h2>
+            <span>Pregame</span>
+          </div>
+          <div className="lab-leagues" role="group" aria-label="Sport leagues">
+            <button
+              type="button"
+              aria-pressed={!sport}
+              onClick={() => {
+                setSport("");
+                setGame("");
+                setMarket("");
+                clearSelection();
+              }}
+            >
+              All
+            </button>
+            {[...new Set(contracts.map((c) => c.sport_key))].map((key) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={sport === key}
+                onClick={() => {
+                  setSport(key);
+                  setGame("");
+                  setMarket("");
+                  clearSelection();
+                }}
+              >
+                {key.split("_").slice(1).join(" ").toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <label className="field">
+            <span>Game date · Central time</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setGame("");
+                clearSelection();
+              }}
+            />
+          </label>
+          {date && (
+            <button
+              type="button"
+              className="lab-text-button"
+              onClick={() => {
+                setDate("");
+                setGame("");
+                clearSelection();
+              }}
+            >
+              Show all dates
+            </button>
+          )}
+          <details className="lab-schedule" open>
+            <summary>
+              Games <small>{schedule.length}</small>
+            </summary>
+            <div className="lab-game-list">
+              <button
+                type="button"
+                aria-pressed={!activeGame}
+                onClick={() => {
+                  setGame("");
+                  clearSelection();
+                }}
+              >
+                All matchups
+              </button>
+              {schedule.map((c) => (
                 <button
                   type="button"
-                  className="lab-selection"
-                  key={c.id}
-                  onClick={() => setSelected(c.id)}
+                  key={labGameId(c)}
+                  aria-pressed={activeGame === labGameId(c)}
+                  onClick={() => {
+                    setGame(labGameId(c));
+                    clearSelection();
+                  }}
                 >
-                  <strong>{c.player}</strong>
-                  <span>
-                    {c.side} {c.point}{" "}
-                    {c.market_label ?? marketName(c.market_key)}
-                  </span>
-                  <span>
-                    {recent
-                      ? `${pct(recent.hit_rate)} · ${recent.wins}/${recent.wins + recent.losses} last 10 decisive games`
-                      : "View history"}
-                  </span>
+                  <strong>
+                    {c.away} <span>@</span> {c.home}
+                  </strong>
+                  <small>
+                    {c.starts_at ? labDate(c.starts_at) : "Time unavailable"}
+                  </small>
                 </button>
               ))}
             </div>
-          ) : (
-            <p>
-              No qualifying cached candidates yet. Choose a player below to
-              explore available history.
+          </details>
+          <label className="field">
+            <span>Search players or teams</span>
+            <input
+              type="search"
+              value={query}
+              placeholder="Player or team"
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setLimit(24);
+              }}
+            />
+          </label>
+          <div className="lab-browser-selects">
+            <label className="field">
+              <span>Stat category</span>
+              <select
+                value={market}
+                onChange={(e) => {
+                  setMarket(e.target.value);
+                  clearSelection();
+                }}
+              >
+                <option value="">All stats</option>
+                {[
+                  ...new Map(
+                    contracts
+                      .filter((c) => !sport || c.sport_key === sport)
+                      .map((c) => [
+                        c.market_key,
+                        c.market_label ?? marketName(c.market_key),
+                      ]),
+                  ).entries(),
+                ].map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Sportsbook</span>
+              <select
+                value={activeBook}
+                disabled={!!parlay?.draft.active}
+                onChange={(e) => {
+                  setBook(e.target.value);
+                  clearSelection();
+                }}
+              >
+                <option value="">All books</option>
+                {[...new Set(contracts.map((c) => c.book))].map((key) => (
+                  <option key={key} value={key}>
+                    {bookName(key)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <h3 className="lab-list-heading">
+            Players <small>{players.length}</small>
+          </h3>
+          {loading && <p role="status">Loading available props…</p>}
+          {!loading && !players.length && (
+            <p role="status">
+              {contracts.length
+                ? "No players match. Change the date, matchup or filters."
+                : "No retained props yet. Players appear when odds arrive."}
             </p>
           )}
-        </section>
-      )}
-      <div className="lab-master-detail">
-        <aside className="lab-browser" aria-label="Available player props">
-          {loading && <p role="status">Loading available props…</p>}
-          {!loading && (
-            <>
-              <p className="trk-muted">
-                {filtered.length} available selections · retained prices · no
-                odds credits used
-              </p>
-              {!filtered.length && (
-                <p role="status">
-                  {contracts.length
-                    ? "No props match these filters. Try another player, sport or book."
-                    : "No retained props are available yet. Research will appear when scheduled odds arrive."}
-                </p>
-              )}
-              <div className="lab-selection-grid">
-                {filtered.slice(0, limit).map((c) => (
-                  <button
-                    type="button"
-                    key={c.id}
-                    className="lab-selection"
-                    aria-pressed={selected === c.id}
-                    onClick={() => setSelected(c.id)}
-                  >
-                    <strong>{c.player}</strong>
-                    <span>
-                      {c.side} {c.point}{" "}
-                      {c.market_label ?? marketName(c.market_key)}
-                    </span>
-                    <small>
-                      {bookName(c.book)} <b>{american(c.price)}</b>
-                    </small>
-                    <small>
-                      {c.away} at {c.home}
-                    </small>
-                    {c.starts_at && (
-                      <time dateTime={c.starts_at}>{labDate(c.starts_at)}</time>
-                    )}
-                  </button>
-                ))}
-              </div>
-              {filtered.length > limit && (
-                <button
-                  type="button"
-                  className="button secondary"
-                  onClick={() => setLimit((n) => n + 24)}
-                >
-                  Show more props
-                </button>
-              )}
-            </>
+          <div className="lab-selection-grid">
+            {players.slice(0, limit).map((c) => (
+              <button
+                type="button"
+                key={`${labGameId(c)}:${c.player}`}
+                className="lab-selection"
+                aria-pressed={
+                  !!selected &&
+                  selectedContract?.player === c.player &&
+                  selectedContract?.event_id === c.event_id
+                }
+                onClick={() => setSelected(c.id)}
+              >
+                <strong>{c.player}</strong>
+                <small>
+                  {c.away} @ {c.home}
+                </small>
+                <span>
+                  {c.market_label ?? marketName(c.market_key)} · {c.side}
+                  {["Over", "Under"].includes(c.side) ? ` ${c.point}` : ""}
+                </span>
+                <small>
+                  {bookName(c.book)} <b>{american(c.price)}</b>
+                </small>
+              </button>
+            ))}
+          </div>
+          {players.length > limit && (
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => setLimit((n) => n + 24)}
+            >
+              Show more players
+            </button>
           )}
+          <details className="lab-scan">
+            <summary>Cached research candidates</summary>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={scanning || loading}
+              onClick={() => setScanning(true)}
+            >
+              {scanning ? "Checking…" : "Find research candidates"}
+            </button>
+            {scanError && <p role="alert">{scanError}</p>}
+            {signals && (
+              <p className="trk-muted">
+                {signals.length} cached signals; not validated +EV.
+              </p>
+            )}
+            {signals?.map(({ contract: c }) => (
+              <button
+                key={c.id}
+                className="lab-text-button"
+                type="button"
+                onClick={() => setSelected(c.id)}
+              >
+                {c.player} · {c.market_label ?? marketName(c.market_key)}
+              </button>
+            ))}
+          </details>
         </aside>
         <div className="lab-detail">
-          {!selected && !busy && (
+          {!selected && (
             <div className="lab-detail-placeholder">
-              <h2>Find your next angle</h2>
+              <span className="lab-empty-icon" aria-hidden="true">
+                ▥
+              </span>
+              <h2>Start with a matchup.</h2>
               <p>
-                Choose a player on the left to explore hit rates, change the
-                research line, and compare sportsbook offers.
+                Choose a game, then a player. Compare recent results, test a
+                line, and check the context before building your slip.
               </p>
+              <small>
+                Historical hit rates describe the past. They do not guarantee a
+                future result.
+              </small>
             </div>
           )}
           {error && (
-            <div role="alert">
+            <div role="alert" className="lab-error">
               <p>{error}</p>
               <button
-                type="button"
                 className="button secondary"
+                type="button"
                 onClick={() => setRetry((n) => n + 1)}
               >
                 Try again
               </button>
             </div>
           )}
-          {busy && <p role="status">Loading player history and news…</p>}
-          {report && !busy && (
+          {busy && (
+            <div className="lab-loading" role="status">
+              Loading player history and news…
+            </div>
+          )}
+          {report && !busy && report.contract.id === selected && (
             <div
               ref={results}
               tabIndex={-1}

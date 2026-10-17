@@ -65,3 +65,20 @@ export function labLeg(contract: TrendContract): ParlayLeg | null {
     "prop",
   );
 }
+
+const dayFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Chicago",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+export function labDay(value?: string): string {
+  if (!value || !Number.isFinite(Date.parse(value))) return "";
+  const parts = dayFormat.formatToParts(new Date(value));
+  return ["year", "month", "day"]
+    .map((type) => parts.find((p) => p.type === type)?.value)
+    .join("-");
+}
+export function labGameId(c: TrendContract): string {
+  return c.event_id || `${c.sport_key}:${c.away}:${c.home}:${c.starts_at}`;
+}
