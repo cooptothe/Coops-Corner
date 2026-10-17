@@ -271,7 +271,7 @@ def _observed_margin(groups, book, excluded_player):
     return median, ordered[-1], n
 
 
-def build_bets(events, *, one_sided_margin=None):
+def build_bets(events, *, one_sided_margin=None, fallback_margin=None):
     """events: {event_id: {meta, markets:{market_key:{quotes:[...]}}}} -> one bet per soft-book side.
 
     Two other eligible books must each quote both sides of the same player/line.
@@ -281,6 +281,8 @@ def build_bets(events, *, one_sided_margin=None):
     prices stay excluded; transferred margins are not empirical calibration.
     """
     margin = validate_one_sided_margin(one_sided_margin)
+    fallback = validate_one_sided_margin(fallback_margin)
+    stress = max(Decimal('.20'), fallback) if fallback is not None else None
     bets = []
     for event_id, ev in events.items():
         sport = ev['sport_key']
@@ -325,6 +327,7 @@ def build_bets(events, *, one_sided_margin=None):
                         assumed = False
                         inferred = False
                         margin_evidence = {}
+                        fallback_books = []
                         if win is None:
                             used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS
                                           and b != book and reference_eligible(b) and side in p)
@@ -350,6 +353,10 @@ def build_bets(events, *, one_sided_margin=None):
                                         estimates[reference] = ((1 / pair[side]) / (1 + median),
                                                                 (1 / pair[side]) / (1 + high))
                                         margin_evidence[reference] = {'median': str(median), 'maximum': str(high), 'players': count}
+                                    elif fallback is not None:
+                                        estimates[reference] = ((1 / pair[side]) / (1 + fallback),
+                                                                (1 / pair[side]) / (1 + stress))
+                                        fallback_books.append(reference)
                             used = [b for b in used if b in estimates]
                             if not sufficient_references(used, sport, player_props=True):
                                 continue
@@ -357,17 +364,17 @@ def build_bets(events, *, one_sided_margin=None):
                             win = sum(estimates[b][0] * weights[b] for b in used)
                             transferred_lower = sum(estimates[b][1] * weights[b] for b in used)
                             assumed = margin is not None
-                            inferred = not assumed
+                            inferred = not assumed and not fallback_books
                         weights = normalized_reference_weights(used, sport, player_props=True)
-                        proportional = transferred_lower if assumed or inferred else sum(no_vig_pair(prices[b][0], prices[b][1])[1][side] * weights[b] for b in used)
+                        proportional = transferred_lower if assumed or inferred or fallback_books else sum(no_vig_pair(prices[b][0], prices[b][1])[1][side] * weights[b] for b in used)
                         lower = min(win, proportional)
                         net_odds = 1 + (price-1) * (1-policy.commission)
                         allocation = None
-                        if assumed or inferred:
+                        if assumed or inferred or fallback_books:
                             sensitivity_refs = []
                             for reference in used:
                                 pair = prices[reference]
-                                high = (1/pair[0]+1/pair[1]-1) if set(pair)=={0,1} else margin if assumed else Decimal(margin_evidence[reference]['maximum'])
+                                high = (1/pair[0]+1/pair[1]-1) if set(pair)=={0,1} else margin if assumed else stress if reference in fallback_books else Decimal(margin_evidence[reference]['maximum'])
                                 if high is None or not 0 <= high <= Decimal('.5'):
                                     break
                                 sensitivity_refs.append({'price':pair[side],'weight':weights[reference],'maximum_overround':high})
@@ -384,8 +391,10 @@ def build_bets(events, *, one_sided_margin=None):
                             'probability_lower': _q(lower), 'net_decimal_odds': str(net_odds),
                             'commission_rate': str(policy.commission), 'fee_basis': policy.basis,
                             'pricing_version': PRICING_VERSION, 'calibration_status': 'not_empirically_calibrated',
-                            'ev_basis': 'transferred_margin_sensitivity_after_fees' if inferred else 'assumed_margin_after_fees' if assumed else 'lower_of_power_and_proportional_after_fees',
-                            'assumed_margin': str(margin) if assumed else None,
+                            'ev_basis': 'policy_margin_stress_after_fees' if fallback_books else 'transferred_margin_sensitivity_after_fees' if inferred else 'assumed_margin_after_fees' if assumed else 'lower_of_power_and_proportional_after_fees',
+                            'assumed_margin': str(fallback) if fallback_books else str(margin) if assumed else None,
+                            'stress_margin': str(stress) if fallback_books else None,
+                            'fallback_reference_books': fallback_books,
                             'margin_evidence': margin_evidence,
                             'allocation_sensitivity': allocation,
                             'settlement_basis': 'decisive_settlement_conditional' if conditional else 'binary_no_push_assumed',
@@ -393,7 +402,7 @@ def build_bets(events, *, one_sided_margin=None):
                             'market_width_cents': widest_market_width([list(prices[b].values()) for b in used]),
                             'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()},
                             'reference_weight_version': WEIGHT_VERSION,
-                            'probability_basis': 'observed_margin_transfer' if inferred else 'assumed_proportional_margin' if assumed else 'weighted_power_no_vig',
+                            'probability_basis': 'policy_margin_fallback' if fallback_books else 'observed_margin_transfer' if inferred else 'assumed_proportional_margin' if assumed else 'weighted_power_no_vig',
                             'observed_at': by_book[book][side].get('updated_at')
                             or stored.get('captured_at'),
                             'links': by_book[book][side].get('links')})

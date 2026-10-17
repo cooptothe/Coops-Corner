@@ -18,10 +18,28 @@ excluded. At least two other reference books must qualify. No margin transfers
 between events, prop markets or books. The target player's other lines never
 supply its own margin estimate. Model rows expose per-book sample counts, medians
 and maxima as `margin_evidence`. Pure yes-only markets have no complete pairs from
-which to learn a margin, so automatic transfer cannot price them.
+which to learn a margin, so automatic transfer cannot price them. The member
+feed now explicitly falls back to the provisional policy described below.
+
+## Member-feed fallback policy
+
+In automatic mode, when a reference has no usable pair or observed margin sample,
+the retained-props feed uses a **10% proportional overround assumption** for that
+reference's central estimate and **20%** for its stress estimate. Other reference
+books still use their better paired/observed evidence. At least two non-target
+references must qualify. EV uses the lower pooled probability after supported
+target fees. Rows disclose both policy percentages and identify fallback books.
+These are policy choices, not empirically estimated holds or confidence limits.
+
+The props feed shows only strictly positive EV that also meets the user's minimum
+EV and all other filters. Zero, negative and unavailable EV do not appear as
+opportunities. The 20% scenario remains a proportional-margin scenario, not a
+guaranteed worst case; the separate allocation sensitivity retains that distinction.
+The optional explicit user override replaces this automatic policy on that request.
+No API key, provider request, collector activation or billing change is involved.
 
 Open **One-sided props pricing** for details and an optional explicit margin
-override from 0 through 50 percent. Blank uses automatic inference. The setting
+override from 0 through 50 percent. Blank uses the evidence-first policy above. The setting
 saves with account preferences and presets. Set maximum market width to **No
 limit** to include quotes whose opposite side is unavailable.
 

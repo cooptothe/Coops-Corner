@@ -64,7 +64,10 @@ def prune(data, now=None, max_age=None):
 
 def bets(now=None, *, one_sided_margin=None):
     """Bets from fresh stored fetches only."""
-    return build_bets(prune(load(), now, MAX_AGE)['events'], one_sided_margin=one_sided_margin)
+    # Explicit policy fallback, not a fitted book margin. Exact pairs and observed
+    # same-event margin evidence take precedence inside the pricing engine.
+    return build_bets(prune(load(), now, MAX_AGE)['events'], one_sided_margin=one_sided_margin,
+                      fallback_margin='0.10')
 
 
 def last_captured():

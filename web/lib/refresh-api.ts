@@ -98,6 +98,7 @@ export interface PropBet {
   calibration_status?: string;
   settlement_basis?: string;
   assumed_margin?: string | null;
+  stress_margin?: string | null;
   sharps: string[];
   market_width_cents?: string | null;
   reference_weights?: Record<string, string>;

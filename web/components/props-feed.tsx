@@ -7,6 +7,7 @@ import { RangeFilter } from "./range-filter";
 import { FeedFilters } from "./feed-filters";
 import { EvFilterLimits } from "./ev-filter-limits";
 import { LIMIT_PATTERN, matchesEvLimits } from "../lib/ev-filters";
+import { passesPropEdge } from "../lib/prop-edge";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks, PROP_BOOKS } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -74,6 +75,7 @@ const PAGE = 100;
 
 interface Vm extends KellyVm {
   assumedMargin?: string | null;
+  stressMargin?: string | null;
   inferredMargin?: boolean;
   sourceIds?: PropBet["source_ids"];
   gameId: string;
@@ -131,6 +133,7 @@ function toVm(b: PropBet): Vm {
     prob: Number(b.fair_probability),
     fair: b.fair_probability,
     assumedMargin: b.assumed_margin,
+    stressMargin: b.stress_margin,
     inferredMargin: b.probability_basis === "observed_margin_transfer",
     marketWidth:
       b.market_width_cents == null ? null : Number(b.market_width_cents),
@@ -476,7 +479,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
           (!activeMarket || v.marketKey === activeMarket) &&
           (!activeEvent || v.gameId === activeEvent) &&
           (!needle || v.player.toLowerCase().includes(needle)) &&
-          compareDecimal(v.ev, minRatio) >= 0 &&
+          passesPropEdge(v.ev, minRatio) &&
           matchesEvLimits(v.ev, v.marketWidth, maxEv, maxWidth) &&
           (lo === null || Number(v.decimalOdds) >= lo) &&
           (hi === null || Number(v.decimalOdds) <= hi),
@@ -592,12 +595,21 @@ export default function PropsFeed({ reload }: { reload: number }) {
             This is not a calibrated win rate or a confidence bound. Select No
             limit for market width when the opposite price is unavailable.
           </p>
+          <p>
+            When paired prices and observed margin samples are unavailable,
+            automatic mode uses a provisional 10% overround assumption with a
+            20% stress scenario. The displayed EV uses the more conservative
+            scenario after supported fees. Rows are marked Modeled and appear
+            only for a positive estimated edge that meets your minimum EV. These
+            percentages are policy assumptions, not fitted margins or guaranteed
+            profit.
+          </p>
           <label className="field">
             <span>OPTIONAL MARGIN OVERRIDE (%)</span>
             <input
               inputMode="decimal"
               value={oneSidedMargin}
-              placeholder="Automatic; optional 0 to 50 override"
+              placeholder="Auto: paired, observed, then 10% / 20% stress"
               maxLength={5}
               onChange={(e) => setOneSidedMargin(e.target.value.trim())}
             />
@@ -871,7 +883,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 <p>
                   {hiddenAsOld
                     ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. This feed will use the next scheduled capture.`
-                    : "Adjust the EV or market-width limits, or re-enable books. Use two other eligible books with matching player and line. For one-sided prices, automatic pricing needs complete margin samples from three other players at each reference book. Set market width to No limit when width is unavailable."}
+                    : "No positive estimated edges meet these filters. Check your maximum odds, EV limit and enabled books. One-sided estimates require two other matching reference books; automatic mode uses paired prices, observed margins, then a labeled 10% assumption with a 20% stress check. Set market width to No limit to allow prices with unavailable width."}
                 </p>
                 {!settings.atDefaults && (
                   <button
@@ -985,6 +997,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
                       {v.assumedMargin != null && (
                         <small>
                           Modeled: {percent(v.assumedMargin)} assumed margin
+                          {v.stressMargin &&
+                            ` · EV uses ${percent(v.stressMargin)} stress`}
                         </small>
                       )}
                     </div>
