@@ -13,6 +13,7 @@ from corner.book_policy import supported_book, supported_books
 from corner.reference_policy import sufficient_references
 from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
 from corner.market_width import widest_market_width
+from corner.pricing import fee_policy, reference_eligible, no_vig_pair, VERSION as PRICING_VERSION
 
 # Same reference books (and environment override) as the main +EV feed in api/database.py.
 SHARP_BOOKS = frozenset(supported_books(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
@@ -216,15 +217,21 @@ def _prob(price):
 
 
 def _sharp_side_probability(prices, side, exclude=None, sport_key=''):
-    """Weighted implied probability from two other sharp books quoting this exact side.
-
-    Opposite sides are not required or inferred. These prices retain bookmaker margin.
-    """
-    used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS and b != exclude and side in p)
+    """Weighted power no-vig estimate from complete binary reference populations."""
+    used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS and b != exclude
+                  and reference_eligible(b) and set(p) == {0, 1})
+    valid = []
+    for book in used:
+        try:
+            no_vig_pair(prices[book][0], prices[book][1])
+            valid.append(book)
+        except (ValueError, ArithmeticError):
+            continue
+    used = valid
     if not sufficient_references(used, sport_key, player_props=True):
         return None, []
     weights = normalized_reference_weights(used, sport_key, player_props=True)
-    fair = sum(_prob(prices[b][side]) * weights[b] for b in used)
+    fair = sum(no_vig_pair(prices[b][0], prices[b][1])[0][side] * weights[b] for b in used)
     return fair, used
 
 
@@ -233,48 +240,78 @@ def _fair_first_side(prices, exclude=None, sport_key=''):
 
 
 def _q(value):
-    return str(value.quantize(Decimal('0.000001'), ROUND_HALF_EVEN))
+    rounded = value.quantize(Decimal('0.000001'), ROUND_HALF_EVEN)
+    return str(abs(rounded) if rounded == 0 else rounded)
 
 
 def build_bets(events):
     """events: {event_id: {meta, markets:{market_key:{quotes:[...]}}}} -> one bet per soft-book side.
 
-    Two other sharp books must quote the same player, market, line and selection.
-    Their weighted implied probabilities estimate EV without requiring an opposite
-    side or removing margin. The target never contributes to its own estimate.
+    Two other eligible books must each quote both sides of the same player/line.
+    Remove margin per book before pooling existing reputation weights. Target is
+    excluded. One-sided and DFS-only prices do not identify standalone fair odds.
     """
     bets = []
     for event_id, ev in events.items():
         sport = ev['sport_key']
         for market_key, stored in ev['markets'].items():
             meta = market_meta(sport, market_key)
-            if not meta:
+            if not meta or meta.kind != TWO_WAY:
                 continue
             grouped = {}
+            conflicts = set()
             for q in stored['quotes']:
                 if not supported_book(q['book']):
                     continue
-                grouped.setdefault((q['player'], q['point']), {}).setdefault(q['book'], {})[q['side']] = q
+                try:
+                    price = Decimal(q['price'])
+                    if not price.is_finite() or price <= 1 or price > Decimal('1e12'):
+                        continue
+                    if q['side'] not in (0, 1):
+                        continue
+                except (ValueError, ArithmeticError):
+                    continue
+                group = (q['player'], q['point'])
+                cell = grouped.setdefault(group, {}).setdefault(q['book'], {})
+                if q['side'] in cell:
+                    conflicts.add((group, q['book']))
+                cell[q['side']] = q
             for (player, point), by_book in grouped.items():
+                by_book = {b: sides for b, sides in by_book.items() if ((player, point), b) not in conflicts}
                 prices = {b: {s: Decimal(q['price']) for s, q in sides.items()} for b, sides in by_book.items()}
+                # Infer no push mass from prices: integer lines are decisive-settlement conditional.
+                conditional = point is not None and Decimal(point) == Decimal(point).to_integral_value()
                 for book, sides in sorted(prices.items()):
+                    policy = fee_policy(book)
+                    if policy.commission is None:
+                        continue
                     for side, price in sorted(sides.items()):
                         win, used = _sharp_side_probability(prices, side, exclude=book, sport_key=sport)
                         if win is None:
                             continue
+                        weights = normalized_reference_weights(used, sport, player_props=True)
+                        proportional = sum(no_vig_pair(prices[b][0], prices[b][1])[1][side] * weights[b] for b in used)
+                        lower = min(win, proportional)
+                        net_odds = 1 + (price-1) * (1-policy.commission)
                         bets.append({
                             'id': f'{event_id}:{market_key}:{player}:{point or ""}:{book}:{side}',
                             'event_id': event_id, 'sport_key': sport, 'home': ev['home_team'],
                             'away': ev['away_team'], 'starts_at': ev['commence_time'],
                             'market_key': market_key, 'market_label': meta.label, 'group': meta.group,
                             'player': player, 'point': point, 'side': meta.sides[side], 'book': book,
-                            'price': str(price), 'ev': _q(win * price - 1), 'fair_probability': _q(win),
+                            'price': str(price), 'ev': _q(lower * net_odds - 1), 'fair_probability': _q(win),
+                            'proportional_probability': _q(proportional),
+                            'probability_lower': _q(lower), 'net_decimal_odds': str(net_odds),
+                            'commission_rate': str(policy.commission), 'fee_basis': policy.basis,
+                            'pricing_version': PRICING_VERSION, 'calibration_status': 'not_empirically_calibrated',
+                            'ev_basis': 'lower_of_power_and_proportional_after_fees',
+                            'settlement_basis': 'decisive_settlement_conditional' if conditional else 'binary_no_push_assumed',
                             'sharps': used,
                             'market_width_cents': widest_market_width([list(prices[b].values()) for b in used])
                             if meta.kind == TWO_WAY else None,
                             'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()},
                             'reference_weight_version': WEIGHT_VERSION,
-                            'probability_basis': 'weighted_sharp_implied',
+                            'probability_basis': 'weighted_power_no_vig',
                             'observed_at': by_book[book][side].get('updated_at')
                             or stored.get('captured_at'),
                             'links': by_book[book][side].get('links')})

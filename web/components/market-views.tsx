@@ -123,8 +123,7 @@ export function Cards({
                 v == null ? null : mulDecimal(v, factor),
               ev = row.kind === "positive_ev" ? row : null,
               mid = row.kind === "middle" ? row : null,
-              cover =
-                row.kind === "arbitrage" ? row : null,
+              cover = row.kind === "arbitrage" ? row : null,
               headline = ev
                 ? ev.conditional_ev_ratio
                 : mid
@@ -176,7 +175,8 @@ export function Cards({
                           <small>
                             {q?.market_key.endsWith("_lay") ? "Lay" : "Bet"}{" "}
                             {usd(s(leg.stake))}
-                            {q && compareDecimal(q.commission_rate, "0") > 0
+                            {q?.commission_rate != null &&
+                            compareDecimal(q.commission_rate, "0") > 0
                               ? ` · ${percent(q.commission_rate)} commission`
                               : ""}
                           </small>
@@ -329,7 +329,12 @@ export function OddsMatrix({
                       {lay ? (
                         <span className="odds-cell">
                           <strong>{american(q.decimal_odds)}</strong>
-                          <small>Lay · {percent(q.commission_rate)} fee</small>
+                          <small>
+                            Lay ·{" "}
+                            {q.commission_rate == null
+                              ? "fee unverified"
+                              : `${percent(q.commission_rate)} fee`}
+                          </small>
                         </span>
                       ) : (
                         <button

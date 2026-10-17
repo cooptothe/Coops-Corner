@@ -118,6 +118,7 @@ function toVm(b: PropBet): Vm {
     bookLabel: bookName(b.book),
     lay: false,
     ev: b.ev,
+    netDecimalOdds: b.net_decimal_odds,
     decimalOdds: b.price,
     odds: american(b.price),
     fairOdds,
@@ -549,6 +550,13 @@ export default function PropsFeed({ reload }: { reload: number }) {
   return (
     <PlacedProvider slip={slip}>
       <section className="ev-layout props-layout" aria-label="Player props">
+        <p className="feed-note">
+          Probabilities are no-vig market estimates, not proven win rates. EV
+          uses the lower of two margin-removal estimates after modeled fees.
+          Integer lines are conditional on no push. One-sided prices and
+          pick&apos;em payouts need a separate model and do not produce
+          standalone EV bets.
+        </p>
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
           <div className="ev-filter-actions">
@@ -804,7 +812,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 <p>
                   {hiddenAsOld
                     ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. This feed will use the next scheduled capture.`
-                    : "Adjust the EV or market-width limits, or re-enable books. Bets need at least two other sharp books quoting the same player, market, line and side."}
+                    : "Adjust the EV or market-width limits, or re-enable books. Estimates need two other eligible books quoting both sides of the exact player and line, plus modeled target fees."}
                 </p>
                 {!settings.atDefaults && (
                   <button
@@ -881,7 +889,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                       </span>
                     </div>
                     <div role="cell" className="ev-cell ev-sharp">
-                      <strong>{percent(v.fair)} chance</strong>
+                      <strong>{percent(v.fair)} estimated chance</strong>
                       <small>Fair {v.fairOdds ?? "â€”"}</small>
                       <small>{v.sharps}</small>
                     </div>

@@ -92,6 +92,11 @@ export interface PropBet {
   price: string;
   ev: string;
   fair_probability: string;
+  net_decimal_odds?: string;
+  commission_rate?: string;
+  probability_basis?: string;
+  calibration_status?: string;
+  settlement_basis?: string;
   sharps: string[];
   market_width_cents?: string | null;
   reference_weights?: Record<string, string>;

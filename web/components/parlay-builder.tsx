@@ -485,9 +485,10 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
           </label>
           {draft.legs.length >= 2 && (
             <p className="parlay-estimate">
-              Estimated odds <strong>{american(estimated)}</strong>
+              Indicative odds before parlay fees{" "}
+              <strong>{american(estimated)}</strong>
               <br />
-              Potential return{" "}
+              Indicative gross return{" "}
               <strong>
                 $
                 {/^[\d]+(\.\d{1,2})?$/.test(draft.stake) &&

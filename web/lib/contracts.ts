@@ -26,7 +26,8 @@ export interface Page<T> {
 export interface Book {
   id: string;
   name: string;
-  commission: DecimalText;
+  commission: DecimalText | null;
+  fee_status?: string;
 }
 export interface Capabilities {
   market_keys: MarketKey[];
@@ -61,7 +62,8 @@ export interface Quote {
   side: string;
   point: DecimalText | null;
   decimal_odds: DecimalText;
-  commission_rate: DecimalText;
+  commission_rate: DecimalText | null;
+  fee_status?: string;
   observed_at: string;
   // Sportsbook links (event, market, betslip) when the provider gave valid ones.
   links?: QuoteLinks | null;

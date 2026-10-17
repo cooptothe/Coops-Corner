@@ -63,7 +63,8 @@ class Game(Model):
 class Book(Model):
     id: str
     name: str
-    commission: DecimalText
+    commission: DecimalText | None
+    fee_status: str = 'fixture_explicit'
 
 
 class QuoteLinks(Model):
@@ -90,7 +91,8 @@ class Quote(Model):
     side: str
     point: DecimalText | None
     decimal_odds: DecimalText
-    commission_rate: DecimalText
+    commission_rate: DecimalText | None
+    fee_status: str = 'fixture_explicit'
     observed_at: AwareDatetime
     provider_updated_at: AwareDatetime | None
     links: QuoteLinks | None = None

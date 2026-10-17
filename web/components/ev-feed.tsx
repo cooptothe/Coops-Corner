@@ -1,5 +1,6 @@
 "use client";
 import { useDialogFocus } from "./use-dialog-focus";
+import { netBackOdds } from "../lib/pricing";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
 import { Menu } from "./arb-feed";
 import { builderLeg } from "../lib/parlay";
@@ -71,6 +72,7 @@ interface Vm {
   marketWidth: number | null;
   ev: string;
   decimalOdds: string;
+  netDecimalOdds?: string;
   odds: string;
   fairOdds: string | null;
   prob: number;
@@ -82,6 +84,7 @@ interface Vm {
   links: QuoteLinks | null;
 }
 export interface KellyVm {
+  netDecimalOdds?: string;
   id: string;
   sportKey: string;
   // Set for player props, so the calculator can show the headshot.
@@ -203,6 +206,9 @@ function toVm(
       ),
     ),
     ev: row.conditional_ev_ratio,
+    netDecimalOdds: q.market_key.endsWith("_lay")
+      ? undefined
+      : netBackOdds(q.decimal_odds, q.commission_rate),
     decimalOdds: q.decimal_odds,
     odds: american(q.decimal_odds),
     fairOdds: fairAmerican(row.calculation.conditional_fair_probability),
@@ -397,7 +403,13 @@ export function KellyWidget({
   const validBankroll = /^(0|[1-9]\d{0,9})(\.\d{1,2})?$/.test(bankroll);
   const result =
     vm && validBankroll && compareDecimal(bankroll, "0") > 0
-      ? kelly(vm.ev, vm.decimalOdds, bankroll, multiplier, vm.lay)
+      ? kelly(
+          vm.ev,
+          vm.netDecimalOdds ?? vm.decimalOdds,
+          bankroll,
+          multiplier,
+          vm.lay,
+        )
       : null;
   const legs: NewBet[] =
     vm && result
@@ -412,7 +424,11 @@ export function KellyWidget({
             sportKey: vm.sportKey,
             startsAt: vm.startsAt,
             market: vm.market,
-            decimalOdds: vm.decimalOdds,
+            decimalOdds: vm.netDecimalOdds ?? vm.decimalOdds,
+            notes:
+              vm.netDecimalOdds && vm.netDecimalOdds !== vm.decimalOdds
+                ? "Net modeled odds after commission; confirm actual book settlement."
+                : undefined,
             fairProb: vm.fairProb,
             evRatio: vm.ev,
             ref: vm.ref,

@@ -125,6 +125,7 @@ class BackCover:
     all_modeled_states_profitable: bool
     format: str = VERSION
     availability_verified: bool = False
+    commission_basis: str = 'isolated_leg_conservative_net_winnings'
 
     def is_low_hold(self, maximum_loss_ratio: Decimal):
         """Low-hold ranking uses actual rounded worst-case loss / total stake.
@@ -144,8 +145,9 @@ def calculate_back_cover(market: MatchedMarket, offers, *, total_stake: Decimal,
     Allocates a fixed budget using largest fractional remainders; returns actual
     per-outcome profit after stake rounding. Missing selections fail, so a partial
     soccer or outright field cannot silently become a two-outcome arbitrage.
-    Nonzero exchange commission is rejected here: market-net commission cannot be
-    calculated by charging each leg independently. Use the isolated back/lay tool.
+    Fee-bearing legs use net win returns. If multiple legs share a fee-bearing
+    book, charging the winning leg before market netting is a conservative bound;
+    losing stakes at that book can only reduce the actual market-net commission.
     """
     _require(type(market) is MatchedMarket, "matched market required")
     units = _cash_units(total_stake, stake_increment)
@@ -157,13 +159,14 @@ def calculate_back_cover(market: MatchedMarket, offers, *, total_stake: Decimal,
         _require((offer.contract_id, offer.market_key) == (market.contract_id, market.market_key),
                  "mixed contracts or back/lay direction")
         _require(offer.selection_id in market.selection_ids, "unexpected contract selection")
-        _require(offer.commission_rate == 0, "back cover requires zero-commission offers")
     chosen = []
     for selection in sorted(market.selection_ids):
         candidates = [offer for offer in offers if offer.selection_id == selection]
         _require(bool(candidates), f"missing expected selection: {selection}")
-        chosen.append(min(candidates, key=lambda x: (-Fraction(x.decimal_odds), x.sportsbook_id, x.quote_id)))
-    implied = [1 / Fraction(offer.decimal_odds) for offer in chosen]
+        chosen.append(min(candidates, key=lambda x: (-(1 + (Fraction(x.decimal_odds)-1) *
+                                                      (1-Fraction(x.commission_rate))), x.sportsbook_id, x.quote_id)))
+    net_odds = [1 + (Fraction(o.decimal_odds)-1) * (1-Fraction(o.commission_rate)) for o in chosen]
+    implied = [1 / odds for odds in net_odds]
     total_implied = sum(implied)
     targets = [units * probability / total_implied for probability in implied]
     allocated = [target.numerator // target.denominator for target in targets]
@@ -173,9 +176,9 @@ def calculate_back_cover(market: MatchedMarket, offers, *, total_stake: Decimal,
         allocated[index] += 1
     _require(all(amount > 0 for amount in allocated), "budget too small to cover every selection")
     legs = []
-    for offer, amount in zip(chosen, allocated):
+    for offer, amount, net in zip(chosen, allocated, net_odds):
         stake = Fraction(stake_increment) * amount
-        profit = stake * Fraction(offer.decimal_odds) - Fraction(total_stake)
+        profit = stake * net - Fraction(total_stake)
         legs.append(CoverLeg(offer.quote_id, offer.selection_id, offer.sportsbook_id,
                              offer.decimal_odds, _decimal_ratio(stake), _decimal_ratio(profit)))
     minimum = min(leg.profit_if_selection_wins for leg in legs)

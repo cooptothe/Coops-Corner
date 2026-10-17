@@ -33,8 +33,8 @@ class Props(unittest.TestCase):
         self.assertEqual({b['book'] for b in bets}, {'fanduel', 'pinnacle', 'prophetx'})
         over = next(b for b in bets if b['side'] == 'Over' and b['book'] == 'fanduel')
         self.assertEqual(over['sharps'], ['pinnacle', 'prophetx'])
-        self.assertEqual(over['fair_probability'], '0.523560')
-        self.assertEqual(over['ev'], '0.151832')
+        self.assertEqual(over['fair_probability'], '0.500000')
+        self.assertEqual(over['ev'], '0.100000')
         self.assertLess(float(next(b for b in bets if b['side'] == 'Under' and b['book'] == 'fanduel')['ev']), 0)
 
     def test_bets_carry_only_validated_links(self):
@@ -108,7 +108,7 @@ class FanDuelReference(unittest.TestCase):
         self.assertEqual({b['side'] for b in dk}, {'Over', 'Under'})
         self.assertEqual(dk[0]['sharps'], ['fanduel', 'pinnacle'])
         over = next(b for b in dk if b['side'] == 'Over')
-        self.assertEqual((over['fair_probability'], over['ev']), ('0.523560', '0.151832'))
+        self.assertEqual((over['fair_probability'], over['ev']), ('0.500000', '0.100000'))
 
     def test_fanduel_bets_are_still_shown_and_never_priced_against_itself(self):
         books = {'pinnacle': (1.91, 1.91), 'prophetx': (1.91, 1.91), 'fanduel': (2.2, 1.65)}
@@ -117,7 +117,7 @@ class FanDuelReference(unittest.TestCase):
         self.assertEqual({b['side'] for b in bets}, {'Over', 'Under'})
         self.assertEqual(bets[0]['sharps'], ['pinnacle', 'prophetx'])
         # unchanged from before FanDuel became a reference
-        self.assertEqual(next(b for b in bets if b['side'] == 'Over')['ev'], '0.151832')
+        self.assertEqual(next(b for b in bets if b['side'] == 'Over')['ev'], '0.100000')
 
     def test_fanduel_alone_with_one_sharp_is_still_not_enough_for_its_own_bet(self):
         bets = pm.build_bets({'e': self.stored({'pinnacle': (1.91, 1.91), 'fanduel': (2.2, 1.65)})})
@@ -134,7 +134,7 @@ class FanDuelReference(unittest.TestCase):
         books = {'prizepicks': (1.91, 1.91), 'underdog': (1.91, 1.91),
                  'polymarket': (1.91, 1.91), 'betopenly': (2.2, 1.65)}
         bets = pm.build_bets({'e': self.stored(books)})
-        self.assertEqual({b['book'] for b in bets}, set(books))
+        self.assertEqual(bets, [])  # Indicative DFS odds and unverified execution fees are not standalone EV inputs.
         for bet in bets:
             self.assertNotIn(bet['book'], bet['sharps'])
             self.assertGreaterEqual(len(bet['sharps']), 2)

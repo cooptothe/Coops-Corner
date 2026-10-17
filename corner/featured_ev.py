@@ -52,8 +52,8 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
 
     Three-way h2h includes draw, outrights includes every declared entrant. Spread
     and total contracts are exact-line contracts with conditional decisive prices.
-    References must be back prices without commission (market commission cannot
-    be devigged as if it were independent bookmaker margin). Target may be lay.
+    References use raw back prices: account execution commission is not bookmaker
+    margin and is not subtracted when estimating consensus. Target may be lay.
     """
     _require(type(market) is MatchedMarket and type(target) is Offer, "validated market/target required")
     _decimal(stake, "stake", positive=True)
@@ -77,8 +77,7 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
         _require(offer.sportsbook_id in books, "unexpected reference book")
         _require((offer.contract_id, offer.market_key) == (market.contract_id, market.market_key),
                  "incompatible reference contract or direction")
-        _require(offer.selection_id in market.selection_ids and offer.commission_rate == 0,
-                 "unexpected selection or unsupported reference commission")
+        _require(offer.selection_id in market.selection_ids, "unexpected selection")
     consensus = {s: Fraction(0) for s in market.selection_ids}
     weights = {book: Fraction(reference_weight(book, sport_key)) for book in books}
     total_weight = sum(weights.values())

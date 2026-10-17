@@ -2,6 +2,7 @@
 import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
 import { FeedFilters } from "./feed-filters";
 import { useDialogFocus } from "./use-dialog-focus";
+import { netBackOdds } from "../lib/pricing";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -39,6 +40,7 @@ type MidRow = Extract<ToolRow, { kind: "middle" }>;
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 type SortKey = "ratio" | "best" | "miss" | "window" | "time" | "scanned";
 interface LegVm {
+  netDecimalOdds: string;
   quoteId: string;
   bookId: string;
   bookLabel: string;
@@ -146,6 +148,7 @@ function toVm(
       bookLabel: shortBook(books.get(q.sportsbook_id) ?? q.sportsbook_id),
       label: selection(q),
       odds: american(q.decimal_odds),
+      netDecimalOdds: netBackOdds(q.decimal_odds, q.commission_rate),
       stake: Number(leg.stake),
       ref: quoteRef(q),
       links: q.links ?? null,
@@ -317,6 +320,9 @@ function Calculator({
           line: l.label,
           book: l.bookLabel,
           odds: l.odds,
+          decimalOdds: l.netDecimalOdds,
+          notes:
+            "Net modeled odds after any commission; confirm actual book settlement.",
           stake: scaled.stakes[i].toFixed(2),
           strategy: "middle" as const,
           sportKey: vm.sportKey,

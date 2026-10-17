@@ -16,6 +16,7 @@ from corner.links import clean_links
 from corner.collection_readers import store_path as scheduled_store_path, main_scopes
 from corner.native_ids import native_ids
 from corner.book_policy import supported_book, supported_books
+from corner.pricing import fee_policy
 
 log = logging.getLogger('corner.api.database')
 
@@ -177,7 +178,8 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
     return dict(format='corner.product_fixture/1', data_mode='database', captured_at=_iso(captured), observed_at=_iso(captured),
                 refund_possible=True, settlement_identity=SETTLEMENT_IDENTITY,
                 required_reference_books=list(references), target_books=list(targets),
-                books=[dict(id=b, name=books.get(b, b), commission='0') for b in book_ids],
+                books=[dict(id=b, name=books.get(b, b), commission=None if fee_policy(b).commission is None else str(fee_policy(b).commission),
+                            fee_status=fee_policy(b).status) for b in book_ids],
                 games=game_list, contracts=contracts)
 
 

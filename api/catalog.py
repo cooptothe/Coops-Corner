@@ -90,7 +90,8 @@ def D_TS(text, captured_at):
 
 
 DATABASE_WARNINGS = ('retained_provider_quotes_not_live', 'availability_unverified',
-                     'settlement_rules_assumed_equivalent', 'no_production_authorization')
+                     'settlement_rules_assumed_equivalent', 'no_production_authorization',
+                     'unverified_fee_quotes_excluded_from_financial_tools')
 
 
 # find_middles is a pure function of its bets, so a game whose lines and prices did not change since the last
@@ -208,18 +209,21 @@ class FixtureCatalog:
                     book_links = contract.get('links', {}).get(book_id)
                     for position, (selection, price) in enumerate(zip(selections, odds)):
                         quote_id = f'{contract_id}:{book_id}:{direction}:{selection["id"]}'
-                        offer = Offer(quote_id, contract_id, direction, selection['id'], book_id, D(price), D(book_map[book_id].commission))
-                        self.offers[quote_id] = offer
+                        offer = Offer(quote_id, contract_id, direction, selection['id'], book_id, D(price), D(book_map[book_id].commission or 0))
+                        fee_known = book_map[book_id].fee_status in {'modeled', 'fixture_explicit'}
+                        if fee_known:
+                            self.offers[quote_id] = offer
                         current.append(offer)
                         self.quote_map[quote_id] = Quote(id=quote_id, game_id=game_id, contract_id=contract_id, market_key=direction,
                             sportsbook_id=book_id, selection_id=selection['id'], selection_name=selection['name'], side=selection['side'],
+                            fee_status=book_map[book_id].fee_status,
                             point=selection['point'], decimal_odds=price, commission_rate=book_map[book_id].commission,
                             observed_at=D_TS(contract.get('observed', {}).get(book_id, raw['observed_at']), self.captured_at),
                             provider_updated_at=None,
                             links=book_links[position] if book_links and direction == key else None,
                             source_ids=(contract.get('source_ids', {}).get(book_id) or [None] * len(selections))[position] if direction == key else None,
                             evidence_kind='retained_provider_quote' if self.data_mode == 'database' else 'synthetic_fixture')
-                        if key in {'spreads', 'totals'}:
+                        if key in {'spreads', 'totals'} and fee_known:
                             shared = f'{game_id}:{key}:{raw["settlement_identity"]}'
                             line_bets.append(LineBet(quote_id, book_id, shared, key, selection['side'], D(selection['point']),
                                                      D(price), D(100), D(book_map[book_id].commission)))
@@ -231,7 +235,7 @@ class FixtureCatalog:
             sport_key = game_meta[game_id]['sport_key']
             complete_refs = sufficient_references(full, sport_key) if self.data_mode == 'database' else len(full) == len(references)
             refs = [o for o in refs if o.sportsbook_id in used]
-            for target in (o for o in current if o.sportsbook_id in targets and complete_refs):
+            for target in (o for o in current if o.sportsbook_id in targets and complete_refs and o.quote_id in self.offers):
                 target_used = tuple(b for b in used if b != target.sportsbook_id)
                 target_refs = [o for o in refs if o.sportsbook_id in target_used]
                 if not sufficient_references(target_used, sport_key):
@@ -241,14 +245,16 @@ class FixtureCatalog:
                     ids = [target.quote_id] + [o.quote_id for o in target_refs]
                     rows.append(EVRow(**self._row(game_id, contract_id, target.market_key, ids, 'positive_ev', result,
                                                  result.capital_at_risk, ev=result.conditional_ev_ratio_on_capital), calculation=result))
-            cover = calculate_back_cover(market, back, total_stake=D(200))
-            ids = [leg.quote_id for leg in cover.legs]
-            for kind in ('arbitrage', 'low_hold'):
-                if kind == 'low_hold' or (cover.decisive_arbitrage and len(selections) == 2):
-                    rows.append(CoverRow(kind=kind, **self._row(game_id, contract_id, key, ids, kind, cover, cover.total_stake,
-                                                              minimum=cover.minimum_modeled_profit), calculation=cover))
-            for lay in (o for o in current if o.market_key.endswith('_lay')):
-                for target in (o for o in back if o.selection_id == lay.selection_id):
+            executable = [o for o in back if o.quote_id in self.offers]
+            if {o.selection_id for o in executable} == set(market.selection_ids):
+                cover = calculate_back_cover(market, executable, total_stake=D(200))
+                ids = [leg.quote_id for leg in cover.legs]
+                for kind in ('arbitrage', 'low_hold'):
+                    if kind == 'low_hold' or (cover.decisive_arbitrage and len(selections) == 2):
+                        rows.append(CoverRow(kind=kind, **self._row(game_id, contract_id, key, ids, kind, cover, cover.total_stake,
+                                                                  minimum=cover.minimum_modeled_profit), calculation=cover))
+            for lay in (o for o in current if o.market_key.endswith('_lay') and o.quote_id in self.offers):
+                for target in (o for o in executable if o.selection_id == lay.selection_id):
                     hedge = calculate_back_lay(market, target, lay, back_stake=D(100))
                     ids = [target.quote_id, lay.quote_id]
                     for kind in ('arbitrage', 'low_hold'):

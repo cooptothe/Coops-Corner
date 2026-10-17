@@ -7,11 +7,11 @@ const GUIDES: Record<View, [string, string]> = {
   ],
   props: [
     "Find a player prop",
-    "Choose a sport and player market from the scheduled collection. Use the EV and market-width sliders to narrow results. Select a player to review the bet and stake calculator. Filtering never triggers a provider request.",
+    "Choose a sport and player market. Estimates remove margin from complete two-sided reference prices. EV includes modeled fees and uses the lower of power and proportional estimates; this is model sensitivity, not a confidence interval. Check the final price and payout at the book. Filtering never triggers a provider request.",
   ],
   arbitrage: [
     "Compare both sides",
-    "Select an opportunity to see both legs, required stakes, and modeled profit. Check each price and any exchange fees before placing either leg. Record the legs after placement to keep your tracker accurate.",
+    "Select an opportunity to see both legs, required stakes, and modeled profit after supported straight-bet commissions. Quotes with unresolved fees do not create opportunities. Confirm final prices, fees and settlement at each book before placing either leg.",
   ],
   middle: [
     "Understand the middle",

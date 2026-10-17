@@ -242,7 +242,8 @@ def props_message(label, markets, result, found=None, sport_key=None):
         return base
     if not found['bets']:
         return (f'{base} No {label} bets can be shown: each selection needs two other sharp books '
-                'quoting the same player, market, line and side. An opposite-side price is not required.')
+                'quoting both sides of the same player, market and line. One-sided and indicative DFS prices '
+                'do not establish a standalone fair probability; target fees must also be modeled.')
     return f"{base} {found['bets']} {label} bets priced, {found['positive']} with positive EV."
 
 def run_props_refresh(sport, markets, max_events, capture=props.capture):

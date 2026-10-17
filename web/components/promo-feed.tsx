@@ -1006,7 +1006,9 @@ export default function PromoFeed({ data }: { data: Data }) {
     for (const q of data.quotes) {
       if (
         q.market_key.endsWith("_lay") ||
-        !/^0(?:\.0*)?$/.test(q.commission_rate)
+        !/^0(?:\.0*)?$/.test(q.commission_rate ?? "unverified") ||
+        (q.fee_status !== undefined &&
+          !["modeled", "fixture_explicit"].includes(q.fee_status))
       )
         continue;
       const list = groups.get(q.contract_id);

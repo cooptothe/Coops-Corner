@@ -2,6 +2,7 @@
 import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
 import { FeedFilters } from "./feed-filters";
 import { useDialogFocus } from "./use-dialog-focus";
+import { netBackOdds } from "../lib/pricing";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -161,7 +162,9 @@ function toVm(
     sportKey: g?.sport_key ?? "",
     profit,
     legs,
-    sig: legs.map((l) => `${l.quoteId}@${l.decimalOdds}`).join("|"),
+    sig: legs
+      .map((l) => `${l.quoteId}@${l.decimalOdds}@${l.commission}`)
+      .join("|"),
     observedAt: row.oldest_observed_at,
     backLay:
       "back_quote_id" in calc
@@ -298,7 +301,9 @@ function Calculator({
   // Recalculate only when the stake, mode, favored leg or this row's own prices change.
   const sizing: ArbSizing | null = useMemo(() => {
     if (!vm || vm.backLay || !total) return null;
-    const odds = vm.legs.map((l) => Number(l.decimalOdds));
+    const odds = vm.legs.map(
+      (l) => 1 + (Number(l.decimalOdds) - 1) * (1 - l.commission),
+    );
     return mode === "symmetric"
       ? symmetricStakes(total, odds)
       : biasedStakes(total, odds, favored);
@@ -321,6 +326,11 @@ function Calculator({
     line: `${label} ${l.label}`.trim(),
     book: l.bookLabel,
     odds: l.odds,
+    decimalOdds: netBackOdds(l.decimalOdds, String(l.commission)),
+    notes:
+      l.commission > 0
+        ? "Net modeled odds after commission; confirm actual book settlement."
+        : undefined,
     stake: stake.toFixed(2),
     strategy: "arbitrage",
     sportKey: vm!.sportKey,
