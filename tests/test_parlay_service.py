@@ -6,6 +6,20 @@ class ParlayHTTP(unittest.TestCase):
     setUp = service.Service.setUp
     url = service.Service.url
 
+    def test_same_game_quote_is_preserved_through_http_and_export(self):
+        item=parlay('sgp-http')
+        item['legs'][1]['event_id']=item['legs'][0]['event_id']
+        item['legs'][1]['matchup']=item['legs'][0]['matchup']
+        item['selection']='Same-game parlay';item['odds']='3.25'
+        response=self.client.post(self.url('/bets'),json=[item],headers=self.write)
+        self.assertEqual(response.status_code,200)
+        saved=response.json()['bets'][0]
+        self.assertEqual(saved['odds'],'3.25')
+        self.assertEqual(len(saved['legs']),2)
+        exported=self.client.get(self.url('/export')).json()['bets'][0]
+        self.assertEqual(exported['selection'],'Same-game parlay')
+        self.assertEqual(exported['odds'],'3.25')
+
     def test_record_grade_export_and_settle_one_parent(self):
         response = self.client.post(self.url('/bets'), json=[parlay()], headers=self.write)
         self.assertEqual(200, response.status_code)

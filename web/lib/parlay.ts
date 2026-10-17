@@ -112,16 +112,38 @@ export function selectionProblem(
   if (
     draft.legs.some(
       (l) =>
-        l.eventId === leg.eventId ||
-        (fixtureName(l.matchup) === fixtureName(leg.matchup) &&
-          Date.parse(l.startsAt) === Date.parse(leg.startsAt)),
+        sameGame(l, leg) &&
+        l.ref.market_key === leg.ref.market_key &&
+        l.market === leg.market &&
+        l.ref.player === leg.ref.player &&
+        l.ref.prop_market === leg.ref.prop_market,
     )
   )
-    return "Choose a different game. Same-game parlays are not supported yet.";
+    return "Choose only one selection from this player/market in the same game.";
   if (leg.ref.lay === true) return "Lay bets cannot be added to a parlay.";
   return null;
 }
-export function combinedOdds(legs: ParlayLeg[]) {
+export function sameGame(a: ParlayLeg, b: ParlayLeg) {
+  return (
+    (!!a.eventId && a.eventId === b.eventId) ||
+    (fixtureName(a.matchup) === fixtureName(b.matchup) &&
+      Date.parse(a.startsAt) === Date.parse(b.startsAt))
+  );
+}
+export function hasSameGameLegs(legs: ParlayLeg[]) {
+  return legs.some((leg, i) =>
+    legs.slice(0, i).some((other) => sameGame(leg, other)),
+  );
+}
+export function parlayKind(legs: ParlayLeg[]) {
+  return !hasSameGameLegs(legs)
+    ? "Cross-game parlay"
+    : legs.every((leg) => sameGame(legs[0], leg))
+      ? "Same-game parlay"
+      : "Same-game parlay +";
+}
+export function combinedOdds(legs: ParlayLeg[]): string | null {
+  if (hasSameGameLegs(legs)) return null;
   return legs.reduce((total, leg) => mulDecimal(total, leg.odds), "1");
 }
 export function readDraft(value: unknown): ParlayDraft | null {
@@ -176,6 +198,12 @@ export function parlayHandoff(
     return { url: null, reason: "All legs must use the same sportsbook." };
   if (legs.some((l) => Date.parse(l.startsAt) <= Date.now()))
     return { url: null, reason: "Remove any games that have started." };
+  if (hasSameGameLegs(legs))
+    return {
+      url: null,
+      reason:
+        "Build these selections in the sportsbook’s same-game parlay builder and use its combined quote. Copy the slip or open the individual selections below.",
+    };
   if (legs[0].book !== "fanduel")
     return {
       url: null,

@@ -8,7 +8,7 @@ LEG_RESULTS = ('pending', 'won', 'lost', 'push', 'void')
 def prepare_legs(items, parent_book, *, fail, text, parse_odds, parse_when, clean_ref):
     if not isinstance(items, list) or not 2 <= len(items) <= MAX_PARLAY_LEGS:
         fail('A parlay needs 2–8 legs')
-    saved, keys, events, matchups = [], set(), set(), set()
+    saved, keys, matchups = [], set(), []
     for item in items:
         if not isinstance(item, dict):
             fail('Each parlay leg must be an object')
@@ -19,18 +19,23 @@ def prepare_legs(items, parent_book, *, fail, text, parse_odds, parse_when, clea
         if not start:
             fail('Every parlay leg needs a start time')
         fixture = (re.sub(r'\s+(?:@|at|vs\.?)\s+', ' at ', ' '.join(matchup.lower().split())), start)
-        if key in keys or event in events or fixture in matchups:
-            fail('Duplicate and same-game legs are not supported')
+        if key in keys:
+            fail('Duplicate parlay leg')
+        ref=clean_ref(item.get('ref'))
+        market=text(item.get('market'), 'leg market', required=True, limit=120)
+        for previous, previous_fixture in zip(saved,matchups):
+            if (previous['event_id']==event or previous_fixture==fixture) and previous['market']==market and all(previous['ref'].get(k)==ref.get(k) for k in ('market_key','player','prop_market')):
+                fail('Choose only one selection per player/market in the same game')
         if item.get('book') != parent_book:
             fail('All parlay legs must use the same sportsbook')
         if item.get('source') not in ('ev', 'prop'):
             fail('Unknown parlay leg source')
-        keys.add(key); events.add(event); matchups.add(fixture)
+        keys.add(key); matchups.append(fixture)
         saved.append(dict(key=key, event_id=event, book=parent_book, matchup=matchup, starts_at=start,
                           source=item['source'], sport_key=text(item.get('sport_key'), 'leg sport', limit=60),
-                          market=text(item.get('market'), 'leg market', required=True, limit=120),
+                          market=market,
                           selection=text(item.get('selection'), 'leg selection', required=True, limit=200),
-                          odds=parse_odds(item.get('odds')), ref=clean_ref(item.get('ref')),
+                          odds=parse_odds(item.get('odds')), ref=ref,
                           status='pending'))
     return saved
 

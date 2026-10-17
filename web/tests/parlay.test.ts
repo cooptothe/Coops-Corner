@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   combinedOdds,
+  hasSameGameLegs,
+  parlayKind,
   acceptedAmericanOdds,
   readDraft,
   selectionProblem,
@@ -40,6 +42,45 @@ const draft: ParlayDraft = {
   active: true,
   legs: [leg(1)],
 };
+test("same-game and mixed-game drafts restore without fabricated combined prices", () => {
+  const prop = {
+    ...leg(2, "prop"),
+    eventId: "e1",
+    matchup: leg(1).matchup,
+    market: "Points",
+    ref: {
+      market_key: "prop",
+      prop_market: "player_points",
+      player: "Player",
+      side: "over",
+      point: 20.5,
+    },
+  };
+  assert.equal(selectionProblem(draft, prop), null);
+  const sgp = { ...draft, legs: [leg(1), prop] };
+  assert.deepEqual(readDraft(JSON.parse(JSON.stringify(sgp))), sgp);
+  assert.equal(hasSameGameLegs(sgp.legs), true);
+  assert.equal(parlayKind(sgp.legs), "Same-game parlay");
+  assert.equal(parlayKind([...sgp.legs, leg(3)]), "Same-game parlay +");
+  assert.equal(combinedOdds(sgp.legs), null);
+  assert.equal(combinedOdds([...sgp.legs, leg(3)]), null);
+  assert.equal(parlayHandoff(sgp.legs).url, null);
+  assert.match(parlayHandoff(sgp.legs).reason!, /combined quote/);
+  assert.ok(
+    selectionProblem(sgp, {
+      ...prop,
+      key: "opposite",
+      ref: { ...prop.ref, side: "under" },
+    }),
+  );
+  assert.ok(
+    selectionProblem(sgp, {
+      ...prop,
+      key: "alternate",
+      ref: { ...prop.ref, point: 25.5 },
+    }),
+  );
+});
 test("mixed-source draft restores exactly and selection blocks incompatible legs", () => {
   const mixed = { ...draft, legs: [leg(1), leg(2, "prop")] };
   assert.deepEqual(readDraft(JSON.parse(JSON.stringify(mixed))), mixed);

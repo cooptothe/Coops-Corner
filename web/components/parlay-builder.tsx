@@ -16,6 +16,7 @@ import { bookDisplayName, feedBooks } from "../lib/bookmakers";
 import { userStorage } from "../lib/user-storage";
 import {
   combinedOdds,
+  parlayKind,
   acceptedAmericanOdds,
   legKey,
   parlayHandoff,
@@ -269,7 +270,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
           strategy: "parlay",
           book: draft.book,
           matchup: `${draft.legs.length}-leg parlay`,
-          selection: "Cross-game parlay",
+          selection: parlayKind(draft.legs),
           market: "parlay",
           odds: acceptedDecimal,
           stake: draft.stake,
@@ -346,7 +347,10 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="parlay-picker-title">Choose your sportsbook</h2>
-            <p>Build one cross-game parlay using main lines, props, or both.</p>
+            <p>
+              Build a parlay using main lines, props, or both. Same-game
+              combinations use the sportsbook’s combined price.
+            </p>
             <button
               className="parlay-close"
               aria-label="Close sportsbook picker"
@@ -407,6 +411,9 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
             ✕
           </button>
           <h2>{bookDisplayName(draft.book)} parlay</h2>
+          {!!draft.legs.length && (
+            <p className="trk-muted">{parlayKind(draft.legs)}</p>
+          )}
           <div className="parlay-actions">
             <button
               className="button secondary"
@@ -441,8 +448,8 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
           </nav>
           {!draft.legs.length && (
             <p>
-              Click bets in the feed to add your first leg. Choose different
-              games.
+              Click bets in the feed or The Lab to add your first leg. Combine
+              selections from the same game or different games.
             </p>
           )}
           <ol className="parlay-legs">
@@ -488,7 +495,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
               onChange={(e) => setDraft({ ...draft, stake: e.target.value })}
             />
           </label>
-          {draft.legs.length >= 2 && (
+          {draft.legs.length >= 2 && estimated !== null && (
             <p className="parlay-estimate">
               Indicative odds before parlay fees{" "}
               <strong>{american(estimated)}</strong>
@@ -501,6 +508,15 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
                   ? fixed(mulDecimal(draft.stake, estimated), 2)
                   : "0.00"}
               </strong>
+            </p>
+          )}
+          {draft.legs.length >= 2 && estimated === null && (
+            <p className="parlay-estimate">
+              Combined odds and return: <strong>Get quote at sportsbook</strong>
+              <br />
+              Same-game legs can be correlated. Individual prices cannot
+              determine the combined payout. Enter the accepted combined
+              American odds below after placement.
             </p>
           )}
           <button
@@ -553,10 +569,16 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
                 await navigator.clipboard.writeText(
                   [
                     bookDisplayName(draft.book),
+                    parlayKind(draft.legs),
                     ...draft.legs.map(
                       (leg, i) =>
                         `${i + 1}. ${leg.matchup} — ${leg.selection} (${american(leg.odds)})`,
                     ),
+                    ...(estimated === null
+                      ? [
+                          "Combined price: request the sportsbook’s same-game parlay quote.",
+                        ]
+                      : []),
                   ].join("\n"),
                 );
                 setNotice("Slip copied.");

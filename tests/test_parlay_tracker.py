@@ -48,8 +48,8 @@ class ParlayTracker(unittest.TestCase):
         self.assertEqual(5000, won['returned_cents'])
         self.assertEqual(5000, self.ledger.update_bet(saved['id'], {'notes': 'One void leg'})['returned_cents'])
 
-    def test_cross_book_same_game_and_duplicate_legs_are_rejected_atomically(self):
-        for mutate in ('book', 'event', 'key', 'matchup'):
+    def test_cross_book_and_duplicate_legs_are_rejected_atomically(self):
+        for mutate in ('book', 'key'):
             item = parlay()
             if mutate == 'book': item['legs'][1]['book'] = 'draftkings'
             elif mutate == 'event': item['legs'][1]['event_id'] = item['legs'][0]['event_id']
@@ -57,6 +57,26 @@ class ParlayTracker(unittest.TestCase):
             else: item['legs'][1]['matchup'] = item['legs'][0]['matchup']
             with self.assertRaises(TrackerError): self.ledger.add_bets([item])
         self.assertEqual([], self.ledger.state()['bets'])
+
+    def test_same_game_uses_accepted_parent_quote_and_preserves_void_review(self):
+        item=parlay()
+        item['legs'][1]['event_id']=item['legs'][0]['event_id']
+        item['legs'][1]['matchup']=item['legs'][0]['matchup']
+        item['selection']='Same-game parlay';item['odds']='3.25'
+        saved=self.ledger.add_bets([item])[0]
+        self.assertEqual(saved['odds'],'3.25')
+        self.assertEqual(self.ledger.add_bets([item])[0]['id'],saved['id'])
+        self.ledger.set_parlay_leg(saved['id'],'leg-0','void')
+        self.ledger.set_parlay_leg(saved['id'],'leg-1','won')
+        with self.assertRaises(TrackerError):self.ledger.settle_bet(saved['id'],'won')
+        self.assertEqual(self.ledger.settle_bet(saved['id'],'won',returned='40')['returned_cents'],4000)
+        item['client_key']='sgp-won'
+        second=self.ledger.add_bets([item])[0]
+        self.assertEqual(self.ledger.settle_bet(second['id'],'won')['returned_cents'],8125)
+
+    def test_conflicting_same_market_legs_rejected(self):
+        item=parlay();item['legs'][1]={**item['legs'][0],'key':'opposite','selection':'Away'}
+        with self.assertRaises(TrackerError):self.ledger.add_bets([item])
 
     def test_account_isolation_and_export_keep_child_legs(self):
         saved = self.ledger.add_bets([parlay()])[0]
