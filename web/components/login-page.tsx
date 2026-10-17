@@ -121,12 +121,22 @@ export default function LoginPage() {
           </button>
         </div>
         <form onSubmit={submit} noValidate>
-          {signup && <label className="field">
-            <span>INVITATION CODE</span>
-            <input value={invite} onChange={(e) => setInvite(e.target.value)}
-              autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={200} />
-            <small>Private beta access requires a code issued for your username.</small>
-          </label>}
+          {signup && (
+            <label className="field">
+              <span>INVITATION CODE</span>
+              <input
+                value={invite}
+                onChange={(e) => setInvite(e.target.value)}
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={200}
+              />
+              <small>
+                Private beta access requires a code issued for your username.
+              </small>
+            </label>
+          )}
           <label className="field">
             <span>USERNAME</span>
             <input
@@ -217,6 +227,10 @@ export default function LoginPage() {
           >
             {signup ? "Sign in" : "Create an account"}
           </button>
+        </p>
+        <p className="auth-fine">
+          Need help signing in?{" "}
+          <a href="mailto:admin@coopscorner.tech">Contact support</a>.
         </p>
         <p className="auth-fine">
           Your bets and bankroll are private to your account. This site never

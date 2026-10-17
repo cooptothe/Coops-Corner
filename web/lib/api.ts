@@ -98,7 +98,10 @@ export async function request<T>(
       throw new DOMException("Request cancelled", "AbortError");
     if (timedOut) throw new ApiError("API response timed out.", "timeout");
     if (error instanceof ApiError) throw error;
-    throw new ApiError("Cannot reach the local tools API.", "offline");
+    throw new ApiError(
+      "Could not load your workspace. Please try again shortly.",
+      "offline",
+    );
   } finally {
     clearTimeout(timer);
     options.signal?.removeEventListener("abort", abort);

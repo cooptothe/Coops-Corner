@@ -46,11 +46,13 @@ export function MembershipOffer({ offer }: { offer: BetaOffer }) {
 export default function BetaMembership() {
   const [offer, setOffer] = useState<BetaOffer | null>(null);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
+    setFailed(false);
     fetch("/api/refresh/v1/billing/status", {
       cache: "no-store",
-      signal: controller.signal,
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]),
     })
       .then(async (response) => {
         if (response.status === 401) notifyUnauthorized();
@@ -62,7 +64,7 @@ export default function BetaMembership() {
         if (!controller.signal.aborted) setFailed(true);
       });
     return () => controller.abort();
-  }, []);
+  }, [attempt]);
   if (failed)
     return (
       <section className="trk-card account-card">
@@ -70,7 +72,18 @@ export default function BetaMembership() {
           Membership details are temporarily unavailable. Please try again
           later.
         </p>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={() => setAttempt((n) => n + 1)}
+        >
+          Try again
+        </button>
       </section>
     );
-  return offer ? <MembershipOffer offer={offer} /> : null;
+  return offer ? (
+    <MembershipOffer offer={offer} />
+  ) : (
+    <p role="status">Loading membership details…</p>
+  );
 }

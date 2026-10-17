@@ -1,11 +1,18 @@
 import Link from "next/link";
 
-export function PersonalNav({ current }: { current: "tracker" | "account" }) {
+export function PersonalNav({
+  current,
+}: {
+  current: "tracker" | "account" | "lab";
+}) {
   return (
     <nav className="personal-nav" aria-label="Workspace">
       <Link href="/games">Games</Link>
       <Link href="/positive_ev">Positive EV</Link>
       <Link href="/props">Player props</Link>
+      <Link href="/lab" aria-current={current === "lab" ? "page" : undefined}>
+        The Lab
+      </Link>
       <Link href="/arbitrage">Arbitrage</Link>
       <Link href="/middle">Middles</Link>
       <Link href="/promo">Promo converter</Link>

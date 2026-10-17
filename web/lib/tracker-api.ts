@@ -145,7 +145,7 @@ async function call<T>(
     });
   } catch {
     throw new TrackerRequestError(
-      "The tracker service is not reachable. Start it with: python -m pipelines.refresh_service",
+      "Your tracker is temporarily unavailable. Please try again shortly.",
     );
   }
   const data = await response.json().catch(() => null);

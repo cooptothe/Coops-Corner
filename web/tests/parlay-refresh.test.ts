@@ -32,6 +32,37 @@ const prop: ParlayLeg = {
     point: 20.5,
   },
 };
+test("Lab review checks retained one-sided quotes, changes and withdrawals", async () => {
+  const original = globalThis.fetch;
+  const leg = { ...prop, ref: { ...prop.ref, lab_contract_id: "raw" } };
+  let contracts: unknown[] = [
+    {
+      id: "raw",
+      event_id: "e2",
+      book: "fanduel",
+      market_key: "player_points",
+      player: "Player",
+      side: "Over",
+      point: "20.5",
+      price: "2.3",
+      observed_at: future,
+    },
+  ];
+  globalThis.fetch = async (input) => {
+    assert.equal(String(input), "/api/refresh/v1/props/trends/options");
+    return Response.json({ contracts });
+  };
+  try {
+    const result = await refreshParlay([leg]);
+    assert.deepEqual(result.changed, ["prop"]);
+    assert.deepEqual(result.missing, []);
+    assert.equal(result.legs[0].odds, "2.3");
+    contracts = [];
+    assert.deepEqual((await refreshParlay([leg])).missing, ["prop"]);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
 test("review uses stored data, updates changed odds and detects missing selections across both feeds", async () => {
   const original = globalThis.fetch;
   const paths: string[] = [];

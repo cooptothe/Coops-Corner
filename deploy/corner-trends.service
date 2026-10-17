@@ -1,0 +1,16 @@
+[Unit]
+Description=Corner bounded free-data Trends research cache
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=corneradmin
+Group=corneradmin
+WorkingDirectory=/srv/corner/app
+EnvironmentFile=/srv/corner/config/staging.env
+ExecStart=/srv/corner/app/.venv-api/bin/python -m pipelines.trends_worker --limit 20
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+TimeoutStartSec=10min

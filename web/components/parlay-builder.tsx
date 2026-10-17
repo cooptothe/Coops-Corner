@@ -113,7 +113,10 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
     };
   }, [picker]);
   const feedPage =
-    pathname === "/positive_ev" || pathname === "/props" || pathname === "/";
+    pathname === "/positive_ev" ||
+    pathname === "/props" ||
+    pathname === "/lab" ||
+    pathname === "/";
   useEffect(() => {
     document.body.classList.toggle(
       "parlay-panel-open",
@@ -151,7 +154,9 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
   const register = useCallback((source: string, legs: ParlayLeg[]) => {
     setAvailable((current) => ({ ...current, [source]: legs }));
     const selected = draftRef.current.legs.filter(
-      (leg) => leg.source === source,
+      (leg) =>
+        leg.source === source ||
+        (source === "lab" && typeof leg.ref.lab_contract_id === "string"),
     );
     if (
       selected.some(

@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh bounded free-data Trends research hourly
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+RandomizedDelaySec=2min
+Unit=corner-trends.service
+
+[Install]
+WantedBy=timers.target

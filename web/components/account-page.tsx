@@ -121,8 +121,9 @@ export default function AccountPage() {
         <h3 id="pw-title">Change password</h3>
         <p className="trk-muted">
           Signed in as <strong>{user?.username}</strong>. Changing your password
-          signs out every other device. Forgot it instead? Ask whoever runs this
-          app to reset it for you.
+          signs out every other device. Forgot it instead?{" "}
+          <a href="mailto:admin@coopscorner.tech">Contact support</a> for help
+          recovering your account.
         </p>
         <form onSubmit={submit} noValidate className="account-form">
           <div className="field">

@@ -111,12 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {status === "unreachable" ? (
         <Splash>
           <p role="alert">
-            Your workspace is offline. Start The Corner, then try connecting
-            again.
+            Your workspace is temporarily unavailable. Please try again shortly.
           </p>
           <p>
-            On this computer, double-click <strong>Start-Corner.cmd</strong> in
-            your app folder.
+            Your saved account and preferences will be here when you reconnect.
           </p>
           <button
             className="button"

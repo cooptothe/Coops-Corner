@@ -1,0 +1,245 @@
+{
+  "version": "prop-trends/2026-10-17.1",
+  "windows": {
+    "1": {
+      "games": 1,
+      "wins": 1,
+      "losses": 0,
+      "pushes": 0,
+      "hit_rate": 1.0,
+      "mean": 20.0,
+      "median": 20.0,
+      "historical_interval": [
+        0.20654931437723745,
+        1
+      ]
+    },
+    "5": {
+      "games": 5,
+      "wins": 5,
+      "losses": 0,
+      "pushes": 0,
+      "hit_rate": 1.0,
+      "mean": 20.0,
+      "median": 20.0,
+      "historical_interval": [
+        0.5655175352168251,
+        1
+      ]
+    },
+    "10": {
+      "games": 10,
+      "wins": 10,
+      "losses": 0,
+      "pushes": 0,
+      "hit_rate": 1.0,
+      "mean": 20.0,
+      "median": 20.0,
+      "historical_interval": [
+        0.7224672001371107,
+        0.9999999999999999
+      ]
+    }
+  },
+  "baseline": {
+    "games": 30,
+    "wins": 30,
+    "losses": 0,
+    "pushes": 0,
+    "hit_rate": 1.0,
+    "mean": 20.0,
+    "median": 20.0,
+    "historical_interval": [
+      0.8864866068260312,
+      0.9999999999999999
+    ]
+  },
+  "matchup": {
+    "games": 30,
+    "wins": 30,
+    "losses": 0,
+    "pushes": 0,
+    "hit_rate": 1.0,
+    "mean": 20.0,
+    "median": 20.0,
+    "historical_interval": [
+      0.8864866068260312,
+      0.9999999999999999
+    ]
+  },
+  "venue": {
+    "games": 30,
+    "wins": 30,
+    "losses": 0,
+    "pushes": 0,
+    "hit_rate": 1.0,
+    "mean": 20.0,
+    "median": 20.0,
+    "historical_interval": [
+      0.8864866068260312,
+      0.9999999999999999
+    ]
+  },
+  "games": [
+    {
+      "id": "0",
+      "date": "2030-01-31T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "1",
+      "date": "2030-01-30T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "2",
+      "date": "2030-01-29T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "3",
+      "date": "2030-01-28T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "4",
+      "date": "2030-01-27T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "5",
+      "date": "2030-01-26T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "6",
+      "date": "2030-01-25T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "7",
+      "date": "2030-01-24T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "8",
+      "date": "2030-01-23T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    },
+    {
+      "id": "9",
+      "date": "2030-01-22T00:00:00+00:00",
+      "value": "20",
+      "completed": true,
+      "opponent": "Away Team",
+      "home": true,
+      "workload": "30",
+      "season": 2030,
+      "team": "HOME",
+      "source_url": "https://www.espn.com/nba/boxscore/_/gameId/999"
+    }
+  ],
+  "workload_change": 0.0,
+  "model_probability": 0.9838709677419355,
+  "model_ev": 0.967741935483871,
+  "historical_sensitivity_ev": 0.7729732136520624,
+  "break_even_probability": 0.5,
+  "research_signal": true,
+  "calibration_status": "not_empirically_calibrated",
+  "flags": [
+    "Uncalibrated research model; recent hit rates are not a future win rate.",
+    "Overlapping windows are descriptive, not independent votes."
+  ],
+  "historical_replay": {
+    "held_out_games": 10,
+    "brier": 0.00039967184221435787,
+    "log_loss": 0.020064967843806937,
+    "edge_validated": false
+  },
+  "as_of": "2030-02-01T00:00:00+00:00",
+  "player": "Test Player",
+  "workload_label": "Minutes",
+  "source": "Synthetic ESPN-shaped fixture; not a real player forecast",
+  "coverage": "Synthetic regular-season games only",
+  "availability_url": "https://www.espn.com/nba/injuries",
+  "stats_fetched_at": "2030-02-01T00:00:00Z",
+  "news_fetched_at": "2030-02-01T00:00:00Z",
+  "news_status": "available",
+  "news": [],
+  "contract": {
+    "id": "test",
+    "bet_id": "test",
+    "sport_key": "basketball_nba",
+    "player": "Test Player",
+    "market_key": "player_points",
+    "home": "Home Team",
+    "away": "Away Team",
+    "point": "10.5",
+    "side": "Over",
+    "price": "2",
+    "book": "draftkings"
+  }
+}

@@ -41,6 +41,8 @@ import { SettingsBar, useToolSettings } from "./tool-settings";
 import { useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
+import Link from "next/link";
+import { labHref } from "../lib/lab";
 import { ErrorCard, Loading } from "./workspace";
 
 const BOOK_NAMES: Record<string, string> = {
@@ -910,6 +912,15 @@ export default function PropsFeed({ reload }: { reload: number }) {
                         <span className="player-text">
                           <small>{v.market}</small>
                           <strong>{v.line}</strong>
+                          <Link
+                            href={labHref(v.id)}
+                            className="button secondary trend-row-button"
+                            aria-label={`Open The Lab for ${v.player}: ${v.line}`}
+                            onKeyDown={(event) => event.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            Trends
+                          </Link>
                         </span>
                       </span>
                     </div>

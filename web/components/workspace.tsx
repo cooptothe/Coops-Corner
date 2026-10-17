@@ -339,6 +339,9 @@ export default function Workspace({ view }: { view: View }) {
               </Link>
             </span>
           ))}
+          <Link href="/lab">
+            <span className="nav-icon">⌁</span>The Lab
+          </Link>
           <Link href="/tracker">
             <span className="nav-icon">◎</span>Tracker &amp; bankroll
           </Link>
@@ -348,11 +351,11 @@ export default function Workspace({ view }: { view: View }) {
           <span>
             {data
               ? data.meta.data_mode === "database"
-                ? "Local tools API connected"
-                : "Local fixture API connected"
+                ? "Workspace connected"
+                : "Demo data connected"
               : bootError
-                ? "Local API unavailable"
-                : "Connecting to local API"}
+                ? "Workspace temporarily unavailable"
+                : "Connecting to your workspace"}
           </span>
           <small>
             {data?.meta.data_mode === "database"
