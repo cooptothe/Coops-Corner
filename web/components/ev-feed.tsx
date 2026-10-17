@@ -1,4 +1,5 @@
 "use client";
+import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
 import { useDialogFocus } from "./use-dialog-focus";
 import { netBackOdds } from "../lib/pricing";
@@ -137,6 +138,7 @@ export function legacySizing(): Partial<SizingSettings> | null {
     : null;
 }
 type EvSettings = {
+  minWinChance: string;
   timeFilter: string;
   offBooks: string[];
   minEv: string;
@@ -148,6 +150,7 @@ type EvSettings = {
   sportKey: string;
 };
 const EV_DEFAULTS: EvSettings = {
+  minWinChance: "0",
   timeFilter: "default",
   offBooks: [],
   minEv: "0",
@@ -213,7 +216,9 @@ function toVm(
     decimalOdds: q.decimal_odds,
     odds: american(q.decimal_odds),
     fairOdds: fairAmerican(row.calculation.conditional_fair_probability),
-    prob: Number(row.calculation.conditional_fair_probability),
+    prob: q.market_key.endsWith("_lay")
+      ? 1 - Number(row.calculation.conditional_fair_probability)
+      : Number(row.calculation.conditional_fair_probability),
     startMs: g?.starts_at ? new Date(g.starts_at).getTime() : Infinity,
     sharps,
     observedAt: row.oldest_observed_at,
@@ -570,6 +575,10 @@ export default function EvFeed({ data }: { data: Data }) {
   const [retry, setRetry] = useState(0);
   const [offBooks, setOffBooks] = useState<Set<string>>(new Set());
   const [minEv, setMinEv] = useState("0");
+  const [minWinChance, setMinWinChance] = useState("0");
+  const [pricedSnapshot, setPricedSnapshot] = useState<string | undefined>(
+    undefined,
+  );
   const [maxEv, setMaxEv] = useState("");
   const [maxWidth, setMaxWidth] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("ev");
@@ -586,10 +595,12 @@ export default function EvFeed({ data }: { data: Data }) {
   const previous = useRef<Map<string, { odds: string; ev: string }>>(new Map());
   const tickRef = useRef(0);
 
+  const pricingSelection = data.meta.snapshot_id;
   const settings = useToolSettings<EvSettings>({
     tool: "positive_ev",
     defaults: EV_DEFAULTS,
     snapshot: {
+      minWinChance,
       timeFilter,
       offBooks: sorted(offBooks),
       minEv,
@@ -601,6 +612,7 @@ export default function EvFeed({ data }: { data: Data }) {
       sportKey,
     },
     apply: (s) => {
+      setMinWinChance(savedWinChance(s.minWinChance));
       setTimeFilter(savedTimeFilter(s.timeFilter));
       setOffBooks(new Set(list(s.offBooks)));
       setMinEv(text(s.minEv, /^\d{1,2}(\.\d{1,2})?$/, EV_DEFAULTS.minEv));
@@ -640,8 +652,10 @@ export default function EvFeed({ data }: { data: Data }) {
       controller.signal,
     )
       .then((items) => {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
           setRows(items.filter((r): r is EvRow => r.kind === "positive_ev"));
+          setPricedSnapshot(pricingSelection);
+        }
       })
       .catch((e) => {
         if (!controller.signal.aborted)
@@ -660,11 +674,11 @@ export default function EvFeed({ data }: { data: Data }) {
   );
   const all = useMemo(
     () =>
-      (rows ?? [])
+      (pricedSnapshot === pricingSelection ? (rows ?? []) : [])
         .map((r) => toVm(r, maps.quotes, maps.games, maps.books))
         .filter((v): v is Vm => v !== null)
         .sort(SORTS.ev),
-    [rows, maps],
+    [rows, maps, pricedSnapshot, pricingSelection],
   );
 
   // Flash only the cells whose price or edge moved since the last snapshot.
@@ -717,6 +731,7 @@ export default function EvFeed({ data }: { data: Data }) {
       all
         .filter(
           (v) =>
+            passesWinChance(v.prob, minWinChance) &&
             matchesTime(v.startsAt) &&
             (parlay?.draft.active
               ? v.bookId === parlay.draft.book && !v.lay
@@ -730,6 +745,7 @@ export default function EvFeed({ data }: { data: Data }) {
         .sort(SORTS[sortKey]),
     [
       matchesTime,
+      minWinChance,
       all,
       offBooks,
       sportFilter,
@@ -805,6 +821,13 @@ export default function EvFeed({ data }: { data: Data }) {
             <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
           </div>
           <RangeFilter
+            label="Minimum estimated win chance"
+            value={minWinChance}
+            onChange={setMinWinChance}
+            max={100}
+            step={1}
+          />
+          <RangeFilter
             label="Minimum EV"
             value={minEv}
             onChange={(value) => {
@@ -812,6 +835,11 @@ export default function EvFeed({ data }: { data: Data }) {
               if (maxEv && Number(value) > Number(maxEv)) setMaxEv(value);
             }}
           />
+          <p className="trk-muted">
+            Win chance is an estimate; higher chance does not mean higher EV.
+            Whole-number lines are conditional on no push unless a settlement
+            model is supplied.
+          </p>
           <EvFilterLimits
             maxEv={maxEv}
             maxWidth={maxWidth}

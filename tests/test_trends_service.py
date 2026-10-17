@@ -163,3 +163,41 @@ class Access(unittest.TestCase):
             lookup.assert_not_called()
             ctx.allowed=True
             self.assertEqual(client.get('/api/refresh/v1/props/trends?id=unknown').status_code,404)
+
+
+class AdditionalCoverage(unittest.TestCase):
+    def test_anytime_hockey_quote_without_numeric_line_is_researchable(self):
+        now=datetime.now(timezone.utc).isoformat()
+        data={'events':{'e':{'sport_key':'icehockey_nhl','home_team':'Home Team','away_team':'Away Team','commence_time':'2030-02-02T00:00:00Z',
+              'markets':{'player_goal_scorer_anytime':{'captured_at':now,'quotes':[{'book':'draftkings','player':'Test Player','point':None,'side':0,'price':'3'}]}}}}}
+        with patch('pipelines.props_ingestion.load',return_value=data):items=contracts()
+        self.assertEqual(len(items),1)
+        contract=next(iter(items.values()))
+        self.assertEqual(contract['side'],'Yes');self.assertIsNone(contract['settlement_point'])
+        self.assertEqual(contract['projection_plan']['method'],'count_anytime')
+
+    def test_milestones_use_all_five_atomic_categories_not_summed_points(self):
+        data=payload();data['names']=['points','totalRebounds','assists','steals','blocks','minutes']
+        data['seasonTypes'][0]['categories'][0]['events'][0]['stats']=['20','11','3','0','0','30']
+        self.assertEqual(normalize_games(data,'basketball_nba','player_double_double',2030)[0]['value'],'1')
+        self.assertEqual(normalize_games(data,'basketball_nba','player_triple_double',2030)[0]['value'],'0')
+        data['seasonTypes'][0]['categories'][0]['events'][0]['stats'][3]='--'
+        self.assertEqual(normalize_games(data,'basketball_nba','player_double_double',2030),[])
+
+
+class ResearchPagination(unittest.TestCase):
+    def test_inventory_is_paged_without_research_or_provider_calls(self):
+        class Context:
+            def require(self,request,*,write): return {},None
+        app=FastAPI();app.include_router(create_router(Context()))
+        client=TestClient(app)
+        items={str(i):{**CONTRACT,'id':str(i),'price':'2'} for i in range(2005)}
+        with patch('pipelines.trends_service.contracts',return_value=items):
+            one=client.get('/api/refresh/v1/props/trends/options?limit=1000').json()
+            two=client.get('/api/refresh/v1/props/trends/options?offset=1000&limit=1000').json()
+            three=client.get('/api/refresh/v1/props/trends/options?offset=2000&limit=1000').json()
+            self.assertEqual([len(p['contracts']) for p in (one,two,three)],[1000,1000,5])
+            self.assertEqual(one['snapshot_id'],three['snapshot_id'])
+            self.assertEqual(one['total'],2005)
+            self.assertIsNone(three['next_offset'])
+            self.assertEqual(client.get('/api/refresh/v1/props/trends/options?limit=1001').status_code,422)

@@ -41,3 +41,17 @@ test("Lab parlay legs bind exact retained contracts without inventing probabilit
   assert.equal(labLeg({ ...contract, observed_at: undefined }), null);
   assert.equal(labLeg({ ...contract, point: "" }), null);
 });
+
+test("Lab scorer legs preserve the real no-line Yes contract", () => {
+  const scorer = {
+    ...contract,
+    side: "Yes",
+    point: "0.5",
+    settlement_point: null,
+    market_key: "player_goal_scorer_anytime",
+  };
+  const leg = labLeg(scorer)!;
+  assert.equal(leg.ref.point, null);
+  assert.equal(leg.ref.side, "yes");
+  assert.equal(leg.ref.prop_market, "player_goal_scorer_anytime");
+});

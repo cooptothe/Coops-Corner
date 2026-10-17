@@ -17,10 +17,17 @@ export function LabChart({
   onPick?: (id: string) => void;
   renderAction?: (quote: TrendContract) => React.ReactNode;
 }) {
+  const binary = ["Yes", "No"].includes(report.contract.side);
+  const quotedSide = (choice: string) =>
+    binary && !["Yes", "No"].includes(choice)
+      ? choice === "Over"
+        ? "Yes"
+        : "No"
+      : choice;
   const [window, setWindow] = useState<HistoryWindow>("10");
   const [target, setTarget] = useState(report.contract.point);
   const [side, setSide] = useState<"Over" | "Under">(
-    report.contract.side === "Under" ? "Under" : "Over",
+    ["Under", "No"].includes(report.contract.side) ? "Under" : "Over",
   );
   const [chart, setChart] = useState<"bar" | "line">("bar");
   const line = Number(target);
@@ -63,7 +70,9 @@ export function LabChart({
   const best = (choice: string) =>
     Math.max(
       0,
-      ...related.filter((q) => q.side === choice).map((q) => Number(q.price)),
+      ...related
+        .filter((q) => q.side === quotedSide(choice))
+        .map((q) => Number(q.price)),
     );
   const whatIf = valid && line !== Number(report.contract.point);
   return (
@@ -123,7 +132,7 @@ export function LabChart({
               aria-pressed={side === value}
               onClick={() => setSide(value)}
             >
-              {value}
+              {quotedSide(value)}
             </button>
           ))}
         </div>
@@ -132,6 +141,7 @@ export function LabChart({
           <input
             type="number"
             step="0.5"
+            disabled={binary}
             value={target}
             onChange={(e) => setTarget(e.target.value)}
           />
@@ -314,7 +324,8 @@ export function LabChart({
                 <div>
                   <strong>{bookDisplayName(q.book)}</strong>
                   <span>
-                    {q.side} {q.point} · {american(q.price)}
+                    {q.side} {["Over", "Under"].includes(q.side) ? q.point : ""}{" "}
+                    · {american(q.price)}
                   </span>
                   {Number(q.price) === best(q.side) && (
                     <small>Best listed odds</small>

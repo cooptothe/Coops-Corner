@@ -23,8 +23,10 @@ export function labDate(value: string, short = false): string {
 export function labLeg(contract: TrendContract): ParlayLeg | null {
   if (
     !contract.event_id ||
+    (["Yes", "No"].includes(contract.side) &&
+      (contract.settlement_point !== null || contract.point !== "0.5")) ||
     !contract.point.trim() ||
-    !["Over", "Under"].includes(contract.side) ||
+    !["Over", "Under", "Yes", "No"].includes(contract.side) ||
     !contract.starts_at ||
     !Number.isFinite(Date.parse(contract.starts_at)) ||
     !contract.observed_at ||
@@ -39,7 +41,7 @@ export function labLeg(contract: TrendContract): ParlayLeg | null {
       gameId: contract.event_id ?? "",
       bookId: contract.book,
       matchup: `${contract.away} @ ${contract.home}`,
-      line: `${contract.player} · ${contract.side} ${contract.point}`,
+      line: `${contract.player} · ${contract.side}${["Yes", "No"].includes(contract.side) ? "" : ` ${contract.point}`}`,
       market: contract.market_label ?? contract.market_key,
       sportKey: contract.sport_key,
       startsAt: contract.starts_at,
@@ -53,7 +55,8 @@ export function labLeg(contract: TrendContract): ParlayLeg | null {
         prop_market: contract.market_key,
         player: contract.player,
         side: contract.side.toLowerCase(),
-        point: Number(contract.point),
+        point:
+          contract.settlement_point === null ? null : Number(contract.point),
         away: contract.away,
         home: contract.home,
         lab_contract_id: contract.id,

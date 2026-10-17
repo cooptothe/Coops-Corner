@@ -57,3 +57,37 @@ test("source text is escaped rather than treated as markup", () => {
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /noopener noreferrer/);
 });
+
+test("projection baselines display their research status and never promise an edge", () => {
+  const html = renderToStaticMarkup(
+    <TrendResults
+      report={{
+        ...report,
+        projection: {
+          status: "research_only",
+          method: "count_distribution",
+          projected_mean: 12,
+          probability: 0.6,
+          push_probability: 0.1,
+          model_ev: 0.2,
+          live_feed_eligible: false,
+          edge_validated: false,
+          models: [
+            {
+              method: "smoothed_empirical",
+              win: 0.55,
+              push: 0.1,
+              loss: 0.35,
+              ev: 0.2,
+            },
+          ],
+          assumptions: ["Unchanged role distribution."],
+        },
+      }}
+    />,
+  );
+  assert.match(html, /Statistical projection/);
+  assert.match(html, /not a validated/);
+  assert.match(html, /Compare model assumptions/);
+  assert.match(html, /refund chance/);
+});

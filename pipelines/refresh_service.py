@@ -285,6 +285,17 @@ def create_app():
         return JSONResponse(body, status_code=code, headers={'Cache-Control': 'no-store'})
 
     # Every route here needs a signed-in account; reads cost no credits but are not public.
+    @app.get('/api/refresh/v1/props/coverage')
+    async def props_coverage(request: Request):
+        _,denied=ctx.require(request,write=False)
+        if denied:return denied
+        def read():
+            from corner.prop_coverage import coverage
+            from corner.prop_markets import build_bets
+            data=props.prune(props.load(),max_age=props.MAX_AGE)
+            return coverage(data['events'],build_bets(data['events'],fallback_margin='0.10'))
+        return reply(200,await run_in_threadpool(read))
+
     @app.get('/api/refresh/v1/props/status')
     async def props_state(request: Request):
         _, denied = ctx.require(request, write=False)
@@ -297,11 +308,15 @@ def create_app():
             return denied
         from corner.pricing import one_sided_margin
         try:
+            if 'reference_books' in request.query_params:
+                return reply(422, {'error': 'Reference books are fixed by the pricing policy.'})
             margin = one_sided_margin(request.query_params.get('one_sided_margin'))
         except ValueError as error:
             return reply(422, {'error': str(error)})
         def read_bets():
-            return props.bets() if margin is None else props.bets(one_sided_margin=margin)
+            options = {}
+            if margin is not None: options['one_sided_margin'] = margin
+            return props.bets(**options)
         return reply(200, {'bets': await run_in_threadpool(read_bets), **props_status()})
 
     @app.post('/api/refresh/v1/props')

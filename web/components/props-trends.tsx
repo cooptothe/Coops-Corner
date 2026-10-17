@@ -8,6 +8,7 @@ import { BetLinkButton } from "./bet-link";
 import { american } from "../../frontend/format.mjs";
 import {
   trendsRequest,
+  loadTrendOptions,
   type TrendContract,
   type TrendReport,
   type TrendSummary,
@@ -124,6 +125,52 @@ export function TrendResults({
         />
         <Window label="Same home/away setting" result={report.venue} />
       </div>
+      {report.projection && (
+        <section className="trend-model" aria-label="Statistical projection">
+          <h3>Statistical projection</h3>
+          {report.projection.status === "research_only" ? (
+            <>
+              <p>
+                Projected average{" "}
+                <strong>
+                  {numeric(report.projection.projected_mean ?? null)}
+                </strong>{" "}
+                | Estimated win chance{" "}
+                <strong>{pct(report.projection.probability ?? null)}</strong>
+              </p>
+              <p>
+                Push / refund chance:{" "}
+                {pct(report.projection.push_probability ?? null)}. Estimated
+                return after modeled fees:{" "}
+                {pct(report.projection.model_ev ?? null)}.
+              </p>
+              <p className="trk-muted">
+                Research estimate, not a validated +EV recommendation. Role,
+                lineup and matchup effects have not been fitted.
+              </p>
+              <details>
+                <summary>Compare model assumptions</summary>
+                {report.projection.models?.map((model) => (
+                  <p key={model.method}>
+                    {model.method.replaceAll("_", " ")}: {pct(model.win)}{" "}
+                    estimated chance, {pct(model.ev)} modeled return.
+                  </p>
+                ))}
+                <ul>
+                  {report.projection.assumptions?.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </details>
+            </>
+          ) : (
+            <p>
+              {report.projection.reason ??
+                "More context is required for this projection."}
+            </p>
+          )}
+        </section>
+      )}
       <details className="trend-model">
         <summary>Model &amp; methodology</summary>
         <h4>
@@ -295,8 +342,9 @@ export default function LabResearch({
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    trendsRequest<{ contracts: TrendContract[] }>("/options", controller.signal)
+    loadTrendOptions(controller.signal)
       .then((data) => {
+        if (controller.signal.aborted) return;
         setContracts(data.contracts);
         if (selectedBetId) {
           const match = data.contracts.find((c) => c.bet_id === selectedBetId);
@@ -325,7 +373,9 @@ export default function LabResearch({
       `?${new URLSearchParams({ id: selected })}`,
       controller.signal,
     )
-      .then(setReport)
+      .then((value) => {
+        if (!controller.signal.aborted) setReport(value);
+      })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
       })

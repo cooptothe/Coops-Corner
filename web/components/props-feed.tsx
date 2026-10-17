@@ -1,4 +1,5 @@
 "use client";
+import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
 import { Menu } from "./arb-feed";
@@ -200,6 +201,7 @@ function Age({ value }: { value: string | null }) {
 }
 
 type PropsSettings = {
+  minWinChance: string;
   oneSidedMargin: string;
   timeFilter: string;
   fetchSport: string;
@@ -218,6 +220,7 @@ type PropsSettings = {
   offBooks: string[];
 };
 const PROPS_DEFAULTS: PropsSettings = {
+  minWinChance: "0",
   oneSidedMargin: "",
   timeFilter: "default",
   fetchSport: "",
@@ -250,6 +253,10 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const [search, setSearch] = useState("");
   const [eventId, setEventId] = useState("");
   const [minEv, setMinEv] = useState("0");
+  const [minWinChance, setMinWinChance] = useState("0");
+  const [pricedSnapshot, setPricedSnapshot] = useState<string | undefined>(
+    undefined,
+  );
   const [oneSidedMargin, setOneSidedMargin] = useState("");
   const validOneSidedMargin =
     /^(?:\d|[1-4]\d|50)(?:\.\d{1,2})?$/.test(oneSidedMargin) &&
@@ -290,6 +297,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         : null,
     },
     snapshot: {
+      minWinChance,
       oneSidedMargin,
       timeFilter,
       fetchSport,
@@ -308,6 +316,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
       offBooks: sorted(offBooks),
     },
     apply: (s) => {
+      setMinWinChance(savedWinChance(s.minWinChance));
       const margin = text(s.oneSidedMargin, /^\d{1,2}(\.\d{1,2})?$/, "");
       setOneSidedMargin(Number(margin) <= 50 ? margin : "");
       setTimeFilter(savedTimeFilter(s.timeFilter));
@@ -367,6 +376,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     legacy: legacySizing,
     presets: false,
   });
+  const pricingSelection = assumedMarginRatio;
   useEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -374,6 +384,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
       .then((s) => {
         if (controller.signal.aborted) return;
         setStatus(s);
+        setPricedSnapshot(pricingSelection);
         setFetchSport((cur) => cur || s.sports[0]?.key || "");
       })
       .catch((e) => {
@@ -401,8 +412,11 @@ export default function PropsFeed({ reload }: { reload: number }) {
   }, [fetchSport, catalogKey]);
 
   const all = useMemo(
-    () => (status?.bets ?? []).map(toVm).sort(SORTS.ev),
-    [status],
+    () =>
+      (pricedSnapshot === pricingSelection ? (status?.bets ?? []) : [])
+        .map(toVm)
+        .sort(SORTS.ev),
+    [status, pricedSnapshot, pricingSelection],
   );
   const parlayLegs = useMemo(
     () => all.map((v) => builderLeg(v, "prop")),
@@ -468,6 +482,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     return inSport
       .filter(
         (v) =>
+          passesWinChance(v.prob, minWinChance) &&
           matchesTime(v.startsAt) &&
           (parlay?.draft.active
             ? v.bookId === parlay.draft.book
@@ -485,6 +500,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     parlay?.draft.active,
     parlay?.draft.book,
     matchesTime,
+    minWinChance,
     inSport,
     offBooks,
     activeMarket,
@@ -633,6 +649,13 @@ export default function PropsFeed({ reload }: { reload: number }) {
             <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
           </div>
           <RangeFilter
+            label="Minimum estimated win chance"
+            value={minWinChance}
+            onChange={setMinWinChance}
+            max={100}
+            step={1}
+          />
+          <RangeFilter
             label="Minimum EV"
             value={minEv}
             onChange={(value) => {
@@ -640,6 +663,11 @@ export default function PropsFeed({ reload }: { reload: number }) {
               if (maxEv && Number(value) > Number(maxEv)) setMaxEv(value);
             }}
           />
+          <p className="trk-muted">
+            Win chance is an estimate; higher chance does not mean higher EV.
+            Whole-number lines are conditional on no push unless a settlement
+            model is supplied.
+          </p>
           <EvFilterLimits
             maxEv={maxEv}
             maxWidth={maxWidth}

@@ -2,6 +2,8 @@ import { notifyUnauthorized } from "./auth-api";
 import type { QuoteLinks } from "./bet-links";
 
 export interface TrendContract {
+  settlement_point?: string | null;
+  projection_plan?: { method: string; requires: string[] };
   event_id?: string;
   market_label?: string;
   commission?: string;
@@ -32,6 +34,28 @@ export interface TrendSummary {
   historical_interval: [number, number] | null;
 }
 export interface TrendReport {
+  projection?: {
+    status: string;
+    method: string;
+    reason?: string;
+    games?: number;
+    projected_mean?: number;
+    probability?: number;
+    push_probability?: number;
+    model_ev?: number;
+    sensitivity_ev?: [number, number];
+    predictive_10_90?: [number, number] | null;
+    live_feed_eligible: false;
+    edge_validated: false;
+    models?: {
+      method: string;
+      win: number;
+      push: number;
+      loss: number;
+      ev: number;
+    }[];
+    assumptions?: string[];
+  };
   opponent?: string;
   team?: string;
   history_games?: TrendReport["games"];
@@ -98,4 +122,57 @@ export async function trendsRequest<T>(
   if (!data)
     throw new Error("Player research could not be loaded. Please try again.");
   return data as T;
+}
+
+export async function loadTrendOptions(
+  signal: AbortSignal,
+): Promise<{ contracts: TrendContract[] }> {
+  const result: TrendContract[] = [];
+  const seen = new Set<string>();
+  let offset = 0,
+    snapshot: string | undefined,
+    total: number | undefined;
+  for (let page = 0; page < 100; page++) {
+    const data = await trendsRequest<{
+      contracts: TrendContract[];
+      snapshot_id: string;
+      total: number;
+      offset: number;
+      next_offset: number | null;
+    }>(`/options?offset=${offset}&limit=1000`, signal);
+    if (signal.aborted)
+      throw new DOMException("Request cancelled", "AbortError");
+    if (
+      snapshot !== undefined &&
+      (data.snapshot_id !== snapshot || data.total !== total)
+    )
+      throw Error(
+        "Stored prices changed while loading. Please refresh The Lab.",
+      );
+    snapshot = data.snapshot_id;
+    total = data.total;
+    if (
+      !Array.isArray(data.contracts) ||
+      data.offset !== offset ||
+      !Number.isInteger(total) ||
+      total < 0
+    )
+      throw Error("Research page was invalid.");
+    for (const item of data.contracts) {
+      if (seen.has(item.id)) throw Error("Duplicate research quote.");
+      seen.add(item.id);
+      result.push(item);
+    }
+    if (data.next_offset === null) {
+      if (result.length !== total)
+        throw Error("Research coverage was incomplete.");
+      return { contracts: result };
+    }
+    if (!Number.isInteger(data.next_offset) || data.next_offset <= offset)
+      throw Error("Research page cursor was invalid.");
+    offset = data.next_offset;
+  }
+  throw Error(
+    "Research coverage exceeds the current page limit; no partial list was accepted.",
+  );
 }

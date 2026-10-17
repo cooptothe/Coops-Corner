@@ -4,6 +4,7 @@ import Image from "next/image";
 import { PersonalNav } from "./personal-nav";
 import { UserMenu } from "./auth-provider";
 import { ParlayToolbar } from "./parlay-builder";
+import LabCoverage from "./lab-coverage";
 import LabResearch from "./props-trends";
 export default function LabPage({
   selectedBetId,
@@ -43,6 +44,7 @@ export default function LabPage({
         </p>
         <ParlayToolbar />
       </div>
+      <LabCoverage />
       <LabResearch selectedBetId={selectedBetId} />
     </main>
   );

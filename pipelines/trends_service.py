@@ -19,6 +19,7 @@ from corner import media, tracker_live
 from corner.prop_markets import market_meta
 from corner.pricing import fee_policy
 from corner.prop_trends import analyze, instant, number
+from corner.prop_projection import forecast, plan as projection_plan
 from pipelines import props_ingestion
 from pipelines.media import http_json, UpstreamError
 
@@ -38,6 +39,9 @@ def safe_link(value):
 
 
 def stat_specs(sport, market):
+    if market=='player_goal_scorer_anytime' and sport.startswith('icehockey_'):return ['goals']
+    if market in ('player_double_double','player_triple_double') and sport.startswith('basketball_'):
+        return ['points','totalRebounds','assists','steals','blocks']
     specs = tracker_live.PROP_TABLES.get(sport.split('_')[0].replace('americanfootball','football').replace('icehockey','hockey'),{}).get(market)
     if not specs:
         return None
@@ -86,8 +90,11 @@ def normalize_games(payload, sport, market, season):
                 workload = number(minutes or values.get('atBats') or values.get('passingAttempts') or values.get('rushingAttempts'))
                 if minutes is not None and number(minutes)==0:
                     continue
+                value=sum(Decimal(str(v)) for v in parts)
+                if market in ('player_double_double','player_triple_double'):
+                    value=int(sum(Decimal(str(v))>=10 for v in parts)>=(2 if market=='player_double_double' else 3))
                 output.append({'id':str(row['eventId']), 'date':event.get('gameDate'),
-                               'value':str(sum(Decimal(str(v)) for v in parts)),
+                               'value':str(value),
                                'workload':str(workload) if workload is not None else None,
                                'opponent':(event.get('opponent') or {}).get('displayName',''),
                                'home':event.get('atVs')=='vs' if event.get('atVs') in ('vs','@','at') else None, 'completed':True,
@@ -192,7 +199,7 @@ class Trends:
         for game in games:
             if tracker_live.same_team(game['opponent'],opponent):
                 game['opponent'] = opponent
-        result = analyze(games,line=contract['point'],side=contract['side'],price=contract['price'],commission=contract['commission'],as_of=now,opponent=opponent,home=is_home)
+        result = analyze(games,line=contract['point'],side={'Yes':'Over','No':'Under'}.get(contract['side'],contract['side']),price=contract['price'],commission=contract['commission'],as_of=now,opponent=opponent,home=is_home)
         result['player'] = identity['name']
         result['team'] = identity['team']
         result['stats_fetched_at'] = datetime.fromtimestamp(min(fetched_at),timezone.utc).isoformat()
@@ -230,6 +237,10 @@ class Trends:
         if any(re.search(r'\b(injur\w*|out|questionable|doubtful|illness|surgery|restricted|minutes limit)\b',a['headline'],re.I) for a in result['news']):
             result['flags'].append('An availability-related headline needs review; no numerical injury adjustment has been fitted.')
             result['research_signal'] = False
+        result['projection']=forecast(result['history_games'],sport=contract['sport_key'],market=contract['market_key'],line=contract['point'],side=contract['side'],price=contract['price'],commission=contract['commission'],as_of=now)
+        result['projection']['context']={'news_status':result['news_status'],
+            'workload_change':result['workload_change'],'matchup_games':result['matchup']['games'],
+            'lineup_verified':False,'minutes_projection_fitted':False,'context_flags':result['flags']}
         if (instant(contract['starts_at']) or 0)<=self.clock():
             raise ResearchUnavailable('This event has started.')
         return result
@@ -243,7 +254,10 @@ def contracts():
         for market,stored in event['markets'].items():
             for quote in stored['quotes']:
                 policy = fee_policy(quote['book'])
-                point,price = number(quote.get('point')),number(quote.get('price'))
+                meta = market_meta(event['sport_key'],market)
+                settlement_point=quote.get('point')
+                binary=bool(meta and meta.sides==('Yes','No'))
+                point,price = number('0.5' if binary and settlement_point is None else settlement_point),number(quote.get('price'))
                 if policy.commission is None or point is None or price is None or price<=1 or quote.get('side') not in (0,1):
                     continue
                 observed = instant(quote.get('updated_at') or stored.get('captured_at'))
@@ -261,15 +275,14 @@ def contracts():
                 output[ident] = {'id':ident,'bet_id':legacy,'event_id':eid,'sport_key':event['sport_key'],
                                  'home':event['home_team'],'away':event['away_team'],'starts_at':event['commence_time'],
                                  'player':quote['player'],'market_key':market,'point':str(point),
-                                 'side':'Over' if quote['side']==0 else 'Under','book':quote['book'],
+                                 'side':meta.sides[quote['side']] if meta else ('Over' if quote['side']==0 else 'Under'),'book':quote['book'],
+                                 'settlement_point':settlement_point,'projection_plan':projection_plan(event['sport_key'],market),
                                  'price':str(price),'commission':str(policy.commission)}
                 meta = market_meta(event['sport_key'],market)
                 output[ident]['market_label'] = meta.label if meta else market
                 output[ident]['source_ids'] = quote.get('source_ids')
                 output[ident]['observed_at'] = quote.get('updated_at') or stored.get('captured_at')
                 output[ident]['links'] = quote.get('links')
-                if len(output)>=2000:
-                    return output
     return output
 
 
@@ -280,8 +293,17 @@ def create_router(ctx,service=None):
     async def options(request:Request):
         _,denied = ctx.require(request,write=False)
         if denied:return denied
+        try:
+            offset=int(request.query_params.get('offset','0'));limit=int(request.query_params.get('limit','1000'))
+            if not 0<=offset<=100000 or not 1<=limit<=1000:raise ValueError
+        except ValueError:
+            return JSONResponse({'error':'Invalid research page.'},status_code=422)
         items = await run_in_threadpool(contracts)
-        return JSONResponse({'contracts':list(items.values()),'supported_sports':list(LEAGUES)},headers={'Cache-Control':'no-store'})
+        ordered=sorted(items.values(),key=lambda item:item['id'])
+        snapshot=hashlib.sha256(json.dumps([[item['id'],item['price'],item.get('observed_at'),item.get('starts_at')] for item in ordered],separators=(',',':')).encode()).hexdigest()
+        next_offset=offset+limit if offset+limit<len(ordered) else None
+        return JSONResponse({'contracts':ordered[offset:offset+limit],'supported_sports':list(LEAGUES),
+                             'total':len(ordered),'offset':offset,'next_offset':next_offset,'snapshot_id':snapshot},headers={'Cache-Control':'no-store'})
     @router.get('/shortlist')
     async def shortlist(request:Request):
         _,denied = ctx.require(request,write=False)
@@ -314,6 +336,8 @@ def create_router(ctx,service=None):
             if latest is None or latest['price']!=items[ident]['price'] or latest.get('observed_at')!=items[ident].get('observed_at'):
                 return JSONResponse({'error':'This quote changed while research loaded. Select it again to review the current price.'},status_code=409,headers={'Cache-Control':'no-store'})
             return JSONResponse(result,headers={'Cache-Control':'no-store'})
-        except (ResearchUnavailable,ValueError,TypeError,KeyError,ArithmeticError,sqlite3.Error):
+        except ResearchUnavailable as error:
+            return JSONResponse({'error':str(error)},status_code=503,headers={'Cache-Control':'no-store'})
+        except (ValueError,TypeError,KeyError,ArithmeticError,sqlite3.Error):
             return JSONResponse({'error':'Trends are unavailable for this selection. Check coverage or try again later.'},status_code=503,headers={'Cache-Control':'no-store'})
     return router
