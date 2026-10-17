@@ -1,8 +1,16 @@
-import { mulDecimal } from "../../frontend/format.mjs";
+import { mulDecimal, americanToDecimal } from "../../frontend/format.mjs";
 import { resolveLink, safeUrl, type QuoteLinks } from "./bet-links";
 import type { RefValue } from "./tracker-api";
 
 export const PARLAY_MAX = 8;
+export function acceptedAmericanOdds(value: string): string {
+  const odds = value.trim();
+  if (!/^[+-]?\d{3,9}$/.test(odds))
+    throw new Error("Enter accepted American odds, such as +325 or -150.");
+  return americanToDecimal(
+    odds.startsWith("+") || odds.startsWith("-") ? odds : `+${odds}`,
+  );
+}
 export interface ParlayLeg {
   key: string;
   source: "ev" | "prop";

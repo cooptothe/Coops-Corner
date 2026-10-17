@@ -62,9 +62,9 @@ def prune(data, now=None, max_age=None):
     return data
 
 
-def bets(now=None):
+def bets(now=None, *, one_sided_margin=None):
     """Bets from fresh stored fetches only."""
-    return build_bets(prune(load(), now, MAX_AGE)['events'])
+    return build_bets(prune(load(), now, MAX_AGE)['events'], one_sided_margin=one_sided_margin)
 
 
 def last_captured():

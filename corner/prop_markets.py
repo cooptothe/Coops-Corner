@@ -14,6 +14,7 @@ from corner.reference_policy import sufficient_references
 from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
 from corner.market_width import widest_market_width
 from corner.pricing import fee_policy, reference_eligible, no_vig_pair, VERSION as PRICING_VERSION
+from corner.pricing import one_sided_margin as validate_one_sided_margin
 
 # Same reference books (and environment override) as the main +EV feed in api/database.py.
 SHARP_BOOKS = frozenset(supported_books(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
@@ -244,19 +245,47 @@ def _q(value):
     return str(abs(rounded) if rounded == 0 else rounded)
 
 
-def build_bets(events):
+def _observed_margin(groups, book, excluded_player):
+    """Transfer proportional overround only within one event/market/book.
+
+    Each other player gets one vote, preventing alternate lines from inflating
+    sample size. The maximum observed margin is a sensitivity estimate, not a
+    statistical confidence bound or proof of proportional margin allocation.
+    """
+    samples = {}
+    for (player, _), books in groups.items():
+        if player == excluded_player:
+            continue
+        sides = books.get(book, {})
+        if set(sides) != {0, 1}:
+            continue
+        overround = sum(1 / Decimal(q['price']) for q in sides.values()) - 1
+        if 0 <= overround <= Decimal('.50'):
+            samples[player] = max(samples.get(player, overround), overround)
+    if len(samples) < 3:
+        return None
+    ordered = sorted(samples.values())
+    n = len(ordered)
+    median = (ordered[(n-1)//2] + ordered[n//2]) / 2
+    return median, ordered[-1], n
+
+
+def build_bets(events, *, one_sided_margin=None):
     """events: {event_id: {meta, markets:{market_key:{quotes:[...]}}}} -> one bet per soft-book side.
 
     Two other eligible books must each quote both sides of the same player/line.
     Remove margin per book before pooling existing reputation weights. Target is
-    excluded. One-sided and DFS-only prices do not identify standalone fair odds.
+    excluded. Missing opposite prices can use observed same-event/market/book
+    margin samples from three other players, or an explicit assumption. DFS
+    prices stay excluded; transferred margins are not empirical calibration.
     """
+    margin = validate_one_sided_margin(one_sided_margin)
     bets = []
     for event_id, ev in events.items():
         sport = ev['sport_key']
         for market_key, stored in ev['markets'].items():
             meta = market_meta(sport, market_key)
-            if not meta or meta.kind != TWO_WAY:
+            if not meta or (meta.kind != TWO_WAY and margin is None):
                 continue
             grouped = {}
             conflicts = set()
@@ -267,7 +296,7 @@ def build_bets(events):
                     price = Decimal(q['price'])
                     if not price.is_finite() or price <= 1 or price > Decimal('1e12'):
                         continue
-                    if q['side'] not in (0, 1):
+                    if q['side'] not in range(len(meta.sides)):
                         continue
                 except (ValueError, ArithmeticError):
                     continue
@@ -276,8 +305,10 @@ def build_bets(events):
                 if q['side'] in cell:
                     conflicts.add((group, q['book']))
                 cell[q['side']] = q
+            grouped = {group: {b: sides for b, sides in books.items() if (group, b) not in conflicts}
+                       for group, books in grouped.items()}
+            margin_cache = {}
             for (player, point), by_book in grouped.items():
-                by_book = {b: sides for b, sides in by_book.items() if ((player, point), b) not in conflicts}
                 prices = {b: {s: Decimal(q['price']) for s, q in sides.items()} for b, sides in by_book.items()}
                 # Infer no push mass from prices: integer lines are decisive-settlement conditional.
                 conditional = point is not None and Decimal(point) == Decimal(point).to_integral_value()
@@ -287,10 +318,44 @@ def build_bets(events):
                         continue
                     for side, price in sorted(sides.items()):
                         win, used = _sharp_side_probability(prices, side, exclude=book, sport_key=sport)
+                        assumed = False
+                        inferred = False
+                        margin_evidence = {}
                         if win is None:
-                            continue
+                            used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS
+                                          and b != book and reference_eligible(b) and side in p)
+                            estimates = {}
+                            for reference in used:
+                                pair = prices[reference]
+                                if set(pair) == {0, 1}:
+                                    try:
+                                        power, proportional_pair = no_vig_pair(pair[0], pair[1])
+                                        estimates[reference] = power[side], min(power[side], proportional_pair[side])
+                                    except (ValueError, ArithmeticError):
+                                        pass
+                                elif margin is not None:
+                                    p = (1 / pair[side]) / (1 + margin)
+                                    estimates[reference] = p, p
+                                else:
+                                    cache_key = reference, player
+                                    if cache_key not in margin_cache:
+                                        margin_cache[cache_key] = _observed_margin(grouped, reference, player)
+                                    evidence = margin_cache[cache_key]
+                                    if evidence is not None:
+                                        median, high, count = evidence
+                                        estimates[reference] = ((1 / pair[side]) / (1 + median),
+                                                                (1 / pair[side]) / (1 + high))
+                                        margin_evidence[reference] = {'median': str(median), 'maximum': str(high), 'players': count}
+                            used = [b for b in used if b in estimates]
+                            if not sufficient_references(used, sport, player_props=True):
+                                continue
+                            weights = normalized_reference_weights(used, sport, player_props=True)
+                            win = sum(estimates[b][0] * weights[b] for b in used)
+                            transferred_lower = sum(estimates[b][1] * weights[b] for b in used)
+                            assumed = margin is not None
+                            inferred = not assumed
                         weights = normalized_reference_weights(used, sport, player_props=True)
-                        proportional = sum(no_vig_pair(prices[b][0], prices[b][1])[1][side] * weights[b] for b in used)
+                        proportional = transferred_lower if assumed or inferred else sum(no_vig_pair(prices[b][0], prices[b][1])[1][side] * weights[b] for b in used)
                         lower = min(win, proportional)
                         net_odds = 1 + (price-1) * (1-policy.commission)
                         bets.append({
@@ -304,14 +369,16 @@ def build_bets(events):
                             'probability_lower': _q(lower), 'net_decimal_odds': str(net_odds),
                             'commission_rate': str(policy.commission), 'fee_basis': policy.basis,
                             'pricing_version': PRICING_VERSION, 'calibration_status': 'not_empirically_calibrated',
-                            'ev_basis': 'lower_of_power_and_proportional_after_fees',
+                            'ev_basis': 'transferred_margin_sensitivity_after_fees' if inferred else 'assumed_margin_after_fees' if assumed else 'lower_of_power_and_proportional_after_fees',
+                            'assumed_margin': str(margin) if assumed else None,
+                            'margin_evidence': margin_evidence,
                             'settlement_basis': 'decisive_settlement_conditional' if conditional else 'binary_no_push_assumed',
                             'sharps': used,
                             'market_width_cents': widest_market_width([list(prices[b].values()) for b in used])
                             if meta.kind == TWO_WAY else None,
                             'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()},
                             'reference_weight_version': WEIGHT_VERSION,
-                            'probability_basis': 'weighted_power_no_vig',
+                            'probability_basis': 'observed_margin_transfer' if inferred else 'assumed_proportional_margin' if assumed else 'weighted_power_no_vig',
                             'observed_at': by_book[book][side].get('updated_at')
                             or stored.get('captured_at'),
                             'links': by_book[book][side].get('links')})

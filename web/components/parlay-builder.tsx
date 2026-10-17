@@ -16,6 +16,7 @@ import { bookDisplayName, feedBooks } from "../lib/bookmakers";
 import { userStorage } from "../lib/user-storage";
 import {
   combinedOdds,
+  acceptedAmericanOdds,
   legKey,
   parlayHandoff,
   readDraft,
@@ -255,8 +256,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
         Number(draft.stake) <= 0
       )
         throw new Error("Enter the accepted stake in dollars.");
-      if (!/^\d+(\.\d{1,6})?$/.test(acceptedOdds) || Number(acceptedOdds) <= 1)
-        throw new Error("Enter the sportsbook's accepted decimal odds.");
+      const acceptedDecimal = acceptedAmericanOdds(acceptedOdds);
       if (!placedAt) throw new Error("Enter the placement time.");
       await addBets([
         {
@@ -266,7 +266,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
           matchup: `${draft.legs.length}-leg parlay`,
           selection: "Cross-game parlay",
           market: "parlay",
-          odds: acceptedOdds,
+          odds: acceptedDecimal,
           stake: draft.stake,
           placed_at: new Date(placedAt).toISOString(),
           starts_at: [...draft.legs].sort((a, b) =>
@@ -563,11 +563,12 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
           <details className="parlay-record">
             <summary>Already placed? Track this parlay</summary>
             <label className="field">
-              <span>ACCEPTED DECIMAL ODDS</span>
+              <span>ACCEPTED AMERICAN ODDS</span>
               <input
-                inputMode="decimal"
+                inputMode="text"
                 value={acceptedOdds}
-                placeholder="e.g. 4.25"
+                placeholder="e.g. +325 or -150"
+                maxLength={10}
                 onChange={(e) => setAcceptedOdds(e.target.value)}
               />
             </label>

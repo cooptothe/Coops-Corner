@@ -97,6 +97,7 @@ export interface PropBet {
   probability_basis?: string;
   calibration_status?: string;
   settlement_basis?: string;
+  assumed_margin?: string | null;
   sharps: string[];
   market_width_cents?: string | null;
   reference_weights?: Record<string, string>;
@@ -126,8 +127,13 @@ async function propsCall(
   method: "GET" | "POST",
   body?: unknown,
   signal?: AbortSignal,
+  oneSidedMargin?: string,
 ): Promise<PropsStatus> {
-  const response = await fetch("/api/refresh/v1/props", {
+  const query =
+    oneSidedMargin === undefined
+      ? ""
+      : `?${new URLSearchParams({ one_sided_margin: oneSidedMargin })}`;
+  const response = await fetch(`/api/refresh/v1/props${query}`, {
     method,
     cache: "no-store",
     ...(body !== undefined && {
@@ -146,8 +152,8 @@ async function propsCall(
   if (!response.ok) throw new Error(data.error ?? "Request failed.");
   return data as PropsStatus;
 }
-export const loadProps = (signal?: AbortSignal) =>
-  propsCall("GET", undefined, signal);
+export const loadProps = (signal?: AbortSignal, oneSidedMargin?: string) =>
+  propsCall("GET", undefined, signal, oneSidedMargin);
 export const refreshProps = (
   sport: string,
   markets: string[],

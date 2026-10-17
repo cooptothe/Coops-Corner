@@ -14,6 +14,21 @@ SPORTSBOOKS = frozenset({'draftkings', 'fanduel', 'espnbet', 'betmgm', 'betriver
 DFS = frozenset({'prizepicks', 'underdog'})
 
 
+def one_sided_margin(value):
+    """Explicit proportional overround assumption; absence never means zero."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (str, Decimal)):
+        raise ValueError('One-sided margin must be a decimal from 0 to 0.50.')
+    try:
+        margin = D(value)
+    except ArithmeticError:
+        raise ValueError('One-sided margin must be a decimal from 0 to 0.50.') from None
+    if not margin.is_finite() or not 0 <= margin <= D('.50'):
+        raise ValueError('One-sided margin must be a decimal from 0 to 0.50.')
+    return margin
+
+
 @dataclass(frozen=True)
 class FeePolicy:
     status: str

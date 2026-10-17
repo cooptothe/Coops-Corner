@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   combinedOdds,
+  acceptedAmericanOdds,
   readDraft,
   selectionProblem,
   parlayHandoff,
@@ -95,4 +96,13 @@ test("parlay children never multiply bankroll stake or winnings", () => {
   } as unknown as TrackerBet;
   const sum = totals(bookBalances({ bets: [parent], cash: [] }));
   assert.equal(sum.bankroll, 7500);
+});
+
+test("manual parlay tracking accepts American odds and preserves decimal storage", () => {
+  assert.equal(acceptedAmericanOdds("+325"), "4.25");
+  assert.equal(acceptedAmericanOdds("325"), "4.25");
+  assert.equal(acceptedAmericanOdds(" -150 "), "1.666666666667");
+  assert.equal(acceptedAmericanOdds("+100"), "2");
+  for (const value of ["4.25", "99", "-99", "", "NaN", "1e3", "+100.5"])
+    assert.throws(() => acceptedAmericanOdds(value));
 });

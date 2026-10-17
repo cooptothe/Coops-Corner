@@ -291,7 +291,14 @@ def create_app():
         _, denied = ctx.require(request, write=False)
         if denied:
             return denied
-        return reply(200, {'bets': await run_in_threadpool(props.bets), **props_status()})
+        from corner.pricing import one_sided_margin
+        try:
+            margin = one_sided_margin(request.query_params.get('one_sided_margin'))
+        except ValueError as error:
+            return reply(422, {'error': str(error)})
+        def read_bets():
+            return props.bets() if margin is None else props.bets(one_sided_margin=margin)
+        return reply(200, {'bets': await run_in_threadpool(read_bets), **props_status()})
 
     @app.post('/api/refresh/v1/props')
     async def props_refresh(request: Request):

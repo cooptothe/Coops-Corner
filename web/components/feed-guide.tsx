@@ -7,7 +7,7 @@ const GUIDES: Record<View, [string, string]> = {
   ],
   props: [
     "Find a player prop",
-    "Choose a sport and player market. Estimates remove margin from complete two-sided reference prices. EV includes modeled fees and uses the lower of power and proportional estimates; this is model sensitivity, not a confidence interval. Check the final price and payout at the book. Filtering never triggers a provider request.",
+    "Choose a sport and player market. Estimates remove margin from complete two-sided reference prices. EV includes modeled fees and uses the lower of power and proportional estimates; this is model sensitivity, not a confidence interval. One-sided props can use automatically estimated margins from complete prices at two other reference books in the same event and prop market; these results are labeled as modeled. Check the final price and payout at the book. Filtering never triggers a provider request.",
   ],
   arbitrage: [
     "Compare both sides",

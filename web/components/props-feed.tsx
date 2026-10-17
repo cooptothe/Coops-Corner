@@ -71,6 +71,8 @@ const credits = (n: number) => `${n} credit${n === 1 ? "" : "s"}`;
 const PAGE = 100;
 
 interface Vm extends KellyVm {
+  assumedMargin?: string | null;
+  inferredMargin?: boolean;
   sourceIds?: PropBet["source_ids"];
   gameId: string;
   sportKey: string;
@@ -111,7 +113,7 @@ function toVm(b: PropBet): Vm {
     player: b.player,
     matchup: `${b.away} @ ${b.home}`,
     market: b.market_label,
-    line: `${b.player} Â· ${side}`,
+    line: `${b.player} · ${side}`,
     startsAt: b.starts_at,
     startMs: new Date(b.starts_at).getTime(),
     bookId: b.book,
@@ -124,6 +126,8 @@ function toVm(b: PropBet): Vm {
     fairOdds,
     prob: Number(b.fair_probability),
     fair: b.fair_probability,
+    assumedMargin: b.assumed_margin,
+    inferredMargin: b.probability_basis === "observed_margin_transfer",
     marketWidth:
       b.market_width_cents == null ? null : Number(b.market_width_cents),
     sharps: b.sharps.map(bookName).join(" + "),
@@ -161,7 +165,7 @@ const SORT_LABELS: [SortKey, string][] = [
   ["time", "Event time (soonest)"],
   ["odds_high", "Odds (highest payout)"],
   ["odds_low", "Odds (shortest price)"],
-  ["player", "Player (Aâ€“Z)"],
+  ["player", "Player (A–Z)"],
   ["scanned", "Newest scan"],
 ];
 const SORTS: Record<SortKey, (a: Vm, b: Vm) => number> = {
@@ -181,10 +185,11 @@ function Age({ value }: { value: string | null }) {
     const timer = setInterval(() => tick((n) => n + 1), 1000);
     return () => clearInterval(timer);
   }, []);
-  return <span className="ev-age">{value ? ageLabel(value) : "â€”"}</span>;
+  return <span className="ev-age">{value ? ageLabel(value) : "—"}</span>;
 }
 
 type PropsSettings = {
+  oneSidedMargin: string;
   timeFilter: string;
   fetchSport: string;
   fetchMarkets: string[] | null;
@@ -202,6 +207,7 @@ type PropsSettings = {
   offBooks: string[];
 };
 const PROPS_DEFAULTS: PropsSettings = {
+  oneSidedMargin: "",
   timeFilter: "default",
   fetchSport: "",
   fetchMarkets: null,
@@ -233,6 +239,13 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const [search, setSearch] = useState("");
   const [eventId, setEventId] = useState("");
   const [minEv, setMinEv] = useState("0");
+  const [oneSidedMargin, setOneSidedMargin] = useState("");
+  const validOneSidedMargin =
+    /^(?:\d|[1-4]\d|50)(?:\.\d{1,2})?$/.test(oneSidedMargin) &&
+    Number(oneSidedMargin) <= 50;
+  const assumedMarginRatio = validOneSidedMargin
+    ? shiftDecimal(oneSidedMargin, -2)
+    : undefined;
   const [maxEv, setMaxEv] = useState("");
   const [maxWidth, setMaxWidth] = useState("");
   const [minOdds, setMinOdds] = useState("");
@@ -266,6 +279,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         : null,
     },
     snapshot: {
+      oneSidedMargin,
       timeFilter,
       fetchSport,
       fetchMarkets: fetchInitialized.current ? fetchMarkets : null,
@@ -283,6 +297,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
       offBooks: sorted(offBooks),
     },
     apply: (s) => {
+      const margin = text(s.oneSidedMargin, /^\d{1,2}(\.\d{1,2})?$/, "");
+      setOneSidedMargin(Number(margin) <= 50 ? margin : "");
       setTimeFilter(savedTimeFilter(s.timeFilter));
       const fetchKey =
         text(s.fetchSport, /^[a-z0-9_]{0,60}$/, "") ||
@@ -343,7 +359,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
   useEffect(() => {
     const controller = new AbortController();
     setError("");
-    loadProps(controller.signal)
+    loadProps(controller.signal, assumedMarginRatio)
       .then((s) => {
         if (controller.signal.aborted) return;
         setStatus(s);
@@ -354,7 +370,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
           setError(e instanceof Error ? e.message : "Request failed.");
       });
     return () => controller.abort();
-  }, [retry, reload]);
+  }, [retry, reload, assumedMarginRatio]);
 
   const catalog = status?.markets[fetchSport] ?? [];
   // Reset the picks to the defaults only when the league changes. The status object is
@@ -541,7 +557,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
 
   if (error)
     return <ErrorCard message={error} retry={() => setRetry((n) => n + 1)} />;
-  if (!status) return <Loading text="Scanning player propsâ€¦" />;
+  if (!status) return <Loading text="Scanning player props…" />;
 
   const groups = new Map<string, typeof catalog>();
   for (const m of catalog)
@@ -550,13 +566,36 @@ export default function PropsFeed({ reload }: { reload: number }) {
   return (
     <PlacedProvider slip={slip}>
       <section className="ev-layout props-layout" aria-label="Player props">
-        <p className="feed-note">
-          Probabilities are no-vig market estimates, not proven win rates. EV
-          uses the lower of two margin-removal estimates after modeled fees.
-          Integer lines are conditional on no push. One-sided prices and
-          pick&apos;em payouts need a separate model and do not produce
-          standalone EV bets.
-        </p>
+        <details className="feed-guide">
+          <summary>One-sided props pricing</summary>
+          <p>
+            One-sided props are priced automatically when two other reference
+            books have enough complete prices in this event and prop market to
+            estimate their margins. Each book needs three other players. Results
+            are labeled as modeled; EV uses the larger observed margin as a
+            sensitivity check. This is not a calibrated win rate or a confidence
+            bound. Select No limit for market width when the opposite price is
+            unavailable.
+          </p>
+          <label className="field">
+            <span>OPTIONAL MARGIN OVERRIDE (%)</span>
+            <input
+              inputMode="decimal"
+              value={oneSidedMargin}
+              placeholder="Automatic; optional 0 to 50 override"
+              maxLength={5}
+              onChange={(e) => setOneSidedMargin(e.target.value.trim())}
+            />
+          </label>
+          {oneSidedMargin && !validOneSidedMargin && (
+            <p role="alert">Enter a margin from 0 to 50 percent.</p>
+          )}
+          <p>
+            Requires two other books on the exact selection. Fees still apply.
+            Integer lines are conditional on no push; pick&apos;em payouts
+            require a lineup model.
+          </p>
+        </details>
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
           <div className="ev-filter-actions">
@@ -739,7 +778,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 </div>
               </details>
               <label className="field">
-                <span>GAMES (SOONEST FIRST) Â· {fetchEvents}</span>
+                <span>GAMES (SOONEST FIRST) · {fetchEvents}</span>
                 <input
                   type="range"
                   min="1"
@@ -753,9 +792,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 disabled={busy || !fetchMarkets.length}
                 onClick={fetchNow}
               >
-                {busy
-                  ? "Fetchingâ€¦"
-                  : `Fetch props (â‰¤ ${credits(estimate)})`}
+                {busy ? "Fetching…" : `Fetch props (≤ ${credits(estimate)})`}
               </button>
               {notice && (
                 <small
@@ -772,7 +809,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
           <div className="ev-count">
             <strong>{visible.length}</strong> of {all.length} bets
             {status.last_success_at && (
-              <> Â· fetched {date(status.last_success_at)}</>
+              <> · fetched {date(status.last_success_at)}</>
             )}
             <FeedChangeNote change={change} />
             <label className="ev-sort">
@@ -812,7 +849,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 <p>
                   {hiddenAsOld
                     ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. This feed will use the next scheduled capture.`
-                    : "Adjust the EV or market-width limits, or re-enable books. Estimates need two other eligible books quoting both sides of the exact player and line, plus modeled target fees."}
+                    : "Adjust the EV or market-width limits, or re-enable books. Use two other eligible books with matching player and line. For one-sided prices, automatic pricing needs complete margin samples from three other players at each reference book. Set market width to No limit when width is unavailable."}
                 </p>
                 {!settings.atDefaults && (
                   <button
@@ -852,7 +889,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                             className="parlay-check"
                             aria-label="Added to parlay"
                           >
-                            âœ“
+                            ✓
                           </span>
                         )}
                       <span className="ev-badge">{percent(v.ev, true)}</span>
@@ -890,8 +927,16 @@ export default function PropsFeed({ reload }: { reload: number }) {
                     </div>
                     <div role="cell" className="ev-cell ev-sharp">
                       <strong>{percent(v.fair)} estimated chance</strong>
-                      <small>Fair {v.fairOdds ?? "â€”"}</small>
+                      <small>Fair {v.fairOdds ?? "—"}</small>
                       <small>{v.sharps}</small>
+                      {v.inferredMargin && (
+                        <small>Modeled: observed-margin estimate</small>
+                      )}
+                      {v.assumedMargin != null && (
+                        <small>
+                          Modeled: {percent(v.assumedMargin)} assumed margin
+                        </small>
+                      )}
                     </div>
                     <div role="cell" className="ev-cell ev-time">
                       <Age value={v.observedAt} />
