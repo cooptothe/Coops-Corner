@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { LabChart } from "./lab-chart";
 import { labDate, labLeg } from "../lib/lab";
 import { useParlay } from "./parlay-builder";
 import { PROP_BOOKS } from "../lib/bookmakers";
@@ -64,30 +65,22 @@ function AddToParlay({ contract }: { contract: TrendContract }) {
   );
 }
 
-export function TrendResults({ report }: { report: TrendReport }) {
-  const line = Number(report.contract.point);
-  const minimum = Math.min(
-    0,
-    line,
-    ...report.games.map((g) => Number(g.value)),
-  );
-  const maximum = Math.max(
-    1,
-    line,
-    ...report.games.map((g) => Number(g.value)),
-  );
-  const y = (value: number) =>
-    130 - ((value - minimum) / (maximum - minimum)) * 110;
+export function TrendResults({
+  report,
+  quotes,
+  onPick,
+}: {
+  report: TrendReport;
+  quotes?: TrendContract[];
+  onPick?: (id: string) => void;
+}) {
   return (
     <div className="trend-results">
       <header>
-        <h3>
-          {report.player} · {report.contract.side} {report.contract.point}{" "}
-          {marketName(report.contract.market_key)}
-        </h3>
         <p>
-          {report.contract.away} at {report.contract.home} ·{" "}
-          {bookName(report.contract.book)} {american(report.contract.price)}
+          Selected offer · {bookName(report.contract.book)}{" "}
+          {american(report.contract.price)} · {report.contract.side}{" "}
+          {report.contract.point}
         </p>
         {report.contract.observed_at && (
           <p className="trk-muted">
@@ -104,72 +97,26 @@ export function TrendResults({ report }: { report: TrendReport }) {
         )}
         <AddToParlay contract={report.contract} />
       </header>
-      <div className="trend-windows">
-        {[1, 5, 10].map((n) => (
-          <Window
-            key={n}
-            label={`Last ${n}`}
-            result={report.windows[String(n)]}
-          />
-        ))}
-        <Window label="Baseline (up to 30)" result={report.baseline} />
-      </div>
-      {!!report.games.length && (
-        <figure className="trend-chart">
-          <svg
-            viewBox="0 0 600 160"
-            role="img"
-            aria-label="Recent game results compared with the current prop line"
-          >
-            <line
-              x1="0"
-              x2="600"
-              y1={y(line)}
-              y2={y(line)}
-              stroke="#ff97b2"
-              strokeDasharray="5 4"
+      <details className="lab-window-summary">
+        <summary>Other history windows</summary>
+        <div className="trend-windows">
+          {[1, 5, 10].map((n) => (
+            <Window
+              key={n}
+              label={`Last ${n}`}
+              result={report.windows[String(n)]}
             />
-            {[...report.games].reverse().map((game, i) => {
-              const value = Number(game.value);
-              const hit =
-                report.contract.side === "Over" ? value > line : value < line;
-              return (
-                <g key={game.id}>
-                  <title>{`${labDate(game.date, true)}: ${value}`}</title>
-                  <rect
-                    x={i * 59 + 8}
-                    y={Math.min(y(value), y(0))}
-                    width="40"
-                    height={Math.max(1, Math.abs(y(value) - y(0)))}
-                    fill={
-                      value === line ? "#a998a2" : hit ? "#58ca9a" : "#d9788b"
-                    }
-                  />
-                  <text
-                    x={i * 59 + 28}
-                    y="153"
-                    textAnchor="middle"
-                    fill="currentColor"
-                    fontSize="10"
-                  >
-                    {labDate(game.date, true)}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-          <figcaption>
-            Current line shown in pink. Hits are retrospective at today&apos;s
-            line, not the line offered in those games.
-          </figcaption>
-        </figure>
-      )}
-      {!report.games.length && (
-        <p role="status">
-          No usable regular-season game logs were available. Missing data is not
-          a zero.
-        </p>
-      )}
+          ))}
+          <Window label="Baseline (up to 30)" result={report.baseline} />
+        </div>
+      </details>
+      <LabChart
+        key={report.contract.id}
+        report={report}
+        quotes={quotes}
+        onPick={onPick}
+        renderAction={(quote) => <AddToParlay contract={quote} />}
+      />
       <div className="trend-context">
         <Window
           label="Previous games vs this opponent"
@@ -316,6 +263,8 @@ export default function LabResearch({
   const [selected, setSelected] = useState("");
   const [query, setQuery] = useState("");
   const [sport, setSport] = useState("");
+  const [market, setMarket] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [book, setBook] = useState("");
   const [limit, setLimit] = useState(24);
   const [report, setReport] = useState<TrendReport | null>(null);
@@ -402,13 +351,18 @@ export default function LabResearch({
     return () => controller.abort();
   }, [scanning]);
   const activeBook = parlay?.draft.active ? parlay.draft.book : book;
-  const filtered = contracts.filter(
-    (c) =>
-      (!sport || c.sport_key === sport) &&
-      (!activeBook || c.book === activeBook) &&
-      `${c.player} ${c.market_label ?? c.market_key} ${c.home} ${c.away} ${bookName(c.book)}`
-        .toLowerCase()
-        .includes(query.toLowerCase()),
+  const filtered = useMemo(
+    () =>
+      contracts.filter(
+        (c) =>
+          (!sport || c.sport_key === sport) &&
+          (!market || c.market_key === market) &&
+          (!activeBook || c.book === activeBook) &&
+          `${c.player} ${c.market_label ?? c.market_key} ${c.home} ${c.away} ${bookName(c.book)}`
+            .toLowerCase()
+            .includes(deferredQuery.toLowerCase()),
+      ),
+    [contracts, sport, market, activeBook, deferredQuery],
   );
   return (
     <section className="lab-research" aria-label="Player research">
@@ -417,6 +371,7 @@ export default function LabResearch({
           <span>Find a player or team</span>
           <input
             type="search"
+            list="lab-player-search"
             value={query}
             placeholder="Search players, teams or markets"
             onChange={(e) => {
@@ -424,6 +379,19 @@ export default function LabResearch({
               setLimit(24);
             }}
           />
+          <datalist id="lab-player-search">
+            {[
+              ...new Set(
+                contracts
+                  .filter((c) => !sport || c.sport_key === sport)
+                  .map((c) => c.player),
+              ),
+            ]
+              .slice(0, 300)
+              .map((player) => (
+                <option key={player} value={player} />
+              ))}
+          </datalist>
         </label>
         <label className="field">
           <span>Sport</span>
@@ -431,6 +399,7 @@ export default function LabResearch({
             value={sport}
             onChange={(e) => {
               setSport(e.target.value);
+              setMarket("");
               setLimit(24);
             }}
           >
@@ -438,6 +407,32 @@ export default function LabResearch({
             {[...new Set(contracts.map((c) => c.sport_key))].map((key) => (
               <option key={key} value={key}>
                 {key.split("_").slice(1).join(" ").toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Stat category</span>
+          <select
+            value={market}
+            onChange={(e) => {
+              setMarket(e.target.value);
+              setLimit(24);
+            }}
+          >
+            <option value="">All stats</option>
+            {[
+              ...new Map(
+                contracts
+                  .filter((c) => !sport || c.sport_key === sport)
+                  .map((c) => [
+                    c.market_key,
+                    c.market_label ?? marketName(c.market_key),
+                  ]),
+              ).entries(),
+            ].map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
               </option>
             ))}
           </select>
@@ -514,80 +509,99 @@ export default function LabResearch({
           )}
         </section>
       )}
-      {loading && <p role="status">Loading available props…</p>}
-      {!loading && (
-        <>
-          <p className="trk-muted">
-            {filtered.length} available selections · retained prices · no odds
-            credits used
-          </p>
-          {!filtered.length && (
-            <p role="status">
-              {contracts.length
-                ? "No props match these filters. Try another player, sport or book."
-                : "No retained props are available yet. Research will appear when scheduled odds arrive."}
-            </p>
+      <div className="lab-master-detail">
+        <aside className="lab-browser" aria-label="Available player props">
+          {loading && <p role="status">Loading available props…</p>}
+          {!loading && (
+            <>
+              <p className="trk-muted">
+                {filtered.length} available selections · retained prices · no
+                odds credits used
+              </p>
+              {!filtered.length && (
+                <p role="status">
+                  {contracts.length
+                    ? "No props match these filters. Try another player, sport or book."
+                    : "No retained props are available yet. Research will appear when scheduled odds arrive."}
+                </p>
+              )}
+              <div className="lab-selection-grid">
+                {filtered.slice(0, limit).map((c) => (
+                  <button
+                    type="button"
+                    key={c.id}
+                    className="lab-selection"
+                    aria-pressed={selected === c.id}
+                    onClick={() => setSelected(c.id)}
+                  >
+                    <strong>{c.player}</strong>
+                    <span>
+                      {c.side} {c.point}{" "}
+                      {c.market_label ?? marketName(c.market_key)}
+                    </span>
+                    <small>
+                      {bookName(c.book)} <b>{american(c.price)}</b>
+                    </small>
+                    <small>
+                      {c.away} at {c.home}
+                    </small>
+                    {c.starts_at && (
+                      <time dateTime={c.starts_at}>{labDate(c.starts_at)}</time>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {filtered.length > limit && (
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => setLimit((n) => n + 24)}
+                >
+                  Show more props
+                </button>
+              )}
+            </>
           )}
-          <div className="lab-selection-grid">
-            {filtered.slice(0, limit).map((c) => (
+        </aside>
+        <div className="lab-detail">
+          {!selected && !busy && (
+            <div className="lab-detail-placeholder">
+              <h2>Find your next angle</h2>
+              <p>
+                Choose a player on the left to explore hit rates, change the
+                research line, and compare sportsbook offers.
+              </p>
+            </div>
+          )}
+          {error && (
+            <div role="alert">
+              <p>{error}</p>
               <button
                 type="button"
-                key={c.id}
-                className="lab-selection"
-                aria-pressed={selected === c.id}
-                onClick={() => setSelected(c.id)}
+                className="button secondary"
+                onClick={() => setRetry((n) => n + 1)}
               >
-                <strong>{c.player}</strong>
-                <span>
-                  {c.side} {c.point}{" "}
-                  {c.market_label ?? marketName(c.market_key)}
-                </span>
-                <small>
-                  {bookName(c.book)} <b>{american(c.price)}</b>
-                </small>
-                <small>
-                  {c.away} at {c.home}
-                </small>
-                {c.starts_at && (
-                  <time dateTime={c.starts_at}>{labDate(c.starts_at)}</time>
-                )}
+                Try again
               </button>
-            ))}
-          </div>
-          {filtered.length > limit && (
-            <button
-              type="button"
-              className="button secondary"
-              onClick={() => setLimit((n) => n + 24)}
-            >
-              Show more props
-            </button>
+            </div>
           )}
-        </>
-      )}
-      {error && (
-        <div role="alert">
-          <p>{error}</p>
-          <button
-            type="button"
-            className="button secondary"
-            onClick={() => setRetry((n) => n + 1)}
-          >
-            Try again
-          </button>
+          {busy && <p role="status">Loading player history and news…</p>}
+          {report && !busy && (
+            <div
+              ref={results}
+              tabIndex={-1}
+              className="lab-report"
+              aria-label="Selected player research"
+            >
+              <TrendResults
+                report={report}
+                quotes={contracts}
+                onPick={setSelected}
+              />
+            </div>
+          )}
         </div>
-      )}
-      {busy && <p role="status">Loading player history and news…</p>}
-      {report && !busy && (
-        <div
-          ref={results}
-          tabIndex={-1}
-          className="lab-report"
-          aria-label="Selected player research"
-        >
-          <TrendResults report={report} />
-        </div>
-      )}
+      </div>
     </section>
   );
 }

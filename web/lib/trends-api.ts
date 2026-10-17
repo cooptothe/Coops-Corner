@@ -32,6 +32,9 @@ export interface TrendSummary {
   historical_interval: [number, number] | null;
 }
 export interface TrendReport {
+  opponent?: string;
+  team?: string;
+  history_games?: TrendReport["games"];
   workload_label: string;
   availability_url: string;
   historical_replay: {

@@ -17,6 +17,10 @@
 .PARAMETER Open
   Open http://localhost:3000 in the browser when everything is up.
 
+.PARAMETER Fast
+  Build and run the production web app locally. Manual fetching remains controlled
+  by your existing configuration. Stop running services before switching modes.
+
 .PARAMETER Ngrok
   Also start an ngrok tunnel to the web app (so you can open the app on your phone) and allow exactly that
   tunnel's https address in the app. The address is printed when everything is up. Needs ngrok installed and its
@@ -38,6 +42,7 @@
 [CmdletBinding()]
 param(
     [int]$MaxAgeSeconds = 0,
+    [switch]$Fast,
     [switch]$Open,
     [switch]$Ngrok,
     [string]$NgrokUrl,
@@ -80,6 +85,14 @@ if ($busy) {
 }
 
 if ($MaxAgeSeconds -gt 0) { $env:CORNER_TOOLS_MAX_AGE_SECONDS = "$MaxAgeSeconds" }
+
+if ($Fast) {
+    Push-Location (Join-Path $root 'web')
+    try {
+        & pnpm build
+        if ($LASTEXITCODE -ne 0) { throw 'Production web build failed; services were not started.' }
+    } finally { Pop-Location }
+}
 
 function Start-Window([string]$title, [string]$workdir, [string]$command) {
     $logDirectory = Join-Path $root 'retained\service-logs'
@@ -144,7 +157,8 @@ Wait-Port 'Refresh service' $ports.refresh 60 $windows.refresh
 $windows.api = Start-Window 'Corner: tools API :8765' $root "& '$python' -m api.run_local --port 8765"
 Wait-Port 'Tools API' $ports.api 180 $windows.api
 
-$windows.web = Start-Window 'Corner: web :3000' (Join-Path $root 'web') 'pnpm dev'
+$webCommand = if ($Fast) { 'pnpm start' } else { 'pnpm dev' }
+$windows.web = Start-Window 'Corner: web :3000' (Join-Path $root 'web') $webCommand
 Wait-Port 'Web app' $ports.web 120 $windows.web
 
 New-Item -ItemType Directory -Force (Split-Path $pidFile) | Out-Null

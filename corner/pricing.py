@@ -107,13 +107,32 @@ def no_vig_pair(first, second):
         if odds[0] == odds[1]:
             return (D('.5'), D('.5')), (D('.5'), D('.5'))
         low, high = D(0), D(1)
-        while sum(x**high for x in q) > 1:
+        logs = tuple(x.ln() for x in q)
+        def terms(k):
+            return tuple((k*log).exp() for log in logs)
+        while sum(terms(high)) > 1:
             high *= 2
-        for _ in range(180):
-            mid = (low+high)/2
-            if sum(x**mid for x in q) > 1:
-                low = mid
+        # Safeguarded Decimal Newton: reuse logarithms instead of evaluating
+        # hundreds of 60-digit fractional powers for every newly seen pair.
+        k = (low+high)/2
+        for _ in range(96):
+            values = terms(k)
+            residual = sum(values)-1
+            if abs(residual) <= D('1e-54'):
+                break
+            if residual > 0:
+                low = k
             else:
-                high = mid
-        first_probability = q[0] ** ((low+high)/2)
+                high = k
+            derivative = sum(value*log for value,log in zip(values,logs))
+            proposal = k-residual/derivative
+            k = proposal if low < proposal < high else (low+high)/2
+        else:
+            # Retain the original precision guarantee for pathological inputs.
+            for _ in range(180):
+                k=(low+high)/2
+                if sum(terms(k)) > 1:low=k
+                else:high=k
+            k=(low+high)/2
+        first_probability = (k*logs[0]).exp()
         return (first_probability, 1-first_probability), (proportional, 1-proportional)

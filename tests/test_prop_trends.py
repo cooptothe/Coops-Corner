@@ -16,6 +16,12 @@ def report(rows, **kwargs):
 
 
 class ResearchMath(unittest.TestCase):
+    def test_dashboard_history_is_bounded_and_does_not_change_existing_window(self):
+        result=report(games([20]*50))
+        self.assertEqual(len(result['history_games']),40)
+        self.assertEqual(len(result['games']),10)
+        self.assertEqual(result['windows']['20']['games'],20)
+        self.assertEqual(result['opponent'],'Opponent')
     def test_recent_windows_pushes_and_integer_refunds(self):
         result = report(games([11,10,9,12,13]))
         self.assertEqual(result['windows']['1']['wins'],1)

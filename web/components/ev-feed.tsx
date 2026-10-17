@@ -1,4 +1,5 @@
 "use client";
+import { QuoteAge } from "./quote-age";
 import { useDialogFocus } from "./use-dialog-focus";
 import { netBackOdds } from "../lib/pricing";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
@@ -240,12 +241,7 @@ export function kelly(
 }
 
 function Age({ value }: { value: string }) {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return <span className="ev-age">{ageLabel(value)}</span>;
+  return <QuoteAge value={value} />;
 }
 
 type SortKey =

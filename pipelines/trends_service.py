@@ -194,6 +194,7 @@ class Trends:
                 game['opponent'] = opponent
         result = analyze(games,line=contract['point'],side=contract['side'],price=contract['price'],commission=contract['commission'],as_of=now,opponent=opponent,home=is_home)
         result['player'] = identity['name']
+        result['team'] = identity['team']
         result['stats_fetched_at'] = datetime.fromtimestamp(min(fetched_at),timezone.utc).isoformat()
         result['source'] = 'ESPN game logs; source availability and coverage may change'
         result['workload_label'] = {'basketball':'Minutes','hockey':'Ice time (minutes)','football':'Attempts (where available)','baseball':'At-bats (where available)'}[path.split('/')[0]]

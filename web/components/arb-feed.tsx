@@ -1,4 +1,5 @@
 "use client";
+import { QuoteAge } from "./quote-age";
 import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
 import { FeedFilters } from "./feed-filters";
 import { useDialogFocus } from "./use-dialog-focus";
@@ -180,12 +181,7 @@ function toVm(
 }
 
 export function Age({ value }: { value: string }) {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return <span className="ev-age">{ageLabel(value)}</span>;
+  return <QuoteAge value={value} />;
 }
 
 const Row = memo(

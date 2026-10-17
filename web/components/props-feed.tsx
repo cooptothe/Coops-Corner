@@ -1,4 +1,5 @@
 "use client";
+import { QuoteAge } from "./quote-age";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
 import { Menu } from "./arb-feed";
 import { builderLeg } from "../lib/parlay";
@@ -195,12 +196,7 @@ const SORTS: Record<SortKey, (a: Vm, b: Vm) => number> = {
 };
 
 function Age({ value }: { value: string | null }) {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return <span className="ev-age">{value ? ageLabel(value) : "—"}</span>;
+  return <QuoteAge value={value} />;
 }
 
 type PropsSettings = {
