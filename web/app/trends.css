@@ -1187,3 +1187,133 @@
     gap: 8px;
   }
 }
+.lab-research-board {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+.lab-board-heading,
+.lab-board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.lab-board-heading h2 {
+  margin: 6px 0;
+}
+.lab-board-heading p {
+  color: var(--muted);
+  margin: 6px 0;
+}
+.lab-board-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.lab-board-search {
+  grid-column: span 2;
+}
+.lab-board-extra {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+.lab-board-extra summary {
+  cursor: pointer;
+}
+.lab-board-extra p,
+.lab-board-start {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.lab-board-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 16px 0;
+}
+.lab-board-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+.lab-board-table caption {
+  text-align: left;
+  padding: 12px;
+  font-weight: 600;
+}
+.lab-board-table th {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.lab-board-table th,
+.lab-board-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.lab-board-table td:first-child {
+  min-width: 210px;
+}
+.lab-board-table small,
+.lab-board-table td > strong {
+  display: block;
+  margin-top: 4px;
+}
+.lab-board-table small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.lab-board-table tr[aria-selected="true"] {
+  background: #391d28;
+}
+.lab-board-table tbody tr:hover {
+  background: #2b2029;
+}
+.lab-board-table .button {
+  min-height: 36px;
+  padding: 7px 10px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.lab-research-board > .lab-report {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  scroll-margin-top: 16px;
+}
+.lab-board-actions .field {
+  min-width: 160px;
+}
+@media (max-width: 600px) {
+  .lab-research-board {
+    padding: 12px;
+  }
+  .lab-board-search {
+    grid-column: auto;
+  }
+  .lab-board-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lab-board-filters .field {
+    min-width: 0;
+  }
+  .lab-board-filters :is(input, select) {
+    font-size: 16px;
+  }
+}
+@media (max-width: 380px) {
+  .lab-board-filters {
+    grid-template-columns: 1fr;
+  }
+}

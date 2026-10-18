@@ -1,4 +1,5 @@
 "use client";
+import { fairOddsRange } from "../lib/fair-odds-filter";
 import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
 import { useDialogFocus } from "./use-dialog-focus";
@@ -164,12 +165,6 @@ const EV_DEFAULTS: EvSettings = {
   sportKey: "",
 };
 const SETTINGS_KEY = "corner.ev-settings";
-const oddsToDecimal = (v: string) => {
-  if (!/^-?\d{2,5}$/.test(v)) return null;
-  const n = Number(v);
-  if (Math.abs(n) < 100) return null;
-  return n > 0 ? 1 + n / 100 : 1 + 100 / -n;
-};
 
 const shortBook = (name: string) =>
   name.replace("Demo ", "").replace("Reference ", "Ref ");
@@ -625,8 +620,8 @@ export default function EvFeed({ data }: { data: Data }) {
       setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "ev"));
       setMaxEv(text(s.maxEv, LIMIT_PATTERN, ""));
       setMaxWidth(text(s.maxWidth, LIMIT_PATTERN, ""));
-      setMinOdds(text(s.minOdds, /^-?\d{0,5}$/, ""));
-      setMaxOdds(text(s.maxOdds, /^-?\d{0,5}$/, ""));
+      setMinOdds(text(s.minOdds, /^[+-]?\d{0,5}$/, ""));
+      setMaxOdds(text(s.maxOdds, /^[+-]?\d{0,5}$/, ""));
       setSportKey(text(s.sportKey, /^[a-z0-9_]{0,60}$/, ""));
     },
     legacy: () => {
@@ -730,8 +725,10 @@ export default function EvFeed({ data }: { data: Data }) {
   // A saved league that is not in today's data is ignored rather than hiding every bet.
   const sportFilter = sports.some(([key]) => key === sportKey) ? sportKey : "";
   const minRatio = shiftDecimal(minEv, -2);
-  const lo = oddsToDecimal(minOdds);
-  const hi = oddsToDecimal(maxOdds);
+  const fairRange = useMemo(
+    () => fairOddsRange(minOdds, maxOdds),
+    [minOdds, maxOdds],
+  );
   const visible = useMemo(
     () =>
       all
@@ -745,8 +742,7 @@ export default function EvFeed({ data }: { data: Data }) {
             (!sportFilter || v.sportKey === sportFilter) &&
             compareDecimal(v.ev, minRatio) >= 0 &&
             matchesEvLimits(v.ev, v.marketWidth, maxEv, maxWidth) &&
-            (lo === null || Number(v.decimalOdds) >= lo) &&
-            (hi === null || Number(v.decimalOdds) <= hi),
+            fairRange.test(v.fairProb),
         )
         .sort(SORTS[sortKey]),
     [
@@ -758,8 +754,7 @@ export default function EvFeed({ data }: { data: Data }) {
       minRatio,
       maxEv,
       maxWidth,
-      lo,
-      hi,
+      fairRange,
       sortKey,
       parlay?.draft.active,
       parlay?.draft.book,
@@ -869,9 +864,12 @@ export default function EvFeed({ data }: { data: Data }) {
               ))}
             </select>
           </label>
-          <div className="ev-odds-range">
+          <div
+            className="ev-odds-range"
+            title="Filters model fair American odds, not the sportsbook price."
+          >
             <label className="field">
-              <span>MIN ODDS</span>
+              <span>MIN FAIR ODDS</span>
               <input
                 inputMode="numeric"
                 placeholder="-200"
@@ -881,7 +879,7 @@ export default function EvFeed({ data }: { data: Data }) {
               />
             </label>
             <label className="field">
-              <span>MAX ODDS</span>
+              <span>MAX FAIR ODDS</span>
               <input
                 inputMode="numeric"
                 placeholder="+300"
@@ -892,6 +890,12 @@ export default function EvFeed({ data }: { data: Data }) {
                 }
               />
             </label>
+            {!fairRange.valid && (
+              <small role="alert">
+                Enter valid fair American odds, with minimum no higher than
+                maximum.
+              </small>
+            )}
           </div>
           <Menu
             title="Sportsbooks"

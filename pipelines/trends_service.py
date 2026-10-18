@@ -17,8 +17,8 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 from corner import media, tracker_live
 from corner.prop_markets import market_meta
-from corner.pricing import fee_policy
-from corner.prop_trends import analyze, instant, number
+from corner.pricing import fee_policy, DFS
+from corner.prop_trends import analyze, instant, number, summarize
 from corner.prop_projection import forecast, plan as projection_plan
 from pipelines import props_ingestion
 from pipelines.media import http_json, UpstreamError
@@ -199,7 +199,7 @@ class Trends:
         for game in games:
             if tracker_live.same_team(game['opponent'],opponent):
                 game['opponent'] = opponent
-        result = analyze(games,line=contract['point'],side={'Yes':'Over','No':'Under'}.get(contract['side'],contract['side']),price=contract['price'],commission=contract['commission'],as_of=now,opponent=opponent,home=is_home)
+        result = analyze(games,line=contract['point'],side={'Yes':'Over','No':'Under'}.get(contract['side'],contract['side']),price=contract['price'],commission=contract.get('commission') or '0',as_of=now,opponent=opponent,home=is_home)
         result['player'] = identity['name']
         result['team'] = identity['team']
         result['stats_fetched_at'] = datetime.fromtimestamp(min(fetched_at),timezone.utc).isoformat()
@@ -237,10 +237,17 @@ class Trends:
         if any(re.search(r'\b(injur\w*|out|questionable|doubtful|illness|surgery|restricted|minutes limit)\b',a['headline'],re.I) for a in result['news']):
             result['flags'].append('An availability-related headline needs review; no numerical injury adjustment has been fitted.')
             result['research_signal'] = False
-        result['projection']=forecast(result['history_games'],sport=contract['sport_key'],market=contract['market_key'],line=contract['point'],side=contract['side'],price=contract['price'],commission=contract['commission'],as_of=now)
+        result['projection']=forecast(result['history_games'],sport=contract['sport_key'],market=contract['market_key'],line=contract['point'],side=contract['side'],price=contract['price'],commission=contract.get('commission') or '0',as_of=now)
         result['projection']['context']={'news_status':result['news_status'],
             'workload_change':result['workload_change'],'matchup_games':result['matchup']['games'],
             'lineup_verified':False,'minutes_projection_fitted':False,'context_flags':result['flags']}
+        if contract.get('commission') is None:
+            result.update(model_ev=None,historical_sensitivity_ev=None,break_even_probability=None,research_signal=False)
+            result['projection']['model_ev'] = None
+            result['projection']['sensitivity_ev'] = None
+            for model in result['projection'].get('models',[]):
+                model['ev'] = None
+            result['flags'].append('Execution fees are unknown; return estimates are unavailable. Historical hit rates remain researchable.')
         if (instant(contract['starts_at']) or 0)<=self.clock():
             raise ResearchUnavailable('This event has started.')
         return result
@@ -258,7 +265,7 @@ def contracts():
                 settlement_point=quote.get('point')
                 binary=bool(meta and meta.sides==('Yes','No'))
                 point,price = number('0.5' if binary and settlement_point is None else settlement_point),number(quote.get('price'))
-                if policy.commission is None or point is None or price is None or price<=1 or quote.get('side') not in (0,1):
+                if point is None or price is None or price<=1 or quote.get('side') not in (0,1):
                     continue
                 observed = instant(quote.get('updated_at') or stored.get('captured_at'))
                 if observed is None or not -60 <= time.time()-observed <= props_ingestion.MAX_AGE:
@@ -277,7 +284,7 @@ def contracts():
                                  'player':quote['player'],'market_key':market,'point':str(point),
                                  'side':meta.sides[quote['side']] if meta else ('Over' if quote['side']==0 else 'Under'),'book':quote['book'],
                                  'settlement_point':settlement_point,'projection_plan':projection_plan(event['sport_key'],market),
-                                 'price':str(price),'commission':str(policy.commission)}
+                                 'price':str(price),'commission':str(policy.commission) if policy.commission is not None else None,'fee_status':policy.status,'price_kind':'indicative' if quote['book'] in DFS else 'decimal'}
                 meta = market_meta(event['sport_key'],market)
                 output[ident]['market_label'] = meta.label if meta else market
                 output[ident]['source_ids'] = quote.get('source_ids')
@@ -304,24 +311,37 @@ def create_router(ctx,service=None):
         next_offset=offset+limit if offset+limit<len(ordered) else None
         return JSONResponse({'contracts':ordered[offset:offset+limit],'supported_sports':list(LEAGUES),
                              'total':len(ordered),'offset':offset,'next_offset':next_offset,'snapshot_id':snapshot},headers={'Cache-Control':'no-store'})
-    @router.get('/shortlist')
-    async def shortlist(request:Request):
+    @router.get('/board')
+    async def board(request:Request):
         _,denied = ctx.require(request,write=False)
         if denied:return denied
+        ids = list(dict.fromkeys(request.query_params.getlist('id')))
+        warm = request.query_params.get('warm','0')
+        if warm not in ('0','1') or len(ids) > (5 if warm=='1' else 40) or any(not 1<=len(i)<=128 for i in ids):
+            return JSONResponse({'error':'Invalid research board request.'},status_code=422)
         def scan():
-            items = sorted(contracts().values(),key=lambda c:c['starts_at'])[:300]
-            found,checked,unavailable = [],0,0
-            for item in items:
+            items = contracts()
+            result=[]
+            for ident in ids:
+                item=items.get(ident)
+                if item is None:
+                    result.append({'id':ident,'status':'quote_unavailable'})
+                    continue
                 try:
-                    result = service.research(item,cached_only=True)
-                    checked += 1
-                    if result['research_signal']:
-                        found.append({'contract':item,'model_ev':result['model_ev'],'games':result['baseline']['games'],'recent':result['windows']['10']})
-                except (ResearchUnavailable,ValueError,sqlite3.Error):
-                    unavailable += 1
-            return {'signals':sorted(found,key=lambda x:x['model_ev'],reverse=True)[:25],
-                    'checked':checked,'unavailable':unavailable,'cached_only':True,'edge_validated':False}
+                    report=service.research(item,cached_only=warm!='1')
+                    season=report.get('season_games',[])
+                    season_year=max((g['season'] for g in season),default=0)
+                    windows={**report['windows'],'h2h':report['matchup'],
+                             'season':summarize([g for g in season if g['season']==season_year],number(item['point']),{'Yes':'Over','No':'Under'}.get(item['side'],item['side']))}
+                    result.append({'id':ident,'status':'available','price':item['price'],
+                                   'observed_at':item.get('observed_at'),'windows':windows})
+                except (ResearchUnavailable,ValueError,KeyError,TypeError,sqlite3.Error):
+                    result.append({'id':ident,'status':'history_unavailable','price':item['price'],
+                                   'observed_at':item.get('observed_at')})
+            for item in result:item['warm_attempted']=warm=='1'
+            return {'items':result,'cached_only':warm!='1','odds_provider_calls':0}
         return JSONResponse(await run_in_threadpool(scan),headers={'Cache-Control':'no-store'})
+
     @router.get('')
     async def detail(request:Request):
         _,denied = ctx.require(request,write=False)

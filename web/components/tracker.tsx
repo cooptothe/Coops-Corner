@@ -125,16 +125,19 @@ export default function Tracker() {
         state.bets.some(
           (b) =>
             !b.clv &&
-            b.ref.game_id &&
-            b.starts_at &&
-            new Date(b.starts_at).getTime() <= started,
+            (!b.starts_at ||
+              b.legs?.length ||
+              new Date(b.starts_at).getTime() <= started),
         )
       )
         measureClv().then(
           (result) =>
             result.bets.length &&
             dispatch({ type: "BET_UPSERT", bets: result.bets }),
-          () => undefined,
+          () =>
+            setNotice(
+              "Closing prices could not be checked. Your bets are saved; CLV will retry automatically.",
+            ),
         );
     } catch (e) {
       if (!quiet) {
@@ -147,7 +150,11 @@ export default function Tracker() {
     load(false);
     const refocus = () => document.visibilityState === "visible" && load(true);
     document.addEventListener("visibilitychange", refocus);
-    return () => document.removeEventListener("visibilitychange", refocus);
+    const timer = setInterval(refocus, 60000);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refocus);
+    };
   }, [load]);
 
   // Live progress: poll only while an open bet's game is under way and the tab is visible.

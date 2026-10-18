@@ -52,6 +52,10 @@ class Governor:
           source_at REAL NOT NULL, captured_at REAL NOT NULL,
           expires_at REAL NOT NULL, payload TEXT NOT NULL,
           PRIMARY KEY(kind,sport,event_id,book,market));
+        CREATE TABLE IF NOT EXISTS clv_scopes (
+          kind TEXT, sport TEXT, event_id TEXT, book TEXT, market TEXT, starts_at REAL,
+          source_at REAL, captured_at REAL, expires_at REAL, payload TEXT,
+          PRIMARY KEY(kind,sport,event_id,book,market,captured_at));
         CREATE TABLE IF NOT EXISTS dispatches (
           token TEXT PRIMARY KEY REFERENCES attempts(token), authorized_at REAL NOT NULL);
         CREATE TABLE IF NOT EXISTS publication_outbox (
@@ -229,11 +233,25 @@ class Governor:
         # Exact request scope only. Never delete another book group/event/market.
         for book in job.books:
             for market in job.markets:
+                # A missing scope is a withdrawal, not permission to reuse its old close.
+                previous = db.execute('SELECT * FROM snapshots WHERE kind=? AND sport=? AND book=? AND market=?', (job.kind,job.sport,book,market)).fetchall()
+                present = {(r[2],r[3],r[4]) for r in rows}
+                for prior in previous:
+                    if job.event_id and prior['event_id'] != job.event_id:
+                        continue
+                    if (prior['event_id'],book,market) in present or prior['starts_at'] <= nowstamp:
+                        continue
+                    part=json.loads(prior['payload'])
+                    part['market']['outcomes']=[]
+                    part['market']['last_update']=now.isoformat()
+                    tombstone=(job.kind,job.sport,prior['event_id'],book,market,prior['starts_at'],nowstamp,nowstamp,nowstamp,json.dumps(part,separators=(',',':')))
+                    db.execute('INSERT OR IGNORE INTO clv_scopes VALUES(?,?,?,?,?,?,?,?,?,?)',tombstone)
                 if job.event_id:
                     db.execute('DELETE FROM snapshots WHERE kind=? AND sport=? AND event_id=? AND book=? AND market=?',(job.kind,job.sport,job.event_id,book,market))
                 else:
                     db.execute('DELETE FROM snapshots WHERE kind=? AND sport=? AND book=? AND market=?',(job.kind,job.sport,book,market))
         db.executemany('INSERT INTO snapshots VALUES(?,?,?,?,?,?,?,?,?,?)',rows)
+        db.executemany('INSERT OR IGNORE INTO clv_scopes VALUES(?,?,?,?,?,?,?,?,?,?)',rows)
 
     def snapshots(self,now):
         stamp=aware(now).timestamp()

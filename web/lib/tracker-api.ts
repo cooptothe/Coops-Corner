@@ -13,6 +13,9 @@ export type RefValue = string | number | boolean | null;
 export interface Clv {
   // Closing value of the price we took: decimal odds times closing fair probability, minus one.
   pct: string | null;
+  status?: "pending" | "measured" | "unavailable";
+  method?: string;
+  legs?: (Clv & { key: string; selection: string })[];
   close_odds?: string;
   fair_prob?: string;
   books?: string[];

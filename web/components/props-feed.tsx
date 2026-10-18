@@ -1,4 +1,5 @@
 "use client";
+import { fairOddsRange } from "../lib/fair-odds-filter";
 import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
@@ -97,13 +98,6 @@ interface Vm extends KellyVm {
   allocationSensitivity: PropBet["allocation_sensitivity"];
   observedAt: string | null;
 }
-
-const oddsToDecimal = (v: string) => {
-  if (!/^-?\d{2,5}$/.test(v)) return null;
-  const n = Number(v);
-  if (Math.abs(n) < 100) return null;
-  return n > 0 ? 1 + n / 100 : 1 + 100 / -n;
-};
 
 function toVm(b: PropBet): Vm {
   let fairOdds: string | null = null;
@@ -351,8 +345,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
       setMinEv(text(s.minEv, /^\d{1,2}(\.\d{1,2})?$/, "0"));
       setMaxEv(text(s.maxEv, LIMIT_PATTERN, ""));
       setMaxWidth(text(s.maxWidth, LIMIT_PATTERN, ""));
-      setMinOdds(text(s.minOdds, /^-?\d{0,5}$/, ""));
-      setMaxOdds(text(s.maxOdds, /^-?\d{0,5}$/, ""));
+      setMinOdds(text(s.minOdds, /^[+-]?\d{0,5}$/, ""));
+      setMaxOdds(text(s.maxOdds, /^[+-]?\d{0,5}$/, ""));
       setSortKey(choice(s.sortKey, Object.keys(SORTS) as SortKey[], "ev"));
       setOffBooks(new Set(list(s.offBooks)));
     },
@@ -475,8 +469,10 @@ export default function PropsFeed({ reload }: { reload: number }) {
   );
 
   const minRatio = shiftDecimal(minEv, -2);
-  const lo = oddsToDecimal(minOdds);
-  const hi = oddsToDecimal(maxOdds);
+  const fairRange = useMemo(
+    () => fairOddsRange(minOdds, maxOdds),
+    [minOdds, maxOdds],
+  );
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return inSport
@@ -492,8 +488,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
           (!needle || v.player.toLowerCase().includes(needle)) &&
           passesPropEdge(v.ev, minRatio) &&
           matchesEvLimits(v.ev, v.marketWidth, maxEv, maxWidth) &&
-          (lo === null || Number(v.decimalOdds) >= lo) &&
-          (hi === null || Number(v.decimalOdds) <= hi),
+          fairRange.test(v.fairProb),
       )
       .sort(SORTS[sortKey]);
   }, [
@@ -509,8 +504,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     minRatio,
     maxEv,
     maxWidth,
-    lo,
-    hi,
+    fairRange,
     sortKey,
   ]);
   useEffect(
@@ -736,9 +730,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
-          <div className="ev-odds-range">
+          <div
+            className="ev-odds-range"
+            title="Filters model fair American odds, not the sportsbook price."
+          >
             <label className="field">
-              <span>MIN ODDS</span>
+              <span>MIN FAIR ODDS</span>
               <input
                 inputMode="numeric"
                 placeholder="-200"
@@ -748,7 +745,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
               />
             </label>
             <label className="field">
-              <span>MAX ODDS</span>
+              <span>MAX FAIR ODDS</span>
               <input
                 inputMode="numeric"
                 placeholder="+300"
@@ -759,6 +756,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 }
               />
             </label>
+            {!fairRange.valid && (
+              <small role="alert">
+                Enter valid fair American odds, with minimum no higher than
+                maximum.
+              </small>
+            )}
           </div>
           <Menu
             title="Sportsbooks"

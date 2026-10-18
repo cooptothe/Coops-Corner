@@ -6,7 +6,9 @@ export interface TrendContract {
   projection_plan?: { method: string; requires: string[] };
   event_id?: string;
   market_label?: string;
-  commission?: string;
+  commission?: string | null;
+  fee_status?: string;
+  price_kind?: "decimal" | "indicative";
   source_ids?: { market?: string | null; outcome?: string | null } | null;
   starts_at?: string;
   observed_at?: string | null;
@@ -42,8 +44,8 @@ export interface TrendReport {
     projected_mean?: number;
     probability?: number;
     push_probability?: number;
-    model_ev?: number;
-    sensitivity_ev?: [number, number];
+    model_ev?: number | null;
+    sensitivity_ev?: [number, number] | null;
     predictive_10_90?: [number, number] | null;
     live_feed_eligible: false;
     edge_validated: false;
@@ -52,7 +54,7 @@ export interface TrendReport {
       win: number;
       push: number;
       loss: number;
-      ev: number;
+      ev: number | null;
     }[];
     assumptions?: string[];
   };
@@ -88,7 +90,7 @@ export interface TrendReport {
   model_probability: number | null;
   model_ev: number | null;
   historical_sensitivity_ev: number | null;
-  break_even_probability: number;
+  break_even_probability: number | null;
   research_signal: boolean;
   workload_change: number | null;
   stats_fetched_at: string;

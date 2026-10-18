@@ -296,7 +296,11 @@ export const BetRow = memo(function BetRow({
         <b
           className={clv == null ? "" : clv > 0 ? "pos" : clv < 0 ? "neg" : ""}
         >
-          {clv == null ? "—" : signedPercent(clv)}
+          {clv == null
+            ? bet.clv
+              ? "Unavailable"
+              : "Pending"
+            : signedPercent(clv)}
         </b>
       </td>
     </tr>
@@ -532,12 +536,22 @@ export function BetDrawer({
                 <b>{signedPercent(Number(bet.ev_ratio))}</b>
               </>
             )}
-            <span>Closing value</span>
+            <span>Closing value (before fees)</span>
             <b>
               {bet.clv?.pct != null
                 ? `${signedPercent(Number(bet.clv.pct))}${bet.clv.close_odds ? ` (close ${amer(bet.clv.close_odds)})` : ""}`
                 : (bet.clv?.reason ?? "Measured after the game starts")}
             </b>
+            {bet.clv?.legs?.map((leg) => (
+              <div key={leg.key}>
+                <span>{leg.selection}: </span>
+                <b title={leg.reason}>
+                  {leg.pct == null
+                    ? "Unavailable"
+                    : signedPercent(Number(leg.pct))}
+                </b>
+              </div>
+            ))}
           </div>
           <div
             className="trk-actions"

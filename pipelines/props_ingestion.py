@@ -40,6 +40,8 @@ def load():
 
 
 def _save(data):
+    from pipelines.tracker_clv import retain_local_props
+    retain_local_props(data, STORE)
     STORE.parent.mkdir(parents=True, exist_ok=True)
     tmp = STORE.with_suffix('.tmp')
     tmp.write_text(json.dumps(data, separators=(',', ':')), encoding='utf-8')
@@ -133,10 +135,7 @@ def capture(sport, markets, max_events):
                 'commence_time': payload.get('commence_time', event['commence_time']), 'markets': {}})
             for key in markets:
                 quotes = normalize_event(payload, key, market_meta(sport, key))
-                if quotes:
-                    slot['markets'][key] = {'captured_at': at, 'quotes': quotes}
-                else:
-                    slot['markets'].pop(key, None)
+                slot['markets'][key] = {'captured_at': at, 'quotes': quotes}
             done += 1
             _save(data)
     remaining = (quota or {}).get('x-requests-remaining')

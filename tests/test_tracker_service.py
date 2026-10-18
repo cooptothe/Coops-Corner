@@ -144,14 +144,16 @@ class Clv(unittest.TestCase):
         self.assertEqual(self.client.post('/api/refresh/v1/tracker/clv', headers={'Origin': ORIGIN}).json()['bets'], [])
         self.assertEqual(self.ledger.bet(first['id'])['clv']['books'], ['pinnacle'])
 
-    def test_skips_props_lays_future_games_and_untracked_bets(self):
+    def test_records_unavailable_for_unmatchable_bets_and_waits_for_future(self):
         self.log('prop', market_key='prop')
         self.log('lay', lay=True)
         future = bet_payload('f', odds='2.1', starts_at=(datetime.now(timezone.utc) + timedelta(hours=2)).isoformat(),
                              ref={'game_id': self.GAME, 'market_key': 'h2h', 'side': 'home'})
         manual = bet_payload('m', odds='2.1', starts_at=self.start.isoformat(), ref={'game_id': 'not-a-uuid', 'market_key': 'h2h', 'side': 'home'})
         self.client.post('/api/refresh/v1/tracker/bets', json=[future, manual], headers={'Origin': ORIGIN})
-        self.assertEqual(self.client.post('/api/refresh/v1/tracker/clv', headers={'Origin': ORIGIN}).json()['bets'], [])
+        out = self.client.post('/api/refresh/v1/tracker/clv', headers={'Origin': ORIGIN}).json()['bets']
+        self.assertEqual(len(out), 3)
+        self.assertTrue(all(b['clv']['status'] == 'unavailable' for b in out))
         self.assertEqual(self.calls, [])
 
     def test_database_failure_is_reported_and_nothing_is_recorded(self):

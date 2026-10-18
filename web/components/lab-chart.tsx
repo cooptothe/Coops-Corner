@@ -114,7 +114,9 @@ export function LabChart({
     Math.max(
       0,
       ...related
-        .filter((q) => q.side === quotedSide(choice))
+        .filter(
+          (q) => q.side === quotedSide(choice) && q.price_kind !== "indicative",
+        )
         .map((q) => Number(q.price)),
     );
   const whatIf = valid && line !== Number(report.contract.point);
@@ -442,18 +444,21 @@ export function LabChart({
               {related.map((q) => (
                 <div
                   key={q.id}
-                  className={`lab-offer ${Number(q.price) === best(q.side) ? "best" : ""}`}
+                  className={`lab-offer ${q.price_kind !== "indicative" && Number(q.price) === best(q.side) ? "best" : ""}`}
                 >
                   <div>
                     <strong>{bookDisplayName(q.book)}</strong>
                     <span>
                       {q.side}{" "}
                       {["Over", "Under"].includes(q.side) ? q.point : ""} ·{" "}
-                      {american(q.price)}
+                      {q.price_kind === "indicative"
+                        ? "Indicative price; lineup payout"
+                        : american(q.price)}
                     </span>
-                    {Number(q.price) === best(q.side) && (
-                      <small>Best listed odds</small>
-                    )}
+                    {q.price_kind !== "indicative" &&
+                      Number(q.price) === best(q.side) && (
+                        <small>Best listed odds</small>
+                      )}
                   </div>
                   {onPick && (
                     <button

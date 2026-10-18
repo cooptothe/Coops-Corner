@@ -22,6 +22,7 @@ export function labDate(value: string, short = false): string {
 
 export function labLeg(contract: TrendContract): ParlayLeg | null {
   if (
+    contract.commission === null ||
     !contract.event_id ||
     (["Yes", "No"].includes(contract.side) &&
       (contract.settlement_point !== null || contract.point !== "0.5")) ||

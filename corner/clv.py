@@ -6,8 +6,8 @@ shares, so the result is a fair-price comparison rather than a line-movement gue
 """
 from decimal import Decimal, ROUND_HALF_UP
 
-MAIN_MARKETS = ('h2h', 'spreads', 'totals')
-OPPOSITE = {'home': 'away', 'away': 'home', 'over': 'under', 'under': 'over'}
+MAIN_MARKETS = ('h2h', 'spreads', 'totals', 'alternate_spreads', 'alternate_totals', 'btts', 'draw_no_bet', 'team_totals', 'prop_pair')
+OPPOSITE = {'home': 'away', 'away': 'home', 'over': 'under', 'under': 'over', 'yes': 'no', 'no': 'yes'}
 NO_CLOSE = 'No sharp closing price was captured for this exact line before the game started'
 
 
@@ -38,18 +38,26 @@ def fair_probability(market_key, side, point, rows, sharps):
     shares, used = [], []
     for book, cells in sorted(_by_book(rows, sharps).items()):
         by = {}
+        conflict = False
         for c in cells:
-            by[(c['side'], None if c['point'] is None else Decimal(str(c['point'])))] = Decimal(c['decimal_odds'])
-        if market_key == 'h2h':
-            sides = ['home', 'away'] + (['draw'] if any(s == 'draw' for s, _ in by) else [])
+            key = (c['side'], None if c['point'] is None else Decimal(str(c['point'])))
+            price = Decimal(c['decimal_odds'])
+            if not price.is_finite() or price <= 1 or (key in by and by[key] != price):
+                conflict = True
+                break
+            by[key] = price
+        if conflict:
+            continue
+        if market_key in ('h2h', 'draw_no_bet'):
+            sides = ['home', 'away'] + (['draw'] if market_key == 'h2h' and any(r['side'] == 'draw' for r in rows) else [])
             keys = [(s, None) for s in sides]
             if side not in sides:
                 continue
         else:
-            if point is None or side not in OPPOSITE:
+            if (point is None and market_key not in ('btts', 'prop_pair')) or side not in OPPOSITE:
                 return None
             other = OPPOSITE[side]
-            if market_key == 'spreads':
+            if market_key in ('spreads', 'alternate_spreads'):
                 keys = [(side, point), (other, -point)]
             else:
                 keys = [(side, point), (other, point)]
@@ -67,7 +75,7 @@ def measure(ref, our_decimal, rows, sharps, *, at):
     """The CLV record to store for a bet, always with a reason when it cannot be measured."""
     found = fair_probability(ref.get('market_key'), ref.get('side'), ref.get('point'), rows, sharps)
     if not found:
-        return {'pct': None, 'reason': NO_CLOSE, 'at': at}
+        return {'pct': None, 'status': 'unavailable', 'reason': NO_CLOSE, 'at': at}
     fair, books = found
-    return {'pct': _six(Decimal(our_decimal) * fair - 1), 'fair_prob': _six(fair), 'close_odds': _six(1 / fair),
+    return {'status': 'measured', 'method': 'proportional_no_vig_close_gross_price', 'pct': _six(Decimal(our_decimal) * fair - 1), 'fair_prob': _six(fair), 'close_odds': _six(1 / fair),
             'books': books, 'at': at}
