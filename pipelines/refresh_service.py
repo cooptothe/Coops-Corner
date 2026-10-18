@@ -1,7 +1,7 @@
 """Loopback-only, user-triggered pre-game odds refresh (python -m pipelines.refresh_service).
 
-One POST captures featured markets plus five event markets for at most three upcoming games
-per active sport key (36-credit ceiling per key; tennis may expand to multiple keys). Nothing runs on a timer. Guards: single flight, cooldown, daily cap, and the
+One POST captures featured markets plus six event markets for every upcoming game
+per active sport key (six featured credits plus up to twelve per event). Nothing runs on a timer. Guards: single flight, cooldown, daily cap, and the
 capture's own credit floor. Guard state persists in retained/refresh_state.json.
 """
 import argparse

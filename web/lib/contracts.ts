@@ -11,7 +11,11 @@ export type MarketKey =
   | "alternate_totals"
   | "btts"
   | "draw_no_bet"
-  | "team_totals";
+  | "team_totals"
+  | "alternate_team_totals"
+  | `player_${string}`
+  | `batter_${string}`
+  | `pitcher_${string}`;
 export type ToolKind = "positive_ev" | "arbitrage" | "middle";
 export type View = ToolKind | "games" | "promo" | "props";
 export interface Meta {

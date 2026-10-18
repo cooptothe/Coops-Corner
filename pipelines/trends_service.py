@@ -39,6 +39,7 @@ def safe_link(value):
 
 
 def stat_specs(sport, market):
+    market = market.removesuffix('_alternate')
     if market=='player_goal_scorer_anytime' and sport.startswith('icehockey_'):return ['goals']
     if market in ('player_double_double','player_triple_double') and sport.startswith('basketball_'):
         return ['points','totalRebounds','assists','steals','blocks']

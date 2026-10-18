@@ -105,7 +105,7 @@ def can_grade(sport_key):
 
 
 def supports_prop(sport_key, prop_market):
-    return prop_market in PROP_TABLES.get(family(sport_key), {})
+    return prop_market.removesuffix('_alternate') in PROP_TABLES.get(family(sport_key), {})
 
 
 def split_matchup(text):
@@ -189,6 +189,7 @@ def _read(values, spec):
 
 def player_stat(summary, player, sport_key, prop_market):
     """(value, label) for the player in a ESPN summary, or None when the box score cannot say."""
+    prop_market = prop_market.removesuffix('_alternate')
     table = PROP_TABLES.get(family(sport_key), {})
     if prop_market not in table:
         return None

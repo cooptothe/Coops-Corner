@@ -5,6 +5,8 @@ The caller must establish common event, scope, scoring and settlement semantics.
 Quarter lines split equally over adjacent half lines; no distribution is guessed.
 """
 from dataclasses import dataclass
+from functools import lru_cache
+from types import SimpleNamespace
 from decimal import Decimal
 from fractions import Fraction
 
@@ -59,6 +61,13 @@ def _thresholds(leg):
 
 
 def _settle(leg, score):
+    return _settle_line(leg.line, leg.side, score)
+
+
+@lru_cache(maxsize=32768)
+def _settle_line(line, side, score):
+    # Settlement depends on geometry, never on quote/player/book identity.
+    leg = SimpleNamespace(line=line, side=side)
     wins = losses = 0
     thresholds = _thresholds(leg)
     for threshold in thresholds:

@@ -75,7 +75,7 @@ class ProductAPITests(unittest.TestCase):
 
     def test_exact_market_allowlist_and_no_insiders(self):
         caps = self.get('capabilities')['data']
-        self.assertEqual(['h2h', 'spreads', 'totals', 'outrights', 'h2h_lay', 'outrights_lay', 'alternate_spreads', 'alternate_totals', 'btts', 'draw_no_bet', 'team_totals'], caps['market_keys'])
+        self.assertEqual(['h2h', 'spreads', 'totals', 'outrights', 'h2h_lay', 'outrights_lay', 'alternate_spreads', 'alternate_totals', 'btts', 'draw_no_bet', 'team_totals', 'alternate_team_totals'], caps['market_keys'])
         self.assertIn('insiders', caps['unsupported'])
         self.assertNotIn('insiders', caps['tools'])
 
@@ -243,7 +243,7 @@ class ProductAPITests(unittest.TestCase):
         self.assert_error(self.client.delete('/api/v1/games/demo-nba'), 405)
 
     def test_bad_queries_never_silently_default(self):
-        for query in ('limit=0', 'limit=101', 'offset=-1', 'offset=10001', 'market_key=player_points',
+        for query in ('limit=0', 'limit=101', 'offset=-1', 'offset=10001', 'market_key=player_unknown_stat',
                       'sort=unknown', 'production=true', 'limit=1&limit=2'):
             self.assert_error(self.client.get('/api/v1/games?' + query), 422)
         self.assert_error(self.client.get('/api/v1/tools/middle?sort=conditional_ev_ratio'), 422)

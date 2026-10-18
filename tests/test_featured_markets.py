@@ -59,7 +59,7 @@ class FeaturedMarketTests(unittest.TestCase):
         json.dumps(view)
 
     def test_out_of_scope_markets_are_reported_not_normalized(self):
-        for key in ("player_points", "alternate_team_totals", "h2h_q1", "team_totals_h1", "h2h_3_way"):
+        for key in ("player_points", "unknown_alternate_team_totals", "h2h_q1", "team_totals_h1", "h2h_3_way"):
             with self.subTest(key=key):
                 data = copy.deepcopy(self.data)
                 data[0]["bookmakers"][0]["markets"].append({"key": key, "outcomes": []})

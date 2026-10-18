@@ -15,7 +15,7 @@ export interface RefreshStatus {
   daily_cap: number;
   credits_per_refresh: number;
   credits_per_sport?: number;
-  additional_max_events_per_league?: number;
+  additional_max_events_per_league?: number | null;
   can_refresh: boolean;
 }
 

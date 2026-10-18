@@ -3,8 +3,8 @@
 All calculations delegate to the existing pure backend. The fixture explicitly
 binds complete selections, matching rules, reference books and quote identities.
 """
-from corner.additional_markets import LINE_MARKETS, SPREAD_MARKETS, TOTAL_MARKETS, coordinate
-from dataclasses import asdict, is_dataclass
+from corner.additional_markets import LINE_MARKETS, SPREAD_MARKETS, TOTAL_MARKETS, coordinate, PROP_KEYS
+from dataclasses import is_dataclass, fields
 from datetime import datetime, timezone
 from decimal import Decimal
 import hashlib
@@ -24,7 +24,7 @@ D = Decimal
 
 def wire(value):
     if is_dataclass(value):
-        return wire(asdict(value))
+        return {field.name: wire(getattr(value, field.name)) for field in fields(value)}
     if hasattr(value, 'model_dump'):
         return value.model_dump(mode='json')
     if isinstance(value, Decimal):
@@ -57,10 +57,10 @@ def _verify_selections(contract, game):
     """Fixture declarations are explicit, but still must be internally coherent."""
     selections, key = contract['selections'], contract['market_key']
     sides = [s['side'] for s in selections]
-    if key in {'h2h', 'outrights', 'draw_no_bet', 'btts'}:
+    if key in {'h2h', 'outrights', 'draw_no_bet', 'btts'} or key in PROP_KEYS and selections[0]['point'] is None:
         if any(s['point'] is not None for s in selections):
             raise ValueError('winner markets cannot contain lines')
-        if key == 'btts':
+        if key == 'btts' or key in PROP_KEYS:
             if set(sides) != {'yes','no'} or len(sides) != 2:
                 raise ValueError('BTTS requires yes and no')
         elif key in {'h2h', 'draw_no_bet'}:
@@ -84,7 +84,7 @@ def _verify_selections(contract, game):
                 raise ValueError('spread participants mismatch')
         elif set(sides) != {'over', 'under'} or points[0] != points[1] or points[0] < 0:
             raise ValueError('total selections must share one nonnegative line')
-    if key == 'team_totals' and contract.get('subject') not in game['participants']:
+    if key in {'team_totals', 'alternate_team_totals'} and contract.get('subject') not in game['participants']:
         raise ValueError('team total participant mismatch')
     if game['scope'] != ('competition' if key == 'outrights' else 'full_game'):
         raise ValueError('fixture market/game scope mismatch')
@@ -219,6 +219,8 @@ class FixtureCatalog:
                         raise ValueError('incomplete fixture price population')
                     book_links = contract.get('links', {}).get(book_id)
                     for position, (selection, price) in enumerate(zip(selections, odds)):
+                        if price is None and self.data_mode == 'database' and key in PROP_KEYS:
+                            continue
                         quote_id = f'{contract_id}:{book_id}:{direction}:{selection["id"]}'
                         offer = Offer(quote_id, contract_id, direction, selection['id'], book_id, D(price), D(book_map[book_id].commission or 0))
                         fee_known = book_map[book_id].fee_status in {'modeled', 'fixture_explicit'}
@@ -237,6 +239,8 @@ class FixtureCatalog:
                         if key in LINE_MARKETS and fee_known:
                             family = coordinate(key)
                             subject = contract.get('subject', '')
+                            if key in PROP_KEYS:
+                                subject += ':' + key.removesuffix('_alternate')
                             shared = f'{game_id}:{family}:{subject}:{raw["settlement_identity"]}'
                             line_bets.append(LineBet(quote_id, book_id, shared, family, selection['side'], D(selection['point']),
                                                      D(price), D(100), D(book_map[book_id].commission)))
@@ -248,7 +252,7 @@ class FixtureCatalog:
             sport_key = game_meta[game_id]['sport_key']
             complete_refs = sufficient_references(full, sport_key) if self.data_mode == 'database' else len(full) == len(references)
             refs = [o for o in refs if o.sportsbook_id in used]
-            for target in (o for o in current if o.sportsbook_id in targets and complete_refs and o.quote_id in self.offers):
+            for target in (o for o in current if key not in PROP_KEYS and o.sportsbook_id in targets and complete_refs and o.quote_id in self.offers):
                 target_used = tuple(b for b in used if b != target.sportsbook_id)
                 target_refs = [o for o in refs if o.sportsbook_id in target_used]
                 if not sufficient_references(target_used, sport_key):
@@ -280,7 +284,18 @@ class FixtureCatalog:
         middles = []
         for game_bets in by_game.values():
             try:
-                middles.extend(_middles_for(game_bets, raw['refund_possible']))
+                if self.quote_map[game_bets[0].quote_id].market_key in PROP_KEYS:
+                    from corner.prop_tools import best_middles
+                    cache_key = (tuple(game_bets), raw['refund_possible'])
+                    found = _MIDDLES.get(cache_key)
+                    if found is None:
+                        found = best_middles(game_bets, raw['refund_possible'])
+                        if len(_MIDDLES) >= _MIDDLES_MAX:
+                            _MIDDLES.pop(next(iter(_MIDDLES)))
+                        _MIDDLES[cache_key] = found
+                    middles.extend(found)
+                else:
+                    middles.extend(_middles_for(game_bets, raw['refund_possible']))
             except ToolInputError:
                 if self.data_mode == 'fixture':
                     raise

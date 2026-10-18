@@ -30,8 +30,9 @@ SPORT='americanfootball_nfl'
 # Twelve named books count as two regions (six credits for three main-line markets).
 # Main-line references include pinnacle, betfair_ex_uk, prophetx, kalshi, betopenly and polymarket.
 BOOKMAKER_REGIONS = 2
-LOCAL_ADDITIONAL_MAX_EVENTS = 3
-CREDITS_PER_SPORT = 6 + LOCAL_ADDITIONAL_MAX_EVENTS * 10
+LOCAL_ADDITIONAL_MAX_EVENTS = None
+ADDITIONAL_CREDITS = len(ADDITIONAL_MARKETS) * BOOKMAKER_REGIONS
+CREDITS_PER_SPORT = 6  # featured request; each upcoming event adds at most 12 credits
 PARAMS={'bookmakers':'draftkings,fanduel,espnbet,betmgm,novig,betrivers,pinnacle,betfair_ex_uk,prophetx,kalshi,betopenly,polymarket','markets':'h2h,spreads,totals',
         'oddsFormat':'decimal','dateFormat':'iso','includeLinks':'true','includeSids':'true'}
 SAFE_HEADERS={'date','content-type','x-requests-used','x-requests-remaining','x-requests-last'}
@@ -109,11 +110,12 @@ def capture(destination, extra_params=None, sport=SPORT):
               'sha256':hashlib.sha256(body).hexdigest(),'response_headers':headers,
               'catalog_quota':quota,'planned_credits':CREDITS_PER_SPORT,'automatic_retries':0,'production_authorized':False}
     (destination/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+    if int(headers.get('x-requests-last','0'))>CREDITS_PER_SPORT:
+        raise ValueError('Unexpected featured provider charge; no further calls permitted')
     if status == 200:
         capture_additional(destination, sport, json.loads(body), params, headers)
     print(json.dumps({'capture':str(destination),'http_status':status,'quota':headers}))
     if status!=200: raise ValueError('Provider error retained; no ingestion performed')
-    if int(headers.get('x-requests-last','0'))>CREDITS_PER_SPORT: raise ValueError('Unexpected provider charge; no further calls permitted')
 
 
 def _bind(conn,provider,snapshot,raw,sport):
@@ -213,19 +215,19 @@ def _ingest_one(directory, *, connect=None):
 
 
 def capture_additional(destination, sport, events, base_params, headers):
-    """Local manual fetch only: at most three upcoming events/league per click.
+    """Local manual fetch only: every upcoming event returned for the league.
 
     Event responses are retained separately; featured payload bytes never change.
     No automatic retry. Scheduled acquisition uses durable governor reservations.
     """
     now=datetime.now(timezone.utc)
-    eligible=sorted((e for e in events if now < datetime.fromisoformat(e['commence_time'].replace('Z','+00:00'))), key=lambda e:(e['commence_time'],e['id']))[:LOCAL_ADDITIONAL_MAX_EVENTS]
+    eligible=sorted((e for e in events if now < datetime.fromisoformat(e['commence_time'].replace('Z','+00:00'))), key=lambda e:(e['commence_time'],e['id']))
     params={**base_params,'markets':','.join(ADDITIONAL_MARKETS)}
     params={k:v for k,v in params.items() if not k.startswith('commenceTime')}
     with requests.Session() as session:
         session.trust_env=False
         for index,event in enumerate(eligible):
-            if int(headers.get('x-requests-remaining','0')) < 10:
+            if int(headers.get('x-requests-remaining','0')) < ADDITIONAL_CREDITS:
                 raise ValueError('Insufficient credits for additional event markets')
             status,raw,quota=fetch(session,BASE+'/'+sport+'/events/'+event['id']+'/odds',params)
             at=datetime.now(timezone.utc).isoformat()
@@ -245,9 +247,11 @@ def capture_additional(destination, sport, events, base_params, headers):
             headers.update(quota)
             parent=destination/'manifest.json'
             info=json.loads(parent.read_text(encoding='utf-8'));info['response_headers']=headers
-            info['planned_credits']=CREDITS_PER_SPORT
+            info['planned_credits']=CREDITS_PER_SPORT + len(eligible) * ADDITIONAL_CREDITS
             parent.write_text(json.dumps(info,indent=2)+'\n',encoding='utf-8')
             if status != 200:raise ValueError('Additional capture failed; retained for review')
+            if int(quota.get('x-requests-last','0')) > ADDITIONAL_CREDITS:
+                raise ValueError('Unexpected additional provider charge; no further calls permitted')
 
 
 def ingest(directory, *, connect=None):

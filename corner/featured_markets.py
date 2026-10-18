@@ -215,8 +215,8 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
                         point = _number(point, "line point")
                     elif point is not None:
                         raise FeaturedMarketError("moneyline/outright cannot carry line points")
-                    subject = outcome.get("description") if key == "team_totals" else None
-                    if key == "team_totals" and subject not in (home, away):
+                    subject = outcome.get("description") if key in {"team_totals", "alternate_team_totals"} else None
+                    if key in {"team_totals", "alternate_team_totals"} and subject not in (home, away):
                         raise FeaturedMarketError("team total must identify an exact event participant")
                     identity = (key, name, point, subject)
                     if identity in seen:

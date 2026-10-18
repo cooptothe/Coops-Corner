@@ -9,8 +9,8 @@ from decimal import Context, Decimal, ROUND_HALF_EVEN, localcontext
 from fractions import Fraction
 
 VERSION = "corner.featured_tools/1"
-from corner.additional_markets import ADDITIONAL_MARKETS, LINE_MARKETS
-BACK_MARKETS = {"h2h", "spreads", "totals", "outrights", *ADDITIONAL_MARKETS}
+from corner.additional_markets import ADDITIONAL_MARKETS, LINE_MARKETS, PROP_KEYS
+BACK_MARKETS = {"h2h", "spreads", "totals", "outrights", *ADDITIONAL_MARKETS, *PROP_KEYS}
 LAY_MARKETS = {"h2h_lay": "h2h", "outrights_lay": "outrights"}
 ZERO = Decimal("0")
 ONE = Decimal("1")

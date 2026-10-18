@@ -136,16 +136,16 @@ export default function FreshOdds({
               . All tools will use the updated prices.
             </p>
             <div className="refresh-cost">
-              <span>Estimated cost ceiling</span>
+              <span>Base cost, plus event markets</span>
               <strong>
-                {chosen.length * (status?.credits_per_sport ?? 36)} API credits
+                {chosen.length * (status?.credits_per_sport ?? 6)} API credits
               </strong>
             </div>
             <p className="muted">
-              Includes five additional markets for up to three upcoming games
-              per league. Tennis tournaments count separately and can increase
-              this estimate. Out-of-season leagues use no credits; filtering
-              stored results is free.
+              Includes six additional markets for every upcoming game returned
+              per league, at up to 12 extra credits per game. Tennis tournaments
+              count separately and can increase the cost. Out-of-season leagues
+              use no credits; filtering stored results is free.
             </p>
             <div className="refresh-review-actions">
               <button

@@ -9,7 +9,7 @@ from corner.tracker_store import now_iso
 
 MARKET_CODES = {'h2h': 'moneyline', 'spreads': 'spread', 'totals': 'total',
  'alternate_spreads': 'alternate_spread', 'alternate_totals': 'alternate_total',
- 'btts': 'btts', 'draw_no_bet': 'draw_no_bet', 'team_totals': 'team_total'}
+ 'btts': 'btts', 'draw_no_bet': 'draw_no_bet', 'team_totals': 'team_total', 'alternate_team_totals': 'alternate_team_total'}
 WINDOW = timedelta(seconds=int(os.environ.get('CORNER_CLV_WINDOW_SECONDS', '180')))
 SETTLE_DELAY = timedelta(minutes=5)
 

@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import pytz
 
-from corner.prop_markets import FAMILIES, family
-from corner.additional_markets import ADDITIONAL_MARKETS
+from corner.prop_markets import SCHEDULED_FAMILIES as FAMILIES, family
+from corner.additional_markets import SCHEDULED_ADDITIONAL_MARKETS as ADDITIONAL_MARKETS
 
 CENTRAL = pytz.timezone('America/Chicago')
 STANDARD = ('draftkings','fanduel','espnbet','betmgm','betrivers','pinnacle')

@@ -12,6 +12,7 @@ VERSION='projection-research/2026-10-17.1'
 
 
 def plan(sport,market):
+    market = market.removesuffix('_alternate')
     from corner.prop_markets import market_meta
     meta=market_meta(sport,market)
     if meta is None:return {'method':'unavailable','requires':['documented_market_and_settlement']}

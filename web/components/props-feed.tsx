@@ -5,7 +5,10 @@ import { QuoteAge } from "./quote-age";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
 import { Menu } from "./arb-feed";
 import { builderLeg } from "../lib/parlay";
-import { restoredFetchMarkets } from "../lib/props-fetch-settings";
+import {
+  restoredFetchMarkets,
+  withAlternateMarkets,
+} from "../lib/props-fetch-settings";
 import { RangeFilter } from "./range-filter";
 import { FeedFilters } from "./feed-filters";
 import { EvFilterLimits } from "./ev-filter-limits";
@@ -812,6 +815,17 @@ export default function PropsFeed({ reload }: { reload: number }) {
                         }
                       >
                         recommended
+                      </button>{" "}
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() =>
+                          setFetchMarkets((current) =>
+                            withAlternateMarkets(current, catalog),
+                          )
+                        }
+                      >
+                        add alternate lines
                       </button>{" "}
                       <button
                         type="button"

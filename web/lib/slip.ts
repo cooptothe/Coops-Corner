@@ -47,15 +47,21 @@ export function quoteRef(
     contract_id: string;
     market_key: string;
     side: string;
+    selection_name?: string;
     point: string | null;
   },
   extra: Record<string, RefValue> = {},
 ): Record<string, RefValue> {
   const point = q.point == null ? null : Number(q.point);
+  const prop = /^(player|batter|pitcher)_/.test(q.market_key);
+  const player = prop
+    ? q.selection_name?.replace(/ (Over|Under|Yes|No)$/, "")
+    : undefined;
   return {
-    game_id: q.game_id,
+    game_id: prop ? q.game_id.replace(/^prop:/, "") : q.game_id,
+    ...(prop && player ? { prop_market: q.market_key, player } : {}),
     contract_id: q.contract_id,
-    market_key: q.market_key,
+    market_key: prop ? "prop" : q.market_key,
     side: q.side,
     point: point != null && Number.isFinite(point) ? point : null,
     ...extra,

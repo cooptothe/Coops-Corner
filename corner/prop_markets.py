@@ -133,6 +133,48 @@ FAMILIES = {
         _yes('player_to_receive_red_card', 'To Receive a Red Card', 'Discipline'),
     ),
 }
+# Preserve the reviewed scheduler scope; manual catalog expansion must not change
+# live job identities, reservations, or paid acquisition budgets implicitly.
+SCHEDULED_FAMILIES = dict(FAMILIES)
+# Explicit provider catalog: do not invent alternate keys for milestones or periods.
+# https://the-odds-api.com/sports-odds-data/betting-markets.html
+ALTERNATE_BASES = {
+    'basketball': ('player_points', 'player_rebounds', 'player_assists', 'player_blocks',
+        'player_steals', 'player_turnovers', 'player_threes', 'player_points_assists',
+        'player_points_rebounds', 'player_rebounds_assists', 'player_points_rebounds_assists'),
+    'football': ('player_assists', 'player_field_goals', 'player_kicking_points',
+        'player_pass_attempts', 'player_pass_completions', 'player_pass_interceptions',
+        'player_pass_longest_completion', 'player_pass_rush_yds', 'player_pass_rush_reception_tds',
+        'player_pass_rush_reception_yds', 'player_pass_tds', 'player_pass_yds', 'player_pats',
+        'player_receptions', 'player_reception_longest', 'player_reception_tds',
+        'player_reception_yds', 'player_rush_attempts', 'player_rush_longest',
+        'player_rush_reception_tds', 'player_rush_reception_yds', 'player_rush_tds',
+        'player_rush_yds', 'player_sacks', 'player_solo_tackles', 'player_tackles_assists'),
+    'baseball': ('batter_total_bases', 'batter_home_runs', 'batter_hits', 'batter_rbis',
+        'batter_walks', 'batter_strikeouts', 'batter_runs_scored', 'batter_hits_runs_rbis',
+        'batter_singles', 'batter_doubles', 'batter_triples', 'pitcher_hits_allowed',
+        'pitcher_walks', 'pitcher_earned_runs', 'pitcher_strikeouts', 'pitcher_outs'),
+    'hockey': ('player_points', 'player_assists', 'player_power_play_points', 'player_goals',
+        'player_shots_on_goal', 'player_blocked_shots', 'player_total_saves'),
+    'soccer': ('player_assists', 'player_shots', 'player_shots_on_target'),
+}
+# Complete missing cash-stat definitions needed by documented alternate markets.
+_EXTRA_BASES = {
+    'football': (('player_assists', 'Assists'), ('player_pass_rush_yds', 'Pass + Rush Yards'),
+        ('player_pass_rush_reception_tds', 'Pass + Rush + Reception TDs'),
+        ('player_pass_rush_reception_yds', 'Pass + Rush + Reception Yards'),
+        ('player_pats', 'Extra Points'), ('player_reception_tds', 'Receiving TDs'),
+        ('player_rush_reception_tds', 'Rush + Reception TDs'),
+        ('player_rush_reception_yds', 'Rush + Reception Yards'), ('player_rush_tds', 'Rushing TDs')),
+    'baseball': (('batter_strikeouts', 'Batter Strikeouts'),),
+}
+for _family, _items in _EXTRA_BASES.items():
+    FAMILIES[_family] += tuple(_ou(key, label, 'Other stats') for key, label in _items)
+for _family, _keys in ALTERNATE_BASES.items():
+    _base = {m.key: m for m in FAMILIES[_family]}
+    FAMILIES[_family] += tuple(_ou(key + '_alternate', 'Alternate ' + _base[key].label,
+                                  'Alternate lines') for key in _keys)
+
 # Credit control: only these are fetched unless the user picks others.
 DEFAULT_MARKETS = {
     'basketball': ('player_points', 'player_rebounds', 'player_assists', 'player_threes'),
@@ -308,7 +350,17 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
             dfs_allowed = include_dfs and meta.sides == ('Over', 'Under') and not market_key.endswith('_alternate')
             grouped = {}
             conflicts = set()
-            for q in stored['quotes']:
+            def identity(q):
+                point = None if q['point'] is None else format(Decimal(q['point']).normalize(), 'f')
+                return q['player'], point, q['book'], q['side']
+            target_cells = {identity(q) for q in stored['quotes']}
+            sibling_key = market_key.removesuffix('_alternate') if market_key.endswith('_alternate') else market_key + '_alternate'
+            # Standard and alternate labels can describe the same exact contract.
+            # Borrow cash references at that exact player/line, never another line
+            # or DFS alternate payout; only actual target-market quotes are emitted.
+            sibling = ev['markets'].get(sibling_key, {}).get('quotes', [])
+            combined = list(stored['quotes']) + [q for q in sibling if q['book'] not in DFS and identity(q) not in target_cells]
+            for q in combined:
                 if not supported_book(q['book']):
                     continue
                 try:
@@ -319,7 +371,7 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
                         continue
                 except (ValueError, ArithmeticError):
                     continue
-                group = (q['player'], q['point'])
+                group = (q['player'], None if q['point'] is None else format(Decimal(q['point']).normalize(), 'f'))
                 cell = grouped.setdefault(group, {}).setdefault(q['book'], {})
                 if q['side'] in cell:
                     conflicts.add((group, q['book']))
@@ -336,6 +388,8 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
                     if policy.commission is None:
                         continue
                     for side, price in sorted(sides.items()):
+                        if (player, point, book, side) not in target_cells:
+                            continue
                         win, used = _sharp_side_probability(prices, side, exclude=book, sport_key=sport, include_dfs=dfs_allowed)
                         assumed = False
                         inferred = False

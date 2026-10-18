@@ -35,6 +35,13 @@ def board():
 
 
 class DatabaseCatalogTests(unittest.TestCase):
+    def setUp(self):
+        # Synthetic tests must never consume the operator's retained local quotes.
+        from unittest.mock import patch
+        self._stored_props = patch('pipelines.props_ingestion.load', return_value={'events': {}})
+        self._stored_props.start()
+        self.addCleanup(self._stored_props.stop)
+
     def test_board_builds_real_tools(self):
         catalog = FixtureCatalog(raw=build_raw(board(), PEOPLE, now=NOW))
         self.assertEqual('database', catalog.data_mode)

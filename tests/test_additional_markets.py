@@ -5,7 +5,7 @@ from datetime import datetime,timedelta,timezone
 from decimal import Decimal as D
 from pathlib import Path
 from unittest.mock import patch
-from corner.additional_markets import ADDITIONAL_MARKETS
+from corner.additional_markets import ADDITIONAL_MARKETS, SCHEDULED_ADDITIONAL_MARKETS
 from corner.featured_markets import normalize_featured_payload,FeaturedMarketError
 from corner.collection_policy import Job,STANDARD,EXCHANGE,plan,interval
 from corner.credit_governor import Governor,Refused
@@ -24,11 +24,11 @@ def row(book,market,side,price,point=None,subject=None):
  provider_updated_at=NOW,provider_payload_id='capture')
 def quotes():
  rows=[]
- for code,sides,line in [('alternate_spread',('home','away'),'-2.5'),('alternate_total',('over','under'),'10.5'),('btts',('yes','no'),None),('draw_no_bet',('home','away'),None),('team_total',('over','under'),'4.5')]:
+ for code,sides,line in [('alternate_spread',('home','away'),'-2.5'),('alternate_total',('over','under'),'10.5'),('btts',('yes','no'),None),('draw_no_bet',('home','away'),None),('team_total',('over','under'),'4.5'),('alternate_team_total',('over','under'),'5.5')]:
   for book,prices in [('draftkings',('2.30','1.80')),('pinnacle',('1.95','2.10')),('prophetx',('1.95','2.10'))]:
    for side,price in zip(sides,prices):
     value=str(-D(line)) if code=='alternate_spread' and side=='away' else line
-    rows.append(row(book,code,side,price,value,'Hawks' if code=='team_total' else None))
+    rows.append(row(book,code,side,price,value,'Hawks' if code in {'team_total','alternate_team_total'} else None))
  # Cross-line opportunities; keep home/away team totals isolated.
  for book,line,subject in [('fanduel','12.5',None)]:
   rows.extend([row(book,'alternate_total','over','1.9',line),row(book,'alternate_total','under','2.1',line)])
@@ -109,7 +109,7 @@ class AdditionalTests(unittest.TestCase):
    event={'id':'scope-event','sport_key':'basketball_nba','home_team':'Hawks','away_team':'Bears','commence_time':START.isoformat()}
    jobs=[];rows=[]
    for group,books in [('standard',STANDARD),('exchange',EXCHANGE)]:
-    j=Job('additional','basketball_nba',group,books,ADDITIONAL_MARKETS,event['id'],event['commence_time']);jobs.append(j)
+    j=Job('additional','basketball_nba',group,books,SCHEDULED_ADDITIONAL_MARKETS,event['id'],event['commence_time']);jobs.append(j)
     token=g.claim(j,'owner',NOW)
     payload=[{**event,'bookmakers':[{'key':books[0],'last_update':NOW.isoformat(),'markets':[{'key':'btts','outcomes':[{'name':'Yes','price':2},{'name':'No','price':2}]}]}]}]
     g.finish(j,token,'owner',NOW,{'x-requests-last':'1','x-requests-remaining':'14999999'},payload)
@@ -124,7 +124,7 @@ class AdditionalTests(unittest.TestCase):
    token=g.claim(jobs[0],'owner',later);g.finish(jobs[0],token,'owner',later,{'x-requests-last':'0','x-requests-remaining':'14999999'},[])
    self.assertFalse(any(r['book_code']=='draftkings' for r in main_scopes(rows,g.path,later)))
    g.close()
- def test_local_manual_capture_retains_at_most_three_event_responses(self):
+ def test_local_manual_capture_retains_every_upcoming_event_response(self):
   from pipelines.odds_ingestion import capture_additional,PARAMS
   def fetched(session,url,params):
    self.assertIn('/events/',url);self.assertEqual(set(ADDITIONAL_MARKETS),set(params['markets'].split(',')))
@@ -134,15 +134,15 @@ class AdditionalTests(unittest.TestCase):
    path=Path(folder);(path/'manifest.json').write_text('{}')
    events=[{'id':str(i),'commence_time':START.isoformat()} for i in range(7)]
    capture_additional(path,'basketball_nba',events,PARAMS,{'x-requests-remaining':'15000000'})
-   self.assertEqual(3,request.call_count);self.assertEqual(3,len(list((path/'additional').glob('*/response.raw'))))
+   self.assertEqual(7,request.call_count);self.assertEqual(7,len(list((path/'additional').glob('*/response.raw'))))
  def test_durable_daily_cap_and_window(self):
   with tempfile.TemporaryDirectory() as folder:
    g=Governor(Path(folder)/'ledger.sqlite3');g.configure_cycle('test',NOW-timedelta(days=1),NOW+timedelta(days=31));g.acquire('owner',NOW)
    day=NOW.date().isoformat()
    g.db.executemany('INSERT INTO additional_events VALUES(?,?,?)',[(day,'basketball_nba',str(i)) for i in range(50)])
-   j=Job('additional','basketball_nba','standard',STANDARD,ADDITIONAL_MARKETS,'new',START.isoformat())
+   j=Job('additional','basketball_nba','standard',STANDARD,SCHEDULED_ADDITIONAL_MARKETS,'new',START.isoformat())
    with self.assertRaisesRegex(Refused,'event cap'):g.claim(j,'owner',NOW)
-   far=Job('additional','basketball_nba','standard',STANDARD,ADDITIONAL_MARKETS,'0',(NOW+timedelta(hours=1)).isoformat())
+   far=Job('additional','basketball_nba','standard',STANDARD,SCHEDULED_ADDITIONAL_MARKETS,'0',(NOW+timedelta(hours=1)).isoformat())
    with self.assertRaisesRegex(Refused,'final 30'):g.claim(far,'owner',NOW)
    g.close()
 if __name__=='__main__':unittest.main()

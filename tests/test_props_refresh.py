@@ -182,6 +182,13 @@ class Freshness(unittest.TestCase):
 
 
 class Refresh(unittest.TestCase):
+    def setUp(self):
+        # Synthetic tests must never consume the operator's retained local quotes.
+        from unittest.mock import patch
+        self._stored_props = patch('pipelines.props_ingestion.load', return_value={'events': {}})
+        self._stored_props.start()
+        self.addCleanup(self._stored_props.stop)
+
     OK = {'events': 2, 'planned': 2, 'credits_used': 2, 'stopped': None, 'remaining': 100}
 
     def test_no_cooldown_and_no_daily_budget(self):

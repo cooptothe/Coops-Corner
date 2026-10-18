@@ -124,8 +124,8 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
             continue
         key = MARKET_KEYS[r['market_code']]
         side, point = r['side'], r['point']
-        subject = r.get('selection_name') if key == 'team_totals' else ''
-        if key == 'team_totals' and subject not in people[event].values():
+        subject = r.get('selection_name') if key in {'team_totals', 'alternate_team_totals'} else ''
+        if key in {'team_totals', 'alternate_team_totals'} and subject not in people[event].values():
             continue
         if key in {'h2h', 'draw_no_bet', 'btts'}:
             allowed_sides = {'yes','no'} if key == 'btts' else {'home','away'} if key == 'draw_no_bet' else {'home','away','draw'}
@@ -154,7 +154,7 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
         if not complete:
             continue
         names = {'home': home, 'away': away, 'draw': 'Draw', 'over': 'Over', 'under': 'Under', 'yes':'Yes', 'no':'No'}
-        if key == 'team_totals':
+        if key in {'team_totals', 'alternate_team_totals'}:
             names.update(over=f'{subject} Over', under=f'{subject} Under')
         points = {'home': line, 'away': _num(-Decimal(line)) if key in SPREAD_MARKETS else line, 'over': line, 'under': line,
                   'draw': None}
@@ -282,7 +282,7 @@ class LiveCatalog:
 
     def __init__(self, connect, *, ttl_seconds=None, max_age_seconds=None, references=None, targets=None, clock=None):
         self._connect = connect
-        self._ttl = ttl_seconds if ttl_seconds is not None else (15 if scheduled_store_path() is not None else None)
+        self._ttl = ttl_seconds if ttl_seconds is not None else 15
         self._max_age = timedelta(seconds=max_age_seconds if max_age_seconds is not None
                                   else int(os.environ.get('CORNER_TOOLS_MAX_AGE_SECONDS', '7200')))
         self._references = tuple(references) if references else _env_books('CORNER_TOOLS_REFERENCE_BOOKS', DEFAULT_REFERENCES)
@@ -301,6 +301,8 @@ class LiveCatalog:
                            cache=self._source)
         finally:
             conn.close()
+        from corner.prop_tools import merge_props
+        raw = merge_props(raw, now=self._clock())
         # The catalog is a pure function of this input, so identical input means the identical catalog: keep it.
         if self._inner is None or raw != self._raw:
             self._inner = FixtureCatalog(raw=raw)
