@@ -5,7 +5,7 @@ umask 077
 cd /srv/corner/app
 
 .venv-api/bin/python -m unittest \
-  tests.test_props_dfs_references tests.test_prop_markets tests.test_one_sided_props tests.test_automatic_prop_margin tests.test_assumed_margin_props tests.test_props_refresh \
+  tests.test_release_probe tests.test_props_dfs_references tests.test_prop_markets tests.test_one_sided_props tests.test_automatic_prop_margin tests.test_assumed_margin_props tests.test_props_refresh \
   tests.test_clv tests.test_tracker_service tests.test_clv_coverage tests.test_tracker_store \
   tests.test_lab_research_board tests.test_trends_service tests.test_trends_worker tests.test_prop_trends \
   tests.test_additional_markets tests.test_featured_markets \
@@ -69,5 +69,5 @@ curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-connrefused
 cd /srv/corner/app
 .venv-api/bin/python -c 'from corner.additional_markets import ADDITIONAL_MARKETS; print("Installed markets:", ", ".join(ADDITIONAL_MARKETS))'
 git log -1 --oneline
-echo 'Research Lab, player headshots and fair-odds filters deployed. Live collection and billing activation unchanged.'
+echo 'Beta release update deployed. Live collection and billing activation unchanged.'
 trap - EXIT

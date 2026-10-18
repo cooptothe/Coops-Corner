@@ -175,6 +175,28 @@ export default function AccountPage() {
           </button>
         </form>
       </section>
+      <section
+        className="trk-card account-card"
+        aria-labelledby="install-title"
+      >
+        <h3 id="install-title">Add The Corner to your home screen</h3>
+        <p className="trk-muted">
+          Open The Corner in your phone browser, then:
+        </p>
+        <ul>
+          <li>
+            iPhone or iPad: in Safari, tap Share, then Add to Home Screen.
+          </li>
+          <li>
+            Android: in Chrome, open the menu, then Install app or Add to Home
+            screen.
+          </li>
+        </ul>
+        <p className="trk-muted">
+          Sign in as usual. An internet connection is required for current odds
+          and your account.
+        </p>
+      </section>
     </main>
   );
 }

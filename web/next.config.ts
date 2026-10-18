@@ -58,18 +58,6 @@ const config: NextConfig = {
         destination: `${refresh.origin}/api/refresh/v1/:path*`,
       },
       {
-        source: "/api/v1/sports/:path*",
-        destination: "http://127.0.0.1:8080/api/v1/sports/:path*",
-      },
-      {
-        source: "/api/account/v1/:path*",
-        destination: "http://127.0.0.1:8080/api/account/v1/:path*",
-      },
-      {
-        source: "/api/market/v1/:path*",
-        destination: "http://127.0.0.1:8080/api/market/v1/:path*",
-      },
-      {
         source: "/api/v1/:path*",
         destination: `${parsed.origin}/api/v1/:path*`,
       },

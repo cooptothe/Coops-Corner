@@ -15,7 +15,15 @@ export const metadata: Metadata = {
   description:
     "Compare pre-game odds, explore betting opportunities, and manage your bets and bankroll in The Corner.",
   // The tab icon is a 64px rendition (a few KB) of the brand logo; the 600 KB original is never downloaded for it.
-  icons: { icon: "/_next/image?url=%2Fassets%2Fcorner-logo.png&w=64&q=75" },
+  icons: {
+    icon: "/_next/image?url=%2Fassets%2Fcorner-logo.png&w=64&q=75",
+    apple: "/assets/corner-icon-180.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "The Corner",
+    statusBarStyle: "black-translucent",
+  },
 };
 export const viewport: Viewport = {
   themeColor: "#b51c2a",

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Corner public HTTPS readiness every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=20
+Unit=corner-readiness.service
+
+[Install]
+WantedBy=timers.target
