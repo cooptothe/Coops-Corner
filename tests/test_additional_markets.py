@@ -133,7 +133,7 @@ class AdditionalTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as folder,patch('pipelines.odds_ingestion.fetch',side_effect=fetched) as request:
    path=Path(folder);(path/'manifest.json').write_text('{}')
    events=[{'id':str(i),'commence_time':START.isoformat()} for i in range(7)]
-   capture_additional(path,'basketball_nba',events,PARAMS,{'x-requests-remaining':'15000000'})
+   capture_additional(path,'basketball_nba',events,PARAMS,{'x-requests-remaining':'15000000'},now=NOW)
    self.assertEqual(7,request.call_count);self.assertEqual(7,len(list((path/'additional').glob('*/response.raw'))))
  def test_durable_daily_cap_and_window(self):
   with tempfile.TemporaryDirectory() as folder:

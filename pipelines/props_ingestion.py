@@ -101,26 +101,39 @@ def plan(sport, max_events, session, now=None):
     return events[:max_events], headers
 
 
-def capture(sport, markets, max_events):
+def capture(sport, markets, max_events, *, now=None):
     """Fetch the chosen markets for the soonest events and merge them into the store."""
     if not ODDS_API_KEY:
         raise ValueError('ODDS_API_KEY is not configured')
     if not markets or any(not market_meta(sport, m) for m in markets):
         raise ValueError('Choose valid prop markets for this league.')
+    from corner.manual_markets import markets_for_event
+    now = now or datetime.now(timezone.utc)
     used, stopped, done = 0, None, 0
+    next_cost = 0
     with requests.Session() as session:
         session.trust_env = False
         events, quota = plan(sport, max_events, session)
-        data = prune(load(), max_age=MAX_AGE)  # expired markets are hidden anyway; do not keep them on disk
+        selected = [(event, markets_for_event(markets, event['commence_time'], now)) for event in events]
+        planned = sum(bool(keys) for _,keys in selected)
+        skipped = sum(not keys for _,keys in selected)
+        data = prune(load(), now=now, max_age=MAX_AGE)  # expired markets are hidden anyway; do not keep them on disk
         replace_scope(data, sport, markets, {e['id'] for e in events})
+        # Drop previously retained alternates that this local request no longer covers.
+        for event,keys in selected:
+            old = data['events'].get(event['id'])
+            if old:
+                for key in set(markets) - set(keys):old['markets'].pop(key, None)
         _save(data)
-        for event in events:
+        for event,event_markets in selected:
+            if not event_markets:continue
             # The only guard: a call the key cannot pay for would just be rejected.
-            if int((quota or {}).get('x-requests-remaining', '999')) < len(markets) * BOOKMAKER_REGIONS:
+            next_cost = len(event_markets) * BOOKMAKER_REGIONS
+            if int((quota or {}).get('x-requests-remaining', '999')) < next_cost:
                 stopped = 'out_of_credits'
                 break
             status, body, headers = fetch(session, f"{BASE}/{sport}/events/{event['id']}/odds", {
-                'bookmakers': BOOKS, 'markets': ','.join(markets), 'oddsFormat': 'decimal', 'dateFormat': 'iso',
+                'bookmakers': BOOKS, 'markets': ','.join(event_markets), 'oddsFormat': 'decimal', 'dateFormat': 'iso',
                 'includeLinks': 'true', 'includeSids': 'true'})
             quota = headers or quota
             if status != 200:
@@ -133,11 +146,11 @@ def capture(sport, markets, max_events):
                 'sport_key': sport, 'home_team': payload.get('home_team', event.get('home_team')),
                 'away_team': payload.get('away_team', event.get('away_team')),
                 'commence_time': payload.get('commence_time', event['commence_time']), 'markets': {}})
-            for key in markets:
+            for key in event_markets:
                 quotes = normalize_event(payload, key, market_meta(sport, key))
                 slot['markets'][key] = {'captured_at': at, 'quotes': quotes}
             done += 1
             _save(data)
     remaining = (quota or {}).get('x-requests-remaining')
-    return {'events': done, 'planned': len(events), 'credits_used': used, 'stopped': stopped,
+    return {'events': done, 'planned': planned, 'day_of_skipped': skipped, 'next_event_credits': next_cost, 'credits_used': used, 'stopped': stopped,
             'remaining': int(remaining) if remaining and remaining.isdigit() else None}

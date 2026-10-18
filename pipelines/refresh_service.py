@@ -230,7 +230,7 @@ def props_message(label, markets, result, found=None, sport_key=None):
     progress = f"Fetched {games(done)} of {planned}, {credits(used)} used." if done else 'Nothing was fetched.'
     if stopped == 'out_of_credits':
         left = (f'only {credits(remaining)} left' if remaining is not None else 'too few credits are left')
-        return f'Stopped: {left} on your Odds API key, and each game needs {credits(len(markets) * props.BOOKMAKER_REGIONS)}. {progress}'
+        return f'Stopped: {left} on your Odds API key, and each game needs {credits(result.get('next_event_credits', len(markets) * props.BOOKMAKER_REGIONS))}. {progress}'
     if stopped:
         code = stopped.rsplit('_', 1)[-1]
         reason = {'401': 'The Odds API rejected the key or says it is out of credits (HTTP 401).',
@@ -238,6 +238,8 @@ def props_message(label, markets, result, found=None, sport_key=None):
                   '429': 'The Odds API is rate limiting requests (HTTP 429). Wait a moment and try again.'
                   }.get(code, f'The Odds API returned HTTP {code}.')
         return f'{reason} {progress}'
+    if not planned and result.get('day_of_skipped'):
+        return 'Alternate props are limited to upcoming games today (Chicago time). No paid odds requested.'
     if not planned:
         return f'No upcoming {label} games to fetch.'
     base = f'Fetched props for {games(done)}, {credits(used)} used.'

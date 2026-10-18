@@ -214,20 +214,26 @@ def _ingest_one(directory, *, connect=None):
         conn.rollback();conn.close()
 
 
-def capture_additional(destination, sport, events, base_params, headers):
+def capture_additional(destination, sport, events, base_params, headers, *, now=None):
     """Local manual fetch only: every upcoming event returned for the league.
 
     Event responses are retained separately; featured payload bytes never change.
     No automatic retry. Scheduled acquisition uses durable governor reservations.
     """
-    now=datetime.now(timezone.utc)
+    from corner.manual_markets import markets_for_event
+    now=now or datetime.now(timezone.utc)
     eligible=sorted((e for e in events if now < datetime.fromisoformat(e['commence_time'].replace('Z','+00:00'))), key=lambda e:(e['commence_time'],e['id']))
-    params={**base_params,'markets':','.join(ADDITIONAL_MARKETS)}
+    planned_cost=sum(len(markets_for_event(ADDITIONAL_MARKETS, e['commence_time'], now)) * BOOKMAKER_REGIONS for e in eligible)
+    params={**base_params}
     params={k:v for k,v in params.items() if not k.startswith('commenceTime')}
     with requests.Session() as session:
         session.trust_env=False
         for index,event in enumerate(eligible):
-            if int(headers.get('x-requests-remaining','0')) < ADDITIONAL_CREDITS:
+            markets=markets_for_event(ADDITIONAL_MARKETS,event['commence_time'],now)
+            if not markets:continue
+            cost=len(markets) * BOOKMAKER_REGIONS
+            params['markets']=','.join(markets)
+            if int(headers.get('x-requests-remaining','0')) < cost:
                 raise ValueError('Insufficient credits for additional event markets')
             status,raw,quota=fetch(session,BASE+'/'+sport+'/events/'+event['id']+'/odds',params)
             at=datetime.now(timezone.utc).isoformat()
@@ -247,10 +253,10 @@ def capture_additional(destination, sport, events, base_params, headers):
             headers.update(quota)
             parent=destination/'manifest.json'
             info=json.loads(parent.read_text(encoding='utf-8'));info['response_headers']=headers
-            info['planned_credits']=CREDITS_PER_SPORT + len(eligible) * ADDITIONAL_CREDITS
+            info['planned_credits']=CREDITS_PER_SPORT + planned_cost
             parent.write_text(json.dumps(info,indent=2)+'\n',encoding='utf-8')
             if status != 200:raise ValueError('Additional capture failed; retained for review')
-            if int(quota.get('x-requests-last','0')) > ADDITIONAL_CREDITS:
+            if int(quota.get('x-requests-last','0')) > cost:
                 raise ValueError('Unexpected additional provider charge; no further calls permitted')
 
 

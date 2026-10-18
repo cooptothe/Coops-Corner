@@ -876,6 +876,10 @@ export default function PropsFeed({ reload }: { reload: number }) {
               >
                 {busy ? "Fetching…" : `Fetch props (≤ ${credits(estimate)})`}
               </button>
+              <small className="muted">
+                Alternate lines: today only (Chicago time). All tools share the
+                fetched odds.
+              </small>
               {notice && (
                 <small
                   role={notice.ok ? "status" : "alert"}

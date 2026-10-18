@@ -1,9 +1,10 @@
 # Alternate markets and prop tools
 
-Local manual main fetching now requests the six additional markets for every
-upcoming event returned by the provider, without the former three-event cap.
-The base request is up to six credits per league and the additional requests
-are up to twelve credits per event. Each request checks affordability; no retries
+Local manual main fetching has no three-event cap. Alternate spreads, totals
+and team totals are requested only for upcoming games today in America/Chicago.
+Standard additional markets (BTTS, Draw No Bet, team totals) retain later-game
+coverage. The base request is up to six credits per league, plus up to twelve
+credits per event today or six per later event. Each request checks affordability; no retries
 or background paid calls were added. Tennis keys may expand into tournaments.
 
 In Player props, open **Markets to fetch**, select the statistics, and choose
@@ -41,3 +42,5 @@ Tracked tool legs retain the original provider event/player/prop identity for CL
 The scheduler's reviewed market scope and event/quota gates are unchanged.
 Collection and billing activation remain unchanged. All automated tests use
 recorded or synthetic payloads and spend no credits.
+
+Local manual alternates now request only upcoming events on the current America/Chicago calendar day. Standard main and prop markets keep their existing time coverage. Deployed scheduler policy is unchanged. A single main fetch updates all main tools; a prop fetch rebuilds those same tools from captured prop quotes, without another provider request.

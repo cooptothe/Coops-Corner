@@ -142,10 +142,11 @@ export default function FreshOdds({
               </strong>
             </div>
             <p className="muted">
-              Includes six additional markets for every upcoming game returned
-              per league, at up to 12 extra credits per game. Tennis tournaments
-              count separately and can increase the cost. Out-of-season leagues
-              use no credits; filtering stored results is free.
+              Alternate lines are fetched only for games today (Chicago time).
+              Additional markets cost up to 12 credits per game today and 6 per
+              later game. Tennis tournaments count separately and can increase
+              the cost. Out-of-season leagues use no credits; filtering stored
+              results is free.
             </p>
             <div className="refresh-review-actions">
               <button

@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from corner import prop_markets as pm
 from corner.prop_tools import merge_props
+from corner.manual_markets import markets_for_event
 from api.catalog import FixtureCatalog
 from api.database import build_raw
 from api.models import PromoRequest
@@ -41,12 +42,13 @@ class AlternateProps(unittest.TestCase):
 
     def test_manual_capture_to_multiline_ev_and_tools(self):
         original=data();event=original['events']['event-1']
+        event['commence_time'] = '2030-01-01T20:00:00+00:00'
         payload=dict(id='event-1',sport_key=event['sport_key'],home_team='Home',away_team='Away',commence_time=event['commence_time'],bookmakers=[])
         for book in ('pinnacle','fanduel','draftkings'):
             outcomes=[dict(name=('Over','Under')[q['side']],description=q['player'],point=float(q['point']),price=float(q['price'])) for q in event['markets']['player_threes_alternate']['quotes'] if q['book']==book]
             payload['bookmakers'].append(dict(key=book,markets=[dict(key='player_threes_alternate',outcomes=outcomes)]))
         with tempfile.TemporaryDirectory() as folder, patch.object(ing,'STORE',Path(folder)/'latest.json'),patch.object(ing,'ODDS_API_KEY','fixture'),patch.object(ing,'plan',return_value=([payload],{'x-requests-remaining':'100'})),patch.object(ing,'fetch',return_value=(200,json.dumps(payload).encode(),{'x-requests-last':'2','x-requests-remaining':'98'})) as fetch:
-            result=ing.capture('basketball_nba',['player_threes_alternate'],1)
+            result=ing.capture('basketball_nba',['player_threes_alternate'],1,now=datetime(2030,1,1,18,tzinfo=timezone.utc))
             self.assertEqual(result['events'],1)
             self.assertEqual(fetch.call_args.args[2]['markets'],'player_threes_alternate')
             saved=json.loads(ing.STORE.read_text())
@@ -147,13 +149,13 @@ class AlternateProps(unittest.TestCase):
             if url==board.BASE+'/':return 200,json.dumps([dict(key='basketball_nba',active=True)]).encode(),remaining
             if '/events/' in url:
                 event_id=url.split('/events/')[1].split('/')[0]
-                return 200,json.dumps(next(e for e in events if e['id']==event_id)).encode(),{**remaining,'x-requests-last':str(board.ADDITIONAL_CREDITS)}
+                return 200,json.dumps(next(e for e in events if e['id']==event_id)).encode(),{**remaining,'x-requests-last':str(len(params['markets'].split(','))*board.BOOKMAKER_REGIONS)}
             return 200,json.dumps(events).encode(),{**remaining,'x-requests-last':'6'}
         with tempfile.TemporaryDirectory() as folder,patch.object(board,'ODDS_API_KEY','fixture'),patch.object(board,'fetch',side_effect=fetch) as request:
             destination=Path(folder)/'capture'
             board.capture(destination,sport='basketball_nba')
             self.assertEqual(len(list((destination/'additional').glob('*/manifest.json'))),5)
             self.assertEqual(request.call_count,7)
-            self.assertEqual(json.loads((destination/'manifest.json').read_text())['planned_credits'],6+5*board.ADDITIONAL_CREDITS)
+            self.assertEqual(json.loads((destination/'manifest.json').read_text())['planned_credits'],6+sum(len(markets_for_event(board.ADDITIONAL_MARKETS,e['commence_time'],NOW))*board.BOOKMAKER_REGIONS for e in events))
 
 if __name__=='__main__':unittest.main()
