@@ -7,6 +7,7 @@ import {
 } from "../lib/lab-history";
 import { labDate } from "../lib/lab";
 import type { TrendContract, TrendReport } from "../lib/trends-api";
+import { Avatar } from "./media";
 import { american } from "../../frontend/format.mjs";
 import { bookDisplayName } from "../lib/bookmakers";
 
@@ -121,13 +122,12 @@ export function LabChart({
     <div className="lab-analysis-grid">
       <section className="lab-analysis" aria-label="Interactive player history">
         <div className="lab-player-profile">
-          <span className="lab-avatar" aria-hidden="true">
-            {report.player
-              .split(" ")
-              .map((v) => v[0])
-              .slice(0, 2)
-              .join("")}
-          </span>
+          <Avatar
+            kind="player"
+            name={report.player}
+            sportKey={report.contract.sport_key}
+            size={56}
+          />
           <div>
             <p className="eyebrow">
               {report.contract.sport_key
@@ -206,7 +206,7 @@ export function LabChart({
             ))}
           </div>
           <label className="field">
-            <span>Research line</span>
+            <span>Try a line</span>
             <input
               type="number"
               step="0.5"
@@ -431,7 +431,7 @@ export function LabChart({
           </div>
         </details>
         <section className="lab-odds-board">
-          <h3>Compare retained odds</h3>
+          <h3>Compare sportsbook odds</h3>
           <p className="trk-muted">
             Same player, market and research line. Best listed odds are
             highlighted separately for each side; fees and availability may
@@ -471,8 +471,8 @@ export function LabChart({
             </div>
           ) : (
             <p>
-              No retained sportsbook quotes at this research line. Try the
-              offered line or another player.
+              No saved sportsbook odds at this line. Try the offered line or
+              another player.
             </p>
           )}
         </section>

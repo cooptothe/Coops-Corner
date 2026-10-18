@@ -1,5 +1,7 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { Avatar } from "./media";
+import { LabInsight } from "./lab-insight";
 import { LabChart } from "./lab-chart";
 import { labDate, labLeg, labDay, labGameId } from "../lib/lab";
 import { useParlay } from "./parlay-builder";
@@ -91,54 +93,9 @@ export function TrendResults({
         onPick={onPick}
         renderAction={(quote) => <AddToParlay contract={quote} />}
       />
-      {report.projection && (
-        <section className="trend-model" aria-label="Statistical projection">
-          <h3>Statistical projection</h3>
-          {report.projection.status === "research_only" ? (
-            <>
-              <p>
-                Projected average{" "}
-                <strong>
-                  {numeric(report.projection.projected_mean ?? null)}
-                </strong>{" "}
-                | Estimated win chance{" "}
-                <strong>{pct(report.projection.probability ?? null)}</strong>
-              </p>
-              <p>
-                Push / refund chance:{" "}
-                {pct(report.projection.push_probability ?? null)}. Estimated
-                return after modeled fees:{" "}
-                {pct(report.projection.model_ev ?? null)}.
-              </p>
-              <p className="trk-muted">
-                Research estimate, not a validated +EV recommendation. Role,
-                lineup and matchup effects have not been fitted.
-              </p>
-              <details>
-                <summary>Compare model assumptions</summary>
-                {report.projection.models?.map((model) => (
-                  <p key={model.method}>
-                    {model.method.replaceAll("_", " ")}: {pct(model.win)}{" "}
-                    estimated chance, {pct(model.ev)} modeled return.
-                  </p>
-                ))}
-                <ul>
-                  {report.projection.assumptions?.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </details>
-            </>
-          ) : (
-            <p>
-              {report.projection.reason ??
-                "More context is required for this projection."}
-            </p>
-          )}
-        </section>
-      )}
+      <LabInsight report={report} />
       <details className="trend-model">
-        <summary>Model &amp; methodology</summary>
+        <summary>Advanced model details</summary>
         <h4>
           {report.research_signal ? "Research candidate" : "Research model"}
         </h4>
@@ -320,7 +277,7 @@ export default function LabResearch({
           if (match) setSelected(match.id);
           else
             setError(
-              "That quote has expired. Choose another retained prop below.",
+              "Those odds have expired. Choose another available prop below.",
             );
         }
       })
@@ -604,7 +561,7 @@ export default function LabResearch({
             <p role="status">
               {contracts.length
                 ? "No players match. Change the date, matchup or filters."
-                : "No retained props yet. Players appear when odds arrive."}
+                : "No props available yet. Players appear after the next odds update."}
             </p>
           )}
           <div className="lab-selection-grid">
@@ -620,7 +577,15 @@ export default function LabResearch({
                 }
                 onClick={() => setSelected(c.id)}
               >
-                <strong>{c.player}</strong>
+                <span className="lab-player-choice">
+                  <Avatar
+                    kind="player"
+                    name={c.player}
+                    sportKey={c.sport_key}
+                    size={34}
+                  />
+                  <strong>{c.player}</strong>
+                </span>
                 <small>
                   {c.away} @ {c.home}
                 </small>
@@ -644,14 +609,14 @@ export default function LabResearch({
             </button>
           )}
           <details className="lab-scan">
-            <summary>Cached research candidates</summary>
+            <summary>Explore saved research</summary>
             <button
               type="button"
               className="button secondary"
               disabled={scanning || loading}
               onClick={() => setScanning(true)}
             >
-              {scanning ? "Checking…" : "Find research candidates"}
+              {scanning ? "Checking…" : "Find players to research"}
             </button>
             {scanError && <p role="alert">{scanError}</p>}
             {signals && (

@@ -86,8 +86,8 @@ test("projection baselines display their research status and never promise an ed
       }}
     />,
   );
-  assert.match(html, /Statistical projection/);
+  assert.match(html, /Model outlook/);
   assert.match(html, /not a validated/);
-  assert.match(html, /Compare model assumptions/);
+  assert.match(html, /Technical assumptions/);
   assert.match(html, /refund chance/);
 });

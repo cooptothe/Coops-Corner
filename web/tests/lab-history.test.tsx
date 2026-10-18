@@ -40,15 +40,15 @@ test("dashboard renders accessible windows, target input, chart and odds compari
     "L10",
     "L20",
     "H2H",
-    "Research line",
+    "Try a line",
     "HIT RATE",
     "MEDIAN",
-    "Compare retained odds",
+    "Compare sportsbook odds",
     "not the line offered",
   ])
     assert.ok(html.includes(label), label);
   assert.match(html, /role="img"/);
-  assert.match(html, /No retained sportsbook quotes/);
+  assert.match(html, /No saved sportsbook odds/);
 });
 
 test("venue and result splits exclude unknown evidence and recompute decisive hit rates", () => {

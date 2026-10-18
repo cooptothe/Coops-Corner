@@ -39,8 +39,8 @@ export default function LabPage({
       <PersonalNav current="lab" />
       <div className="lab-intro">
         <p>
-          Explore hit rates at the current line, recent performances, and news
-          in one place.
+          Choose a game and player. Compare recent results, review the matchup,
+          then add a selection to your parlay.
         </p>
         <ParlayToolbar />
       </div>

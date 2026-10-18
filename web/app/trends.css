@@ -1076,3 +1076,114 @@
   border-color: #795063;
   color: #ffb1bf;
 }
+/* Plain-language research summary, using the app's existing Corner theme. */
+.lab-player-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.lab-player-choice .avatar,
+.lab-player-profile > .avatar {
+  flex: 0 0 auto;
+}
+.lab-player-choice strong {
+  overflow-wrap: anywhere;
+}
+.lab-player-profile > .avatar {
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.lab-insight {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 16px;
+}
+.lab-insight > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.lab-insight h3,
+.lab-insight h4,
+.lab-insight p {
+  margin: 0;
+}
+.lab-insight .eyebrow {
+  margin-bottom: 5px;
+}
+.lab-insight-tag {
+  font-size: 12px;
+  background: #391d28;
+  border: 1px solid #795063;
+  color: #ffdce2;
+  border-radius: 20px;
+  padding: 6px 10px;
+}
+.lab-insight-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.lab-insight-cards article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.lab-insight-cards h4 {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 9px;
+}
+.lab-insight-cards article > strong {
+  display: block;
+  font-size: clamp(18px, 2vw, 23px);
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+.lab-insight-cards p {
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 8px;
+}
+.lab-insight-cards small,
+.lab-insight-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.lab-insight .lab-insight-note {
+  margin-top: 12px;
+}
+.lab-estimate-details {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+.lab-estimate-details summary {
+  cursor: pointer;
+  min-height: 32px;
+}
+.lab-estimate-details p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+@media (max-width: 1000px) {
+  .lab-insight-cards {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .lab-insight {
+    padding: 12px;
+  }
+  .lab-insight-cards {
+    gap: 8px;
+  }
+}
