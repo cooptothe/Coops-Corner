@@ -101,6 +101,9 @@ export interface PropBet {
   net_decimal_odds?: string;
   commission_rate?: string;
   probability_basis?: string;
+  dfs_reference_books?: string[];
+  dfs_assumption?: string | null;
+  reference_policy?: string;
   calibration_status?: string;
   settlement_basis?: string;
   assumed_margin?: string | null;

@@ -218,7 +218,7 @@ def props_status():
 def props_found(sport):
     """How many bets the stored fetches currently give this league, and how many are +EV."""
     mine = [b for b in props.bets() if b['sport_key'] == sport]
-    return {'bets': len(mine), 'positive': sum(1 for b in mine if float(b['ev']) >= 0)}
+    return {'bets': len(mine), 'positive': sum(1 for b in mine if float(b['ev']) > 0)}
 
 
 def props_message(label, markets, result, found=None, sport_key=None):
@@ -245,8 +245,8 @@ def props_message(label, markets, result, found=None, sport_key=None):
         return base
     if not found['bets']:
         return (f'{base} No {label} bets can be shown: each selection needs two other sharp books '
-                'quoting both sides of the same player, market and line. One-sided and indicative DFS prices '
-                'do not establish a standalone fair probability; target fees must also be modeled.')
+                'on the same player, market and line. One-sided cash prices use explicit margin assumptions. Standard DFS Over/Under pairs '
+                'use a labeled 50/50 line assumption; target fees must also be modeled.')
     return f"{base} {found['bets']} {label} bets priced, {found['positive']} with positive EV."
 
 def run_props_refresh(sport, markets, max_events, capture=props.capture):
@@ -294,7 +294,7 @@ def create_app():
             from corner.prop_coverage import coverage
             from corner.prop_markets import build_bets
             data=props.prune(props.load(),max_age=props.MAX_AGE)
-            return coverage(data['events'],build_bets(data['events'],fallback_margin='0.10'))
+            return coverage(data['events'],build_bets(data['events'],fallback_margin='0.10',include_dfs=True))
         return reply(200,await run_in_threadpool(read))
 
     @app.get('/api/refresh/v1/props/status')

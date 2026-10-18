@@ -69,7 +69,7 @@ def bets(now=None, *, one_sided_margin=None):
     # Explicit policy fallback, not a fitted book margin. Exact pairs and observed
     # same-event margin evidence take precedence inside the pricing engine.
     return build_bets(prune(load(), now, MAX_AGE)['events'], one_sided_margin=one_sided_margin,
-                      fallback_margin='0.10')
+                      fallback_margin='0.10', include_dfs=True)
 
 
 def last_captured():

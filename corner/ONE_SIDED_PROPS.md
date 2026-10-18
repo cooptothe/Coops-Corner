@@ -45,7 +45,7 @@ limit** to include quotes whose opposite side is unavailable.
 
 If two complete reference pairs are available, the existing paired model wins.
 Otherwise the model requires two other eligible books quoting the exact
-event, player, market, line and side. It excludes the target book and DFS prices.
+event, player, market, line and side. It excludes the target book. In production props only, standard symmetric same-line PrizePicks and Underdog Over/Under pairs may count under an explicit 50/50 decisive median assumption; assigned DFS prices are not devigged. One-sided or asymmetric DFS offers do not supply a probability. See PROPS_DFS_REFERENCES.md.
 With normalized reference weights `w`, decimal prices `d`, and explicit margin
 assumption `m`, the modeled probability is:
 
@@ -65,7 +65,7 @@ commission. This demonstrates arithmetic, not predictive accuracy.
 `GET /api/refresh/v1/props?one_sided_margin=0.10` reprices retained quotes. It
 requires the existing account access checks, accepts ratios from 0 to 0.50,
 and performs no provider request. Invalid inputs return 422. Omitting the
-parameter uses observed margin transfer where supported, otherwise leaves EV unavailable. Assumptions are request-scoped.
+parameter uses observed margin transfer where supported, otherwise the labeled 10% central / 20% stress policy. At least two other qualifying references remain mandatory. Assumptions are request-scoped.
 
 Parlay tracking now asks for accepted American odds (`+325`, `-150`). Conversion
 happens before the existing decimal-odds tracking API is called; stored bet and

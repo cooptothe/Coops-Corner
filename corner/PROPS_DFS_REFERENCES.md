@@ -1,0 +1,13 @@
+# Props-only DFS references and one-sided targets
+
+Production props require two other distinct reference books. The target book is always excluded and can quote only the offered side. Main EV reference eligibility is unchanged.
+
+Cash O/U or Yes/No references: power no-vig per exact pair, reputation-weighted across references. EV uses the lower of power/proportional estimates after supported target fees. Anytime scorer probabilities are never normalized across different players, because multiple players can score. For missing cash opposite prices, same-event/market/book margin evidence takes precedence; otherwise existing 10% central and 20% stress overround assumptions apply. These are policy scenarios, not calibrated book margins.
+
+PrizePicks / Underdog: standard, identical-player, identical-market, identical-line O/U pairs with equal assigned prices can count as references under an explicit 50/50 decisive median-line assumption. Assigned DFS payout odds are not devigged or interpreted as sportsbook probabilities. Unequal multipliers, alternate/goblin/demon markets, missing-side DFS lines, and scorer Yes/No lists do not establish a median. These need a separate statistical model and settlement/payoff context. Reference weights stay fixed: DFS has lower influence than established cash references. Two DFS references alone receive equal normalized influence. Their dependence is not a calibration guarantee.
+
+Every affected row exposes dfs_reference_books and dfs_assumption and is labeled in the feed. Market width is unavailable for indicative DFS reference groups. A maximum-width filter can hide these rows; the interface explains this and offers to clear that limit. DFS entries are not standalone cash betting targets; lineup payout EV needs the entire payout table, push/void rules and dependence between picks.
+
+Recommended LOCAL fetches now include threes, ATD, soccer shots on target and assists, hockey assists and ATG. Saved custom selections remain intact; use Markets to fetch > recommended to apply the expanded list. Cost estimate updates before any manual fetch. Deployed polling cadence, global quota pools and collector activation are unchanged (the scheduler already requests the full family catalog). Correct soccer first/last scorer provider keys are player_first_goal_scorer and player_last_goal_scorer; NHL uses player_goal_scorer_first and player_goal_scorer_last.
+
+Source: https://the-odds-api.com/sports-odds-data/bookmaker-apis.html (DFS prices indicative; alternate entries include non-default multipliers). Market catalog: https://the-odds-api.com/sports-odds-data/betting-markets.html . Reviewed October 18, 2026. No provider request was made for this correction.

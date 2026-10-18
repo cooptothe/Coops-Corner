@@ -23,4 +23,7 @@ def coverage(events,priced):
     return {'retained_quotes':sum(counts.values()),'outcomes':dict(counts),'markets':list(markets.values()),
             'catalog_market_count':sum(len(v) for v in FAMILIES.values()),'provider_calls':0,
             'scope':'Retained quotes only. Missing provider markets are not fabricated.',
-            'projection_edges_validated':False}
+            'projection_edges_validated':False,
+            'positive_estimates':sum(float(row['ev'])>0 for row in priced),
+            'dfs_assumption_estimates':sum(bool(row.get('dfs_reference_books')) for row in priced),
+            'reference_requirement':'Two other distinct reference books; target excluded. DFS uses an explicit line assumption, not assigned payout probabilities.'}

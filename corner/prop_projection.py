@@ -15,7 +15,7 @@ def plan(sport,market):
     from corner.prop_markets import market_meta
     meta=market_meta(sport,market)
     if meta is None:return {'method':'unavailable','requires':['documented_market_and_settlement']}
-    if market.endswith(('_first','_last')) or market in ('player_1st_td','player_last_td'):
+    if market.endswith(('_first','_last')) or market in ('player_1st_td','player_last_td','player_first_goal_scorer','player_last_goal_scorer'):
         return {'method':'competing_scoring_hazards','requires':['complete_field_including_opposition','time_varying_scoring_opportunities','participation_and_no_scorer_rules']}
     if market.endswith('_q1'):return {'method':'count_distribution','requires':['first_quarter_only_game_logs','expected_first_quarter_minutes']}
     if market in ('player_anytime_td','player_goal_scorer_anytime'):

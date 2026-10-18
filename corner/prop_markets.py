@@ -13,7 +13,7 @@ from corner.book_policy import supported_book, supported_books
 from corner.reference_policy import sufficient_references
 from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
 from corner.market_width import widest_market_width
-from corner.pricing import fee_policy, reference_eligible, no_vig_pair, VERSION as PRICING_VERSION
+from corner.pricing import fee_policy, reference_eligible, no_vig_pair, DFS, VERSION as PRICING_VERSION
 from corner.pricing import one_sided_margin as validate_one_sided_margin
 from corner.scorer_research import scorer_sensitivity
 
@@ -124,8 +124,8 @@ FAMILIES = {
     ),
     'soccer': (
         _yes('player_goal_scorer_anytime', 'Anytime Goal Scorer', 'Goal scorers'),
-        _yes('player_goal_scorer_first', 'First Goal Scorer', 'Goal scorers'),
-        _yes('player_goal_scorer_last', 'Last Goal Scorer', 'Goal scorers'),
+        _yes('player_first_goal_scorer', 'First Goal Scorer', 'Goal scorers'),
+        _yes('player_last_goal_scorer', 'Last Goal Scorer', 'Goal scorers'),
         _ou('player_shots', 'Shots', 'Shooting & passing'),
         _ou('player_shots_on_target', 'Shots on Target', 'Shooting & passing'),
         _ou('player_assists', 'Assists', 'Shooting & passing'),
@@ -135,11 +135,11 @@ FAMILIES = {
 }
 # Credit control: only these are fetched unless the user picks others.
 DEFAULT_MARKETS = {
-    'basketball': ('player_points', 'player_rebounds', 'player_assists'),
-    'football': ('player_pass_yds', 'player_rush_yds', 'player_reception_yds'),
+    'basketball': ('player_points', 'player_rebounds', 'player_assists', 'player_threes'),
+    'football': ('player_pass_yds', 'player_rush_yds', 'player_reception_yds', 'player_anytime_td'),
     'baseball': ('batter_hits', 'pitcher_strikeouts'),
-    'hockey': ('player_goals', 'player_shots_on_goal'),
-    'soccer': ('player_goal_scorer_anytime', 'player_shots'),
+    'hockey': ('player_goals', 'player_shots_on_goal', 'player_assists', 'player_goal_scorer_anytime'),
+    'soccer': ('player_goal_scorer_anytime', 'player_shots', 'player_shots_on_target', 'player_assists'),
 }
 PREFIX_FAMILY = (('basketball_', 'basketball'), ('americanfootball_', 'football'),
                  ('baseball_', 'baseball'), ('icehockey_', 'hockey'), ('soccer_', 'soccer'))
@@ -218,14 +218,24 @@ def _prob(price):
     return Decimal(1) / Decimal(price)
 
 
-def _sharp_side_probability(prices, side, exclude=None, sport_key=''):
+def _reference_pair(book, pair):
+    if book in DFS:
+        # Explicit fair-median assumption for STANDARD same-line O/U pairs.
+        # Assigned DFS prices are NOT sportsbook odds or measured probabilities.
+        if set(pair) != {0, 1} or pair[0] != pair[1]:
+            raise ValueError('DFS requires a symmetric standard two-sided line')
+        return (Decimal('.5'), Decimal('.5')), (Decimal('.5'), Decimal('.5'))
+    return no_vig_pair(pair[0], pair[1])
+
+
+def _sharp_side_probability(prices, side, exclude=None, sport_key='', *, include_dfs=False):
     """Weighted power no-vig estimate from complete binary reference populations."""
     used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS and b != exclude
-                  and reference_eligible(b) and set(p) == {0, 1})
+                  and (reference_eligible(b) or include_dfs and b in DFS) and set(p) == {0, 1})
     valid = []
     for book in used:
         try:
-            no_vig_pair(prices[book][0], prices[book][1])
+            _reference_pair(book, prices[book])
             valid.append(book)
         except (ValueError, ArithmeticError):
             continue
@@ -233,7 +243,7 @@ def _sharp_side_probability(prices, side, exclude=None, sport_key=''):
     if not sufficient_references(used, sport_key, player_props=True):
         return None, []
     weights = normalized_reference_weights(used, sport_key, player_props=True)
-    fair = sum(no_vig_pair(prices[b][0], prices[b][1])[0][side] * weights[b] for b in used)
+    fair = sum(_reference_pair(b, prices[b])[0][side] * weights[b] for b in used)
     return fair, used
 
 
@@ -271,14 +281,16 @@ def _observed_margin(groups, book, excluded_player):
     return median, ordered[-1], n
 
 
-def build_bets(events, *, one_sided_margin=None, fallback_margin=None):
+def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_dfs=False):
     """events: {event_id: {meta, markets:{market_key:{quotes:[...]}}}} -> one bet per soft-book side.
 
     Two other eligible books must each quote both sides of the same player/line.
     Remove margin per book before pooling existing reputation weights. Target is
     excluded. Missing opposite prices can use observed same-event/market/book
     margin samples from three other players, or an explicit assumption. DFS
-    prices stay excluded; transferred margins are not empirical calibration.
+    reference use is opt-in and limited to symmetric standard same-line O/U pairs
+    under an explicit median assumption. DFS targets still need lineup payoffs.
+    Transferred margins and DFS median assumptions are not empirical calibration.
     """
     margin = validate_one_sided_margin(one_sided_margin)
     fallback = validate_one_sided_margin(fallback_margin)
@@ -293,6 +305,7 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None):
             # never normalize prices across different potential scorers.
             if not meta:
                 continue
+            dfs_allowed = include_dfs and meta.sides == ('Over', 'Under') and not market_key.endswith('_alternate')
             grouped = {}
             conflicts = set()
             for q in stored['quotes']:
@@ -323,23 +336,25 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None):
                     if policy.commission is None:
                         continue
                     for side, price in sorted(sides.items()):
-                        win, used = _sharp_side_probability(prices, side, exclude=book, sport_key=sport)
+                        win, used = _sharp_side_probability(prices, side, exclude=book, sport_key=sport, include_dfs=dfs_allowed)
                         assumed = False
                         inferred = False
                         margin_evidence = {}
                         fallback_books = []
                         if win is None:
                             used = sorted(b for b, p in prices.items() if b in PROP_SHARP_BOOKS
-                                          and b != book and reference_eligible(b) and side in p)
+                                          and b != book and (reference_eligible(b) or dfs_allowed and b in DFS) and side in p)
                             estimates = {}
                             for reference in used:
                                 pair = prices[reference]
                                 if set(pair) == {0, 1}:
                                     try:
-                                        power, proportional_pair = no_vig_pair(pair[0], pair[1])
+                                        power, proportional_pair = _reference_pair(reference, pair)
                                         estimates[reference] = power[side], min(power[side], proportional_pair[side])
                                     except (ValueError, ArithmeticError):
                                         pass
+                                elif reference in DFS:
+                                    continue  # No price-derived probability for a one-sided DFS quote.
                                 elif margin is not None:
                                     p = (1 / pair[side]) / (1 + margin)
                                     estimates[reference] = p, p
@@ -366,7 +381,8 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None):
                             assumed = margin is not None
                             inferred = not assumed and not fallback_books
                         weights = normalized_reference_weights(used, sport, player_props=True)
-                        proportional = transferred_lower if assumed or inferred or fallback_books else sum(no_vig_pair(prices[b][0], prices[b][1])[1][side] * weights[b] for b in used)
+                        proportional = transferred_lower if assumed or inferred or fallback_books else sum(_reference_pair(b, prices[b])[1][side] * weights[b] for b in used)
+                        dfs_used = [b for b in used if b in DFS]
                         lower = min(win, proportional)
                         net_odds = 1 + (price-1) * (1-policy.commission)
                         allocation = None
@@ -374,6 +390,8 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None):
                             sensitivity_refs = []
                             for reference in used:
                                 pair = prices[reference]
+                                if reference in DFS:
+                                    break  # Indicative DFS payouts cannot support overround-allocation bounds.
                                 high = (1/pair[0]+1/pair[1]-1) if set(pair)=={0,1} else margin if assumed else stress if reference in fallback_books else Decimal(margin_evidence[reference]['maximum'])
                                 if high is None or not 0 <= high <= Decimal('.5'):
                                     break
@@ -399,10 +417,13 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None):
                             'allocation_sensitivity': allocation,
                             'settlement_basis': 'decisive_settlement_conditional' if conditional else 'binary_no_push_assumed',
                             'sharps': used,
-                            'market_width_cents': widest_market_width([list(prices[b].values()) for b in used]),
+                            'reference_policy': 'two_independent_props_references/dfs-median-v1',
+                            'dfs_reference_books': dfs_used,
+                            'dfs_assumption': 'Standard matching Over/Under line is a fair 50/50 decisive median; not inferred from DFS payouts or empirically calibrated.' if dfs_used else None,
+                            'market_width_cents': None if dfs_used else widest_market_width([list(prices[b].values()) for b in used]),
                             'reference_weights': {b: str(w) for b, w in normalized_reference_weights(used, sport, player_props=True).items()},
                             'reference_weight_version': WEIGHT_VERSION,
-                            'probability_basis': 'policy_margin_fallback' if fallback_books else 'observed_margin_transfer' if inferred else 'assumed_proportional_margin' if assumed else 'weighted_power_no_vig',
+                            'probability_basis': 'dfs_median_assumption_with_margin_fallback' if dfs_used and fallback_books else 'dfs_median_assumption' if dfs_used else 'policy_margin_fallback' if fallback_books else 'observed_margin_transfer' if inferred else 'assumed_proportional_margin' if assumed else 'weighted_power_no_vig',
                             'observed_at': by_book[book][side].get('updated_at')
                             or stored.get('captured_at'),
                             'links': by_book[book][side].get('links')})

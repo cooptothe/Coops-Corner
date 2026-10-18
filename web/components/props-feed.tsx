@@ -80,6 +80,7 @@ interface Vm extends KellyVm {
   assumedMargin?: string | null;
   stressMargin?: string | null;
   inferredMargin?: boolean;
+  dfsAssumption?: string | null;
   sourceIds?: PropBet["source_ids"];
   gameId: string;
   sportKey: string;
@@ -131,6 +132,7 @@ function toVm(b: PropBet): Vm {
     assumedMargin: b.assumed_margin,
     stressMargin: b.stress_margin,
     inferredMargin: b.probability_basis === "observed_margin_transfer",
+    dfsAssumption: b.dfs_assumption,
     marketWidth:
       b.market_width_cents == null ? null : Number(b.market_width_cents),
     sharps: b.sharps.map(bookName).join(" + "),
@@ -592,14 +594,16 @@ export default function PropsFeed({ reload }: { reload: number }) {
           <p>
             Anytime touchdown (ATD) and anytime goalscorer (ATG) props can be
             priced when two other reference books quote both Yes and No for that
-            exact player. A Yes-only list does not reveal the margin: several
-            players can score in the same game. Otherwise, one-sided props are
-            priced automatically when two other reference books have enough
-            complete prices in this event and prop market to estimate their
-            margins. Each book needs three other players. Results are labeled as
-            modeled; EV uses the larger observed margin as a sensitivity check.
-            This is not a calibrated win rate or a confidence bound. Select No
-            limit for market width when the opposite price is unavailable.
+            exact player. The target only needs the offered side; it does not
+            need its own opposite quote. A Yes-only list does not reveal the
+            margin: several players can score in the same game. Otherwise,
+            one-sided props are priced automatically when two other reference
+            books have enough complete prices in this event and prop market to
+            estimate their margins. Each book needs three other players. Results
+            are labeled as modeled; EV uses the larger observed margin as a
+            sensitivity check. This is not a calibrated win rate or a confidence
+            bound. Select No limit for market width when the opposite price is
+            unavailable.
           </p>
           <p>
             When paired prices and observed margin samples are unavailable,
@@ -624,9 +628,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
             <p role="alert">Enter a margin from 0 to 50 percent.</p>
           )}
           <p>
-            Requires two other books on the exact selection. Fees still apply.
-            Integer lines are conditional on no push; pick&apos;em payouts
-            require a lineup model.
+            Requires two other books on the exact selection. PrizePicks and
+            Underdog can count for standard matching Over/Under lines under a
+            labeled 50/50 median assumption. Unequal multipliers and one-sided
+            DFS quotes are not sportsbook probability estimates. Fees still
+            apply. Integer lines are conditional on no push; pick&apos;em
+            payouts require a lineup model.
           </p>
           <p>
             Reference influence is weighted, not equal: FanDuel carries the
@@ -804,7 +811,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                           )
                         }
                       >
-                        default
+                        recommended
                       </button>{" "}
                       <button
                         type="button"
@@ -873,6 +880,25 @@ export default function PropsFeed({ reload }: { reload: number }) {
               <> · fetched {date(status.last_success_at)}</>
             )}
             <FeedChangeNote change={change} />
+            {all.some((v) => Number(v.ev) > 0) && visible.length === 0 && (
+              <span role="status">
+                Positive estimates exist in the saved capture but are hidden by
+                your filters.
+              </span>
+            )}
+            {!!maxWidth &&
+              all.some((v) => Number(v.ev) > 0 && v.marketWidth === null) && (
+                <span>
+                  One-sided / DFS estimates without market width are excluded.{" "}
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => setMaxWidth("")}
+                  >
+                    Allow unavailable width
+                  </button>
+                </span>
+              )}
             <label className="ev-sort">
               Sort by{" "}
               <select
@@ -1017,6 +1043,11 @@ export default function PropsFeed({ reload }: { reload: number }) {
                             allocation.
                           </small>
                         </details>
+                      )}
+                      {v.dfsAssumption && (
+                        <small title={v.dfsAssumption}>
+                          Modeled: DFS 50/50 line assumption - not calibrated
+                        </small>
                       )}
                       {v.inferredMargin && (
                         <small>Modeled: observed-margin estimate</small>
