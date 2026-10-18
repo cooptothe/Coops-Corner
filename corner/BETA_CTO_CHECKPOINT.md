@@ -19,8 +19,9 @@ collection, payable checkout, purchase infrastructure, or send wallet transfers.
 - Isolated HTTP database rehearsal: ten disposable members, 120 authenticated
   GETs over actual loopback HTTP, 68 games, 6,431 eligible saved quotes, 7,766 tool
   rows. Snapshot consistency, anonymous denial, invalid-token denial, suspension
-  revocation and no-store responses passed. Latest p95: Middles 1,091 ms for
-  1,000 rows; quotes 986 ms; other tested routes 643 ms or less. Cold build 7.54 s
+  revocation and no-store responses passed. Latest p95: Middles 1,372 ms for
+  1,000 rows; quotes 1,064 ms; other tested routes 467 ms or less, all within
+  the 1,500 ms rehearsal budget. Cold build 8.18 s
   reflects a later, smaller eligible dataset, not another like-for-like speedup.
 
 Evidence files live in `retained/release-evidence/` (private, not committed):
