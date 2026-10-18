@@ -26,6 +26,31 @@ def at(result, score):
 
 
 class MiddleTests(unittest.TestCase):
+    def test_snapshot_digest_preserves_existing_wire_bytes(self):
+        import hashlib, json
+        from api.catalog import digest, wire
+        from datetime import datetime, timezone
+        value = {'calculation': middle(), 'time': datetime(2026, 10, 18, tzinfo=timezone.utc),
+                 'nested': [None, True, 1, 'text', D('1.900')]}
+        expected = hashlib.sha256(json.dumps(wire(value), sort_keys=True,
+            separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+        self.assertEqual(digest(value), expected)
+
+    def test_discovery_prefilter_matches_exhaustive_quarter_line_payoffs(self):
+        from corner.featured_middles import _full_win_window
+        # Include negative spread margins, quarter splits, pushes and zero totals.
+        for high, low in (("home", "away"), ("over", "under")):
+            points = [D(i) / 4 for i in range(-8 if high == "home" else 0, 17)]
+            for first_line in points:
+                for second_line in points:
+                    first, second = leg(high, str(first_line)), leg(low, str(second_line))
+                    exact = middle(first, second)
+                    self.assertEqual(bool(exact.double_win_ranges),
+                        _full_win_window(first.market_key, high, first_line, low, second_line))
+                    found = find_middles((first, second), refund_possible=False)
+                    self.assertEqual(found, (exact,) if exact.double_win_ranges else ())
+
+
     def test_total_double_win_window_and_worst_loss(self):
         result = middle()
         self.assertEqual(((211, 213),), result.double_win_ranges)

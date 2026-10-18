@@ -7,6 +7,7 @@ each position in every state. Commission groups are isolated account/market pool
 from dataclasses import dataclass, replace
 from decimal import Decimal
 from fractions import Fraction
+from functools import lru_cache
 
 from corner.featured_tools import (
     BACK_MARKETS, LAY_MARKETS, _decimal, _decimal_ratio, _id, _require,
@@ -83,9 +84,16 @@ def probability_weights(probabilities, state_ids):
 
 
 def gross_profit(position, settlement):
-    stake, odds = Fraction(position.stake), Fraction(position.decimal_odds)
-    back = stake * (Fraction(settlement.won) * (odds - 1) - Fraction(settlement.lost))
-    return -back if position.market_key in LAY_MARKETS else back
+    return _gross_profit(position.stake, position.decimal_odds, settlement.won,
+                         settlement.lost, position.market_key in LAY_MARKETS)
+
+
+@lru_cache(maxsize=32768)
+def _gross_profit(stake, odds, won, lost, lay):
+    # Exact arithmetic shared across identical prices/settlements; identities
+    # and commission pools remain separate in calculate_payoffs.
+    back = Fraction(stake) * (Fraction(won) * (Fraction(odds) - 1) - Fraction(lost))
+    return -back if lay else back
 
 
 @dataclass(frozen=True)

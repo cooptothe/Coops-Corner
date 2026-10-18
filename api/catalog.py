@@ -23,12 +23,14 @@ D = Decimal
 
 
 def wire(value):
+    if value is None or type(value) in (str, int, bool):
+        return value
+    if isinstance(value, Decimal):
+        return format(value, 'f')
     if is_dataclass(value):
         return {field.name: wire(getattr(value, field.name)) for field in fields(value)}
     if hasattr(value, 'model_dump'):
         return value.model_dump(mode='json')
-    if isinstance(value, Decimal):
-        return format(value, 'f')
     if isinstance(value, datetime):
         return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
     if isinstance(value, dict):
@@ -40,8 +42,23 @@ def wire(value):
     raise TypeError(f'unsupported API serialization: {type(value).__name__}')
 
 
+def _json_default(value):
+    # Let the JSON encoder traverse ordinary containers/primitives in C rather
+    # than recursively copying every result tree in Python before encoding.
+    if isinstance(value, Decimal):
+        return format(value, 'f')
+    if isinstance(value, datetime):
+        return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+    if is_dataclass(value):
+        return {field.name: getattr(value, field.name) for field in fields(value)}
+    if hasattr(value, 'model_dump'):
+        return value.model_dump(mode='json')
+    raise TypeError(f'unsupported API serialization: {type(value).__name__}')
+
+
 def digest(value):
-    return hashlib.sha256(json.dumps(wire(value), sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+    return hashlib.sha256(json.dumps(value, default=_json_default, sort_keys=True,
+        separators=(',', ':'), allow_nan=False).encode()).hexdigest()
 
 
 def _unique_object(pairs):

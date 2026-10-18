@@ -161,6 +161,19 @@ def calculate_middle(*, contract_id, first, second, refund_possible,
                         (first, second), ranges, tuple((r.minimum_score, r.maximum_score) for r in ranges if r.both_win), payoff)
 
 
+@lru_cache(maxsize=32768)
+def _full_win_window(market, high_side, high_line, low_side, low_line):
+    # A full win requires crossing every split-line threshold. On the exact
+    # integer scoring domain this proves whether any double-win score exists.
+    high = SimpleNamespace(side=high_side, line=high_line)
+    low = SimpleNamespace(side=low_side, line=low_line)
+    lower = max(_thresholds(high)).__floor__() + 1
+    upper = min(_thresholds(low)).__ceil__() - 1
+    if market == "totals":
+        lower = max(0, lower)
+    return lower <= upper
+
+
 def find_middles(line_bets, *, refund_possible, stake_increment=Decimal("0.01"), maximum_pair_checks=10000):
     """Bounded discovery over explicitly bound quotes; no probability-based ranking.
 
@@ -184,6 +197,8 @@ def find_middles(line_bets, *, refund_possible, stake_increment=Decimal("0.01"),
         for first in high:
             for second in low:
                 if first.sportsbook_id == second.sportsbook_id:
+                    continue
+                if not _full_win_window(first.market_key, first.side, first.line, second.side, second.line):
                     continue
                 result = calculate_middle(contract_id=contract, first=first, second=second,
                                           refund_possible=refund_possible, stake_increment=stake_increment)
