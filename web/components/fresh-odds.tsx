@@ -11,7 +11,7 @@ const STORAGE = "corner.refresh.leagues";
 export default function FreshOdds({
   onRefreshed,
 }: {
-  onRefreshed: () => void;
+  onRefreshed?: () => void;
 }) {
   const [status, setStatus] = useState<RefreshStatus | null>(null);
   const [leagues, setLeagues] = useState<string[] | null>(null);
@@ -81,7 +81,7 @@ export default function FreshOdds({
           : "No leagues had upcoming games to update.",
       );
       await reloadTools();
-      onRefreshed();
+      onRefreshed?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Refresh failed.");
       refreshStatus()
@@ -89,7 +89,7 @@ export default function FreshOdds({
         .catch(() => undefined);
       // The service may have finished even if the response was lost; re-read the database.
       await reloadTools().catch(() => undefined);
-      onRefreshed();
+      onRefreshed?.();
     } finally {
       setBusy(false);
     }

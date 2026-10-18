@@ -12,6 +12,7 @@ import {
   shiftDecimal,
 } from "../../frontend/format.mjs";
 import { ApiError, allPages, request, sharedPages } from "../lib/api";
+import { subscribeOddsUpdated } from "../lib/odds-updates";
 import { reloadToolsOnce } from "../lib/refresh-api";
 import type {
   View,
@@ -137,6 +138,10 @@ export default function Workspace({ view }: { view: View }) {
     [bootError, setBootError] = useState(""),
     [reload, setReload] = useState(0),
     [updating, setUpdating] = useState(false);
+  useEffect(
+    () => subscribeOddsUpdated(() => setReload((value) => value + 1)),
+    [],
+  );
   const [filters, setFilters] = useState<Filters>({}),
     [offset, setOffset] = useState(0),
     [limit, setLimit] = useState(10),
@@ -381,7 +386,7 @@ export default function Workspace({ view }: { view: View }) {
                 ↻ Updating prices…
               </span>
             )}
-            <FreshOdds onRefreshed={() => setReload((v) => v + 1)} />
+            <FreshOdds />
             <UserMenu />
           </div>
         </header>

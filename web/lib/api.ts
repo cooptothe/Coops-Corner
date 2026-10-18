@@ -212,6 +212,9 @@ export async function allPages<T>(
 // and a caller can start it early. A caller leaving does not cancel the shared request; a failed one is forgotten.
 const shared = new Map<string, Promise<unknown[]>>();
 const SHARED_MAX = 8;
+export function invalidateSharedPages(): void {
+  shared.clear();
+}
 export function sharedPages<T>(
   path: string,
   snapshot: string,

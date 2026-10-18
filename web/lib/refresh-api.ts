@@ -1,3 +1,4 @@
+import { announceOddsUpdated } from "./odds-updates";
 import { notifyUnauthorized } from "./auth-api";
 import type { QuoteLinks } from "./bet-links";
 
@@ -56,7 +57,7 @@ export const refreshOdds = (sports: string[]) =>
   call("POST", "odds", undefined, sports);
 
 // The tools API rebuilds its catalog from the database; throws if the rebuild fails.
-export async function reloadTools(): Promise<void> {
+export async function reloadTools(announce = true): Promise<void> {
   const response = await fetch("/api/v1/catalog/reload", {
     method: "POST",
     cache: "no-store",
@@ -66,7 +67,10 @@ export async function reloadTools(): Promise<void> {
   });
   if (response.status === 401) notifyUnauthorized();
   if (!response.ok)
-    throw new Error("Odds were fetched, but the feed could not be rebuilt.");
+    throw new Error(
+      "Odds were fetched, but the shared feeds could not be rebuilt. Reload the app before fetching again.",
+    );
+  if (announce) announceOddsUpdated();
 }
 
 export interface PropMarketInfo {
@@ -176,15 +180,21 @@ async function propsCall(
 }
 export const loadProps = (signal?: AbortSignal, oneSidedMargin?: string) =>
   propsCall("GET", undefined, signal, oneSidedMargin);
-export const refreshProps = (
+export const refreshProps = async (
   sport: string,
   markets: string[],
   max_events: number,
-) => propsCall("POST", { sport, markets, max_events });
+) => {
+  const result = await propsCall("POST", { sport, markets, max_events });
+  // Publish the captured props to every tool before declaring the update done.
+  // This only re-reads retained quotes: it never requests provider odds.
+  await reloadTools();
+  return result;
+};
 
 let pageLoadReload: Promise<void> | null = null;
 // Once per full page load, so a browser refresh also picks up newly stored odds.
 export function reloadToolsOnce(): Promise<void> {
-  pageLoadReload ??= reloadTools().catch(() => undefined);
+  pageLoadReload ??= reloadTools(false).catch(() => undefined);
   return pageLoadReload;
 }
