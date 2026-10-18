@@ -3,6 +3,7 @@
 All calculations delegate to the existing pure backend. The fixture explicitly
 binds complete selections, matching rules, reference books and quote identities.
 """
+from corner.additional_markets import LINE_MARKETS, SPREAD_MARKETS, TOTAL_MARKETS, coordinate
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -56,12 +57,17 @@ def _verify_selections(contract, game):
     """Fixture declarations are explicit, but still must be internally coherent."""
     selections, key = contract['selections'], contract['market_key']
     sides = [s['side'] for s in selections]
-    if key in {'h2h', 'outrights'}:
+    if key in {'h2h', 'outrights', 'draw_no_bet', 'btts'}:
         if any(s['point'] is not None for s in selections):
             raise ValueError('winner markets cannot contain lines')
-        if key == 'h2h':
+        if key == 'btts':
+            if set(sides) != {'yes','no'} or len(sides) != 2:
+                raise ValueError('BTTS requires yes and no')
+        elif key in {'h2h', 'draw_no_bet'}:
             if set(sides) not in ({'home', 'away'}, {'home', 'away', 'draw'}) or len(sides) != len(set(sides)):
                 raise ValueError('invalid h2h selection structure')
+            if key == 'draw_no_bet' and (set(sides) != {'home','away'} or not contract.get('refund_possible')):
+                raise ValueError('Draw No Bet requires a draw refund branch')
             if {s['name'] for s in selections if s['side'] != 'draw'} != set(game['participants']):
                 raise ValueError('h2h participants mismatch')
         elif any(side != 'entrant' for side in sides) or sorted(s['name'] for s in selections) != sorted(game['participants']):
@@ -71,13 +77,15 @@ def _verify_selections(contract, game):
         points = [D(s['point']) for s in selections]
         if len(points) != 2 or any(not p.is_finite() or (Fraction(p) * 2).denominator != 1 for p in points):
             raise ValueError('exact integer/half-line fixture contract required')
-        if key == 'spreads':
+        if key in SPREAD_MARKETS:
             if set(sides) != {'home', 'away'} or sum(map(Fraction, points)) != 0:
                 raise ValueError('spread selections must be exact opposite lines')
             if {s['name'] for s in selections} != set(game['participants']):
                 raise ValueError('spread participants mismatch')
         elif set(sides) != {'over', 'under'} or points[0] != points[1] or points[0] < 0:
             raise ValueError('total selections must share one nonnegative line')
+    if key == 'team_totals' and contract.get('subject') not in game['participants']:
+        raise ValueError('team total participant mismatch')
     if game['scope'] != ('competition' if key == 'outrights' else 'full_game'):
         raise ValueError('fixture market/game scope mismatch')
 
@@ -101,6 +109,7 @@ _MIDDLES_MAX = 4096
 # Whether two lines leave a window where both bets win depends only on their sides and lines, never on odds,
 # stakes or books. It is answered by the real calculate_middle on a probe pair and remembered per line pair.
 _WINDOWS = {}
+_WINDOWS_MAX = 8192
 # find_middles refuses a game above these sizes; the pre-filter must not hide that refusal.
 _MIDDLE_MAX_BETS = 2000
 _MIDDLE_MAX_PAIRS = find_middles.__kwdefaults__['maximum_pair_checks']
@@ -114,6 +123,8 @@ def _has_window(first, second, refund_possible):
             return LineBet(f'probe:{name}', f'probe-book-{name}', 'probe', bet.market_key, bet.side, bet.line, D(2), D(100), D(0))
         found = bool(calculate_middle(contract_id='probe', first=probe(first, 'a'), second=probe(second, 'b'),
                                       refund_possible=refund_possible).double_win_ranges)
+        if len(_WINDOWS) >= _WINDOWS_MAX:
+            _WINDOWS.pop(next(iter(_WINDOWS)))
         _WINDOWS[key] = found
     return found
 
@@ -195,7 +206,7 @@ class FixtureCatalog:
             refund = contract.get('refund_possible', raw['refund_possible'])
             market = MatchedMarket(contract_id, key, tuple(s['id'] for s in selections), refund)
             _verify_selections(contract, game_meta[game_id])
-            if key in {'spreads', 'totals'} and any(D(s['point']) == D(s['point']).to_integral_value() for s in selections) and not market.refund_possible:
+            if key in LINE_MARKETS and any(D(s['point']) == D(s['point']).to_integral_value() for s in selections) and not market.refund_possible:
                 raise ValueError('integer lines require explicit push/refund branch')
             self.contracts[contract_id] = market
             self.game_for_contract[contract_id] = game_id
@@ -223,9 +234,11 @@ class FixtureCatalog:
                             links=book_links[position] if book_links and direction == key else None,
                             source_ids=(contract.get('source_ids', {}).get(book_id) or [None] * len(selections))[position] if direction == key else None,
                             evidence_kind='retained_provider_quote' if self.data_mode == 'database' else 'synthetic_fixture')
-                        if key in {'spreads', 'totals'} and fee_known:
-                            shared = f'{game_id}:{key}:{raw["settlement_identity"]}'
-                            line_bets.append(LineBet(quote_id, book_id, shared, key, selection['side'], D(selection['point']),
+                        if key in LINE_MARKETS and fee_known:
+                            family = coordinate(key)
+                            subject = contract.get('subject', '')
+                            shared = f'{game_id}:{family}:{subject}:{raw["settlement_identity"]}'
+                            line_bets.append(LineBet(quote_id, book_id, shared, family, selection['side'], D(selection['point']),
                                                      D(price), D(100), D(book_map[book_id].commission)))
             back = [o for o in current if o.market_key == key]
             refs = [o for o in back if o.sportsbook_id in references]
@@ -263,7 +276,7 @@ class FixtureCatalog:
                                 hedge.conservative_capital_required, minimum=hedge.minimum_modeled_profit), calculation=hedge))
         by_game = {}
         for bet in line_bets:
-            by_game.setdefault(bet.contract_id.split(':', 1)[0], []).append(bet)
+            by_game.setdefault(bet.contract_id, []).append(bet)
         middles = []
         for game_bets in by_game.values():
             try:

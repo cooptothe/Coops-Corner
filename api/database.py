@@ -26,7 +26,8 @@ DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betope
 # Empty = every book present in the data is a bettable target; the user filters in the UI.
 DEFAULT_TARGETS = ()
 FALLBACK_TARGET = 'draftkings'
-MARKET_KEYS = {'moneyline': 'h2h', 'spread': 'spreads', 'total': 'totals'}
+from corner.additional_markets import MARKET_TYPES as ADDITIONAL_TYPES, LINE_MARKETS, SPREAD_MARKETS, TOTAL_MARKETS
+MARKET_KEYS = {'moneyline': 'h2h', 'spread': 'spreads', 'total': 'totals', **{v:k for k,v in ADDITIONAL_TYPES.items()}}
 # Competition code -> Odds API sport key, so game filters use the same keys as the refresh picker.
 from corner.ingestion import SPORT_KEY_MAPPINGS  # noqa: E402
 SPORT_KEYS = {value[2]: key for key, value in SPORT_KEY_MAPPINGS.items()}
@@ -92,10 +93,11 @@ def keep_latest_capture(rows):
     newest = {}
     for r in rows:
         key = (r['observed_at'], str(r.get('provider_payload_id', '')))
-        event = str(r['event_id'])
-        if event not in newest or key > newest[event]:
-            newest[event] = key
-    return [r for r in rows if str(r.get('provider_payload_id', '')) == newest[str(r['event_id'])][1]]
+        # Event endpoint additions are captured separately from featured markets.
+        scope = (str(r['event_id']), r['market_code'] in ADDITIONAL_TYPES.values())
+        if scope not in newest or key > newest[scope]:
+            newest[scope] = key
+    return [r for r in rows if str(r.get('provider_payload_id', '')) == newest[(str(r['event_id']), r['market_code'] in ADDITIONAL_TYPES.values())][1]]
 
 
 def _num(value):
@@ -122,11 +124,15 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
             continue
         key = MARKET_KEYS[r['market_code']]
         side, point = r['side'], r['point']
-        if key == 'h2h':
-            if side not in {'home', 'away', 'draw'} or point is not None:
+        subject = r.get('selection_name') if key == 'team_totals' else ''
+        if key == 'team_totals' and subject not in people[event].values():
+            continue
+        if key in {'h2h', 'draw_no_bet', 'btts'}:
+            allowed_sides = {'yes','no'} if key == 'btts' else {'home','away'} if key == 'draw_no_bet' else {'home','away','draw'}
+            if side not in allowed_sides or point is not None:
                 continue
             line = ''
-        elif key == 'spreads':
+        elif key in SPREAD_MARKETS:
             if side not in {'home', 'away'} or point is None:
                 continue
             line = _num(point if side == 'home' else -point)
@@ -136,24 +142,29 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
             line = _num(point)
         games.setdefault(event, r)
         books[r['book_code']] = r['book_name']
-        cell = grouped.setdefault((event, key, line), {}).setdefault(r['book_code'], {})
+        cell = grouped.setdefault((event, key, line, subject), {}).setdefault(r['book_code'], {})
         cell[side] = r
     contracts, used_games, observed = [], set(), []
-    for (event, key, line), by_book in sorted(grouped.items()):
+    for (event, key, line, subject), by_book in sorted(grouped.items()):
         home, away = people[event]['home'], people[event]['away']
         # Three-way only when every contributing book prices the draw; otherwise a 2-way book would not be comparable.
         sides = ('home', 'away', 'draw') if key == 'h2h' and any('draw' in c for c in by_book.values()) else \
-            ('home', 'away') if key != 'totals' else ('over', 'under')
+            ('yes','no') if key == 'btts' else ('over','under') if key in TOTAL_MARKETS else ('home','away')
         complete = {b: c for b, c in by_book.items() if set(c) == set(sides)}
         if not complete:
             continue
-        names = {'home': home, 'away': away, 'draw': 'Draw', 'over': 'Over', 'under': 'Under'}
-        points = {'home': line, 'away': _num(-Decimal(line)) if key == 'spreads' else line, 'over': line, 'under': line,
+        names = {'home': home, 'away': away, 'draw': 'Draw', 'over': 'Over', 'under': 'Under', 'yes':'Yes', 'no':'No'}
+        if key == 'team_totals':
+            names.update(over=f'{subject} Over', under=f'{subject} Under')
+        points = {'home': line, 'away': _num(-Decimal(line)) if key in SPREAD_MARKETS else line, 'over': line, 'under': line,
                   'draw': None}
         contract_id = f'{event}:{key}:{line}' if line else f'{event}:{key}'
+        if subject:
+            from hashlib import sha256
+            contract_id += ':' + sha256(subject.encode()).hexdigest()[:16]
         contract = dict(id=contract_id, game_id=event, market_key=key,
-                        refund_possible=key in ('spreads', 'totals') and Decimal(line) == Decimal(line).to_integral_value(),
-                        selections=[dict(id=s, name=names[s], side=s, point=None if key == 'h2h' else points[s]) for s in sides],
+                        subject=subject, refund_possible=key == 'draw_no_bet' or key in LINE_MARKETS and Decimal(line) == Decimal(line).to_integral_value(),
+                        selections=[dict(id=s, name=names[s], side=s, point=points[s] if key in LINE_MARKETS else None) for s in sides],
                         prices={b: [format(Decimal(c[s]['decimal_odds']), 'f') for s in sides] for b, c in sorted(complete.items())},
                         lay_prices={},
                         # One entry per selection, in the same order as the prices; None where a book gave no usable link.

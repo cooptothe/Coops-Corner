@@ -11,6 +11,9 @@ import json
 
 FORMAT = "corner.featured_quotes/1"
 FEATURED_MARKETS = ("h2h", "spreads", "totals", "outrights", "h2h_lay", "outrights_lay")
+from corner.additional_markets import ADDITIONAL_MARKETS, LINE_MARKETS, SPREAD_MARKETS, TOTAL_MARKETS
+SUPPORTED_MARKETS = FEATURED_MARKETS + ADDITIONAL_MARKETS
+
 LAY_PARENTS = {"h2h_lay": "h2h", "outrights_lay": "outrights"}
 
 
@@ -107,6 +110,7 @@ class FeaturedQuote:
     bookmaker_link: str | None
     market_link: str | None
     outcome_link: str | None
+    subject_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -179,7 +183,7 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
                 _object(market, "market")
                 key = _text(market.get("key"), "market key")
                 pointer = f"{prefix}/bookmakers/{book_index}/markets/{market_index}"
-                if key not in FEATURED_MARKETS:
+                if key not in SUPPORTED_MARKETS:
                     excluded.append(ExcludedMarket(pointer, key))
                     continue
                 family = LAY_PARENTS.get(key, key)
@@ -196,20 +200,25 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
                     name = _text(outcome.get("name"), "selection name")
                     if is_outright:
                         side = "entrant"
-                    elif family == "totals" and name.casefold() in {"over", "under"}:
+                    elif family in TOTAL_MARKETS and name.casefold() in {"over", "under"}:
                         side = name.casefold()
-                    elif family in {"h2h", "spreads"} and name in (home, away):
+                    elif family in ({"h2h", "draw_no_bet"} | SPREAD_MARKETS) and name in (home, away):
                         side = "home" if name == home else "away"
                     elif family == "h2h" and name.casefold() == "draw":
                         side = "draw"
+                    elif family == "btts" and name.casefold() in {"yes", "no"}:
+                        side = name.casefold()
                     else:
                         raise FeaturedMarketError("selection does not match featured market")
                     point = outcome.get("point")
-                    if family in {"spreads", "totals"}:
+                    if family in LINE_MARKETS:
                         point = _number(point, "line point")
                     elif point is not None:
                         raise FeaturedMarketError("moneyline/outright cannot carry line points")
-                    identity = (key, name, point)
+                    subject = outcome.get("description") if key == "team_totals" else None
+                    if key == "team_totals" and subject not in (home, away):
+                        raise FeaturedMarketError("team total must identify an exact event participant")
+                    identity = (key, name, point, subject)
                     if identity in seen:
                         raise FeaturedMarketError("duplicate featured quote identity")
                     seen.add(identity)
@@ -232,7 +241,7 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
                         outcome_sid=_optional_text(outcome.get("sid"), "outcome sid"),
                         bookmaker_link=_optional_text(book.get("link"), "bookmaker link"),
                         market_link=_optional_text(market.get("link"), "market link"),
-                        outcome_link=_optional_text(outcome.get("link"), "outcome link")))
+                        outcome_link=_optional_text(outcome.get("link"), "outcome link"), subject_name=subject))
     return FeaturedSnapshot(digest, received_at, tuple(quotes), tuple(excluded))
 
 

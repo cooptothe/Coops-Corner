@@ -30,13 +30,13 @@ class MainPublisher:
         info=dict(record['job'])
         info['books']=tuple(info['books']);info['markets']=tuple(info['markets'])
         job=Job(**info);job.validate()
-        if job.kind!='main':raise ValueError('Main publisher cannot publish props')
+        if job.kind not in ('main','additional'):raise ValueError('Main publisher cannot publish props')
         raw=json.dumps(record['events'],separators=(',',':')).encode()
         folder=self.root/token
         manifest={'format':'corner.board_capture/1','sport':job.sport,'http_status':200,
                   'received_at':record['captured_at'],'requested_at':record['captured_at'],
                   'sha256':hashlib.sha256(raw).hexdigest(),
-                  'endpoint':f'https://api.the-odds-api.com/v4/sports/{job.sport}/odds',
+                  'endpoint':f'https://api.the-odds-api.com/v4/sports/{job.sport}/' + (f'events/{job.event_id}/odds' if job.kind == 'additional' else 'odds'),
                   'parameters':{'bookmakers':','.join(job.books),'markets':','.join(job.markets)},
                   'scheduled_reservation':token,'production_authorized':False}
         self.root.mkdir(parents=True,exist_ok=True,mode=0o700)

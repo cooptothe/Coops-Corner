@@ -85,16 +85,16 @@ def _validate_registry(cur, provider_id, quote, binding, cache=None):
                          AND external_id=%s AND active''', (provider_id, canonical, external))
         require(found is not None, "missing or incompatible active provider identity")
     participant = row['selected_participant_id']
-    if quote.selection_side in {'home', 'away', 'entrant'}:
+    if quote.selection_side in {'home', 'away', 'entrant'} or quote.subject_name is not None:
         require(participant is not None, "selected participant required")
         found = _lookup(cur, cache, True, '''SELECT DISTINCT participant_id FROM corner.provider_participant_aliases
                        WHERE provider_id=%s AND competition_id=%s AND raw_name=%s''',
-                        (provider_id, row['competition_id'], quote.selection_name))
+                        (provider_id, row['competition_id'], quote.subject_name or quote.selection_name))
         aliases = {str(alias['participant_id']) if alias['participant_id'] is not None else None for alias in found}
         require(aliases == {str(participant)}, "unresolved or ambiguous participant alias")
         membership = _lookup(cur, cache, False, '''SELECT role FROM corner.event_participants WHERE event_id=%s AND participant_id=%s''',
                              (row['event_id'], participant))
-        require(membership is not None and membership['role'] == ('competitor' if quote.selection_side == 'entrant' else quote.selection_side),
+        require(membership is not None and (membership['role'] in {'home','away'} if quote.subject_name else membership['role'] == ('competitor' if quote.selection_side == 'entrant' else quote.selection_side)),
                 "participant does not belong to the expected event role")
     else:
         require(participant is None, "draw/total must not select a participant")

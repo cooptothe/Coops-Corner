@@ -22,9 +22,10 @@ def main_scopes(rows,path,now):
     if not path.exists():return []
     db=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=3)
     try:
-        scopes={(r[0],r[1],r[2]):r[3] for r in db.execute("SELECT event_id,book,market,captured_at FROM snapshots WHERE kind='main' AND expires_at>? AND starts_at>?",(stamp,stamp))}
+        scopes={(r[0],r[1],r[2]):r[3] for r in db.execute("SELECT event_id,book,market,captured_at FROM snapshots WHERE kind IN ('main','additional') AND expires_at>? AND starts_at>?",(stamp,stamp))}
     finally:db.close()
-    market_keys={'moneyline':'h2h','spread':'spreads','total':'totals'}
+    from corner.additional_markets import MARKET_TYPES
+    market_keys={'moneyline':'h2h','spread':'spreads','total':'totals', **{v:k for k,v in MARKET_TYPES.items()}}
     kept=[]
     for row in rows:
         expected=scopes.get((row.get('source_event_id'),row['book_code'],market_keys.get(row['market_code'])))

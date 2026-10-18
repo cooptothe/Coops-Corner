@@ -17,7 +17,7 @@ from starlette.staticfiles import StaticFiles
 from api.catalog import FixtureCatalog, APIProblem, paginate
 from api.models import (Envelope, Page, Game, Quote, ToolRow, ToolKind, GameQuery, QuoteQuery, BulkQuoteQuery, ToolQuery,
                         PromoRequest, PromoResponse, ErrorEnvelope, ErrorDetail, Capabilities, Health)
-from corner.featured_markets import FEATURED_MARKETS
+from corner.featured_markets import SUPPORTED_MARKETS
 from corner.featured_tools import ToolInputError
 
 LOCAL_HOSTS = {'localhost', '127.0.0.1', '::1'}
@@ -201,7 +201,7 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
 
     @api.get('/api/v1/capabilities', response_model=Envelope[Capabilities], tags=['system'])
     def capabilities():
-        return result(Capabilities(market_keys=list(FEATURED_MARKETS), tools=['positive_ev', 'arbitrage', 'low_hold', 'middle'],
+        return result(Capabilities(market_keys=list(SUPPORTED_MARKETS), tools=['positive_ev', 'arbitrage', 'low_hold', 'middle'],
                       books=list(catalog.books), sports=sorted({g.sport_key for g in catalog.games}),
                       calculator_defaults={'ev_stake': '100', 'back_cover_total_stake': '200', 'back_lay_back_stake': '100',
                                            'middle_leg_stake': '100', 'stake_increment': '0.01'},

@@ -18,9 +18,10 @@ from pipelines.collection_worker import fixture_transport
 
 class Runner:
     def __init__(self, governor, discover, transport, *, clock=None, publisher=None,
-                 owner=None, max_jobs=4, should_stop=None):
+                 owner=None, max_jobs=4, should_stop=None, additional=False):
         if not 1 <= max_jobs <= 20:
             raise ValueError('max_jobs must be between 1 and 20')
+        self.additional = additional
         self.g = governor
         self.discover = discover
         self.transport = transport
@@ -86,7 +87,7 @@ class Runner:
                 current = self.now()
                 if not 0 <= (current - captured).total_seconds() <= 60:
                     raise ValueError('Stale inventory')
-                plan(current, inventory['active_sport_keys'], inventory['events'])
+                plan(current, inventory['active_sport_keys'], inventory['events'], additional=self.additional)
                 with self.g.transaction() as db:
                     self.g._fence(db, self.owner, current.timestamp())
                     db.execute('UPDATE runner_inventory SET payload=?,captured=?,failures=0,retry_at=0 WHERE id=1',
@@ -103,7 +104,7 @@ class Runner:
         if self.now().timestamp() - row['captured'] > 600:
             return {'state': 'inventory_expired', 'executed': 0}
         inventory = json.loads(row['payload'])
-        jobs = sorted(plan(self.now(), inventory['active_sport_keys'], inventory['events']), key=lambda j: j.key)
+        jobs = sorted(plan(self.now(), inventory['active_sport_keys'], inventory['events'], additional=self.additional), key=lambda j: j.key)
         # Persist a round-robin cursor so a restart cannot starve later events.
         jobs = [j for j in jobs if j.key > row['cursor']] + [j for j in jobs if j.key <= row['cursor']]
         executed = 0

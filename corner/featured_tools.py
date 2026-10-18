@@ -9,7 +9,8 @@ from decimal import Context, Decimal, ROUND_HALF_EVEN, localcontext
 from fractions import Fraction
 
 VERSION = "corner.featured_tools/1"
-BACK_MARKETS = {"h2h", "spreads", "totals", "outrights"}
+from corner.additional_markets import ADDITIONAL_MARKETS, LINE_MARKETS
+BACK_MARKETS = {"h2h", "spreads", "totals", "outrights", *ADDITIONAL_MARKETS}
 LAY_MARKETS = {"h2h_lay": "h2h", "outrights_lay": "outrights"}
 ZERO = Decimal("0")
 ONE = Decimal("1")
@@ -74,9 +75,13 @@ class MatchedMarket:
         for selection in self.selection_ids:
             _id(selection)
         _require(len(set(self.selection_ids)) == len(self.selection_ids), "duplicate contract selection")
-        if self.market_key in {"spreads", "totals"}:
+        if self.market_key in LINE_MARKETS:
             _require(len(self.selection_ids) == 2, "spread/total requires two decisive selections")
         _require(type(self.refund_possible) is bool, "explicit refund branch required")
+        if self.market_key in ADDITIONAL_MARKETS:
+            _require(len(self.selection_ids) == 2, "additional markets require two decisive selections")
+        if self.market_key == "draw_no_bet":
+            _require(self.refund_possible, "Draw No Bet requires draw refund branch")
 
 
 @dataclass(frozen=True)

@@ -5,6 +5,7 @@ from hashlib import sha256
 import pytz
 
 from corner.prop_markets import FAMILIES, family
+from corner.additional_markets import ADDITIONAL_MARKETS
 
 CENTRAL = pytz.timezone('America/Chicago')
 STANDARD = ('draftkings','fanduel','espnbet','betmgm','betrivers','pinnacle')
@@ -41,7 +42,7 @@ def supported(sport):
 
 def interval(kind, group, now, starts=None):
     floor = 20 if group == 'exchange' else 60
-    if kind == 'main':
+    if kind in ('main','additional'):
         return floor
     remaining = (aware(starts)-aware(now)).total_seconds()
     if remaining <= 0:
@@ -71,23 +72,27 @@ class Job:
         return sha256(f'{self.kind}:{self.sport}:{self.event_id}:{self.group}'.encode()).hexdigest()
 
     @property
+    def pool(self):
+        return 'main' if self.kind == 'additional' else self.kind
+
+    @property
     def cost(self):
         return len(self.markets) * ((len(self.books)+9)//10)
 
     def validate(self):
-        if self.kind not in ('main','props') or not supported(self.sport):
+        if self.kind not in ('main','props','additional') or not supported(self.sport):
             raise ValueError('Unsupported job scope')
         allowed = EXCHANGE if self.group == 'exchange' else PROP_STANDARD if self.kind == 'props' else STANDARD
         if self.group not in ('standard','exchange') or self.books != allowed:
             raise ValueError('Book groups must match the reviewed catalog')
-        keys = tuple(m.key for m in FAMILIES.get(family(self.sport), ())) if self.kind == 'props' else ('h2h','spreads','totals')
+        keys = tuple(m.key for m in FAMILIES.get(family(self.sport), ())) if self.kind == 'props' else ADDITIONAL_MARKETS if self.kind == 'additional' else ('h2h','spreads','totals')
         if not keys or self.markets != keys:
             raise ValueError('Job must request every configured market for its scope')
-        if self.kind == 'props' and (not self.event_id or not self.starts_at):
+        if self.kind in ('props','additional') and (not self.event_id or not self.starts_at):
             raise ValueError('Props require event identity and start')
 
 
-def plan(now, active_keys, events):
+def plan(now, active_keys, events, *, additional=False):
     """active_keys must contain expanded tournament keys, not ATP/WTA picker aliases.
 
     No arbitrary event cap. Live discovery remains a separate adapter gate.
@@ -105,12 +110,17 @@ def plan(now, active_keys, events):
     seen=set()
     for event in sorted(events,key=lambda e:(e['commence_time'],e['id'])):
         sport=event['sport_key'];start=parse(event['commence_time'])
-        if sport not in active or not family(sport) or not now < start <= now+timedelta(hours=24):
+        if sport not in active or not now < start <= now+timedelta(hours=24):
             continue
         identity=(sport,event['id'])
         if identity in seen:
             continue
         seen.add(identity)
+        if additional and start <= now + timedelta(minutes=30):
+            for group,books in (('standard',STANDARD),('exchange',EXCHANGE)):
+                jobs.append(Job('additional',sport,group,books,ADDITIONAL_MARKETS,event['id'],event['commence_time']))
+        if not family(sport):
+            continue
         keys=tuple(m.key for m in FAMILIES[family(sport)])
         for group,books in (('standard',PROP_STANDARD),('exchange',EXCHANGE)):
             jobs.append(Job('props',sport,group,books,keys,event['id'],event['commence_time']))

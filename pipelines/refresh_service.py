@@ -1,7 +1,7 @@
 """Loopback-only, user-triggered pre-game odds refresh (python -m pipelines.refresh_service).
 
-One POST captures and ingests h2h/spreads/totals for each configured league (3 credits per
-in-season league, ceiling 39). Nothing runs on a timer. Guards: single flight, cooldown, daily cap, and the
+One POST captures featured markets plus five event markets for at most three upcoming games
+per active sport key (36-credit ceiling per key; tennis may expand to multiple keys). Nothing runs on a timer. Guards: single flight, cooldown, daily cap, and the
 capture's own credit floor. Guard state persists in retained/refresh_state.json.
 """
 import argparse
@@ -96,7 +96,8 @@ def status_view(state=None, now=None):
             'last_error': state.get('last_error'), 'last_results': state.get('last_results'),
             'sports': [{'key': k, 'label': LABELS[k]} for k in SPORTS], 'quota': state.get('quota'),
             'cooldown_seconds': COOLDOWN, 'retry_after_seconds': wait,
-            'attempts_today': attempts, 'daily_cap': DAILY_CAP, 'credits_per_refresh': CREDITS_PER_REFRESH,
+            'attempts_today': attempts, 'daily_cap': DAILY_CAP, 'credits_per_refresh': CREDITS_PER_REFRESH, 'credits_per_sport': CREDITS_PER_SPORT,
+            'additional_max_events_per_league': board.LOCAL_ADDITIONAL_MAX_EVENTS,
             'can_refresh': not beta_access.enabled() and wait == 0 and attempts < DAILY_CAP,
             'manual_fetch_enabled': not beta_access.enabled()}
 

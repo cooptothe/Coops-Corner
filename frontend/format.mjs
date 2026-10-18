@@ -1,5 +1,5 @@
 // Exact base-10 display operations. Never round-trip analytical values through Number.
-export const MARKETS = {h2h:'Moneyline',spreads:'Spreads',totals:'Totals',outrights:'Outrights',h2h_lay:'Moneyline · Lay',outrights_lay:'Outrights · Lay'};
+export const MARKETS = {alternate_spreads:'Alternate spreads',alternate_totals:'Alternate totals',btts:'Both teams to score',draw_no_bet:'Draw no bet',team_totals:'Team totals',h2h:'Moneyline',spreads:'Spreads',totals:'Totals',outrights:'Outrights',h2h_lay:'Moneyline · Lay',outrights_lay:'Outrights · Lay'};
 export const TITLES = {positive_ev:'Positive EV',arbitrage:'Arbitrage',middle:'Middles',props:'Player props',games:'Schedule',promo:'Promo converter'};
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -61,7 +61,7 @@ export const tone = value => value != null && String(value).startsWith('-') && p
 export function point(value) { return value == null ? '' : (parts(value).negative ? '' : '+') + shiftDecimal(value,0); }
 export function selection(quote) {
   if (!quote) return 'Selection unavailable';
-  return quote.selection_name + (quote.point == null ? '' : ` ${quote.market_key === 'spreads' ? point(quote.point) : shiftDecimal(quote.point,0)}`) + (quote.market_key.endsWith('_lay') ? ' · Lay' : '');
+  return quote.selection_name + (quote.point == null ? '' : ` ${['spreads','alternate_spreads'].includes(quote.market_key) ? point(quote.point) : shiftDecimal(quote.point,0)}`) + (quote.market_key.endsWith('_lay') ? ' · Lay' : '');
 }
 export function date(value) { return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZone:'America/Chicago',timeZoneName:'short'}).format(new Date(value)); }
 export function sport(value) { return ({basketball_nba:'Basketball · NBA',soccer_demo:'Soccer',golf_demo_winner:'Golf · Outrights'})[value] || value; }

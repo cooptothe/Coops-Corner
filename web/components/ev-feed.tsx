@@ -71,6 +71,7 @@ interface Vm {
   bookId: string;
   bookLabel: string;
   lay: boolean;
+  excludesDraw?: boolean;
   marketWidth: number | null;
   ev: string;
   decimalOdds: string;
@@ -99,6 +100,7 @@ export interface KellyVm {
   odds: string;
   decimalOdds: string;
   lay: boolean;
+  excludesDraw?: boolean;
   // What the tracker records about the bet; absent for views that only size a stake.
   strategy?: Strategy;
   startsAt?: string;
@@ -204,6 +206,7 @@ function toVm(
     bookId: q.sportsbook_id,
     bookLabel: shortBook(books.get(q.sportsbook_id) ?? q.sportsbook_id),
     lay: q.market_key.endsWith("_lay"),
+    excludesDraw: q.market_key === "draw_no_bet",
     marketWidth: widestMarket(
       row.calculation.reference_books.map((b) =>
         b.quote_ids.map((id) => quotes.get(id)?.decimal_odds ?? ""),
@@ -350,6 +353,9 @@ const Row = memo(
         </div>
         <div role="cell" className="ev-cell ev-sharp">
           <strong>{chance(vm.prob)} chance</strong>
+          {vm.excludesDraw && (
+            <small>Excluding draws; draw refunds stake</small>
+          )}
           <small>Fair {vm.fairOdds ?? "—"}</small>
           <small>{vm.sharps}</small>
         </div>

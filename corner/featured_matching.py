@@ -7,11 +7,13 @@ from dataclasses import dataclass
 from decimal import Decimal
 from uuid import UUID
 
-from corner.featured_markets import FEATURED_MARKETS, FeaturedSnapshot
+from corner.featured_markets import SUPPORTED_MARKETS, FeaturedSnapshot
+from corner.additional_markets import LINE_MARKETS, MARKET_TYPES as ADDITIONAL_TYPES
 
 MARKET_TYPES = {"h2h": "moneyline", "spreads": "spread", "totals": "total",
                 "outrights": "outright", "h2h_lay": "moneyline_lay", "outrights_lay": "outright_lay"}
 
+MARKET_TYPES.update(ADDITIONAL_TYPES)
 
 class BindingError(ValueError):
     pass
@@ -35,6 +37,7 @@ class SelectionRoute:
     provider_name: str
     point: Decimal | None
     outcome_id: str
+    subject_name: str | None = None
 
     def __post_init__(self):
         require(isinstance(self.provider_name, str) and bool(self.provider_name.strip()), "selection name required")
@@ -54,13 +57,13 @@ class MarketRoute:
         for value in (self.provider_event_id, self.provider_sport_key):
             require(isinstance(value, str) and bool(value.strip()), "provider event/sport identity required")
         identity(self.market_id)
-        require(self.market_key in FEATURED_MARKETS, "featured market required")
+        require(self.market_key in SUPPORTED_MARKETS, "featured market required")
         require(type(self.selections) is tuple and bool(self.selections)
                 and all(type(s) is SelectionRoute for s in self.selections), "explicit selection routes required")
-        require(len({(s.provider_name, s.point) for s in self.selections}) == len(self.selections), "ambiguous selection route")
+        require(len({(s.provider_name, s.point, s.subject_name) for s in self.selections}) == len(self.selections), "ambiguous selection route")
         require(len({s.outcome_id for s in self.selections}) == len(self.selections), "multiple selections cannot share an outcome")
         for selection in self.selections:
-            require((selection.point is not None) == (self.market_key in {"spreads", "totals"}), "market/point mismatch")
+            require((selection.point is not None) == (self.market_key in LINE_MARKETS), "market/point mismatch")
 
 
 @dataclass(frozen=True)
@@ -102,7 +105,7 @@ def bind_snapshot(snapshot: FeaturedSnapshot, *, markets, books):
         book = book_routes.get(quote.bookmaker_key)
         require(book is not None, "unmapped sportsbook")
         selection = next((s for s in route.selections
-                          if (s.provider_name, s.point) == (quote.selection_name, quote.point)), None)
+                          if (s.provider_name, s.point, s.subject_name) == (quote.selection_name, quote.point, quote.subject_name)), None)
         require(selection is not None, "unmapped selection or exact line")
         result.append(QuoteBinding(quote.source_pointer, route.market_id, selection.outcome_id, book))
     require(len({b.source_pointer for b in result}) == len(result), "duplicate source binding")

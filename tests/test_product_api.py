@@ -75,7 +75,7 @@ class ProductAPITests(unittest.TestCase):
 
     def test_exact_market_allowlist_and_no_insiders(self):
         caps = self.get('capabilities')['data']
-        self.assertEqual(['h2h', 'spreads', 'totals', 'outrights', 'h2h_lay', 'outrights_lay'], caps['market_keys'])
+        self.assertEqual(['h2h', 'spreads', 'totals', 'outrights', 'h2h_lay', 'outrights_lay', 'alternate_spreads', 'alternate_totals', 'btts', 'draw_no_bet', 'team_totals'], caps['market_keys'])
         self.assertIn('insiders', caps['unsupported'])
         self.assertNotIn('insiders', caps['tools'])
 

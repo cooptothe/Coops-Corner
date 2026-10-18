@@ -11,7 +11,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 
-from corner.collection_policy import POOLS, TOTAL, PROTECTED, aware, interval, open_now, parse
+from corner.collection_policy import CENTRAL, POOLS, TOTAL, PROTECTED, aware, interval, open_now, parse
 
 
 class Refused(ValueError):
@@ -57,6 +57,8 @@ class Governor:
         CREATE TABLE IF NOT EXISTS publication_outbox (
           token TEXT PRIMARY KEY REFERENCES attempts(token), payload TEXT NOT NULL,
           published_at REAL);
+        CREATE TABLE IF NOT EXISTS additional_events(day TEXT NOT NULL, sport TEXT NOT NULL, event_id TEXT NOT NULL, PRIMARY KEY(day,sport,event_id));
+        CREATE TABLE IF NOT EXISTS additional_attempts(token TEXT PRIMARY KEY REFERENCES attempts(token), day TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS collection_live_snapshots
           ON snapshots(kind,expires_at,starts_at);
         ''')
@@ -127,12 +129,25 @@ class Governor:
                 raise Refused('Job already reserved, blocked or not due')
             # Coarse due bands must accelerate on entering a nearer-start band.
             # ready() adjusts due times using the last dispatch, never replaying missed ticks.
+            day = now.astimezone(CENTRAL).date().isoformat()
+            if job.kind == 'additional':
+                if parse(job.starts_at) > now + timedelta(minutes=30):
+                    raise Refused('Additional markets only in final 30 pregame minutes')
+                known = db.execute('SELECT 1 FROM additional_events WHERE day=? AND sport=? AND event_id=?',(day,job.sport,job.event_id)).fetchone()
+                if not known and db.execute('SELECT count(*) FROM additional_events WHERE day=?',(day,)).fetchone()[0] >= 50:
+                    raise Refused('Additional-market daily event cap')
+                used = db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0) FROM attempts a JOIN additional_attempts x ON x.token=a.token WHERE x.day=?',(day,)).fetchone()[0]
+                if used + job.cost > 30000:
+                    raise Refused('Additional-market daily credit cap')
             sums=self.accounted(db,cycle[0])
-            if sums.get(job.kind,0)+job.cost>POOLS[job.kind]: raise Refused('Pool limit')
+            if sums.get(job.pool,0)+job.cost>POOLS[job.pool]: raise Refused('Pool limit')
             if sum(sums.values())+job.cost>TOTAL-PROTECTED: raise Refused('Protected reserve')
             token=secrets.token_hex(24)
             db.execute("INSERT INTO jobs(key,next_due,state,last_started) VALUES(?,?,'inflight',?) ON CONFLICT(key) DO UPDATE SET next_due=excluded.next_due,state='inflight',last_started=excluded.last_started,last_error=''",(job.key,stamp+period,stamp))
-            db.execute("INSERT INTO attempts(token,job_key,cycle_id,pool,reserved,state,owner,started) VALUES(?,?,?,?,?,'inflight',?,?)",(token,job.key,cycle[0],job.kind,job.cost,owner,stamp))
+            db.execute("INSERT INTO attempts(token,job_key,cycle_id,pool,reserved,state,owner,started) VALUES(?,?,?,?,?,'inflight',?,?)",(token,job.key,cycle[0],job.pool,job.cost,owner,stamp))
+            if job.kind == 'additional':
+                db.execute('INSERT OR IGNORE INTO additional_events VALUES(?,?,?)',(day,job.sport,job.event_id))
+                db.execute('INSERT INTO additional_attempts VALUES(?,?)',(token,day))
             return token
 
     def ready(self,job,now):
@@ -177,7 +192,7 @@ class Governor:
                 db.execute("UPDATE jobs SET state='blocked',last_error=? WHERE key=?",(reason,job.key))
                 return 'paused'
             self._publish(db,job,payload,now)
-            if job.kind=='main':
+            if job.kind in ('main','additional'):
                 db.execute('INSERT INTO publication_outbox(token,payload) VALUES(?,?)',
                            (token,json.dumps({'job':asdict(job),'events':payload,'captured_at':now.isoformat(),
                                               'simulation':attempt['cycle_id'].startswith('simulation-') or 'simulation' in self.path.name.lower()},separators=(',',':'))))

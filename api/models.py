@@ -8,7 +8,7 @@ from corner.featured_tools import BackCover, BackLayHedge
 from corner.featured_middles import MiddleResult
 from corner.featured_promos import PromoConversion, PromoBackConversion
 
-MarketKey = Literal['h2h', 'spreads', 'totals', 'outrights', 'h2h_lay', 'outrights_lay']
+MarketKey = Literal['h2h', 'spreads', 'totals', 'outrights', 'h2h_lay', 'outrights_lay', 'alternate_spreads', 'alternate_totals', 'btts', 'draw_no_bet', 'team_totals']
 ToolKind = Literal['positive_ev', 'arbitrage', 'low_hold', 'middle']
 DecimalText = Annotated[str, Field(strict=True, max_length=80, pattern=r'^-?(0|[1-9][0-9]*)(\.[0-9]+)?$')]
 InputDecimal = Annotated[str, Field(strict=True, max_length=26, pattern=r'^(0|[1-9][0-9]{0,12})(\.[0-9]{1,12})?$')]

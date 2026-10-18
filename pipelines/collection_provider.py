@@ -99,7 +99,7 @@ class Provider:
         else:path=f'/{job.sport}/events/{job.event_id}/odds'
         status,data,headers=self._get(path,params)
         if status==200:
-            if job.kind=='props':
+            if job.kind in ('props','additional'):
                 if not isinstance(data,dict):raise RuntimeError('Invalid event odds envelope')
                 data=[data]
             if not isinstance(data,list):raise RuntimeError('Invalid odds envelope')

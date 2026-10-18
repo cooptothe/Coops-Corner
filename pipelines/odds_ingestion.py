@@ -1,4 +1,4 @@
-"""Odds API ingestion: Odds API -> retained payload -> normalization -> PostgreSQL, per league, <=6 credits each.
+"""Odds API ingestion: Odds API -> retained payload -> normalization -> PostgreSQL, per active sport key, <=36 credits per manual refresh.
 
 No automatic retries, recurring calls, lifecycle processing, or quote re-dating.
 Replay ingestion from the retained manifest spends zero provider credits.
@@ -16,6 +16,7 @@ import psycopg2
 import psycopg2.extras
 from config import DB_CONFIG, ODDS_API_KEY
 from corner.featured_markets import normalize_featured_payload
+from corner.additional_markets import ADDITIONAL_MARKETS
 from corner.featured_matching import BookRoute, MarketRoute, SelectionRoute, bind_snapshot, MARKET_TYPES
 from corner.featured_store import ingest_featured_payload
 from corner.links import link_rows
@@ -26,10 +27,11 @@ from corner.ingestion import (_seed_provider, _create_batch, _create_payload, _r
 ROOT=Path(__file__).resolve().parents[1]
 BASE='https://api.the-odds-api.com/v4/sports'
 SPORT='americanfootball_nfl'
-# Thirteen named books count as two regions (six credits for three main-line markets).
+# Twelve named books count as two regions (six credits for three main-line markets).
 # Main-line references include pinnacle, betfair_ex_uk, prophetx, kalshi, betopenly and polymarket.
 BOOKMAKER_REGIONS = 2
-CREDITS_PER_SPORT = 6
+LOCAL_ADDITIONAL_MAX_EVENTS = 3
+CREDITS_PER_SPORT = 6 + LOCAL_ADDITIONAL_MAX_EVENTS * 10
 PARAMS={'bookmakers':'draftkings,fanduel,espnbet,betmgm,novig,betrivers,pinnacle,betfair_ex_uk,prophetx,kalshi,betopenly,polymarket','markets':'h2h,spreads,totals',
         'oddsFormat':'decimal','dateFormat':'iso','includeLinks':'true','includeSids':'true'}
 SAFE_HEADERS={'date','content-type','x-requests-used','x-requests-remaining','x-requests-last'}
@@ -107,6 +109,8 @@ def capture(destination, extra_params=None, sport=SPORT):
               'sha256':hashlib.sha256(body).hexdigest(),'response_headers':headers,
               'catalog_quota':quota,'planned_credits':CREDITS_PER_SPORT,'automatic_retries':0,'production_authorized':False}
     (destination/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+    if status == 200:
+        capture_additional(destination, sport, json.loads(body), params, headers)
     print(json.dumps({'capture':str(destination),'http_status':status,'quota':headers}))
     if status!=200: raise ValueError('Provider error retained; no ingestion performed')
     if int(headers.get('x-requests-last','0'))>CREDITS_PER_SPORT: raise ValueError('Unexpected provider charge; no further calls permitted')
@@ -134,10 +138,10 @@ def _bind(conn,provider,snapshot,raw,sport):
             for q in (q for q in event_quotes if q.market_key==key):
                 if q.bookmaker_key not in books:
                     books[q.bookmaker_key]=str(_resolve_sportsbook(conn,provider,q.bookmaker_key,q.bookmaker_title))
-                paid=(q.selection_name,q.point)
+                paid=(q.selection_name,q.point,q.subject_name)
                 if paid not in selections:
-                    outcome=str(_resolve_outcome(conn,market_id,participants.get(q.selection_name),q.selection_side,q.point))
-                    selections[paid]=SelectionRoute(*paid,outcome)
+                    outcome=str(_resolve_outcome(conn,market_id,participants.get(q.subject_name or q.selection_name),q.selection_side,q.point))
+                    selections[paid]=SelectionRoute(paid[0],paid[1],outcome,paid[2])
             routes.append(MarketRoute(event['id'],sport,key,market_id,tuple(selections.values())))
     bindings=bind_snapshot(snapshot,markets=tuple(routes),books=tuple(BookRoute(k,v) for k,v in books.items()))
     return bindings,books
@@ -174,7 +178,7 @@ def refresh_links(directory):
     finally:
         conn.rollback();conn.close()
 
-def ingest(directory, *, connect=None):
+def _ingest_one(directory, *, connect=None):
     manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
     raw=(directory/'response.body').read_bytes()
     if manifest['http_status']!=200 or hashlib.sha256(raw).hexdigest()!=manifest['sha256']:
@@ -182,7 +186,7 @@ def ingest(directory, *, connect=None):
     sport=manifest.get('sport',SPORT)
     at=datetime.fromisoformat(manifest['received_at'])
     snapshot=normalize_featured_payload(raw,received_at=at)
-    if any(q.sport_key!=sport or q.market_key not in ('h2h','spreads','totals','h2h_lay') for q in snapshot.quotes):
+    if any(q.sport_key!=sport or q.market_key not in ('h2h','spreads','totals','h2h_lay', *ADDITIONAL_MARKETS) for q in snapshot.quotes):
         raise ValueError('Capture exceeds the explicit main-market scope')
     conn=connect() if connect is not None else psycopg2.connect(**DB_CONFIG)
     try:
@@ -206,6 +210,51 @@ def ingest(directory, *, connect=None):
         print(json.dumps({'payload_id':payload,'events':len(json.loads(raw)),'observations':len(receipt.observation_ids),'links':stored_links,'books':list(books),'production_authorized':False}))
     finally:
         conn.rollback();conn.close()
+
+
+def capture_additional(destination, sport, events, base_params, headers):
+    """Local manual fetch only: at most three upcoming events/league per click.
+
+    Event responses are retained separately; featured payload bytes never change.
+    No automatic retry. Scheduled acquisition uses durable governor reservations.
+    """
+    now=datetime.now(timezone.utc)
+    eligible=sorted((e for e in events if now < datetime.fromisoformat(e['commence_time'].replace('Z','+00:00'))), key=lambda e:(e['commence_time'],e['id']))[:LOCAL_ADDITIONAL_MAX_EVENTS]
+    params={**base_params,'markets':','.join(ADDITIONAL_MARKETS)}
+    params={k:v for k,v in params.items() if not k.startswith('commenceTime')}
+    with requests.Session() as session:
+        session.trust_env=False
+        for index,event in enumerate(eligible):
+            if int(headers.get('x-requests-remaining','0')) < 10:
+                raise ValueError('Insufficient credits for additional event markets')
+            status,raw,quota=fetch(session,BASE+'/'+sport+'/events/'+event['id']+'/odds',params)
+            at=datetime.now(timezone.utc).isoformat()
+            folder=destination/'additional'/str(index)
+            folder.mkdir(parents=True,exist_ok=False)
+            data=json.loads(raw) if status == 200 else None
+            if status == 200 and (not isinstance(data,dict) or data.get('id')!=event['id'] or data.get('sport_key')!=sport):
+                raise ValueError('Additional event response identity mismatch')
+            body=json.dumps([data],separators=(',',':')).encode() if data else raw
+            if status == 200: body=sanitize(body)
+            (folder/'response.raw').write_bytes(raw)
+            (folder/'response.body').write_bytes(body)
+            manifest={'format':'corner.board_capture/1','sport':sport,'http_status':status,'received_at':at,
+                      'sha256':hashlib.sha256(body).hexdigest(),'parameters':params,'response_headers':quota,
+                      'endpoint':BASE+'/'+sport+'/events/'+event['id']+'/odds','production_authorized':False}
+            (folder/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+            headers.update(quota)
+            parent=destination/'manifest.json'
+            info=json.loads(parent.read_text(encoding='utf-8'));info['response_headers']=headers
+            info['planned_credits']=CREDITS_PER_SPORT
+            parent.write_text(json.dumps(info,indent=2)+'\n',encoding='utf-8')
+            if status != 200:raise ValueError('Additional capture failed; retained for review')
+
+
+def ingest(directory, *, connect=None):
+    _ingest_one(directory,connect=connect)
+    # Replay retries children even when the featured parent was already committed.
+    for folder in sorted((directory/'additional').glob('*')):
+        _ingest_one(folder,connect=connect)
 
 
 def main():

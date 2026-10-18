@@ -1,7 +1,17 @@
 import type { QuoteLinks } from "./bet-links";
 export type DecimalText = string;
 export type MarketKey =
-  "h2h" | "spreads" | "totals" | "outrights" | "h2h_lay" | "outrights_lay";
+  | "h2h"
+  | "spreads"
+  | "totals"
+  | "outrights"
+  | "h2h_lay"
+  | "outrights_lay"
+  | "alternate_spreads"
+  | "alternate_totals"
+  | "btts"
+  | "draw_no_bet"
+  | "team_totals";
 export type ToolKind = "positive_ev" | "arbitrage" | "middle";
 export type View = ToolKind | "games" | "promo" | "props";
 export interface Meta {

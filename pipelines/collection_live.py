@@ -116,7 +116,7 @@ def main():
             conn = writer()
             conn.close()
             runner = Runner(g, None, None, publisher=MainPublisher(RETAINED, writer), clock=clock,
-                            should_stop=lambda: stop[0])
+                            should_stop=lambda: stop[0], additional=True)
             provider = LiveProvider(g, runner.owner, key=os.environ['ODDS_API_KEY'], enabled=True,
                                     exchange_verified=True, clock=clock, should_stop=lambda: stop[0])
             runner.discover = provider.discover
