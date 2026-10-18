@@ -49,12 +49,25 @@ while read -r corner_unit _; do
 done < <(systemctl list-unit-files --type=service --no-legend --no-pager)
 
 .venv-api/bin/python -m unittest \
-  tests.test_release_probe tests.test_beta_access tests.test_trial_enforcement \
+  tests.test_member_load tests.test_release_probe tests.test_beta_access tests.test_trial_enforcement \
   tests.test_billing_checkout tests.test_beta_invoices tests.test_beta_billing \
   tests.test_beta_receiving tests.test_beta_terms tests.test_billing_offer \
   tests.test_accounts tests.test_props_dfs_references tests.test_clv_coverage
 .venv-api/bin/python -m pipelines.beta_rehearsal \
   --output retained/release-evidence/offline-acceptance.json
+corner_member_result=0
+.venv-api/bin/python - <<'PYLOAD' || corner_member_result=$?
+from dotenv import load_dotenv
+import runpy
+import sys
+load_dotenv('/srv/corner/config/staging.env',override=True)
+sys.argv=['pipelines.member_load','--output','retained/release-evidence/member-load-vps.json']
+runpy.run_module('pipelines.member_load',run_name='__main__')
+PYLOAD
+if [ "$corner_member_result" -ne 0 ] && [ "$corner_member_result" -ne 2 ]; then
+  echo 'Authenticated load failed; review retained/release-evidence/member-load-vps.json' >&2
+  exit 1
+fi
 .venv-api/bin/python -m pipelines.release_probe \
   --base-url https://coopscorner.tech --samples 20 --concurrency 5 \
   --output retained/release-evidence/public-readiness.json
@@ -75,6 +88,11 @@ sudo systemctl enable --now corner-readiness.timer
 systemctl is-active corner-readiness.timer corner-backup.timer
 systemctl list-timers corner-readiness.timer corner-backup.timer --no-pager
 
-echo 'No-spend staging acceptance passed. No paid collection, payable checkout, wallet transfers or reboot were enabled.'
-echo 'Pending: funded receive tests, live provider/quota smoke, authenticated VPS load, physical mobile installation, and reboot/rollback.'
+if [ "$corner_member_result" -eq 2 ]; then
+  echo 'Other no-spend checks passed; saved-odds load coverage is INCOMPLETE because no eligible quotes exist. No odds fetched.'
+else
+  echo 'No-spend checks and isolated authenticated saved-odds load passed.'
+fi
+echo 'No paid collection, payable checkout, wallet transfers or reboot were enabled.'
+echo 'Pending: funded receive tests, live provider/quota smoke, public-proxy member journey, physical mobile installation, and reboot/rollback. See member-load-vps.json for isolated load coverage.'
 git log -1 --oneline
