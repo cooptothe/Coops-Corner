@@ -54,6 +54,7 @@ def best_middles(bets, refund_possible):
 
 def merge_props(raw, *, now, data=None):
     from pipelines import props_ingestion as props
+    from api.database import SPORT_LABELS
     data = props.prune(deepcopy(props.load() if data is None else data), now, props.MAX_AGE)
     result = deepcopy(raw)
     books = {b['id']: b for b in result['books']}
@@ -118,7 +119,7 @@ def merge_props(raw, *, now, data=None):
                 prices=prices, lay_prices={}, observed=observed,
                 links={b:[cells.get((b,s),{}).get('links') for s in (0,1)] for b in present_books},
                 source_ids={b:[cells.get((b,s),{}).get('source_ids') for s in (0,1)] for b in present_books}))
-            games[game_id] = dict(id=game_id, sport_key=event['sport_key'], competition=event['sport_key'],
+            games[game_id] = dict(id=game_id, sport_key=event['sport_key'], competition=SPORT_LABELS.get(event['sport_key'], event['sport_key']),
                 name=f"{event['away_team']} at {event['home_team']}", starts_at=event['commence_time'],
                 scope='full_game', participants=sorted([event['home_team'],event['away_team']]))
             for b in present_books:

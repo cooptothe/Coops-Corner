@@ -140,7 +140,7 @@ class RefreshOverlap(unittest.TestCase):
         self.assertEqual(200, code)
         self.assertEqual(['ok', 'ingest_failed (RuntimeError)', 'ok'], list(body['last_results'].values()))
         self.assertEqual(3, len(self.calls))
-        self.assertIn(self.LEAGUES[1], body['last_error'])
+        self.assertIn(svc.LABELS[self.LEAGUES[1]], body['last_error'])
 
     def test_a_failed_capture_still_waits_for_and_keeps_the_earlier_ingest(self):
         done = []

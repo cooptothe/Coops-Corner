@@ -162,6 +162,9 @@ class BulkQuoteQuery(QuoteQuery):
 
 
 class ToolQuery(PageQuery):
+    # Same bounded bulk paging as quotes; alternate-line result sets exceed 10k.
+    offset: int = Field(default=0, ge=0, le=100000)
+    limit: int = Field(default=25, ge=1, le=1000)
     game_id: Identifier | None = None
     sport_key: Identifier | None = None
     market_key: MarketKey | None = None

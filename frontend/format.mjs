@@ -65,7 +65,7 @@ export function selection(quote) {
   return quote.selection_name + (quote.point == null ? '' : ` ${['spreads','alternate_spreads'].includes(quote.market_key) ? point(quote.point) : shiftDecimal(quote.point,0)}`) + (quote.market_key.endsWith('_lay') ? ' · Lay' : '');
 }
 export function date(value) { return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZone:'America/Chicago',timeZoneName:'short'}).format(new Date(value)); }
-export function sport(value) { return ({basketball_nba:'Basketball · NBA',soccer_demo:'Soccer',golf_demo_winner:'Golf · Outrights'})[value] || value; }
+export function sport(value) { return ({"americanfootball_nfl": "NFL", "americanfootball_ncaaf": "NCAAF", "basketball_nba": "NBA", "basketball_ncaab": "NCAAB (Men)", "basketball_wncaab": "NCAAB (Women)", "basketball_wnba": "WNBA", "baseball_mlb": "MLB", "icehockey_nhl": "NHL", "mma_mixed_martial_arts": "MMA", "tennis_atp": "Tennis (Men)", "tennis_wta": "Tennis (Women)", "soccer_usa_mls": "MLS", "soccer_epl": "Premier League", "soccer_spain_la_liga": "La Liga", "soccer_germany_bundesliga": "Bundesliga", "soccer_italy_serie_a": "Serie A", "soccer_france_ligue_one": "Ligue 1", "soccer_uefa_champs_league": "Champions League", "soccer_demo": "Soccer", "golf_demo_winner": "Golf \u00b7 Outrights"})[value] || value; }
 export function decimalInput(value) { return /^(0|[1-9]\d{0,12})(\.\d{1,12})?$/.test(value); }
 
 export function eligibleHedges(quotes, promo, type) {

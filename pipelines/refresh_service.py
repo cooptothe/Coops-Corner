@@ -87,13 +87,20 @@ def _today():
     return datetime.now(timezone.utc).date().isoformat()
 
 
+def _friendly_error(message):
+    if message:
+        for sport, label in LABELS.items():
+            message = message.replace(sport, label)
+    return message
+
+
 def status_view(state=None, now=None):
     state = _load() if state is None else state
     now = time.time() if now is None else now
     attempts = state.get('attempts_today', 0) if state.get('day') == _today() else 0
     wait = max(0, int(state.get('last_attempt_epoch', 0) + COOLDOWN - now))
     return {'last_attempt_at': state.get('last_attempt_at'), 'last_success_at': state.get('last_success_at'),
-            'last_error': state.get('last_error'), 'last_results': state.get('last_results'),
+            'last_error': _friendly_error(state.get('last_error')), 'last_results': state.get('last_results'),
             'sports': [{'key': k, 'label': LABELS[k]} for k in SPORTS], 'quota': state.get('quota'),
             'cooldown_seconds': COOLDOWN, 'retry_after_seconds': wait,
             'attempts_today': attempts, 'daily_cap': DAILY_CAP, 'credits_per_refresh': CREDITS_PER_REFRESH, 'credits_per_sport': CREDITS_PER_SPORT,

@@ -166,7 +166,7 @@ test("a server without totals is still read cursor by cursor", async () => {
 test("asking twice for one snapshot's list fetches it once, and hands out copies", async () => {
   const old = globalThis.fetch;
   try {
-    const served = serve(150);
+    const served = serve(1500);
     const [a, b] = await Promise.all([
       sharedPages<number>("tools/a", "shared:1", signal()),
       sharedPages<number>("tools/a", "shared:1", signal()),
@@ -177,7 +177,7 @@ test("asking twice for one snapshot's list fetches it once, and hands out copies
     a.length = 0; // one caller changing its list must not change another's
     assert.equal(
       (await sharedPages("tools/a", "shared:1", signal())).length,
-      150,
+      1500,
     );
     assert.equal(served.requests.length, 2);
     await sharedPages("tools/a", "shared:2", signal());

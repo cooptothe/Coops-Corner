@@ -4,6 +4,7 @@ This is a new adapter, not a change to the historical normalization/replay path.
 Raw bytes and JSON pointers identify quotes; outcome counts do not prove coverage.
 """
 from dataclasses import asdict, dataclass
+from collections import Counter
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 import hashlib
@@ -179,6 +180,24 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
                 raise FeaturedMarketError("duplicate bookmaker key in event")
             books.add(book_key)
             seen = set()
+            ambiguous = set()
+            if book_key == "betopenly":
+                # The peer marketplace may publish several offers for a single
+                # selection. No offer depth/acceptance rule is modeled: exclude
+                # every ambiguous selection, not every other book in the event.
+                counts = Counter()
+                for item in _array(book.get("markets", []), "markets"):
+                    item = _object(item, "market")
+                    market_key = _text(item.get("key"), "market key")
+                    if market_key not in SUPPORTED_MARKETS:continue
+                    for offer in _array(item.get("outcomes", []), "outcomes"):
+                        _object(offer, "outcome")
+                        point = offer.get("point")
+                        point = None if point is None else _number(point, "line point")
+                        subject = offer.get("description") if market_key in {"team_totals", "alternate_team_totals"} else None
+                        counts[(market_key, _text(offer.get("name"), "selection name"), point, subject)] += 1
+                ambiguous = {identity for identity, count in counts.items() if count > 1}
+            excluded_ambiguous = set()
             for market_index, market in enumerate(_array(book.get("markets", []), "markets")):
                 _object(market, "market")
                 key = _text(market.get("key"), "market key")
@@ -219,6 +238,11 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
                     if key in {"team_totals", "alternate_team_totals"} and subject not in (home, away):
                         raise FeaturedMarketError("team total must identify an exact event participant")
                     identity = (key, name, point, subject)
+                    if identity in ambiguous:
+                        if pointer not in excluded_ambiguous:
+                            excluded.append(ExcludedMarket(pointer, key, "ambiguous_peer_offers_excluded"))
+                            excluded_ambiguous.add(pointer)
+                        continue
                     if identity in seen:
                         raise FeaturedMarketError("duplicate featured quote identity")
                     seen.add(identity)

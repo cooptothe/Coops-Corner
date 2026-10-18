@@ -96,7 +96,7 @@ Opportunity IDs, WorkRequest keys or a durable idempotency API.
 
 ## Filtering, sorting and paging
 
-All list routes accept `offset` (0–10000), `limit` (1–100, default 25; `/api/v1/quotes` allows `limit` 1–1000 and `offset` 0–100000),
+All list routes accept `offset` (0–10000), `limit` (1–100, default 25; `/api/v1/quotes` and `/api/v1/tools/*` allow `limit` 1–1000 and `offset` 0–100000),
 optional `snapshot_id`, `sort`, and `descending` (default false).
 
 | List | Filters | Sort keys |

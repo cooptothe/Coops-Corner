@@ -142,12 +142,21 @@ async function inParallel<I, O>(
 
 // Every page of a list. Once the first page reports a total and a regular cursor, the other pages are
 // requested side by side; otherwise (or against a server that does not) the cursors are followed one by one.
+function pageSettings(path: string, options: PageOptions) {
+  const bulk = path.startsWith("tools/");
+  return {
+    limit: options.limit ?? (bulk ? 1000 : PAGE_LIMIT),
+    maxOffset: options.maxOffset ?? (bulk ? 100000 : 10000),
+  };
+}
+
 export async function allPages<T>(
   path: string,
   snapshot: string,
   signal: AbortSignal,
-  { limit = PAGE_LIMIT, maxOffset = 10000 }: PageOptions = {},
+  options: PageOptions = {},
 ): Promise<T[]> {
+  const { limit, maxOffset } = pageSettings(path, options);
   const get = async (offset: number) => {
     const { data } = await request<Page<T>>(path, {
       params: { limit, offset, snapshot_id: snapshot },
@@ -221,7 +230,8 @@ export function sharedPages<T>(
   signal: AbortSignal,
   options: PageOptions = {},
 ): Promise<T[]> {
-  const key = `${snapshot}|${path}|${options.limit ?? PAGE_LIMIT}`;
+  const { limit, maxOffset } = pageSettings(path, options);
+  const key = `${snapshot}|${path}|${limit}|${maxOffset}`;
   let pending = shared.get(key);
   if (!pending) {
     pending = allPages<T>(
