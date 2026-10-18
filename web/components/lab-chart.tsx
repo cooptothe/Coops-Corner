@@ -356,9 +356,9 @@ export function LabChart({
                         fill="currentColor"
                         fontSize="11"
                       >
-                        {value}
+                        {games.length <= 20 ? value : ""}
                       </text>
-                      {(games.length <= 10 || i % 2 === 0) && (
+                      {i % Math.max(1, Math.ceil(games.length / 10)) === 0 && (
                         <text
                           x={x(i)}
                           y="235"
