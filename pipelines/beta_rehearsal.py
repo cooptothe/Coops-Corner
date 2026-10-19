@@ -144,11 +144,11 @@ def _rehearse():
             passed(f'{asset}: synthetic request, quote, claim, operator grant, session revocation and exact replay')
         require(store._db.execute('SELECT count(*) FROM beta_payment_receipts').fetchone()[0]==3,'Duplicate synthetic receipts')
         row=store.user_by_id(users[4]);started=row['beta_trial_started_at']
-        require(beta.access_status(row,started+172799)['allowed'],'Trial ended early')
-        require(not beta.access_status(row,started+172800)['allowed'],'Trial exceeded two days')
+        require(beta.access_status(row,started+604799)['allowed'],'Trial ended early')
+        require(not beta.access_status(row,started+604800)['allowed'],'Trial exceeded seven days')
         with client_for(users[4]) as client:
             require(client.get('/api/refresh/v1/billing/status').json()['launch_monthly_usd_cents']==12500,'Nonfounder standard price is incorrect')
-        passed('Two-day trial boundary and $125 nonfounder / $50 founder pricing')
+        passed('Seven-day trial boundary and $125 nonfounder / $50 founder pricing')
         with client_for(users[8]) as client:
             beta.state(store._db,owner,'fixturemember8','suspended')
             require(client.get('/api/v1/health').status_code==401,'Suspended member retained tool access')

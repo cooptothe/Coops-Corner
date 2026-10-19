@@ -22,6 +22,8 @@ export interface BetaOffer {
   founder_monthly_usd_cents?: number;
   package_label?: string;
   founder?: boolean;
+  cohort?: "beta" | "friend";
+  friend_rates?: { standard_usd_cents: number; live_usd_cents: number; locked: boolean } | null;
   access_end_label: string;
   assets: string[];
   support_email: string;
@@ -29,6 +31,15 @@ export interface BetaOffer {
 
 export function MembershipOffer({ offer }: { offer: BetaOffer }) {
   if (!offer.private_beta) return null;
+  if (offer.cohort === "friend") return (
+    <section className="trk-card account-card" aria-labelledby="beta-membership-title">
+      <h3 id="beta-membership-title">Your friends &amp; contributors membership</h3>
+      <p>Your beta access is complimentary through {offer.access_end_label}. No beta payment is required.</p>
+      {offer.friend_rates ? <p>Your locked-in rates after release: <strong>${offer.friend_rates.standard_usd_cents / 100}/month standard</strong> or <strong>${offer.friend_rates.live_usd_cents / 100}/month live</strong> when available. No automatic enrollment or recurring charges.</p> : <p>Contact support to confirm your reserved rates.</p>}
+      {offer.membership && !offer.membership.allowed && <p role="status">Your membership access has ended or is unavailable. Your account and personal tracker remain available.</p>}
+      <p><a href={`mailto:${offer.support_email}`}>Contact support</a></p>
+    </section>
+  );
   return (
     <section
       className="trk-card account-card"

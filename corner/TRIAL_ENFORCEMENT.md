@@ -1,8 +1,8 @@
-# Two-day trial preparation
+# Seven-day trial preparation
 
 CORNER_BETA_TRIALS defaults to 0. Deploying this code changes no current preview access and activates neither payments nor collection.
 
-When explicitly enabled with private beta, new invited previews start an immutable 48-hour clock. Existing previews require an explicit operator start-trial action. Repeated starts return the original timestamp. New trials stop during the final 48 hours of beta. Paid access ends November 21, 2026 at 06:00 UTC, midnight Central. Operators remain exempt. Suspension never resets the clock.
+When explicitly enabled with private beta, new invited previews start an immutable seven-day clock. Existing previews require an explicit operator start-trial action. Repeated starts return the original timestamp. New trials stop during the final seven days of beta. Paid access ends November 21, 2026 at 06:00 UTC, midnight Central. Operators remain exempt. Suspension never resets the clock.
 
 Default signed-session checks for tools feeds enforce expiry. Accounts authentication, billing status, settings and personal tracker remain available after expiry. Restricted refresh routes return membership_required. Account shows actual membership expiry in Central time. Payment initiation stays disabled. This is not invoice creation or blockchain verification.
 

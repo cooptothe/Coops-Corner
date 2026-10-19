@@ -34,8 +34,8 @@ class TrialEnforcement(unittest.TestCase):
         with patch('corner.beta_access.time.time', return_value=1792100000):
             self.assertEqual(beta.start_trial(self.store._db, self.owner['id'], 'alice'), first)
         with patch.dict(os.environ, {'CORNER_BETA_TRIALS': '1'}):
-            self.assertTrue(beta.access_status(self.row(), first + 172799)['allowed'])
-            self.assertFalse(beta.access_status(self.row(), first + 172800)['allowed'])
+            self.assertTrue(beta.access_status(self.row(), first + 604799)['allowed'])
+            self.assertFalse(beta.access_status(self.row(), first + 604800)['allowed'])
             self.assertFalse(beta.access_status(self.row(), first - 1)['allowed'])
         with self.assertRaises(TrackerError):
             beta.start_trial(self.store._db, self.alice['id'], 'alice')

@@ -34,8 +34,8 @@ def summary(values):
 
 
 def rehearse(catalog, *, sessions=10, rounds=2, budget_ms=1500):
-    if not 1 <= sessions <= 10 or not 1 <= rounds <= 5 or not 1 <= budget_ms <= 10000:
-        raise ValueError('Use 1-10 sessions, 1-5 rounds, and a 1-10000 ms request budget')
+    if not 1 <= sessions <= 15 or not 1 <= rounds <= 5 or not 1 <= budget_ms <= 10000:
+        raise ValueError('Use 1-15 sessions, 1-5 rounds, and a 1-10000 ms request budget')
     import uvicorn
     from api.app import create_app
     from corner import auth, beta_access
@@ -57,7 +57,7 @@ def rehearse(catalog, *, sessions=10, rounds=2, budget_ms=1500):
         users = []
         for index in range(sessions):
             name = f'loadmember{index}'
-            _, invite = beta_access.issue(store._db, owner, name, access_kind='preview', evidence='Disposable HTTP load rehearsal')
+            _, invite = beta_access.issue(store._db, owner, name, access_kind='preview', cohort='beta' if index<10 else 'friend', evidence='Disposable HTTP load rehearsal')
             users.append(store.create_user(name, name, password_hash, invite))
         secret = secrets.token_urlsafe(64)
         app = create_app(data_mode=catalog.data_mode, catalog=catalog,
@@ -133,7 +133,7 @@ def rehearse(catalog, *, sessions=10, rounds=2, budget_ms=1500):
         by_route={path:summary([ms for route,ms in samples if route==path]) for path in ROUTES}
         passed=all(stats['p95_ms']<=budget_ms for stats in by_route.values())
         return dict(result='passed' if passed else 'failed', checked_at_utc=datetime.now(timezone.utc).isoformat(),
-                    scope='Isolated loopback HTTP, real saved-odds catalog, disposable signed member sessions; excludes public proxy, browser rendering, and production account store.',
+                    scope='Isolated loopback HTTP, '+('saved-odds database catalog' if catalog.data_mode=='database' else 'synthetic fixture catalog')+', disposable signed member sessions; excludes public proxy, browser rendering, and production account store.',
                     data_mode=catalog.data_mode, snapshot_id=catalog.snapshot_id,
                     games=len(catalog.games), quotes=len(catalog.quotes), tool_rows=len(catalog.rows),
                     sessions=sessions, rounds=rounds, per_route=by_route, p95_budget_ms=budget_ms,

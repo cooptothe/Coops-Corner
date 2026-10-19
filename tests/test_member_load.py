@@ -16,7 +16,7 @@ class MemberLoad(unittest.TestCase):
         self.assertEqual(result['production_account_mutations'],0)
 
     def test_load_is_bounded_before_resources_are_opened(self):
-        for kwargs in ({'sessions':0},{'sessions':11},{'rounds':0},{'rounds':6},{'budget_ms':0}):
+        for kwargs in ({'sessions':0},{'sessions':16},{'rounds':0},{'rounds':6},{'budget_ms':0}):
             with self.assertRaises(ValueError):rehearse(None, **kwargs)
 
     def test_tail_latency_uses_nearest_rank(self):

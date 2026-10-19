@@ -3,16 +3,16 @@ from corner import beta_terms as terms
 
 
 class Terms(unittest.TestCase):
-    def test_exact_two_day_boundary_and_fixed_paid_end(self):
+    def test_exact_seven_day_boundary_and_fixed_paid_end(self):
         start = terms.BETA_END - 10*86400
-        self.assertEqual(terms.entitlement('preview',start,start+172799)['state'], 'trial')
-        self.assertEqual(terms.entitlement('preview',start,start+172800)['state'], 'expired')
+        self.assertEqual(terms.entitlement('preview',start,start+604799)['state'], 'trial')
+        self.assertEqual(terms.entitlement('preview',start,start+604800)['state'], 'expired')
         self.assertEqual(terms.entitlement('paid_beta',start,terms.BETA_END-1)['state'], 'paid')
         self.assertEqual(terms.entitlement('paid_beta',start,terms.BETA_END)['state'], 'expired')
         self.assertEqual(terms.entitlement('operator',start,terms.BETA_END+1)['state'], 'operator')
         self.assertEqual(terms.entitlement('preview',start,start-1)['state'], 'unavailable')
 
-    def test_new_trials_close_before_the_beta_to_allow_two_full_days(self):
+    def test_new_trials_close_before_the_beta_to_allow_seven_full_days(self):
         self.assertTrue(terms.trial_available(terms.LAST_TRIAL_START))
         self.assertFalse(terms.trial_available(terms.LAST_TRIAL_START+1))
 

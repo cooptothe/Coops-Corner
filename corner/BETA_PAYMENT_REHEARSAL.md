@@ -13,7 +13,7 @@ The disabled receiving configuration stores these public details; it contains no
 wallet key or seed. Exodus documentation says its receiving wallets do not require
 a memo/tag; memo review remains part of the supervised receive test.
 
-`beta_terms.py` defines the offer, two-day timing, fixed beta end and exact native
+`beta_terms.py` defines the offer, seven-day timing, fixed beta end and exact native
 amount calculations. It does not yet alter running account authorization.
 New trial enrollment should close during the final 48 hours so every advertised
 trial can receive two full days. Existing preview accounts are not silently
@@ -72,7 +72,7 @@ Offline command after applying the preparation patch:
 
 ## Customer flow to implement
 
-Invitation → account → two-day trial → optional **Continue beta — $50** → choose
+Invitation → account → seven-day trial → optional **Continue beta — $50** → choose
 XRP/HBAR/XLM → receive a time-limited exact amount and Exodus receiving address
 with Copy/QR controls → submit transaction reference → payment review → access
 through November 20. Show price, end date, no refunds and network fees before the

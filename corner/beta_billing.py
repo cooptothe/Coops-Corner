@@ -134,7 +134,7 @@ class BetaBilling:
             if user:
                 member = db.execute('SELECT * FROM beta_members WHERE user_id=?', (user_id,)).fetchone()
                 if member:
-                    if member['role'] != 'member' or member['state'] != 'active' or member['access_kind'] != 'preview':
+                    if member['role'] != 'member' or member['state'] != 'active' or member['access_kind'] != 'preview' or member['cohort']!='beta':
                         raise TrackerError('Only an active preview member can be upgraded here.', 409, 'payment_state')
                     db.execute("UPDATE beta_members SET access_kind='paid_beta',founder=1,evidence=? WHERE user_id=?", (evidence,user_id))
                     db.execute('UPDATE users SET session_epoch=session_epoch+1 WHERE id=?', (user_id,))

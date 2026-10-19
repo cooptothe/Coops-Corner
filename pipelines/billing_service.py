@@ -22,10 +22,12 @@ def create_router(ctx):
         config = checkout_config()
         return JSONResponse({
             'private_beta': beta_access.enabled(),
+            'cohort': user.get('cohort','beta'),
+            'friend_rates': user.get('friend_rates'),
             'membership': user.get('membership'),
             'stage': 'manual_review' if config else 'preparation',
             'payments_enabled': bool(config),
-            'checkout_eligible': bool(config) and user.get('role') == 'member' and user.get('access_kind') == 'preview',
+            'checkout_eligible': bool(config) and user.get('role') == 'member' and user.get('access_kind') == 'preview' and user.get('cohort')!='friend',
             'terms_version': beta_terms.VERSION,
             'trial_days': beta_terms.TRIAL_SECONDS//86400,
             'price_usd_cents': beta_terms.PRICE_USD_CENTS,
@@ -33,7 +35,7 @@ def create_router(ctx):
             'founder_monthly_usd_cents': beta_terms.FOUNDER_MONTHLY_USD_CENTS,
             'package_label': beta_terms.PACKAGE_LABEL,
             'founder': bool(user.get('founder')),
-            'launch_monthly_usd_cents': beta_terms.FOUNDER_MONTHLY_USD_CENTS if user.get('founder') else beta_terms.STANDARD_MONTHLY_USD_CENTS,
+            'launch_monthly_usd_cents': (user.get('friend_rates') or {}).get('standard_usd_cents') if user.get('cohort')=='friend' else beta_terms.FOUNDER_MONTHLY_USD_CENTS if user.get('founder') else beta_terms.STANDARD_MONTHLY_USD_CENTS,
             'access_end_label': 'November 20, 2026, at 11:59 p.m. Central',
             'assets': list(beta_terms.ASSETS),
             'support_email': SUPPORT_EMAIL,

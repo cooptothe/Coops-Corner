@@ -44,7 +44,7 @@ class BetaInvoices:
                 raise
 
     def _member(self, db, user_id):
-        row = db.execute("SELECT 1 FROM beta_members WHERE user_id=? AND role='member' AND state='active' AND access_kind='preview'", (user_id,)).fetchone()
+        row = db.execute("SELECT 1 FROM beta_members WHERE user_id=? AND role='member' AND state='active' AND access_kind='preview' AND cohort='beta'", (user_id,)).fetchone()
         if not row:
             raise TrackerError('An active preview membership is required.', 403, 'payment_access')
 

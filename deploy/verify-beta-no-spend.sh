@@ -49,7 +49,7 @@ while read -r corner_unit _; do
 done < <(systemctl list-unit-files --type=service --no-legend --no-pager)
 
 .venv-api/bin/python -m unittest \
-  tests.test_member_load tests.test_release_probe tests.test_beta_access tests.test_trial_enforcement \
+  tests.test_friend_membership tests.test_member_load tests.test_release_probe tests.test_beta_access tests.test_trial_enforcement \
   tests.test_billing_checkout tests.test_beta_invoices tests.test_beta_billing \
   tests.test_beta_receiving tests.test_beta_terms tests.test_billing_offer \
   tests.test_accounts tests.test_props_dfs_references tests.test_clv_coverage
@@ -61,7 +61,7 @@ from dotenv import load_dotenv
 import runpy
 import sys
 load_dotenv('/srv/corner/config/staging.env',override=True)
-sys.argv=['pipelines.member_load','--output','retained/release-evidence/member-load-vps.json']
+sys.argv=['pipelines.member_load','--sessions','15','--output','retained/release-evidence/member-load-vps.json']
 runpy.run_module('pipelines.member_load',run_name='__main__')
 PYLOAD
 if [ "$corner_member_result" -ne 0 ] && [ "$corner_member_result" -ne 2 ]; then

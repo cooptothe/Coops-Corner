@@ -2,8 +2,8 @@
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_CEILING, localcontext
 
-VERSION = 'beta-2026-11-20-founder-monthly-v2'
-TRIAL_SECONDS = 2 * 24 * 60 * 60
+VERSION = 'beta-2026-11-20-seven-day-friends-v3'
+TRIAL_SECONDS = 7 * 24 * 60 * 60
 PRICE_USD_CENTS = 5000
 STANDARD_MONTHLY_USD_CENTS = 12500
 FOUNDER_MONTHLY_USD_CENTS = 5000
@@ -16,19 +16,19 @@ LAST_TRIAL_START = BETA_END - TRIAL_SECONDS
 
 
 def entitlement(kind, started_at, now):
-    """Two full days from enrollment; all member access ends at beta close.
+    """Seven full days from enrollment; all member access ends at beta close.
 
-    Stop new trials in the final 48 hours rather than advertising a truncated
-    two-day trial. The caller must persist a single immutable enrollment time.
+    Stop new trials in the final seven days rather than advertising a truncated
+    seven-day trial. The caller must persist a single immutable enrollment time.
     """
     if kind == 'operator':
         return {'state':'operator', 'expires_at':None}
-    if kind not in ('preview', 'paid_beta'):
+    if kind not in ('preview', 'paid_beta', 'friend'):
         return {'state':'unavailable', 'expires_at':None}
     if now < started_at:
         return {'state':'unavailable', 'expires_at':None}
-    expires = BETA_END if kind == 'paid_beta' else min(started_at+TRIAL_SECONDS, BETA_END)
-    state = ('paid' if kind == 'paid_beta' else 'trial') if now < expires else 'expired'
+    expires = BETA_END if kind in ('paid_beta','friend') else min(started_at+TRIAL_SECONDS, BETA_END)
+    state = ('friend' if kind=='friend' else 'paid' if kind == 'paid_beta' else 'trial') if now < expires else 'expired'
     return {'state':state, 'expires_at':expires}
 
 

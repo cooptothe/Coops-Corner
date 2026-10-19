@@ -8,7 +8,7 @@ A later reviewed configuration must have payments_enabled=true, memo_reviewed=tr
 
 ## Customer flow
 
-Account shows the confirmed two-day trial, one-time $50 beta option, fixed November 20 end, no refunds, fee responsibility, $50/month founder pregame standard-market package after launch, and $125/month standard offer for those who skip beta payment. A member explicitly accepts the current terms and chooses a coin before requesting a quote. Existing active preview members consume their existing seat; operators and paid members cannot create a purchase request.
+Account shows the confirmed seven-day trial, one-time $50 beta option, fixed November 20 end, no refunds, fee responsibility, $50/month founder pregame standard-market package after launch, and $125/month standard offer for those who skip beta payment. A member explicitly accepts the current terms and chooses a coin before requesting a quote. Existing active preview members consume their existing seat; operators and paid members cannot create a purchase request.
 
 A request waits for the operator to supply a reviewed current USD rate. Quotes last no more than ten minutes from rate observation; stale or future observations are rejected. Customer Account polls only its own payment request every 30 seconds while visible. It shows the exact native amount, network, reviewed receiving address, required memo/tag and copy controls. The quote disappears at expiry. A submitted transaction reference goes to review; it cannot unlock membership. Never send a second payment merely because a receipt needs review. Rehearsal quotes remain nonpayable even after checkout is subsequently enabled.
 

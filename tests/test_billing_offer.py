@@ -27,7 +27,7 @@ class BillingOffer(unittest.TestCase):
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.headers['cache-control'],'no-store')
         body = response.json()
-        self.assertEqual(body['trial_days'],2)
+        self.assertEqual(body['trial_days'],7)
         self.assertEqual(body['price_usd_cents'],5000)
         self.assertEqual(body['standard_monthly_usd_cents'],12500)
         self.assertEqual(body['founder_monthly_usd_cents'],5000)

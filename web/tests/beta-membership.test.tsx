@@ -7,8 +7,8 @@ const offer: BetaOffer = {
   private_beta: true,
   stage: "preparation",
   payments_enabled: false,
-  terms_version: "beta-2026-11-20-two-day-v1",
-  trial_days: 2,
+  terms_version: "beta-2026-11-20-seven-day-friends-v3",
+  trial_days: 7,
   price_usd_cents: 5000,
   access_end_label: "November 20, 2026, at 11:59 p.m. Central",
   assets: ["XRP", "HBAR", "XLM"],
@@ -17,7 +17,7 @@ const offer: BetaOffer = {
 
 test("membership offer shows the confirmed simple terms and support", () => {
   const html = renderToStaticMarkup(<MembershipOffer offer={offer} />);
-  assert.match(html, /2 days free/);
+  assert.match(html, /7 days free/);
   assert.match(html, /\$50/);
   assert.match(html, /November 20, 2026/);
   assert.match(html, /No refunds/);
@@ -59,4 +59,15 @@ test("expired members retain recovery information", () => {
   assert.match(html, /membership access has ended/);
   assert.match(html, /personal tracker remain available/);
   assert.doesNotMatch(html, /preview access is unchanged/);
+});
+
+
+test("friends see complimentary access and their locked rates without a beta purchase offer", () => {
+  const html=renderToStaticMarkup(<MembershipOffer offer={{...offer,cohort:"friend",friend_rates:{standard_usd_cents:2500,live_usd_cents:5000,locked:true}}} />);
+  assert.match(html,/complimentary/);
+  assert.match(html,/25\/month standard/);
+  assert.match(html,/50\/month live/);
+  assert.match(html,/when available/);
+  assert.match(html,/locked-in/);
+  assert.doesNotMatch(html,/7 days free|skip the|125\/month|Pay with|beta fee locks in/);
 });

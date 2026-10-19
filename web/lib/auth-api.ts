@@ -4,6 +4,8 @@ export interface User {
   role?: "admin" | "member";
   access_kind?: "operator" | "paid_beta" | "preview";
   founder?: boolean;
+  cohort?: "beta" | "friend";
+  friend_rates?: { standard_usd_cents: number; live_usd_cents: number; locked: boolean } | null;
   membership?: {
     state: string;
     expires_at: number | null;

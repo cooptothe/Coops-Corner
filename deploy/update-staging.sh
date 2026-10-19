@@ -5,13 +5,17 @@ umask 077
 cd /srv/corner/app
 
 .venv-api/bin/python -m unittest \
-  tests.test_member_load tests.test_large_tool_pages tests.test_manual_markets tests.test_alternate_props tests.test_release_probe tests.test_props_dfs_references tests.test_prop_markets tests.test_one_sided_props tests.test_automatic_prop_margin tests.test_assumed_margin_props tests.test_props_refresh \
+  tests.test_friend_membership tests.test_beta_access tests.test_beta_terms tests.test_trial_enforcement tests.test_billing_offer tests.test_beta_billing tests.test_beta_invoices tests.test_member_load tests.test_large_tool_pages tests.test_manual_markets tests.test_alternate_props tests.test_release_probe tests.test_props_dfs_references tests.test_prop_markets tests.test_one_sided_props tests.test_automatic_prop_margin tests.test_assumed_margin_props tests.test_props_refresh \
   tests.test_clv tests.test_tracker_service tests.test_clv_coverage tests.test_tracker_store \
   tests.test_lab_research_board tests.test_trends_service tests.test_trends_worker tests.test_prop_trends \
   tests.test_additional_markets tests.test_featured_markets \
   tests.test_featured_middles tests.test_featured_promos tests.test_product_api \
   tests.test_database_catalog tests.test_collection_worker tests.test_collection_runner \
   tests.test_collection_adapters tests.test_collection_live tests.test_refresh_service
+
+# Add friend-rate evidence before the account schema is migrated.
+test -f /usr/local/lib/corner-backup/billing_checkpoint.py
+sudo install -o root -g root -m 644 deploy/backup/billing_checkpoint.py /usr/local/lib/corner-backup/billing_checkpoint.py
 
 cd web
 pnpm install --frozen-lockfile
@@ -23,6 +27,7 @@ if [ -d .next ]; then
 fi
 corner_build_complete=0
 corner_web_stopped=0
+corner_backend_stopped=0
 corner_restore_web() {
   corner_exit=$?
   trap - EXIT
@@ -37,6 +42,9 @@ corner_restore_web() {
     if [ "$corner_web_stopped" -eq 1 ]; then
       sudo systemctl start corner-staging-web || true
     fi
+    if [ "$corner_backend_stopped" -eq 1 ]; then
+      sudo systemctl start corner-staging-accounts corner-staging-api || true
+    fi
     echo 'Deployment failed; no collection or billing activation changed.' >&2
   fi
   exit "$corner_exit"
@@ -46,6 +54,10 @@ sudo systemctl stop corner-staging-web
 corner_web_stopped=1
 pnpm build
 corner_build_complete=1
+cd /srv/corner/app
+corner_backend_stopped=1
+sudo systemctl stop corner-staging-accounts corner-staging-api
+.venv-api/bin/python -m pipelines.beta_admin --db /srv/corner/config/staging-tracker.sqlite3 status
 sudo systemctl restart corner-staging-accounts corner-staging-api corner-staging-web
 
 for corner_service in corner-staging-accounts corner-staging-api corner-staging-web; do
