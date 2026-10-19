@@ -66,6 +66,18 @@ def initialize(db):
       created_at REAL NOT NULL
     );
     ''')
+    db.executescript('''
+    CREATE TABLE IF NOT EXISTS beta_invitation_pages(invite_id TEXT PRIMARY KEY REFERENCES beta_invites(id));
+    CREATE TABLE IF NOT EXISTS beta_invitation_acceptances(
+      invite_id TEXT REFERENCES beta_invites(id), version TEXT, terms_version TEXT,
+      accepted_at REAL NOT NULL, offer_json TEXT NOT NULL,
+      PRIMARY KEY(invite_id,version,terms_version));
+    CREATE TABLE IF NOT EXISTS beta_invitation_feedback(
+      id INTEGER PRIMARY KEY, invite_id TEXT NOT NULL REFERENCES beta_invites(id),
+      user_id TEXT REFERENCES users(id), category TEXT NOT NULL,
+      title TEXT NOT NULL,message TEXT NOT NULL,created_at REAL NOT NULL);
+    CREATE INDEX IF NOT EXISTS beta_feedback_rate ON beta_invitation_feedback(invite_id,created_at);
+    ''')
     # Additive, serialized migration. Existing rows remain in the original pool.
     db.execute('BEGIN IMMEDIATE')
     try:
@@ -194,6 +206,8 @@ def enroll(db, user_id, username_key, token):
     if (not invite or invite['revoked'] or invite['redeemed_by'] or invite['expires_at'] <= now
             or (invite['username_key'] != username_key and not (invite['cohort']=='friend' and invite['username_key']==''))):
         fail('This invitation is invalid, expired, or belongs to another username.', 'invalid_invite')
+    from corner.invitation_welcome import require_acceptance
+    require_acceptance(db,invite)
     cohort=invite['cohort']
     validate_cohort(cohort,invite['access_kind'])
     capacity(db,cohort,redeem=True)

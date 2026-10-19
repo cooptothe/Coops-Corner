@@ -19,6 +19,7 @@ from starlette.responses import JSONResponse
 
 from corner import prop_markets, beta_access
 from pipelines import accounts
+from pipelines import invitation_service
 from pipelines import billing_service
 from pipelines import trends_service
 from pipelines import media as media_service
@@ -287,6 +288,7 @@ def create_app():
     app.include_router(media_service.create_router(guard=lambda request: ctx.require(request, write=False)[1]))
     app.include_router(accounts.create_router(ctx))
     app.include_router(billing_service.create_router(ctx))
+    app.include_router(invitation_service.create_router(ctx))
     app.include_router(trends_service.create_router(ctx))
     app.include_router(tracker_service.create_router(ctx))
     app.include_router(settings_service.create_router(ctx))

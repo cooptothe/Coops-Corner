@@ -57,6 +57,7 @@ export function useAuth(): Auth {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const publicInvite = usePathname() === "/invite";
   const [status, setStatus] = useState<Status>("loading");
   const [user, setUser] = useState<User | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -162,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {status === "unreachable" ? (
+      {status === "unreachable" && !publicInvite ? (
         <Splash>
           <p role="alert">
             Your workspace is temporarily unavailable. Please try again shortly.
@@ -209,23 +210,26 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isLogin = pathname === "/login";
+  const isInvite = pathname === "/invite";
   const membershipBlocked =
     status === "signed-in" &&
+    !isInvite &&
     needsMembershipAccount(user) &&
     !membershipRouteAllowed(pathname);
 
   useEffect(() => {
     if (membershipBlocked) {
       router.replace("/account");
-    } else if (status === "signed-out" && !isLogin) {
+    } else if (status === "signed-out" && !isLogin && !isInvite) {
       const next =
         pathname && pathname !== "/"
           ? `?next=${encodeURIComponent(pathname)}`
           : "";
       router.replace(`/login${next}`);
     }
-  }, [status, isLogin, pathname, router, membershipBlocked]);
+  }, [status, isLogin, isInvite, pathname, router, membershipBlocked]);
 
+  if (isInvite) return children;
   if (membershipBlocked)
     return (
       <Splash>
@@ -238,7 +242,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   if (status === "unreachable") return null;
   if (status === "loading") return <Splash />;
-  if (status === "signed-out" && !isLogin) return <Splash />;
+  if (status === "signed-out" && !isLogin && !isInvite) return <Splash />;
   if (status === "signed-in" && user && !isLogin)
     return (
       <SettingsProvider key={user.id}>

@@ -4,7 +4,7 @@ import os
 from datetime import datetime,timezone
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 
-from corner import auth, beta_access as beta
+from corner import auth, beta_access as beta, invitation_welcome as welcome
 from corner.tracker_store import TrackerStore, TrackerError
 
 
@@ -43,6 +43,7 @@ def main():
     if not os.path.isfile(args.db):
         parser.error('Use an existing account database; no new file will be created.')
     friend_codes=[]
+    issued_invite=None
     store = TrackerStore(args.db)
     try:
         with store._lock:
@@ -69,7 +70,7 @@ def main():
                         friend_codes=beta.issue_friend_codes(db,actor,count=args.count,hours=args.hours,evidence=args.evidence)
                     elif args.command == 'invite':
                         invite_id, token = beta.issue(db, actor, auth.clean_username(args.username)[1], hours=args.hours, access_kind=args.kind, evidence=args.evidence, cohort=args.cohort)
-                        print(f'Invitation ID: {invite_id}\nInvitation code (shown once): {token}')
+                        issued_invite=(invite_id,token,welcome.wrap(db,actor,token))
                     elif args.command == 'grant':
                         beta.grant(db, actor, auth.clean_username(args.username)[1], args.kind, args.evidence, cohort=args.cohort)
                         print('Existing account granted access. Sign in again.')
@@ -85,17 +86,20 @@ def main():
                     else:
                         beta.revoke(db, actor, args.invite_id)
                         print('Unused invitation revoked.')
+                for _,code in friend_codes:welcome.wrap(db,actor,code)
                 db.execute('COMMIT')
             except BaseException:
                 db.execute('ROLLBACK')
                 raise
+            if issued_invite:
+                print(f'Invitation ID: {issued_invite[0]}\nInvitation code (shown once): {issued_invite[1]}\nPrivate link: {issued_invite[2]}')
             for index,(invite_id,code) in enumerate(friend_codes,1):
                 expires=db.execute('SELECT expires_at FROM beta_invites WHERE id=?',(invite_id,)).fetchone()[0]
                 try:
                     label=datetime.fromtimestamp(expires,ZoneInfo('America/Chicago')).strftime('%b %d, %Y %I:%M %p Central')
                 except ZoneInfoNotFoundError:
                     label=datetime.fromtimestamp(expires,timezone.utc).strftime('%b %d, %Y %I:%M %p UTC')
-                print(f'Friend {index} | ID: {invite_id} | Expires: {label}\nCode (shown once): {code}')
+                print(f'Friend {index} | ID: {invite_id} | Expires: {label}\nCode (shown once): {code}\nPrivate link: https://coopscorner.tech/invite#{code}')
             if friend_codes:print('Each code reserves one friend place and works once with a new chosen username. Store privately and share one code per friend.')
     except (TrackerError, auth.AuthError) as exc:
         parser.exit(1, str(exc)+'\n')

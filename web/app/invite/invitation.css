@@ -1,0 +1,289 @@
+.family-invite {
+  min-height: 100vh;
+  background: #100e10;
+  color: #eae2d7;
+  font:
+    15px/1.7 Arial,
+    sans-serif;
+  padding: 24px 20px 50px;
+}
+.family-wrap {
+  max-width: 900px;
+  margin: auto;
+}
+.family-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 32px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.family-brand img {
+  border-radius: 9px;
+}
+.family-brand small {
+  display: block;
+  font-size: 9px;
+  color: #a89a91;
+}
+.family-brand > a {
+  margin-left: auto;
+  font-size: 12px;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.family-invite a {
+  color: #e4b9ad;
+  text-underline-offset: 4px;
+}
+.family-card {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: 56px 32px;
+  border: 1px solid #735146;
+  outline: 1px solid #38282a;
+  outline-offset: -9px;
+  background: #1b1417;
+  box-shadow: 0 22px 60px #0005;
+}
+.family-eyebrow {
+  letter-spacing: 0.22em;
+  font-size: 10px;
+  font-weight: 700;
+  color: #c8a291;
+}
+.family-seal {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border: double 4px #ab8c71;
+  border-radius: 50%;
+  margin: 28px auto 16px;
+  font:
+    42px Georgia,
+    serif;
+  color: #d2b697;
+}
+.family-script {
+  font:
+    italic 22px Georgia,
+    serif;
+  color: #baa395;
+}
+.family-card h1 {
+  font:
+    clamp(34px, 6vw, 60px)/1.05 Georgia,
+    serif;
+  letter-spacing: -0.035em;
+  margin: 18px 0;
+}
+.family-card > p:not(.family-eyebrow):not(.family-script) {
+  max-width: 470px;
+  margin: 22px auto;
+  color: #c1b5ae;
+}
+.family-card > small {
+  display: block;
+  margin-top: 20px;
+  color: #b6a39a;
+  font-size: 11px;
+}
+.family-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  border: 1px solid #c04750 !important;
+  background: #9f2635 !important;
+  color: #fff !important;
+  padding: 13px 21px !important;
+  border-radius: 5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  min-height: 46px;
+}
+.family-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.family-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  padding: 26px 0;
+  border-bottom: 1px solid #453237;
+  font-size: 12px;
+}
+.family-section {
+  scroll-margin-top: 20px;
+  padding: 35px 0;
+  border-bottom: 1px solid #453237;
+}
+.family-section h2 {
+  font:
+    32px/1.2 Georgia,
+    serif;
+  margin: 9px 0 22px;
+}
+.family-lead {
+  font-size: 19px;
+  color: #f2e4d6;
+}
+.family-code {
+  background: #21191d;
+  border: 1px solid #544047;
+  border-radius: 6px;
+  padding: 17px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.family-code > span {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  width: 100%;
+  color: #bba69b;
+}
+.family-code code {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  flex: 1;
+  min-width: 0;
+}
+.family-invite button:not(.family-primary) {
+  background: #302129;
+  color: #f1dfd5;
+  border: 1px solid #65464e;
+  padding: 7px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.family-muted {
+  font-size: 12px;
+  color: #b6a69f;
+}
+.family-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 18px 0;
+}
+.family-check input {
+  width: 19px;
+  height: 19px;
+  flex: none;
+  margin-top: 4px;
+  accent-color: #bd3245;
+}
+.family-section ul,
+.family-steps {
+  padding-left: 23px;
+}
+.family-section li {
+  margin: 10px 0;
+}
+.family-section details {
+  border: 1px solid #45343a;
+  margin: 10px 0;
+  border-radius: 5px;
+  background: #1a1518;
+}
+.family-section summary {
+  padding: 14px 17px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+}
+.family-section details p {
+  padding: 0 17px 15px;
+  margin: 0;
+  color: #c5b8b0;
+}
+.family-section form {
+  display: grid;
+  gap: 16px;
+}
+.family-section form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.family-section input:not([type="checkbox"]),
+.family-section textarea,
+.family-section select {
+  width: 100%;
+  box-sizing: border-box;
+  background: #171216;
+  color: #f1e8df;
+  border: 1px solid #62464e;
+  border-radius: 5px;
+  padding: 12px;
+  font: inherit;
+}
+.family-section textarea {
+  resize: vertical;
+}
+.family-notice {
+  padding: 17px 20px;
+  background: #2c1c22;
+  border-left: 3px solid #c44b5a;
+  overflow-wrap: anywhere;
+}
+.family-footer {
+  padding: 35px 0;
+  color: #a9968e;
+  font-size: 11px;
+}
+.family-footer > p:first-child {
+  letter-spacing: 0.16em;
+}
+.family-invite :focus-visible {
+  outline: 2px solid #e6bd8a;
+  outline-offset: 4px;
+}
+@media (max-width: 540px) {
+  .family-invite {
+    padding: 18px 16px 35px;
+  }
+  .family-brand {
+    gap: 10px;
+    font-size: 12px;
+    letter-spacing: 0.07em;
+  }
+  .family-brand > a {
+    max-width: 75px;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .family-card {
+    padding: 38px 22px;
+  }
+  .family-section {
+    padding: 28px 0;
+  }
+  .family-primary {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .family-section h2 {
+    font-size: 28px;
+  }
+  .family-nav {
+    gap: 12px 20px;
+  }
+  .family-code code {
+    flex-basis: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .family-invite * {
+    scroll-behavior: auto !important;
+  }
+}

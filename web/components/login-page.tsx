@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { invitationToken } from "../lib/invitation-api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import {
@@ -38,6 +39,16 @@ export default function LoginPage() {
 
   useEffect(() => {
     document.title = "Sign in — The Corner";
+    const invitation = invitationToken(window.location.hash);
+    if (invitation) {
+      setMode("signup");
+      setInvite(invitation);
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
     // Only the checkbox choice is remembered here, never any credentials.
     try {
       setRemember(localStorage.getItem(REMEMBER_KEY) === "1");
