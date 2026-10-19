@@ -1,6 +1,8 @@
 """Server-only beta administration. Never exposes an HTTP bootstrap endpoint."""
 import argparse
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from corner import auth, beta_access as beta
 from corner.tracker_store import TrackerStore, TrackerError
@@ -23,6 +25,10 @@ def main():
                        help='Preview reason or operator-verified receipt reference; no secrets')
         if name == 'invite':
             p.add_argument('--hours', type=int, default=48)
+    p = commands.add_parser('friend-codes')
+    p.add_argument('--count',type=int,default=5)
+    p.add_argument('--hours',type=int,default=168)
+    p.add_argument('--evidence',required=True)
     p = commands.add_parser('move-friend')
     p.add_argument('username')
     p.add_argument('--evidence',required=True)
@@ -36,6 +42,7 @@ def main():
     args = parser.parse_args()
     if not os.path.isfile(args.db):
         parser.error('Use an existing account database; no new file will be created.')
+    friend_codes=[]
     store = TrackerStore(args.db)
     try:
         with store._lock:
@@ -58,7 +65,9 @@ def main():
                         beta.fail('Operator account not found.')
                     actor = operator[0]
                     beta.require_operator(db, actor)
-                    if args.command == 'invite':
+                    if args.command == 'friend-codes':
+                        friend_codes=beta.issue_friend_codes(db,actor,count=args.count,hours=args.hours,evidence=args.evidence)
+                    elif args.command == 'invite':
                         invite_id, token = beta.issue(db, actor, auth.clean_username(args.username)[1], hours=args.hours, access_kind=args.kind, evidence=args.evidence, cohort=args.cohort)
                         print(f'Invitation ID: {invite_id}\nInvitation code (shown once): {token}')
                     elif args.command == 'grant':
@@ -80,6 +89,11 @@ def main():
             except BaseException:
                 db.execute('ROLLBACK')
                 raise
+            for index,(invite_id,code) in enumerate(friend_codes,1):
+                expires=db.execute('SELECT expires_at FROM beta_invites WHERE id=?',(invite_id,)).fetchone()[0]
+                label=datetime.fromtimestamp(expires,ZoneInfo('America/Chicago')).strftime('%b %d, %Y %I:%M %p Central')
+                print(f'Friend {index} | ID: {invite_id} | Expires: {label}\nCode (shown once): {code}')
+            if friend_codes:print('Each code reserves one friend place and works once with a new chosen username. Store privately and share one code per friend.')
     except (TrackerError, auth.AuthError) as exc:
         parser.exit(1, str(exc)+'\n')
     finally:

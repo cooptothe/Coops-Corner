@@ -192,7 +192,7 @@ def enroll(db, user_id, username_key, token):
     invite = db.execute('SELECT * FROM beta_invites WHERE token_hash=?', (digest(token),)).fetchone()
     now = time.time()
     if (not invite or invite['revoked'] or invite['redeemed_by'] or invite['expires_at'] <= now
-            or invite['username_key'] != username_key):
+            or (invite['username_key'] != username_key and not (invite['cohort']=='friend' and invite['username_key']==''))):
         fail('This invitation is invalid, expired, or belongs to another username.', 'invalid_invite')
     cohort=invite['cohort']
     validate_cohort(cohort,invite['access_kind'])
@@ -206,7 +206,7 @@ def enroll(db, user_id, username_key, token):
         if not beta_terms.trial_available(now):
             fail('A full seven-day trial is no longer available.', status=409)
         db.execute('INSERT INTO beta_trials VALUES(?,?,?)', (user_id, now, user_id))
-    db.execute('UPDATE beta_invites SET redeemed_by=? WHERE id=?', (user_id, invite['id']))
+    db.execute('UPDATE beta_invites SET redeemed_by=?,username_key=? WHERE id=?', (user_id,username_key,invite['id']))
     audit(db, user_id, 'redeem_invite', invite['id'])
 
 
@@ -232,23 +232,25 @@ def bootstrap(db, username_key):
     return user[0]
 
 
-def issue(db, actor, username_key, *, hours=48, access_kind, evidence, cohort='beta'):
+def issue(db, actor, username_key, *, hours=48, access_kind, evidence, cohort='beta', unbound=False):
     validate_cohort(cohort,access_kind)
     require_operator(db, actor)
+    if not isinstance(username_key,str) or (unbound and (cohort!='friend' or username_key!='')) or (not unbound and not username_key):
+        fail('Only dedicated friend codes can be issued without a username.',status=400)
     if not isinstance(hours, int) or not 1 <= hours <= 168:
         fail('Invitation lifetime must be 1-168 hours.', status=400)
     if access_kind not in ('paid_beta', 'preview') or not isinstance(evidence, str) or not 1 <= len(evidence.strip()) <= 300:
         fail('Record paid receipt verification or an explicit preview reason.', status=400)
     if db.execute('SELECT 1 FROM users WHERE username_key=?', (username_key,)).fetchone():
         fail('That username exists; grant the existing account explicitly.', status=409)
-    if db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>?', (username_key, time.time())).fetchone():
+    if username_key and db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>?', (username_key, time.time())).fetchone():
         fail('This username already has a live invitation.', status=409)
     capacity(db,cohort)
-    token = secrets.token_urlsafe(32)
+    token = ('FRIEND-' if unbound else '') + secrets.token_urlsafe(32)
     invite_id = secrets.token_hex(12)
     db.execute('INSERT INTO beta_invites(id,token_hash,username_key,expires_at,access_kind,evidence,created_at,cohort) VALUES(?,?,?,?,?,?,?,?)',
                (invite_id, digest(token), username_key, time.time()+hours*3600, access_kind, evidence.strip(), time.time(),cohort))
-    audit(db,actor,'issue_invite',invite_id,access_kind+':'+cohort)
+    audit(db,actor,'issue_invite',invite_id,access_kind+':'+cohort+(':unbound' if unbound else ''))
     return invite_id, token
 
 
@@ -308,3 +310,14 @@ def move_friend(db, actor, username_key, evidence):
     friend_rates(db,row['user_id'],evidence.strip())
     db.execute('UPDATE users SET session_epoch=session_epoch+1 WHERE id=?',(row['user_id'],))
     audit(db,actor,'move_friend',row['user_id'],evidence.strip())
+
+
+def issue_friend_codes(db, actor, *, count=5, hours=168, evidence):
+    """Called inside the operator transaction; tokens are returned only once."""
+    require_operator(db,actor)
+    if type(count) is not int or not 1<=count<=FRIEND_LIMIT:
+        fail('Choose one to five friend codes.',status=400)
+    if occupied(db,cohort='friend')+count>FRIEND_LIMIT:
+        fail('Not enough free friend places; no codes were created.','beta_full',409)
+    return [issue(db,actor,'',hours=hours,access_kind='preview',cohort='friend',
+                  evidence=evidence,unbound=True) for _ in range(count)]

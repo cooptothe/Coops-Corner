@@ -58,3 +58,20 @@ Rehearse any full rollback with an isolated restored database and a compatible
 cohort-aware build. Never overwrite current member/payment records with an old
 backup to force a rollback. Existing reboot evidence remains historical to its
 recorded commit; do not overwrite its baseline after this source update.
+
+## Friend codes before usernames exist
+
+`friend-codes --count 5 --hours 168 --evidence 'Owner approved contributors'`
+(server-only, with the same --db and --operator arguments) creates five separate
+FRIEND-prefixed, single-use codes. They reserve the five friend places, not beta
+places. Each friend chooses a username at signup and enters one code. Redemption
+atomically binds the invitation to that account; reuse, expiry and revocation
+are denied. Ordinary beta invitations remain username-bound. Codes expire after
+seven days; grant end remains November 20 and monthly rates remain locked.
+
+Codes are displayed only after the transaction commits. The database stores
+hashes only. Copy them privately and share one per intended friend; possession
+allows first redemption, so do not publish them or paste them into shared logs.
+Repeating a five-code issue while those places are reserved stops without
+creating extra reservations. Lost unused codes can be revoked by invitation ID
+and replaced; they cannot be recovered from their hashes.
