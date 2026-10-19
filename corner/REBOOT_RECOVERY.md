@@ -1,5 +1,11 @@
 # Free recovery checks — October 19, 2026
 
+Historical record. For current open/completed gates, see
+[October 19 release status](RELEASE_STATUS_20261019.md). The owner has since
+confirmed iPhone Home Screen installation; supplied post-reboot output confirms
+continuity/HTTPS passed at 0ee9728. Full prior-release backend/schema rollback
+remains a separate open gate.
+
 Previous VPS deployment was confirmed at 0ef5904: production build, 197 frontend
 checks, 108 no-spend acceptance tests, public HTTPS/access guards, encrypted
 checkpoint and active backup/readiness timers passed. Collector/checkout were

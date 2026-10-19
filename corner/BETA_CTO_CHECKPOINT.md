@@ -1,5 +1,11 @@
 # Beta release checkpoint â€” October 18, 2026
 
+Historical record. For current open/completed gates, see
+[October 19 release status](RELEASE_STATUS_20261019.md). The owner has since
+confirmed iPhone Home Screen installation; supplied post-reboot output confirms
+continuity/HTTPS passed at 0ee9728. Full prior-release backend/schema rollback
+remains a separate open gate.
+
 Release target: October 20. Go/no-go: October 19 at 8 p.m. America/Chicago.
 Owner direction: no spending until funds are available. Do not activate paid
 collection, payable checkout, purchase infrastructure, or send wallet transfers.

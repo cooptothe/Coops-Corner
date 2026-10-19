@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 from urllib.request import build_opener, HTTPSHandler, HTTPRedirectHandler, Request
 
 HOSTS={'coopscorner.tech','www.coopscorner.tech','localhost','127.0.0.1','::1'}
-CHECKS=[('/login',200),('/lab',200),('/tracker',200),('/account',200),
+CHECKS=[('/invite',200),('/login',200),('/lab',200),('/tracker',200),('/account',200),
         ('/manifest.webmanifest',200),('/assets/corner-icon-192.png',200),('/assets/corner-icon-512.png',200),
         ('/api/refresh/v1/auth/me',401),('/api/refresh/v1/billing/status',401),
         ('/api/refresh/v1/tracker/state',401),('/api/refresh/v1/props',401),

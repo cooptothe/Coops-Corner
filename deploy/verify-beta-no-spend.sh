@@ -49,7 +49,7 @@ while read -r corner_unit _; do
 done < <(systemctl list-unit-files --type=service --no-legend --no-pager)
 
 .venv-api/bin/python -m unittest \
-  tests.test_friend_membership tests.test_member_load tests.test_release_probe tests.test_beta_codes tests.test_invitation_welcome tests.test_beta_access tests.test_trial_enforcement \
+  tests.test_friend_membership tests.test_member_load tests.test_public_member_probe tests.test_release_probe tests.test_beta_codes tests.test_invitation_welcome tests.test_beta_access tests.test_trial_enforcement \
   tests.test_billing_checkout tests.test_beta_invoices tests.test_beta_billing \
   tests.test_beta_receiving tests.test_beta_terms tests.test_billing_offer \
   tests.test_accounts tests.test_props_dfs_references tests.test_clv_coverage
@@ -94,5 +94,7 @@ else
   echo 'No-spend checks and isolated authenticated saved-odds load passed.'
 fi
 echo 'No paid collection, payable checkout, wallet transfers or reboot were enabled.'
-echo 'Pending: funded receive tests, live provider/quota smoke, public-proxy member journey, physical mobile installation, and reboot/rollback. See member-load-vps.json for isolated load coverage.'
+echo 'Open gates: real invitation signup/public member journey, eligible saved-odds VPS load, funded receive tests, provider/quota smoke, and full prior-release backend/schema rollback.'
+echo 'Owner already confirmed iPhone Safari/Home Screen installation and the earlier reboot exercise; those are historical checks, not repeated by this batch.'
+echo 'See corner/RELEASE_STATUS_20261019.md and retained/release-evidence for scope and current evidence.'
 git log -1 --oneline
