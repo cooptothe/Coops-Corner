@@ -18,13 +18,17 @@ def main():
     bootstrap.add_argument('username')
     for name in ('invite', 'grant'):
         p = commands.add_parser(name)
-        p.add_argument('username')
+        p.add_argument('username', **({'nargs':'?'} if name=='invite' else {}))
         p.add_argument('--kind', choices=('preview','paid_beta'), required=True)
         p.add_argument('--cohort', choices=('beta','friend'), default='beta')
         p.add_argument('--evidence', required=True,
                        help='Preview reason or operator-verified receipt reference; no secrets')
         if name == 'invite':
             p.add_argument('--hours', type=int, default=48)
+    p = commands.add_parser('beta-codes')
+    p.add_argument('--count',type=int,default=1)
+    p.add_argument('--hours',type=int,default=168)
+    p.add_argument('--evidence',required=True)
     p = commands.add_parser('friend-codes')
     p.add_argument('--count',type=int,default=5)
     p.add_argument('--hours',type=int,default=168)
@@ -66,10 +70,12 @@ def main():
                         beta.fail('Operator account not found.')
                     actor = operator[0]
                     beta.require_operator(db, actor)
-                    if args.command == 'friend-codes':
+                    if args.command == 'beta-codes':
+                        friend_codes=beta.issue_beta_codes(db,actor,count=args.count,hours=args.hours,evidence=args.evidence)
+                    elif args.command == 'friend-codes':
                         friend_codes=beta.issue_friend_codes(db,actor,count=args.count,hours=args.hours,evidence=args.evidence)
                     elif args.command == 'invite':
-                        invite_id, token = beta.issue(db, actor, auth.clean_username(args.username)[1], hours=args.hours, access_kind=args.kind, evidence=args.evidence, cohort=args.cohort)
+                        invite_id, token = beta.issue(db, actor, auth.clean_username(args.username)[1] if args.username else '', hours=args.hours, access_kind=args.kind, evidence=args.evidence, cohort=args.cohort, unbound=not bool(args.username))
                         issued_invite=(invite_id,token,welcome.wrap(db,actor,token))
                     elif args.command == 'grant':
                         beta.grant(db, actor, auth.clean_username(args.username)[1], args.kind, args.evidence, cohort=args.cohort)
@@ -99,8 +105,9 @@ def main():
                     label=datetime.fromtimestamp(expires,ZoneInfo('America/Chicago')).strftime('%b %d, %Y %I:%M %p Central')
                 except ZoneInfoNotFoundError:
                     label=datetime.fromtimestamp(expires,timezone.utc).strftime('%b %d, %Y %I:%M %p UTC')
-                print(f'Friend {index} | ID: {invite_id} | Expires: {label}\nCode (shown once): {code}\nPrivate link: https://coopscorner.tech/invite#{code}')
-            if friend_codes:print('Each code reserves one friend place and works once with a new chosen username. Store privately and share one code per friend.')
+                label_pool='Beta' if args.command=='beta-codes' else 'Friend'
+                print(f'{label_pool} {index} | ID: {invite_id} | Expires: {label}\nCode (shown once): {code}\nPrivate link: https://coopscorner.tech/invite#{code}')
+            if friend_codes:print('Each code reserves one place in its own pool and works once with a new chosen username. Store privately and share one code per friend.')
     except (TrackerError, auth.AuthError) as exc:
         parser.exit(1, str(exc)+'\n')
     finally:

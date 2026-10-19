@@ -420,7 +420,7 @@ export default function InvitationPage() {
                 ],
                 [
                   "Can I share my invitation?",
-                  "Keep it for the person it was issued to. A friend code binds to the first new account that successfully claims it; a named beta invitation must match its intended username. It cannot be reused.",
+                  "Keep it for the person it was issued to. A friend code binds to the first new account that successfully claims it; a specifically named invitation must match its intended username. New beta invitations let you choose your username at signup. It cannot be reused.",
                 ],
                 [
                   "What happens after my free access?",

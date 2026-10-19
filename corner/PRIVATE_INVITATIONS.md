@@ -27,3 +27,11 @@ No invitation operation enables trials, collection, payments, live packages or r
 If five friend places have never been reserved and the pool is empty, this creates five one-time codes and prints the five links after commit. If live invitations already exist, it asks privately for their saved raw codes and wraps them without new reservations. It cannot recover hashes into lost codes. Already-enrolled friends retain their seats. It does not create additional reservations to fill an already-used pool. A checkpoint follows successful preparation.
 
 New `beta_admin invite` and `friend-codes` output branded links automatically and require the welcome agreement. Existing named beta codes can be wrapped with the single-code command above once their recipients are ready. Share links yourself; this update sends no invitations or emails.
+
+## Username-free beta links
+
+    .venv-api/bin/python -m pipelines.invitation_admin --db /srv/corner/config/staging-tracker.sqlite3 --operator wonya betas
+
+With no unused beta invitations, this issues links for the remaining available beta places (ten minus active/suspended members and reservations). If unused codes already exist, it asks for those codes and prints their links without adding reservations. It never removes current members or changes paid/friend pricing. New beta codes let recipients choose usernames at signup. Legacy specifically named invitations remain identity-bound; revoke and replace them explicitly if that restriction is unwanted.
+
+For a smaller batch use `beta_admin ... beta-codes --count N --evidence "Owner-approved beta trial"`. The ordinary `invite` command now accepts an omitted username too. Paid-beta evidence is still an explicit operator-only action; the bulk command issues trials only.

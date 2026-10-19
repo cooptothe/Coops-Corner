@@ -42,13 +42,13 @@ class FriendCodes(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:self.assertEqual(sum(pool.map(redeem,range(2))),1)
         self.assertEqual(beta.occupied(self.store._db,cohort='friend'),1)
 
-    def test_expired_revoked_and_unbound_beta_codes_are_denied(self):
+    def test_expired_revoked_and_implicit_unbound_codes_are_denied(self):
         codes=self.codes(2)
         self.tx(beta.revoke,self.owner,codes[0][0])
         self.store._db.execute('UPDATE beta_invites SET expires_at=0 WHERE id=?',(codes[1][0],))
         for index,(_,code) in enumerate(codes):
             with self.assertRaises(TrackerError):self.store.create_user('Denied'+str(index),'denied'+str(index),'hash',code)
-        with self.assertRaises(TrackerError):self.tx(beta.issue,self.owner,'',access_kind='preview',cohort='beta',unbound=True,evidence='test')
+        with self.assertRaises(TrackerError):self.tx(beta.issue,self.owner,'',access_kind='preview',cohort='beta',evidence='test')
         with self.assertRaises(TrackerError):self.tx(beta.issue,self.owner,'',access_kind='preview',cohort='friend',evidence='test')
         self.assertEqual(beta.occupied(self.store._db,cohort='friend'),0)
 

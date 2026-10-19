@@ -5,7 +5,7 @@ umask 077
 cd /srv/corner/app
 
 .venv-api/bin/python -m unittest \
-  tests.test_friend_codes tests.test_friend_membership tests.test_invitation_welcome tests.test_beta_access tests.test_beta_terms tests.test_trial_enforcement tests.test_billing_offer tests.test_beta_billing tests.test_beta_invoices tests.test_member_load tests.test_large_tool_pages tests.test_manual_markets tests.test_alternate_props tests.test_release_probe tests.test_props_dfs_references tests.test_prop_markets tests.test_one_sided_props tests.test_automatic_prop_margin tests.test_assumed_margin_props tests.test_props_refresh \
+  tests.test_friend_codes tests.test_friend_membership tests.test_beta_codes tests.test_invitation_welcome tests.test_beta_access tests.test_beta_terms tests.test_trial_enforcement tests.test_billing_offer tests.test_beta_billing tests.test_beta_invoices tests.test_member_load tests.test_large_tool_pages tests.test_manual_markets tests.test_alternate_props tests.test_release_probe tests.test_props_dfs_references tests.test_prop_markets tests.test_one_sided_props tests.test_automatic_prop_margin tests.test_assumed_margin_props tests.test_props_refresh \
   tests.test_clv tests.test_tracker_service tests.test_clv_coverage tests.test_tracker_store \
   tests.test_lab_research_board tests.test_trends_service tests.test_trends_worker tests.test_prop_trends \
   tests.test_additional_markets tests.test_featured_markets \

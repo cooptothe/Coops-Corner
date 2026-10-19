@@ -2,7 +2,7 @@
 
 Invites reserve one of ten beta places or five separate friend places.
 Suspension retains its place; explicit
-closure releases it. Only hashed, expiring, identity-bound invite codes persist.
+closure releases it. Only hashed, expiring invite codes persist. Open codes bind to the first successful signup; explicitly named legacy invitations retain their identity restriction.
 An operator issues paid invites only after independently verifying the receipt.
 """
 import hashlib
@@ -204,7 +204,7 @@ def enroll(db, user_id, username_key, token):
     invite = db.execute('SELECT * FROM beta_invites WHERE token_hash=?', (digest(token),)).fetchone()
     now = time.time()
     if (not invite or invite['revoked'] or invite['redeemed_by'] or invite['expires_at'] <= now
-            or (invite['username_key'] != username_key and not (invite['cohort']=='friend' and invite['username_key']==''))):
+            or invite['username_key'] not in ('',username_key)):
         fail('This invitation is invalid, expired, or belongs to another username.', 'invalid_invite')
     from corner.invitation_welcome import require_acceptance
     require_acceptance(db,invite)
@@ -249,8 +249,8 @@ def bootstrap(db, username_key):
 def issue(db, actor, username_key, *, hours=48, access_kind, evidence, cohort='beta', unbound=False):
     validate_cohort(cohort,access_kind)
     require_operator(db, actor)
-    if not isinstance(username_key,str) or (unbound and (cohort!='friend' or username_key!='')) or (not unbound and not username_key):
-        fail('Only dedicated friend codes can be issued without a username.',status=400)
+    if not isinstance(username_key,str) or (unbound and username_key!='') or (not unbound and not username_key):
+        fail('A username-free invitation must explicitly use an empty username.',status=400)
     if not isinstance(hours, int) or not 1 <= hours <= 168:
         fail('Invitation lifetime must be 1-168 hours.', status=400)
     if access_kind not in ('paid_beta', 'preview') or not isinstance(evidence, str) or not 1 <= len(evidence.strip()) <= 300:
@@ -260,7 +260,7 @@ def issue(db, actor, username_key, *, hours=48, access_kind, evidence, cohort='b
     if username_key and db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>?', (username_key, time.time())).fetchone():
         fail('This username already has a live invitation.', status=409)
     capacity(db,cohort)
-    token = ('FRIEND-' if unbound else '') + secrets.token_urlsafe(32)
+    token = (('FRIEND-' if cohort=='friend' else 'BETA-') if unbound else '') + secrets.token_urlsafe(32)
     invite_id = secrets.token_hex(12)
     db.execute('INSERT INTO beta_invites(id,token_hash,username_key,expires_at,access_kind,evidence,created_at,cohort) VALUES(?,?,?,?,?,?,?,?)',
                (invite_id, digest(token), username_key, time.time()+hours*3600, access_kind, evidence.strip(), time.time(),cohort))
@@ -334,4 +334,15 @@ def issue_friend_codes(db, actor, *, count=5, hours=168, evidence):
     if occupied(db,cohort='friend')+count>FRIEND_LIMIT:
         fail('Not enough free friend places; no codes were created.','beta_full',409)
     return [issue(db,actor,'',hours=hours,access_kind='preview',cohort='friend',
+                  evidence=evidence,unbound=True) for _ in range(count)]
+
+
+def issue_beta_codes(db, actor, *, count=1, hours=168, evidence):
+    """Reserve beta trials without preselecting usernames; caller owns transaction."""
+    require_operator(db,actor)
+    if type(count) is not int or not 1<=count<=LIMIT:
+        fail('Choose one to ten beta codes.',status=400)
+    if occupied(db,cohort='beta')+count>LIMIT:
+        fail('Not enough free beta places; no codes were created.','beta_full',409)
+    return [issue(db,actor,'',hours=hours,access_kind='preview',cohort='beta',
                   evidence=evidence,unbound=True) for _ in range(count)]
