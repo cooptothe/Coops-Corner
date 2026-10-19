@@ -1,8 +1,8 @@
 """Server-only beta administration. Never exposes an HTTP bootstrap endpoint."""
 import argparse
 import os
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime,timezone
+from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 
 from corner import auth, beta_access as beta
 from corner.tracker_store import TrackerStore, TrackerError
@@ -91,7 +91,10 @@ def main():
                 raise
             for index,(invite_id,code) in enumerate(friend_codes,1):
                 expires=db.execute('SELECT expires_at FROM beta_invites WHERE id=?',(invite_id,)).fetchone()[0]
-                label=datetime.fromtimestamp(expires,ZoneInfo('America/Chicago')).strftime('%b %d, %Y %I:%M %p Central')
+                try:
+                    label=datetime.fromtimestamp(expires,ZoneInfo('America/Chicago')).strftime('%b %d, %Y %I:%M %p Central')
+                except ZoneInfoNotFoundError:
+                    label=datetime.fromtimestamp(expires,timezone.utc).strftime('%b %d, %Y %I:%M %p UTC')
                 print(f'Friend {index} | ID: {invite_id} | Expires: {label}\nCode (shown once): {code}')
             if friend_codes:print('Each code reserves one friend place and works once with a new chosen username. Store privately and share one code per friend.')
     except (TrackerError, auth.AuthError) as exc:

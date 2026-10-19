@@ -1,4 +1,6 @@
 import unittest
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from tests import test_friend_membership as fixtures
 from corner import beta_access as beta
@@ -49,5 +51,15 @@ class FriendCodes(unittest.TestCase):
         with self.assertRaises(TrackerError):self.tx(beta.issue,self.owner,'',access_kind='preview',cohort='beta',unbound=True,evidence='test')
         with self.assertRaises(TrackerError):self.tx(beta.issue,self.owner,'',access_kind='preview',cohort='friend',evidence='test')
         self.assertEqual(beta.occupied(self.store._db,cohort='friend'),0)
+
+    def test_cli_displays_five_committed_codes_and_refuses_second_batch(self):
+        args=[sys.executable,'-m','pipelines.beta_admin','--db',self.path,'--operator','owner','friend-codes','--count','5','--hours','168','--evidence','Synthetic CLI check']
+        result=subprocess.run(args,capture_output=True,text=True,timeout=20)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(result.stdout.count('Code (shown once): FRIEND-'),5)
+        self.assertEqual(beta.occupied(self.store._db,cohort='friend'),5)
+        second=subprocess.run(args,capture_output=True,text=True,timeout=20)
+        self.assertNotEqual(second.returncode,0)
+        self.assertNotIn('Code (shown once)',second.stdout)
 
 if __name__=='__main__':unittest.main()
