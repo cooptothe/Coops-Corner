@@ -1,261 +1,215 @@
-# The Corner: pregame collection and historical research plan
+# The Corner: collection budget and Lab-only historical odds
 
-Planning date: October 19, 2026 — America/Chicago.
-Status: proposed budget and implementation sequence. No collection, provider
-request, purchase, quota migration or activation is authorized or performed by
-this document. Current disabled staging and local manual controls stay intact.
+Revised October 19, 2026 — America/Chicago.
+Owner clarification: paid historical odds are needed ONLY for The Lab.
+Status: planning only. No provider calls, runtime cap changes or activation.
+This revision replaces the earlier general 500K historical-research proposal.
 
-## 1. Financial envelope
+## 1. Lab data sources and scope
 
-The provider currently advertises 15 million monthly credits for $249 USD,
-including historical access. This is the API subscription only; hosting, any
-applicable taxes/currency charges and other operating costs are outside this
-$249 calculation. Verify the account's actual purchased quota and renewal
-boundary before activation. Do not infer purchase from the advertised plan.
+The Lab has two distinct data needs:
 
-Proposed hard allocations per provider billing cycle:
+| Feature | Data needed | Paid historical odds required? |
+|---|---|---|
+| Last game / last 5 / 10 / 20 results | Player game logs | No |
+| Hit rate against a user-selected line | Game logs plus selected threshold | No |
+| Matchup, minutes, role and supported splits | Verified statistics/context | No |
+| News/injury context where available | Free source responses | No |
+| Current sportsbook line | Reuse our shared current-odds inventory | No extra historical request |
+| Actual bookmaker line/price before a past game | Matched historical odds | Yes, if not already retained |
+| Historical price/line movement display | Selected historical snapshots | Yes, only for missing retained snapshots |
 
-| Pool | Credits | Scope |
-|---|---:|---|
-| Main | 7,500,000 | Featured odds plus five scheduled additional markets |
-| Props | 5,000,000 | Existing reviewed scheduled player-prop catalog |
-| History | 500,000 | Bounded historical odds, discovery and reconciliation |
-| Metadata/operations | 500,000 | Existing operational allowance |
-| Protected reserve | 1,500,000 | Not available to routine dispatch |
-| Total | 15,000,000 | 13.5M maximum routine dispatch |
+The existing trends adapter uses shared ESPN game-log and context caches. Free
+sources are subject to their availability, coverage and usage terms; missing
+fields must remain unavailable rather than be invented. Cache and rate-limit
+source requests. Historical betting prices are not a substitute for game logs,
+verified player outcomes, participation, minutes or injury information.
 
-This is a carve-out from the CURRENT 8M main pool, not an extra allowance and
-not a proposed reduction of the protected reserve. The current governor has
-only main/props/metadata pools. A fourth history pool and audited migration are
-implementation work, not already-enforced behavior. Never reset a live cycle
-or discard existing usage to adopt the proposal.
+Important UI distinction: "8 of last 10 above today's 22.5 line" is a threshold
+comparison, not proof that the player beat the actual historical sportsbook line
+8 times. Only label a result as beating the historical offered line when that
+specific pregame line is matched and available. Pushes, DNPs, missing stats and
+sample size remain visible. Historical hit rates are not forecast win chances.
 
-Use actual provider billing dates, not calendar-month resets. Model 31 days for
-conservative forecasting; prorate pacing against the actual cycle length and
-remaining credits, including preexisting manual or research usage on this key.
-The provider's response headers, reconciled with the ledger, determine charges.
+Paid history is NOT allocated to the EV/arbitrage/middles/promo feeds, automated
+CLV gap-filling, a general model-training service or an unrestricted research
+crawler. Those feeds reuse current collected odds. Tracker CLV continues to use
+eligible retained reference observations and shows unavailable data when missing.
+A future scope expansion requires a new budget review.
 
-## 2. Pregame schedule and coverage limits
+## 2. Proposed monthly envelope
 
-All paid dispatch remains inside 08:00–24:00 Central. Started events are not
-collected as pregame. No overnight backfill of missed live ticks at 08:00.
+The advertised API plan is $249 USD for 15M credits including historical access.
+Hosting, taxes/currency charges and other costs are outside this API allowance.
+Verify the actual purchased quota and provider billing dates before activation.
 
-| Scope / time to start | Standard group | Approved exchange group |
+| Pool | Credits per provider billing cycle |
+|---|---:|
+| Main markets plus scheduled alternates | 7,900,000 |
+| Scheduled player props | 5,000,000 |
+| Lab-only historical odds maximum | 100,000 |
+| Metadata/operations | 500,000 |
+| Protected reserve, not routine spending | 1,500,000 |
+| Total | 15,000,000 |
+
+The initial Lab history ceiling is reduced from 500K to 100K. The released 400K
+returns to planned main-market headroom; the protected reserve is unchanged.
+The 100K is a ceiling, not a target. If The Lab only displays current-threshold
+hit rates and game logs, historical-odds spending can remain ZERO.
+
+The current implemented governor still has 8M main / 5M props / 500K metadata
+and 1.5M reserve, with no historical adapter or fourth pool. Implementing the
+100K Lab pool requires an audited carve-out from main, preserving prior usage,
+reservations, unknown charges and cycle bindings. Do not reset the ledger or
+claim this document has changed deployed limits.
+
+## 3. 16-hour pregame schedule
+
+All paid dispatch remains 08:00–24:00 Central; no started-event pregame jobs,
+no overnight calls and no replay of missed live ticks when the window opens.
+
+| Scope / time to start | Standard books | Approved exchange sources |
 |---|---:|---:|
-| Featured main odds, throughout service window | 60 seconds | 20 seconds |
+| Main featured odds, throughout the service window | 60 seconds | 20 seconds |
 | Additional odds, final 30 minutes only | 60 seconds | 20 seconds |
-| Props, greater than 6 hours away | 60 minutes | 60 minutes |
-| Props, 2–6 hours away | 15 minutes | 15 minutes |
-| Props, 15 minutes–2 hours away | 5 minutes | 5 minutes |
+| Props, greater than 6 hours | 60 minutes | 60 minutes |
+| Props, 2–6 hours | 15 minutes | 15 minutes |
+| Props, 15 minutes–2 hours | 5 minutes | 5 minutes |
 | Props, final 15 minutes | 60 seconds | 20 seconds |
 
-This preserves the current candidate schedule. Fast-group classifications must
-be validated per provider venue/market; the proposed group cannot simply make
-all venues exchanges. Never poll faster than the documented source cadence.
-History has no 20-second cadence: it is immutable data requested in batches.
-Events starting during the overnight gap do not get near-start collection.
+This preserves the existing candidate cadence. Validate each fast source's
+classification before activation. Do not request faster than source updates.
+Early-morning games during the overnight gap do not get near-start updates.
 
-The five scheduled additional keys are alternate_spreads, alternate_totals,
-team_totals, btts and draw_no_bet. The current governor admits at most 50 distinct
-additional-market events per Central day and at most 30,000 additional credits
-per day. These are global deployed caps, not per league or per member. The local
-manual app is separate: it has no restored three-game cap, uses its local-day
-market policy, and does not silently inherit deployed collection schedules.
-Alternate team totals and expanded alternate player props in the LOCAL catalog
-are not implicitly added to this deployed forecast.
+Additional keys: alternate_spreads, alternate_totals, team_totals, btts,
+draw_no_bet. Existing deployed caps remain 50 admitted events/day and 30,000
+additional credits/day, shared across leagues. This is not unlimited alternate
+coverage. Alternate team totals and the expanded LOCAL alternate-prop catalog
+are not silently added to scheduled scope. Local manual-fetch rules remain
+separate and do not regain the removed three-game cap.
 
-At full returned markets, existing groups of six standard and six fast books:
-- Featured per sport key/day: 3 × (960 + 2,880) = 11,520 credits.
-- 18 full-time active sport keys × 31 days = 6,428,160 credits.
-- Additional per admitted event: 5 × (30 + 90) = 600 credits.
-- 50/day × 31 days = at most 930,000 additional credits.
-- Main plus additional planning total = 7,358,160 credits.
-- Proposed 7.5M main-pool headroom = 141,840 credits, about 1.9%.
+Conservative 31-day baseline, assuming every requested market is returned:
+- Featured per sport key/day = 3 × (960 + 2,880) = 11,520 credits.
+- 18 full-time active expanded sport keys × 31 = 6,428,160 credits.
+- Additional per game = 5 × (30 + 90) = 600 credits.
+- 50 additional games/day × 31 = 930,000 credits.
+- Main plus additional = 7,358,160 credits.
+- Proposed main headroom = 7,900,000 − 7,358,160 = 541,840 credits.
+- With full 5M props, 500K operations and 100K Lab history: routine planned usage
+  = 12,958,160, plus 541,840 headroom and the 1.5M protected reserve.
 
-The 18-key assumption includes actual expanded provider sport keys. ATP/WTA
-picker names do not count as one key if discovery expands them into several
-tournaments. At 19 full-time keys and maximum additional coverage, main usage
-would be 7,715,280: 215,280 OVER the proposed main allocation. Inactive leagues,
-missing markets and shorter actual activity may reduce charges, but savings
-are not pre-spent. A provider-calendar audit is required before live sign-off.
+Expanded tennis tournament keys count individually. Nineteen full-time keys plus
+max additional coverage = 7,715,280, within 7.9M. Twenty = 8,072,400, which exceeds
+main by 172,400. Coverage, active hours and missing markets can reduce charges;
+do not spend assumed savings ahead of evidence. Reforecast actual slates before
+activation. Worker/publication throughput is an independent cadence gate.
 
-With props and operations using their full allowances, modeled routine usage
-is 13,358,160 credits including 500K history; 141,840 operating headroom and the
-1.5M protected reserve remain. It is a conditional fit, not unlimited coverage.
-Serial worker/publication throughput must also sustain the cadences; credit
-arithmetic alone does not establish update latency.
+The scheduled props catalog remains 16 basketball / 20 football / 17 baseball /
+10 hockey / 8 soccer keys, NOT the larger local manual catalog. Expanding that
+set requires its own forecast. The legacy basketball set includes three Q1
+prop keys; this document does not silently remove or expand deployed markets.
 
-## 3. Historical work: purpose, scope and cost
+## 4. Lab-only historical acquisition
 
-Use history for: missing closing-reference observations; selected opening/near-
-close price comparisons; and reproducible, outcome-matched calibration studies.
-Do not download every five-minute snapshot for every event. Do not fetch history
-from a member page, on every Lab line adjustment, or once per user.
+History is requested in bounded background batches, not on a polling interval.
+The documented ceiling is 10 × markets × effective bookmaker regions per
+snapshot. Up to ten explicit books count as one region; 11–20 as two. Event
+history settles on unique returned markets; featured history budgets specified
+markets. Reserve the full requested ceiling, then reconcile actual headers.
 
-A historical request costs 10 × market count × effective bookmaker regions.
-With explicit bookmakers, up to ten count as one region, 11–20 as two. For the
-current two groups, plan two effective regions. Event history uses returned
-unique markets; featured history budgets specified markets. Reserve the full
-requested ceiling before dispatch; settle only against verified actual headers.
+For both current groups, full availability per requested timestamp:
+- One event with 16 basketball prop markets: 320 credits.
+- One event with 20 football prop markets: 400 credits.
+- Another timestamp incurs another charge; a user's repeat view must not.
 
-Examples for ONE requested timestamp, assuming full availability:
+Proposed sublimits within 100K: 90K selected Lab prop snapshots and 10K historical
+discovery/diagnostics/unknown-charge allowance. Example: 90 basketball games ×
+three timestamps × 320 = 86,400, within 90K. This is an illustration, not a promise
+of complete historical coverage. Selecting fewer needed markets can reduce cost.
 
-| Request | Planned cost |
-|---|---:|
-| One league, three featured markets, both groups | 60 |
-| One event, five additional markets, both groups | 100 |
-| One basketball event, 16 scheduled prop keys, both groups | 320 |
-| One football event, 20 scheduled prop keys, both groups | 400 |
+Operational rules:
+1. First ship the game-log/current-line Lab experience without paid history.
+   Only enable historical acquisition when the actual historical-line/price
+   feature is ready to use its results.
+2. Select exact missing event/market/book/time records after checking retained
+   captures. Default to one useful pregame snapshot for selected events; three
+   timestamps are an explicit line-movement study, not an automatic default.
+3. Initial funded pilot <=5K credits, within the 100K ceiling. Every manifest
+   specifies purpose, request set, maximum charge and matched event identities.
+4. Maximum batch reservation 10K; one batch in flight; at most one historical
+   HTTP request/second and within the provider's overall rate limit. Review at
+   20K per rolling seven days; hard stop at 100K/provider cycle. A fifth weekly
+   review does not reset the cycle. All retries/bootstrap/unknowns count.
+5. Candidate low-priority window: 09:00–11:00 Central, only after pregame jobs
+   are caught up. No timer is installed by this document. Stop before the next
+   dispatch for overdue current odds, backup lock, reconciliation uncertainty
+   or a budget refusal. No historical work outside the 16-hour window.
+6. Cache centrally. Exact canonical requests are reusable; after retrieval,
+   deduplicate by actual returned snapshot timestamp and event/book/market set.
+   Recent snapshots are generally five minutes apart. Do not buy second-by-
+   second requests for the same stored snapshot. Coverage varies by date/source.
+7. Record raw response/checksum, actual/requested time, acquisition time,
+   charge, event/player/line/settlement identities and provenance. Match only
+   pregame observations; the nearest snapshot is not necessarily the exact close.
+8. The Lab reads precomputed/cached records. Opening a player, adjusting the
+   chart line, changing filters or having more members cannot cause a paid
+   provider call. If history is absent, display "Historical line unavailable"
+   and retain the free game-log chart.
+9. Historical observations stay separate from fresh feed snapshots. Do not
+   change their dates or republish them as current opportunities. No outcome
+   label or projection is invented from odds alone.
+10. Check disk capacity before batches and include manifests/raw data in
+   encrypted backups. Storage growth and off-server delivery remain separate
+   operating considerations; API access does not make storage unlimited.
 
-Featured league history can include several games. Event props/additional history
-must be requested per event. Another timestamp incurs another charge. Coverage
-varies by bookmaker, sport and date. Available history does not mean every
-requested player/line existed. Recent snapshots are generally five minutes apart;
-additional-market history is available after May 3, 2023 at 05:30 UTC.
+## 5. Pacing and priorities
 
-Initial 500K history envelope:
+Use the actual provider cycle, not a calendar-month reset. Reconcile preexisting
+same-key local/manual spending; external usage drift pauses the strict governor.
+Forecast actual + reserved/unknown + remaining expected demand by pool daily
+and whenever active expanded keys or market catalogs change.
 
-| Historical purpose | Maximum credits/cycle |
-|---|---:|
-| Prop calibration / missing prop closes | 300,000 |
-| Additional-market price/CLV gaps | 100,000 |
-| Featured market studies / missing closes | 50,000 |
-| Historical discovery, sample diagnostics, unresolved charges | 50,000 |
-| Total | 500,000 |
+If forecasts exceed a limit: pause Lab historical batches first; then review
+additional coverage and slower early pregame polling; then distant props and
+early featured exchange polling. Preserve useful approved near-start coverage
+where affordable. Candidate reductions require a tested explicit policy; they
+are not implemented automatically here. No source is polled faster to chase
+missing data. Show skipped/stale coverage rather than pretend it is current.
 
-These are planning sublimits. No credit is spent simply because a sublimit exists.
-Examples, not guaranteed dataset sizes:
-- 300 basketball games × 3 timestamps × 320 = 288,000 credits, inside the prop
-  sublimit. A football-heavy sample costs more; recalculation is required.
-- 1,000 five-market additional event snapshots × 100 = 100,000 credits; this is
-  1,000 timestamps, not 1,000 games at several timestamps.
-- At most 833 three-market/two-group featured league snapshots fit in 50,000.
-- 500 basketball games × 3 × 320 = 480,000: it does NOT fit the 300K prop sublimit.
-
-Default new studies use full-game markets, excluding game-period markets.
-Published examples using the 16-key existing scheduled basketball catalog are
-conservative acquisition illustrations: that legacy scheduled set includes
-three Q1 prop keys. Removing them from deployed collection is a separate policy
-change, not silently assumed here.
-
-## 4. Batch operation and reuse
-
-1. Build a manifest offline: study purpose, market/book list, event IDs, requested
-   timestamps, full cost ceiling and sample-selection rule. Prefer a small
-   representative sample spanning price bands, sports and dates to a huge
-   cherry-picked backfill. Initial pilot ceiling: 25K credits, counted WITHIN
-   the cycle envelope; not an extra allowance.
-2. Put history behind current pregame work. Candidate maintenance slots are
-   09:00–11:00 Central, with an optional 13:00 review slot when queues are quiet.
-   These are proposed windows, not installed timers. Pause before dispatch when
-   current odds are overdue, backups hold the maintenance lock, reconciliation
-   is uncertain, or any budget gate is blocked.
-3. One batch in flight, maximum 25K credits reserved for a batch, at most one
-   historical HTTP request per second. Per-request cost and total shared provider
-   request rate still apply. Bootstrap uses at most 100K of the 500K envelope.
-4. Review at 100K historical credits per rolling seven days; hard stop at 500K
-   per provider cycle and within each sublimit. A fifth weekly review does not
-   reset or add credits. Bootstrap and retries count toward the same ceilings.
-5. Save raw response/checksum, actual snapshot timestamp, requested timestamp,
-   event/market/book identities, acquisition time, actual charge and provenance.
-   Cache exact canonical requests; after retrieval deduplicate by the ACTUAL
-   snapshot identity. Do not assume different requested times mean different
-   returned snapshots or charge users again for displaying cached results.
-6. Reuse retained routine captures first for CLV and research. Backfill only
-   genuine gaps after checking contract/player/line/settlement identity. Closest
-   available pregame snapshot is not automatically the exact closing price.
-7. Historical data stays in a historical namespace. Never republish it as fresh
-   odds, alter its dates, or use post-start prices to prove pregame model quality.
-
-Research needs independently matched outcomes, participation/void/push handling,
-and chronological out-of-sample evaluation. Historical odds alone do not supply
-verified player results or establish profitable predictions. Missing outcomes and
-coverage bias must be reported, not silently dropped to improve a score.
-
-## 5. Pacing, escalation and hard stops
-
-Recalculate provider-cycle forecasts at least daily and after discovery changes.
-Track actual + reserved/unknown charges + remaining scheduled demand for each
-pool. Report active expanded keys, admitted/skipped events, returned market
-counts, credits/day, cycle remaining and feed freshness. All users share this
-acquisition inventory; user count and repeated page views do not multiply calls.
-
-Priority order when forecasts exceed a limit:
-1. Stop/defer new historical batches. Do not touch the reserve.
-2. Review expensive additional coverage; a proposed degradation is 60-second
-   polling for all groups or a narrower final window, rather than buying data
-   that the API does not update. Keep skipped/degraded coverage visible.
-3. Slow distant pregame prop polling before sacrificing near-start coverage;
-   evaluate expanded prop markets selectively rather than turning on every
-   local market at once.
-4. If necessary, reduce early featured exchange polling toward 60 seconds while
-   preserving approved fast near-start sources. This needs a tested explicit
-   cadence policy; it is not implemented by this document.
-5. At a hard cap, do not dispatch. If useful coverage cannot be maintained, show
-   it as unavailable/stale and require an operator decision. No automatic paid
-   plan upgrade, reserve spending, hidden pool borrowing or account/key switch.
-
-Stopping history does not itself enlarge a fixed main pool. Moving unused history
-allocation back to main requires an audited, explicit cap transfer preserving
-15M total and 1.5M reserve. Initial implementation should refuse such transfers
-until separately tested; reduce demand instead. Same-key local manual requests
-also consume this purchased quota and must be reconciled; uncontrolled external
-usage pauses the current strict governor. Never run an unaccounted manual client
-alongside the supervised worker.
+Stopping Lab history does not automatically enlarge a fixed main pool. Any
+reallocation requires an audited transfer preserving the cycle total/reserve;
+initial implementation should refuse untested transfers. Never spend protected
+credits, upgrade the plan, switch keys or reset accounting automatically.
 
 ## 6. Implementation and activation sequence
 
-Phase A — free/offline engineering:
-- Add versioned proposed budget policy and a fourth ledger pool; preserve every
-  previous attempt, cycle binding, offset and reserved unknown. Verify allocation
-  sums, month boundaries, and safe migration against a copy, not a reset.
-- Implement a dedicated read-only historical acquisition adapter with fixed
-  endpoint allowlist, batch manifest, dry-run estimates, cache and separate data
-  namespace. Bind all paid requests to the same governor/key/cycle.
-- Persist work and outbox idempotently; use shared maintenance lock and quota
-  lease. Retrying publication/research must not buy another snapshot by default.
-- Refuse guessed charges after timeouts; reserve unknown costs, pause and require
-  operator reconciliation. The existing fail-closed policy remains in force.
-- Add backup/restore coverage for historical manifests, ledger/outbox and raw
-  captures. Test restore stays paused and replay adds neither charges nor rows.
-- Add offline scenarios for 18 versus 19+ keys, busy sports weekends, incomplete
-  market returns, repeated timestamps, billing rollover, cap refusals, source
-  withdrawal, external usage drift and interrupted checkpoints.
+A. Free/offline work: enforce Lab-only endpoint/manifest scope; add a versioned
+fourth-pool migration preserving all ledger history; implement cache/dedup,
+read-only historical publication, pacing and backup coordination. Keep all
+provider dispatch blocked. Match the existing cached ESPN/free-source path to
+Lab game-log needs independently of historical betting prices.
 
-Phase B — funded checks, deferred until authorized:
-- Verify purchased 15M quota/cycle and prior spending; do not print the key.
-- Run a pre-approved pilot <=25K history credits only after manifest review.
-  Verify actual headers, coverage, cache reuse, outcome matching and storage.
-- Run bounded live provider/cadence and throughput checks separately.
-- Include actual ledger/captures in a fresh coordinated encrypted checkpoint and
-  prove isolated recovery. Match activation evidence to the final deployed commit.
+B. Offline acceptance: 18/19/20-key budget scenarios; exact repeated snapshot
+reuse; missing markets; historical records never becoming fresh; concurrent
+users making zero paid calls; timeouts preserving unknown charges; lease/backup
+fencing; cycle boundaries; old ledger migration; disk-bound refusal; restored
+pending jobs staying paused with no duplicate charges or rows.
 
-Phase C — supervised beta operation:
-- Start with historical work paused; enable routine pregame collection only
-  after its independent activation gates pass.
-- Review first-day provider headers and projected cycle use. Enable history only
-  when coverage, queues and remaining allocations support its approved pilot.
-- Review daily for seven days, then weekly. Do not promise full expanded prop or
-  unlimited alt/history coverage before the actual slate forecast passes.
+C. Deferred funded gate: verify actual 15M subscription/quota/cycle and prior
+usage, review a <=5K Lab manifest, then run the explicitly authorized pilot.
+Validate headers, returned data relevance and cache reuse. Include the actual
+ledger/captures in an encrypted checkpoint and prove isolated recovery before
+activation. No payment or provider activation is authorized by this plan.
 
-## 7. Acceptance criteria
-
-No API or wallet spending during Phase A. Maximum routine allowance 13.5M;
-reserve 1.5M; provider cycle total 15M. Simulated 18-key baseline and all sublimits
-must reconcile. A 19-key full-time + max-alt slate must flag overbudget rather
-than pass. Duplicate cache reads make zero provider calls. Unknown costs never
-become zero automatically. Restored work remains paused and replay-safe.
-Historical observations cannot appear as live opportunities. No UI interaction
-starts a provider request. Costs and source timestamps remain auditable.
+D. Supervised operation: start Lab paid history paused. Complete the independent
+routine pregame activation gates first; turn on only approved Lab batches when
+current-data queues and cycle budgets permit. Review daily for the first week.
 
 Sources verified October 19, 2026:
 - Pricing: https://the-odds-api.com/
-- Historical endpoints/billing: https://the-odds-api.com/liveapi/guides/v4/#get-historical-event-odds
-- Featured history: https://the-odds-api.com/liveapi/guides/v4/#get-historical-odds
-- Provider intervals: https://the-odds-api.com/sports-odds-data/update-intervals.html
-- Market scope: https://the-odds-api.com/sports-odds-data/betting-markets.html
+- Historical billing/coverage: https://the-odds-api.com/liveapi/guides/v4/#get-historical-event-odds
+- Intervals: https://the-odds-api.com/sports-odds-data/update-intervals.html
+- Existing free-statistics implementation: corner/TRENDS.md and pipelines/trends_service.py.
 
-Code inspected: corner/collection_policy.py, corner/collection_quota.py,
-corner/credit_governor.py, corner/additional_markets.py, corner/prop_markets.py,
-pipelines/collection_provider.py and pipelines/collection_live.py. This document
-is a plan, not a claim that these proposed historical controls exist today.
+This document is proposed scope/budget, not a claim that the historical adapter,
+new quota pool or historical-line UI has been implemented or activated.
