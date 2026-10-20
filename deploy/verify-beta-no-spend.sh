@@ -19,7 +19,7 @@ collection=Path('/srv/corner/config/collection.env')
 assert collection.exists(),'Dedicated disabled collector configuration is missing'
 worker=dotenv_values(collection)
 assert worker.get('CORNER_COLLECTION_ENABLED')=='0','Collector is not configured disabled'
-assert not worker.get('ODDS_API_KEY'),'Worker has a provider key; inspect privately before continuing'
+# Funded standby may contain a key in this private file; disabled dispatch remains mandatory.
 load_dotenv('/srv/corner/config/staging.env',override=True)
 from corner.billing_config import checkout_config
 assert checkout_config() is None,'Checkout is enabled; stop and review the no-spend stage'
@@ -34,7 +34,7 @@ for line in listeners.splitlines():
         assert host in ('127.0.0.1','[::1]','::1'), 'An internal application port is publicly bound'
         seen.add(int(port))
 assert seen==private_ports, 'An expected internal service port is missing'
-print(json.dumps({'internal_ports_loopback_only':True,'staging_manual_spend_disabled':True,'collector_disabled':True,'provider_keys_absent':True,'checkout_disabled':True,'readonly_closing_query':'passed'}))
+print(json.dumps({'internal_ports_loopback_only':True,'staging_manual_spend_disabled':True,'collector_disabled':True,'staging_provider_key_absent':True,'worker_key_stored_disabled':bool(worker.get('ODDS_API_KEY')),'checkout_disabled':True,'readonly_closing_query':'passed'}))
 PY
 
 while read -r corner_unit _; do
@@ -49,7 +49,7 @@ while read -r corner_unit _; do
 done < <(systemctl list-unit-files --type=service --no-legend --no-pager)
 
 .venv-api/bin/python -m unittest \
-  tests.test_friend_membership tests.test_member_load tests.test_public_member_probe tests.test_release_probe tests.test_beta_codes tests.test_invitation_welcome tests.test_beta_access tests.test_trial_enforcement \
+  tests.test_friend_membership tests.test_member_load tests.test_collection_onboarding tests.test_public_member_probe tests.test_release_probe tests.test_beta_codes tests.test_invitation_welcome tests.test_beta_access tests.test_trial_enforcement \
   tests.test_billing_checkout tests.test_beta_invoices tests.test_beta_billing \
   tests.test_beta_receiving tests.test_beta_terms tests.test_billing_offer \
   tests.test_accounts tests.test_props_dfs_references tests.test_clv_coverage

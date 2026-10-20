@@ -11,7 +11,7 @@ cd /srv/corner/app
   tests.test_additional_markets tests.test_featured_markets \
   tests.test_featured_middles tests.test_featured_promos tests.test_product_api \
   tests.test_database_catalog tests.test_collection_worker tests.test_collection_runner \
-  tests.test_collection_adapters tests.test_collection_live tests.test_refresh_service
+  tests.test_collection_adapters tests.test_collection_onboarding tests.test_collection_live tests.test_refresh_service
 
 # Add friend-rate evidence before the account schema is migrated.
 test -f /usr/local/lib/corner-backup/billing_checkpoint.py

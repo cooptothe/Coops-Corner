@@ -76,8 +76,7 @@ def state():
     worker=Path('/srv/corner/config/collection.env')
     stage=dotenv_values(staging);collection=dotenv_values(worker)
     if (stage.get('CORNER_PRIVATE_BETA')!='1' or stage.get('CORNER_REFRESH_DAILY_CAP')!='0'
-            or stage.get('ODDS_API_KEY') or collection.get('CORNER_COLLECTION_ENABLED')!='0'
-            or collection.get('ODDS_API_KEY')):
+            or stage.get('ODDS_API_KEY') or collection.get('CORNER_COLLECTION_ENABLED')!='0'):
         raise RuntimeError('Disabled collection/private-beta configuration check failed')
     load_dotenv(staging,override=True)
     from corner.billing_config import checkout_config
