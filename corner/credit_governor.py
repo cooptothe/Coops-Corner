@@ -11,7 +11,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 
-from corner.collection_policy import CENTRAL, POOLS, TOTAL, PROTECTED, aware, interval, open_now, parse
+from corner.collection_policy import CENTRAL, POOLS, TOTAL, PROTECTED, aware, interval, open_now, parse, snapshot_max_age
 
 
 class Refused(ValueError):
@@ -135,8 +135,8 @@ class Governor:
             # ready() adjusts due times using the last dispatch, never replaying missed ticks.
             day = now.astimezone(CENTRAL).date().isoformat()
             if job.kind == 'additional':
-                if parse(job.starts_at) > now + timedelta(minutes=30):
-                    raise Refused('Additional markets only in final 30 pregame minutes')
+                if parse(job.starts_at) > now + timedelta(hours=1):
+                    raise Refused('Additional markets only in final pregame hour')
                 known = db.execute('SELECT 1 FROM additional_events WHERE day=? AND sport=? AND event_id=?',(day,job.sport,job.event_id)).fetchone()
                 if not known and db.execute('SELECT count(*) FROM additional_events WHERE day=?',(day,)).fetchone()[0] >= 50:
                     raise Refused('Additional-market daily event cap')
@@ -227,7 +227,7 @@ class Governor:
                     if source.timestamp()>nowstamp+5: raise ValueError('Future provider timestamp')
                     # Actionable snapshots always expire at strict source-band limits,
                     # even when distant polling deliberately runs less frequently.
-                    maxage=60 if job.group=='exchange' else 180
+                    maxage=snapshot_max_age(job.kind, job.group)
                     expiry=min(start.timestamp(),source.timestamp()+maxage,nowstamp+maxage)
                     rows.append((job.kind,job.sport,event['id'],book['key'],market['key'],start.timestamp(),source.timestamp(),nowstamp,expiry,json.dumps({'event':{k:v for k,v in event.items() if k!='bookmakers'},'book':{k:v for k,v in book.items() if k!='markets'},'market':market},separators=(',',':'))))
         # Exact request scope only. Never delete another book group/event/market.

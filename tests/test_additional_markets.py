@@ -97,7 +97,7 @@ class AdditionalTests(unittest.TestCase):
   e={'id':'e','sport_key':'basketball_nba','commence_time':START.isoformat()}
   jobs=[j for j in plan(NOW,['basketball_nba'],[e],additional=True) if j.kind=='additional']
   self.assertEqual(2,len(jobs));self.assertTrue(all(j.pool=='main' and j.cost==5 for j in jobs))
-  self.assertEqual(60,interval('additional','standard',NOW,START));self.assertEqual(20,interval('additional','exchange',NOW,START))
+  self.assertEqual(120,interval('additional','standard',NOW,START));self.assertEqual(20,interval('additional','exchange',NOW,START))
   e['commence_time']=(NOW+timedelta(hours=2)).isoformat()
   self.assertFalse(any(j.kind=='additional' for j in plan(NOW,['basketball_nba'],[e],additional=True)))
  def test_additional_snapshot_authority_withdrawal_and_expiry(self):
@@ -120,7 +120,7 @@ class AdditionalTests(unittest.TestCase):
    calls=[];pub=MainPublisher(Path(folder)/'retained',lambda:None,lambda path,**kw:calls.append(path))
    g.publish_pending('owner',NOW,pub);self.assertEqual(2,len(calls))
    info=json.loads((calls[0]/'manifest.json').read_text());self.assertIn('/events/scope-event/odds',info['endpoint'])
-   later=NOW+timedelta(seconds=60);g.acquire('owner',later);g.prepare_due(jobs[0],'owner',later)
+   later=NOW+timedelta(seconds=120);g.acquire('owner',later);g.prepare_due(jobs[0],'owner',later)
    token=g.claim(jobs[0],'owner',later);g.finish(jobs[0],token,'owner',later,{'x-requests-last':'0','x-requests-remaining':'14999999'},[])
    self.assertFalse(any(r['book_code']=='draftkings' for r in main_scopes(rows,g.path,later)))
    g.close()
@@ -142,7 +142,7 @@ class AdditionalTests(unittest.TestCase):
    g.db.executemany('INSERT INTO additional_events VALUES(?,?,?)',[(day,'basketball_nba',str(i)) for i in range(50)])
    j=Job('additional','basketball_nba','standard',STANDARD,SCHEDULED_ADDITIONAL_MARKETS,'new',START.isoformat())
    with self.assertRaisesRegex(Refused,'event cap'):g.claim(j,'owner',NOW)
-   far=Job('additional','basketball_nba','standard',STANDARD,SCHEDULED_ADDITIONAL_MARKETS,'0',(NOW+timedelta(hours=1)).isoformat())
-   with self.assertRaisesRegex(Refused,'final 30'):g.claim(far,'owner',NOW)
+   far=Job('additional','basketball_nba','standard',STANDARD,SCHEDULED_ADDITIONAL_MARKETS,'0',(NOW+timedelta(minutes=61)).isoformat())
+   with self.assertRaisesRegex(Refused,'final pregame hour'):g.claim(far,'owner',NOW)
    g.close()
 if __name__=='__main__':unittest.main()

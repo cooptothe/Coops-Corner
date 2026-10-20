@@ -4,7 +4,7 @@ from pathlib import Path
 import sqlite3
 
 from corner import beta_access
-from corner.collection_policy import EXCHANGE,aware
+from corner.collection_policy import EXCHANGE,aware,snapshot_max_age
 
 
 def store_path():
@@ -32,7 +32,8 @@ def main_scopes(rows,path,now):
         updated=row.get('provider_updated_at')
         observed=row['observed_at']
         if expected is None or updated is None:continue
-        age=60 if row['book_code'] in EXCHANGE else 180
+        kind = 'main' if row['market_code'] in ('moneyline','spread','total') else 'additional'
+        age=snapshot_max_age(kind, 'exchange' if row['book_code'] in EXCHANGE else 'standard')
         if abs(observed.timestamp()-expected)>.001:continue
         if not (0<=stamp-observed.timestamp()<age and -5<=stamp-updated.timestamp()<age):continue
         kept.append(row)

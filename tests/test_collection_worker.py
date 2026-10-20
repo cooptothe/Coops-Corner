@@ -52,18 +52,18 @@ class Policy(unittest.TestCase):
         with self.assertRaises(ValueError): open_now(datetime(2026,10,16))
 
     def test_props_bands_and_main_floor(self):
-        for seconds,standard,exchange in [(900,60,20),(901,300,300),(7200,300,300),(7201,900,900),(21600,900,900),(21601,3600,3600)]:
+        for seconds,standard,exchange in [(900,60,20),(901,60,20),(7200,60,20),(7201,300,300),(21600,300,300),(21601,3600,3600)]:
             for group,expected in [('standard',standard),('exchange',exchange)]:
                 self.assertEqual(interval('props',group,NOW,NOW+timedelta(seconds=seconds)),expected)
-        self.assertEqual(interval('main','standard',NOW),60)
+        self.assertEqual(interval('main','standard',NOW),300)
         self.assertEqual(interval('main','exchange',NOW),20)
 
     def test_all_families_no_event_cap_and_no_started_events(self):
         sportkeys=[s for s in SPORTS if s not in ('tennis_atp','tennis_wta')]
         events=[event(str(i),sport=s) for i,s in enumerate(sportkeys)]
         jobs=plan(NOW,sportkeys,events+events)
-        self.assertEqual(len([j for j in jobs if j.kind=='props']),30)
-        self.assertEqual(sum(len(j.markets) for j in jobs if j.kind=='props'),187*2)
+        self.assertEqual(len([j for j in jobs if j.kind=='props']),24)
+        self.assertEqual(sum(len(j.markets) for j in jobs if j.kind=='props'),135*2)
         self.assertEqual(len(plan(NOW,['basketball_nba'],[event(str(i)) for i in range(50)])),102)
         self.assertEqual(len(plan(NOW,['basketball_nba'],[event(start=NOW.isoformat())])),2)
         self.assertEqual(plan(parse('2026-10-16T06:00:00Z'),sportkeys,events),[])
@@ -161,15 +161,15 @@ class Ledger(unittest.TestCase):
 
     def test_stale_quotes_expire_without_new_capture(self):
         self.complete(self.main)
-        self.assertEqual(len(self.g.snapshots(NOW+timedelta(seconds=179))),1)
-        self.assertEqual(self.g.snapshots(NOW+timedelta(seconds=180)),[])
+        self.assertEqual(len(self.g.snapshots(NOW+timedelta(seconds=359))),1)
+        self.assertEqual(self.g.snapshots(NOW+timedelta(seconds=360)),[])
 
     def test_no_replay_after_skipped_ticks_and_source_floors_persist(self):
         self.complete(self.main)
-        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=59)))
-        self.assertTrue(self.g.ready(self.main,NOW+timedelta(seconds=60)))
+        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=299)))
+        self.assertTrue(self.g.ready(self.main,NOW+timedelta(seconds=300)))
         self.g.close();self.g=Governor(self.path)
-        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=59)))
+        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=299)))
 
     def test_closed_window_and_expired_cycle_never_reserve(self):
         closed=parse('2026-10-17T06:00:00Z')

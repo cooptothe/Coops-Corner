@@ -35,6 +35,17 @@ export function FeedGuide({ view }: { view: View }) {
       <div>
         <strong>{title}</strong>
         <p>{description}</p>
+        <p>
+          On the beta’s scheduled feed, main odds target hourly updates more
+          than six hours before the league’s next game, 15 minutes from two to
+          six hours, and five minutes in the final two hours. Additional markets
+          target two minutes in the final hour. Pro player props target five
+          minutes from two to six hours and one minute in the final two hours;
+          NCAA props are not collected. Main quotes expire after six minutes of
+          source age, other standard quotes after three, so slower polling can
+          leave gaps. Queues and provider delays can slow updates. Confirm every
+          price at the sportsbook before placing a bet.
+        </p>
         <p className="exposure-legend">
           <span className="exposure-dot related" /> Yellow: an open bet on the
           same player, team, or event in another market.{" "}

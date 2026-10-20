@@ -21,6 +21,8 @@ BUDGET_VERSION = 'pregame-lab-history-100k-v1'
 POOLS = {'main':7_900_000, 'props':5_000_000, 'metadata':500_000, 'history':100_000}
 TOTAL = 15_000_000
 PROTECTED = 1_500_000
+# NCAA keeps main/additional markets; no scheduled college player-prop purchases.
+NO_SCHEDULED_PROPS = frozenset({'americanfootball_ncaaf', 'basketball_ncaab', 'basketball_wncaab'})
 
 
 def aware(value):
@@ -43,17 +45,20 @@ def supported(sport):
 
 def interval(kind, group, now, starts=None):
     floor = 20 if group == 'exchange' else 60
-    if kind in ('main','additional'):
-        return floor
+    if kind == 'main':
+        if group == 'exchange':
+            return 20
+        remaining = (aware(starts)-aware(now)).total_seconds() if starts else 0
+        return 3600 if remaining > 21600 else 900 if remaining > 7200 else 300
+    if kind == 'additional':
+        return 20 if group == 'exchange' else 120
     remaining = (aware(starts)-aware(now)).total_seconds()
     if remaining <= 0:
         raise ValueError('Started event')
-    if remaining <= 900:
-        return floor
     if remaining <= 7200:
-        return 300
+        return floor
     if remaining <= 21600:
-        return 900
+        return 300
     return 3600
 
 
@@ -83,6 +88,8 @@ class Job:
     def validate(self):
         if self.kind not in ('main','props','additional') or not supported(self.sport):
             raise ValueError('Unsupported job scope')
+        if self.kind == 'props' and self.sport in NO_SCHEDULED_PROPS:
+            raise ValueError('NCAA player props are excluded from scheduled collection')
         allowed = EXCHANGE if self.group == 'exchange' else PROP_STANDARD if self.kind == 'props' else STANDARD
         if self.group not in ('standard','exchange') or self.books != allowed:
             raise ValueError('Book groups must match the reviewed catalog')
@@ -105,9 +112,16 @@ def plan(now, active_keys, events, *, additional=False):
     if any(not supported(s) or s in ('tennis_atp','tennis_wta') for s in active):
         raise ValueError('Supply actual configured/expanded sport keys')
     jobs=[]
+    league_starts = {}
+    for event in events:
+        start = parse(event['commence_time'])
+        if now < start <= now + timedelta(hours=24):
+            sport = event['sport_key']
+            league_starts[sport] = min(start, league_starts.get(sport, start))
     for sport in active:
         for group,books in (('standard',STANDARD),('exchange',EXCHANGE)):
-            jobs.append(Job('main',sport,group,books,('h2h','spreads','totals')))
+            jobs.append(Job('main',sport,group,books,('h2h','spreads','totals'),
+                            starts_at=league_starts[sport].isoformat() if sport in league_starts else ''))
     seen=set()
     for event in sorted(events,key=lambda e:(e['commence_time'],e['id'])):
         sport=event['sport_key'];start=parse(event['commence_time'])
@@ -117,12 +131,19 @@ def plan(now, active_keys, events, *, additional=False):
         if identity in seen:
             continue
         seen.add(identity)
-        if additional and start <= now + timedelta(minutes=30):
+        if additional and start <= now + timedelta(hours=1):
             for group,books in (('standard',STANDARD),('exchange',EXCHANGE)):
                 jobs.append(Job('additional',sport,group,books,ADDITIONAL_MARKETS,event['id'],event['commence_time']))
-        if not family(sport):
+        if sport in NO_SCHEDULED_PROPS or not family(sport):
             continue
         keys=tuple(m.key for m in FAMILIES[family(sport)])
         for group,books in (('standard',PROP_STANDARD),('exchange',EXCHANGE)):
             jobs.append(Job('props',sport,group,books,keys,event['id'],event['commence_time']))
     return jobs
+
+
+def snapshot_max_age(kind, group):
+    """Explicit source-age ceilings; never re-date a quote to keep it visible."""
+    if group == 'exchange':
+        return 60
+    return 360 if kind == 'main' else 180

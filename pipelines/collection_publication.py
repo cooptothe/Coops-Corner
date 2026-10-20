@@ -12,7 +12,7 @@ import re
 import sqlite3
 import tempfile
 
-from corner.collection_policy import Job, aware
+from corner.collection_policy import Job, aware, NO_SCHEDULED_PROPS
 
 
 class MainPublisher:
@@ -75,6 +75,8 @@ def read_props(path,now=None):
         rows=db.execute("SELECT sport,event_id,captured_at,payload FROM snapshots WHERE kind='props' AND expires_at>? AND starts_at>? ORDER BY sport,event_id,market,book",(now.timestamp(),now.timestamp())).fetchall()
         data={'events':{}}
         for sport,event_id,captured,payload in rows:
+            if sport in NO_SCHEDULED_PROPS:
+                continue
             part=json.loads(payload);market=part['market'];book=part['book'];event=part['event']
             meta=market_meta(sport,market['key'])
             if not meta:raise ValueError('Unsupported stored market')

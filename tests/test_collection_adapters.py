@@ -195,10 +195,18 @@ class Adapters(unittest.TestCase):
             self.assertEqual(keep_latest_capture(selected),selected)
         self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=61)),[rows[0]])
 
+    def test_main_five_minute_poll_has_bounded_source_age(self):
+        self.settle(self.jobs[0])
+        rows=[self.row('draftkings')]
+        self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=300)),rows)
+        self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=360)),[])
+        stale=[{**rows[0],'provider_updated_at':NOW-timedelta(seconds=361)}]
+        self.assertEqual(main_scopes(stale,self.g.path,NOW),[])
+
     def test_withdrawn_book_scope_cannot_survive_in_postgres_rows(self):
         self.settle(self.jobs[0]);self.settle(self.jobs[1])
         rows=[self.row('draftkings'),self.row('novig')]
-        later=NOW+timedelta(seconds=60)
+        later=NOW+timedelta(seconds=300)
         self.g.acquire('worker',later)
         self.g.prepare_due(self.jobs[0],'worker',later)
         token=self.g.claim(self.jobs[0],'worker',later)
