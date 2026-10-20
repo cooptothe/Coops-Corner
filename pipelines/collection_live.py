@@ -68,6 +68,18 @@ class LiveProvider(Provider):
         activation(now)
         return now
 
+    def discover(self):
+        inventory = super().discover()
+        if activation(self.clock()).get('profile') == 'standard-pregame-v1':
+            upcoming = {event['sport_key'] for event in inventory['events']}
+            inventory['active_sport_keys'] = [key for key in inventory['active_sport_keys'] if key in upcoming]
+        return inventory
+
+    def odds(self, governor, job, token, owner):
+        if activation(self.clock()).get('profile') == 'standard-pregame-v1' and job.group != 'standard':
+            raise Refused('Standard activation cannot dispatch fast-book jobs')
+        return super().odds(governor, job, token, owner)
+
     def _get(self, path, params):
         now = self.gate()
         if not self.g.acquire(self.owner, now):
@@ -117,9 +129,10 @@ def main():
             conn = writer()
             conn.close()
             runner = Runner(g, None, None, publisher=MainPublisher(RETAINED, writer), clock=clock,
-                            should_stop=lambda: stop[0], additional=True)
+                            should_stop=lambda: stop[0], additional=True,
+                            job_filter=(lambda job: job.group == 'standard') if approval.get('profile') == 'standard-pregame-v1' else None)
             provider = LiveProvider(g, runner.owner, key=os.environ['ODDS_API_KEY'], enabled=True,
-                                    exchange_verified=True, clock=clock, should_stop=lambda: stop[0])
+                                    exchange_verified=approval.get('profile') != 'standard-pregame-v1', clock=clock, should_stop=lambda: stop[0])
             runner.discover = provider.discover
             runner.transport = provider.odds
         def stopping(*args):

@@ -45,7 +45,11 @@ def activation(now, *, startup=False):
         if approval.get('approved') is not True:
             raise Refused('Explicit activation approval is absent')
         evidence = approval.get('evidence', {})
-        if any(not isinstance(evidence.get(k), str) or not evidence[k].strip() for k in EVIDENCE):
+        profile = approval.get('profile', 'full-v1')
+        if profile not in ('full-v1', 'standard-pregame-v1'):
+            raise Refused('Unknown collection activation profile')
+        required = EVIDENCE if profile == 'full-v1' else tuple(k for k in EVIDENCE if k not in ('exchange_classification_verified', 'full_slate_throughput_measured'))
+        if any(not isinstance(evidence.get(k), str) or not evidence[k].strip() for k in required):
             raise Refused('Activation acceptance evidence is incomplete')
         commit = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True, stderr=subprocess.DEVNULL).strip()
         if approval.get('release_commit') != commit:

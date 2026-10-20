@@ -1,0 +1,25 @@
+[Unit]
+Description=Corner scheduled pregame odds collector
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=corneradmin
+Group=corneradmin
+WorkingDirectory=/srv/corner/app
+EnvironmentFile=/srv/corner/config/collection.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/srv/corner/app/.venv-api/bin/python -u -m pipelines.collection_live
+Restart=no
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/corner/config /srv/corner/collection
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
