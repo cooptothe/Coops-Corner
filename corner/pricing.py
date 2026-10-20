@@ -7,11 +7,12 @@ from dataclasses import dataclass
 from decimal import Decimal, localcontext, ROUND_CEILING, ROUND_HALF_EVEN
 import os
 from functools import lru_cache
+from corner.book_policy import DFS_BOOKS, supported_book
 
 D = Decimal
-VERSION = 'reviewed-pricing/2026-10-16.1'
-SPORTSBOOKS = frozenset({'draftkings', 'fanduel', 'espnbet', 'betmgm', 'betrivers', 'pinnacle'})
-DFS = frozenset({'prizepicks', 'underdog'})
+VERSION = 'reviewed-pricing/2026-10-20.1'
+SPORTSBOOKS = frozenset({'draftkings', 'fanduel', 'espnbet', 'betmgm', 'betrivers', 'pinnacle', 'williamhill_us', 'fanatics'})
+DFS = DFS_BOOKS
 
 
 def one_sided_margin(value):
@@ -61,7 +62,7 @@ def fee_policy(book):
 
 def reference_eligible(book):
     # Provider DFS odds are indicative assigned prices, not standalone market probabilities.
-    return book not in DFS
+    return supported_book(book) and book not in DFS
 
 
 def contract_fee(*, venue, price, quantity, coefficient, quantum, rounding):

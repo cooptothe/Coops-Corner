@@ -11,7 +11,7 @@ CENTRAL = pytz.timezone('America/Chicago')
 STANDARD = ('draftkings','fanduel','espnbet','betmgm','betrivers','pinnacle')
 # Proposed fast classifications require measured provider validation before live use.
 EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket')
-PROP_STANDARD = STANDARD + ('prizepicks','underdog')
+PROP_STANDARD = STANDARD + ('williamhill_us','fanatics')
 SPORTS = ('americanfootball_nfl','americanfootball_ncaaf','basketball_nba','basketball_ncaab',
           'baseball_mlb','icehockey_nhl','soccer_usa_mls','soccer_epl','soccer_spain_la_liga',
           'soccer_germany_bundesliga','soccer_italy_serie_a','soccer_france_ligue_one',

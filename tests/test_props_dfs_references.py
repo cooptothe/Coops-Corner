@@ -12,24 +12,21 @@ def event(books,market='player_threes',sport='basketball_nba',point='2.5'):
 def prices(data):return pm.build_bets(data,include_dfs=True,fallback_margin='0.10')
 
 class DfsReferences(unittest.TestCase):
-    def test_two_dfs_lines_can_price_a_one_sided_cash_target(self):
+    def test_removed_dfs_cannot_price_even_with_legacy_override(self):
         data=event({'prizepicks':{0:1.82,1:1.82},'underdog':{0:1.91,1:1.91},'draftkings':{0:2.2}})
-        before=deepcopy(data); row,=prices(data)
-        self.assertEqual(row['book'],'draftkings')
-        self.assertEqual(row['fair_probability'],'0.500000')
-        self.assertEqual(row['ev'],'0.100000')
-        self.assertEqual(row['sharps'],['prizepicks','underdog'])
-        self.assertEqual(row['dfs_reference_books'],['prizepicks','underdog'])
-        self.assertIn('not inferred',row['dfs_assumption'])
-        self.assertIsNone(row['market_width_cents'])
-        self.assertEqual(data,before)
+        self.assertEqual(prices(data), [])
+
     def test_two_references_still_required(self):
         self.assertEqual(prices(event({'prizepicks':{0:1.9,1:1.9},'draftkings':{0:3}})),[])
         self.assertEqual(prices(event({'pinnacle':{0:2,1:2},'draftkings':{0:3}})),[])
-    def test_cash_reference_has_more_weight_than_dfs(self):
-        rows=prices(event({'fanduel':{0:2,1:2},'prizepicks':{0:1.82,1:1.82},'draftkings':{0:2.2}}))
+    def test_caesars_and_fanatics_are_cash_references_not_median_assumptions(self):
+        rows=prices(event({'williamhill_us':{0:1.8,1:2.1},'fanatics':{0:1.8,1:2.1},'draftkings':{0:2.2}}))
         row=next(r for r in rows if r['book']=='draftkings')
-        self.assertGreater(D(row['reference_weights']['fanduel']),D(row['reference_weights']['prizepicks']))
+        self.assertEqual(row['dfs_reference_books'], [])
+        self.assertIsNone(row['dfs_assumption'])
+        self.assertNotEqual(row['fair_probability'], '0.500000')
+        self.assertEqual(set(row['sharps']), {'williamhill_us','fanatics'})
+
     def test_unequal_multipliers_missing_side_and_different_line_are_not_probabilities(self):
         for change in ('unequal','missing','line','player'):
             data=event({'prizepicks':{0:1.82,1:1.82},'underdog':{0:1.9,1:1.9},'draftkings':{0:3}})
@@ -73,11 +70,11 @@ class DfsReferences(unittest.TestCase):
         from api.database import DEFAULT_REFERENCES
         self.assertNotIn('prizepicks',DEFAULT_REFERENCES)
         self.assertNotIn('underdog',DEFAULT_REFERENCES)
-    def test_production_props_explicitly_enables_dfs(self):
+    def test_production_props_disables_dfs(self):
         from pipelines import props_ingestion as p
         with patch.object(p,'load',return_value={'events':{}}),patch.object(p,'build_bets',return_value=[]) as build:
             p.bets()
-        self.assertTrue(build.call_args.kwargs['include_dfs'])
+        self.assertFalse(build.call_args.kwargs['include_dfs'])
     def test_requested_markets_are_recommended_and_soccer_keys_documented(self):
         for sport,key in [('basketball_nba','player_threes'),('icehockey_nhl','player_assists'),('soccer_epl','player_assists'),('soccer_epl','player_shots_on_target'),('americanfootball_nfl','player_anytime_td')]:
             self.assertTrue(next(m for m in pm.catalog_view([sport])[sport] if m['key']==key)['default'])

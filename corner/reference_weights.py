@@ -7,7 +7,7 @@ or future observations are used to estimate current EV.
 from decimal import Decimal
 from corner.book_policy import supported_book
 
-WEIGHT_VERSION = 'reputation-priors/2'
+WEIGHT_VERSION = 'reputation-priors/3-cash-props'
 EXCHANGES = frozenset({'betfair_ex_uk', 'betfair_ex_eu', 'betfair_ex_au'})
 OTHER_EXCHANGES = frozenset({'prophetx', 'kalshi', 'betopenly', 'polymarket', 'novig'})
 
@@ -38,8 +38,6 @@ def reference_weight(book, sport_key='', *, player_props=False):
             return Decimal('2')
         if book in EXCHANGES:
             return Decimal('2' if family == 'soccer' else '1')
-        if book in {'prizepicks', 'underdog'}:
-            return Decimal('0.5')
         return Decimal('1')
     # The guide does not establish a dominant WNBA or challenger benchmark.
     if sport_key == 'basketball_wnba' or 'challenger' in sport_key:

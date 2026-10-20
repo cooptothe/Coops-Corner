@@ -23,7 +23,7 @@ SHARP_BOOKS = frozenset(supported_books(b.strip() for b in os.environ.get('CORNE
 MIN_SHARPS = 2  # the +EV feed requires at least two sharp books fully pricing the line
 # Books that also count as a reference for player props only. They still appear as bets: a book's own bet is
 # priced against the other reference books, never against itself.
-PROP_EXTRA_SHARPS = frozenset({'fanduel', 'prizepicks', 'underdog', 'novig'})
+PROP_EXTRA_SHARPS = frozenset({'fanduel', 'williamhill_us', 'fanatics', 'novig'})
 PROP_SHARP_BOOKS = SHARP_BOOKS | PROP_EXTRA_SHARPS
 # Over/Under or Yes/No priced on both sides ('two_way'), or a Yes-only / winner list ('yes_only').
 TWO_WAY, YES_ONLY = 'two_way', 'yes_only'
@@ -329,10 +329,9 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
     Two other eligible books must each quote both sides of the same player/line.
     Remove margin per book before pooling existing reputation weights. Target is
     excluded. Missing opposite prices can use observed same-event/market/book
-    margin samples from three other players, or an explicit assumption. DFS
-    reference use is opt-in and limited to symmetric standard same-line O/U pairs
-    under an explicit median assumption. DFS targets still need lineup payoffs.
-    Transferred margins and DFS median assumptions are not empirical calibration.
+    margin samples from three other players, or an explicit assumption.
+    DFS inputs are now excluded by the product-wide book policy, including legacy overrides.
+    Transferred margins are not empirical calibration.
     """
     margin = validate_one_sided_margin(one_sided_margin)
     fallback = validate_one_sided_margin(fallback_margin)
@@ -347,7 +346,7 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
             # never normalize prices across different potential scorers.
             if not meta:
                 continue
-            dfs_allowed = include_dfs and meta.sides == ('Over', 'Under') and not market_key.endswith('_alternate')
+            dfs_allowed = False  # DFS removed, including retained captures and legacy caller overrides.
             grouped = {}
             conflicts = set()
             def identity(q):

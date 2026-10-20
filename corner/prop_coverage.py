@@ -1,5 +1,6 @@
 """Explain every retained prop quote, including markets without a priceable edge."""
 from collections import Counter
+from corner.book_policy import supported_book
 from corner.prop_markets import FAMILIES, market_meta
 from corner.prop_projection import plan
 from corner.pricing import fee_policy
@@ -13,6 +14,7 @@ def coverage(events,priced):
             item=markets.setdefault((event['sport_key'],key),{'sport_key':event['sport_key'],'market':key,
                 'label':meta.label if meta else key,'projection':plan(event['sport_key'],key),'quotes':0,'priced':0})
             for quote in stored.get('quotes',[]):
+                if not supported_book(quote.get('book','')):continue
                 item['quotes']+=1
                 ident=f'{eid}:{key}:{quote.get("player","")}:{quote.get("point") or ""}:{quote.get("book","")}:{quote.get("side","")}'
                 if ident in identifiers:reason='market_priced';item['priced']+=1
@@ -26,4 +28,4 @@ def coverage(events,priced):
             'projection_edges_validated':False,
             'positive_estimates':sum(float(row['ev'])>0 for row in priced),
             'dfs_assumption_estimates':sum(bool(row.get('dfs_reference_books')) for row in priced),
-            'reference_requirement':'Two other distinct reference books; target excluded. DFS uses an explicit line assumption, not assigned payout probabilities.'}
+            'reference_requirement':'Two other distinct cash-book reference sources; target excluded. DFS is not eligible.'}

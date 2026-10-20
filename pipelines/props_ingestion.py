@@ -17,7 +17,7 @@ from pipelines.odds_ingestion import BASE, PARAMS, fetch
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / 'retained' / 'props' / 'latest.json'
-BOOKS = PARAMS['bookmakers'] + ',prizepicks,underdog'
+BOOKS = PARAMS['bookmakers'] + ',williamhill_us,fanatics'
 BOOKMAKER_REGIONS = 2
 # Prop prices move fast, so a fetch older than this stops counting (the main tools use two hours).
 MAX_AGE = int(os.environ.get('CORNER_PROPS_MAX_AGE_SECONDS', '3600'))
@@ -69,7 +69,7 @@ def bets(now=None, *, one_sided_margin=None):
     # Explicit policy fallback, not a fitted book margin. Exact pairs and observed
     # same-event margin evidence take precedence inside the pricing engine.
     return build_bets(prune(load(), now, MAX_AGE)['events'], one_sided_margin=one_sided_margin,
-                      fallback_margin='0.10', include_dfs=True)
+                      fallback_margin='0.10', include_dfs=False)
 
 
 def last_captured():

@@ -631,12 +631,9 @@ export default function PropsFeed({ reload }: { reload: number }) {
             <p role="alert">Enter a margin from 0 to 50 percent.</p>
           )}
           <p>
-            Requires two other books on the exact selection. PrizePicks and
-            Underdog can count for standard matching Over/Under lines under a
-            labeled 50/50 median assumption. Unequal multipliers and one-sided
-            DFS quotes are not sportsbook probability estimates. Fees still
-            apply. Integer lines are conditional on no push; pick&apos;em
-            payouts require a lineup model.
+            Requires two other cash-book references on the exact selection.
+            Caesars and Fanatics replace the former DFS sources. Fees still
+            apply. Integer lines are conditional on no push.
           </p>
           <p>
             Reference influence is weighted, not equal: FanDuel carries the
@@ -907,7 +904,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
             {!!maxWidth &&
               all.some((v) => Number(v.ev) > 0 && v.marketWidth === null) && (
                 <span>
-                  One-sided / DFS estimates without market width are excluded.{" "}
+                  One-sided estimates without market width are excluded.{" "}
                   <button
                     type="button"
                     className="link-button"
@@ -1061,11 +1058,6 @@ export default function PropsFeed({ reload }: { reload: number }) {
                             allocation.
                           </small>
                         </details>
-                      )}
-                      {v.dfsAssumption && (
-                        <small title={v.dfsAssumption}>
-                          Modeled: DFS 50/50 line assumption - not calibrated
-                        </small>
                       )}
                       {v.inferredMargin && (
                         <small>Modeled: observed-margin estimate</small>

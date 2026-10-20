@@ -4,7 +4,7 @@ import { feedBooks } from "../lib/bookmakers";
 
 test("canonical capitalization wins over raw provider IDs", () => {
   const books = feedBooks(
-    ["betopenly", "polymarket", "prizepicks", "underdog"].map((id) => ({
+    ["betopenly", "polymarket", "williamhill_us", "fanatics"].map((id) => ({
       id,
       name: id,
     })),
@@ -13,8 +13,8 @@ test("canonical capitalization wins over raw provider IDs", () => {
   for (const [id, name] of [
     ["betopenly", "BetOpenly"],
     ["polymarket", "Polymarket"],
-    ["prizepicks", "PrizePicks"],
-    ["underdog", "Underdog"],
+    ["williamhill_us", "Caesars"],
+    ["fanatics", "Fanatics"],
   ])
     assert.equal(books.find((b) => b.id === id)?.name, name);
 });
@@ -34,12 +34,24 @@ test("props include all configured books and preserve additional captured books"
     true,
   );
   for (const id of [
-    "prizepicks",
-    "underdog",
+    "williamhill_us",
+    "fanatics",
     "polymarket",
     "betopenly",
     "another",
   ])
     assert.ok(books.some((b) => b.id === id));
   assert.equal(books.filter((b) => b.id === "polymarket").length, 1);
+});
+
+test("withdrawn DFS sources cannot reappear from retained captures", () => {
+  const ids = feedBooks(
+    ["prizepicks", "underdog", "pick6", "dabble_us_dfs"].map((id) => ({
+      id,
+      name: id,
+    })),
+    true,
+  ).map((b) => b.id);
+  for (const id of ["prizepicks", "underdog", "pick6", "dabble_us_dfs"])
+    assert.ok(!ids.includes(id));
 });

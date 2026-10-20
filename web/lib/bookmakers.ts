@@ -14,8 +14,8 @@ export const MAIN_BOOKS = [
 ];
 export const PROP_BOOKS = [
   ...MAIN_BOOKS,
-  { id: "prizepicks", name: "PrizePicks" },
-  { id: "underdog", name: "Underdog" },
+  { id: "williamhill_us", name: "Caesars" },
+  { id: "fanatics", name: "Fanatics" },
 ];
 
 export function bookDisplayName(id: string, fallback = id) {
@@ -31,7 +31,15 @@ export function feedBooks(
     (props ? PROP_BOOKS : MAIN_BOOKS).map((b) => [b.id, b]),
   );
   for (const book of captured.filter(
-    (book) => !["betonlineag", "betonline"].includes(book.id.toLowerCase()),
+    (book) =>
+      ![
+        "betonlineag",
+        "betonline",
+        "prizepicks",
+        "underdog",
+        "pick6",
+        "dabble_us_dfs",
+      ].includes(book.id.toLowerCase()),
   ))
     books.set(book.id, { ...book, name: bookDisplayName(book.id, book.name) });
   return [...books.values()];

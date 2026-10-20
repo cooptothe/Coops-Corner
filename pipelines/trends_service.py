@@ -18,6 +18,7 @@ from starlette.responses import JSONResponse
 from corner import media, tracker_live
 from corner.prop_markets import market_meta
 from corner.pricing import fee_policy, DFS
+from corner.book_policy import supported_book
 from corner.prop_trends import analyze, instant, number, summarize
 from corner.prop_projection import forecast, plan as projection_plan
 from pipelines import props_ingestion
@@ -261,6 +262,8 @@ def contracts():
     for eid,event in data['events'].items():
         for market,stored in event['markets'].items():
             for quote in stored['quotes']:
+                if not supported_book(quote['book']):
+                    continue
                 policy = fee_policy(quote['book'])
                 meta = market_meta(event['sport_key'],market)
                 settlement_point=quote.get('point')

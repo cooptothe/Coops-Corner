@@ -1,6 +1,7 @@
 """Books withdrawn from the product, including retained captures and overrides."""
 
-REMOVED_BOOKS = frozenset({'betonlineag', 'betonline'})
+DFS_BOOKS = frozenset({'prizepicks', 'underdog', 'pick6', 'dabble_us_dfs'})
+REMOVED_BOOKS = frozenset({'betonlineag', 'betonline'}) | DFS_BOOKS
 
 
 def supported_book(book):
