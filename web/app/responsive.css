@@ -1,0 +1,150 @@
+/* Keep flex/grid content inside its allocated column. Do not hide page overflow:
+   wide comparison tables retain their own horizontal scrolling. */
+.feed-filter-shell .ev-filters > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.feed-filter-shell .ev-filters > p {
+  flex: 1 1 100%;
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .workspace,
+  main,
+  .personal-workspace,
+  .ev-layout,
+  .ev-main,
+  .feed-filter-shell,
+  .feed-filter-panel,
+  .results-panel,
+  .promo-layout,
+  .promo-form-card,
+  .lab-page,
+  .lab-report,
+  .lab-research-board,
+  .trk-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .feed-filter-shell .ev-filters > .field,
+  .feed-filter-shell .ev-filters > .range-field {
+    min-width: 0;
+    flex-basis: calc(50% - 14px);
+  }
+  .feed-filter-shell .ev-filters > .arb-menu,
+  .feed-filter-shell .ev-filters > .ev-odds-range {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .feed-filter-shell .ev-filters > p {
+    font-size: 12px;
+  }
+  .settings-bar,
+  .settings-name,
+  .top-actions,
+  .page-actions,
+  .lab-board-actions,
+  .pagination,
+  .results-toolbar {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .settings-bar > *,
+  .settings-name > *,
+  .page-actions > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .field select,
+  .auth-card input,
+  .trk-card input,
+  .trk-card select,
+  .parlay-panel input:not([type="checkbox"]):not([type="range"]) {
+    font-size: 16px;
+    min-height: 44px;
+    max-width: 100%;
+  }
+  .button,
+  .feed-time-filter button,
+  .arb-menu > summary,
+  .settings-bar button,
+  .lab-board-table .button {
+    min-height: 44px;
+  }
+  .feed-time-filter {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .range-field input[type="range"] {
+    min-height: 28px;
+  }
+  .range-heading,
+  .range-heading > span {
+    min-width: 0;
+  }
+  .range-heading > span {
+    overflow-wrap: anywhere;
+  }
+  .ev-event,
+  .ev-cell,
+  .props-player,
+  .empty-state,
+  .lab-board-actions .field {
+    min-width: 0;
+  }
+  .ev-event,
+  .ev-market .player-text,
+  .props-player,
+  .empty-state p,
+  .page-heading .subtitle,
+  .personal-header .subtitle,
+  .fresh-odds-note,
+  .fresh-odds-error {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .ev-event,
+  .ev-market .player-text strong {
+    font-size: 14px;
+  }
+  .ev-cell small {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .ev-sharp {
+    line-height: 1.6;
+  }
+  .odds-scroll,
+  .table-wrap,
+  .trk-wrap,
+  .lab-board-scroll {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+  .parlay-panel,
+  .kelly-panel,
+  .trk-drawer {
+    box-sizing: border-box;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    overscroll-behavior-y: contain;
+  }
+  .parlay-panel {
+    padding-bottom: max(90px, calc(70px + env(safe-area-inset-bottom)));
+  }
+  .parlay-mobile-toggle {
+    bottom: max(14px, env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 380px) {
+  .feed-filter-shell .ev-filters > .range-field {
+    flex-basis: 100%;
+  }
+}

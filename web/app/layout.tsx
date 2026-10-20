@@ -8,6 +8,7 @@ import "./auth.css";
 import "./parlay.css";
 import "./polish.css";
 import "./trends.css";
+import "./responsive.css";
 import { AuthGate, AuthProvider } from "../components/auth-provider";
 
 export const metadata: Metadata = {
