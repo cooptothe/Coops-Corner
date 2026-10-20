@@ -94,7 +94,7 @@ const SORTS: Record<SortKey, (a: Vm, b: Vm) => number> = {
   time: (a, b) => startMs(a) - startMs(b),
   scanned: (a, b) => b.observedAt.localeCompare(a.observedAt),
 };
-const ROW_HEIGHT = { wide: 88, compact: 208 };
+const ROW_HEIGHT = { wide: 88, compact: 400 };
 const OVERSCAN = 6;
 const SETTINGS_KEY = "corner.arb-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;

@@ -69,7 +69,7 @@ interface Vm {
   observedAt: string;
 }
 
-const ROW_HEIGHT = { wide: 116, compact: 236 };
+const ROW_HEIGHT = { wide: 116, compact: 376 };
 const OVERSCAN = 6;
 const SETTINGS_KEY = "corner.middle-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;

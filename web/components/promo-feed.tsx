@@ -74,7 +74,7 @@ const SORT_LABELS: [SortKey, string][] = [
 ];
 const startMs = (v: Vm) =>
   v.startsAt ? new Date(v.startsAt).getTime() : Infinity;
-const ROW_HEIGHT = { wide: 132, compact: 290 };
+const ROW_HEIGHT = { wide: 132, compact: 360 };
 const OVERSCAN = 6;
 const VIEW_HEIGHT = 680;
 const SETTINGS_KEY = "corner.promo-settings";
