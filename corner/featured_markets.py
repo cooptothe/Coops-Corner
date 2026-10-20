@@ -248,7 +248,13 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
                     seen.add(identity)
                     price = _number(outcome.get("price"), "decimal odds")
                     if price <= 1:
-                        raise FeaturedMarketError("decimal odds must exceed one")
+                        # Retain the original payload, but never publish a non-bettable
+                        # price. One unavailable alternate selection must not block
+                        # the rest of the captured slate.
+                        excluded.append(ExcludedMarket(
+                            f"{pointer}/outcomes/{outcome_index}", key,
+                            "invalid_decimal_price_excluded"))
+                        continue
                     locator = f"{pointer}/outcomes/{outcome_index}"
                     quotes.append(FeaturedQuote(
                         quote_id=hashlib.sha256(f"{digest}:{locator}".encode()).hexdigest(),

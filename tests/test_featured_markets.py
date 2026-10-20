@@ -80,11 +80,25 @@ class FeaturedMarketTests(unittest.TestCase):
                 request_markets(**kwargs)
 
     def test_malformed_decimal_prices_rejected(self):
-        for price in (None, True, 1, 0, -110, "NaN", "Infinity", "bad"):
+        for price in (None, True, "NaN", "Infinity", "bad"):
             with self.subTest(price=price):
                 self.data[0]["bookmakers"][0]["markets"][0]["outcomes"][0]["price"] = price
                 with self.assertRaises(FeaturedMarketError):
                     self.normalize(self.data)
+
+    def test_non_bettable_price_excluded_without_changing_other_quotes(self):
+        original = self.normalize(self.data)
+        for price in (1, 0, -110):
+            with self.subTest(price=price):
+                data = copy.deepcopy(self.data)
+                data[0]["bookmakers"][0]["markets"][0]["outcomes"][0]["price"] = price
+                result = self.normalize(data)
+                self.assertEqual(len(original.quotes) - 1, len(result.quotes))
+                self.assertTrue(all(q.decimal_odds > 1 for q in result.quotes))
+                excluded = [e for e in result.excluded_markets
+                            if e.reason == "invalid_decimal_price_excluded"]
+                self.assertEqual(1, len(excluded))
+                self.assertEqual(result, self.normalize(data))
 
     def test_missing_and_invalid_lines_rejected(self):
         for point in (None, True, "NaN", "Infinity"):
