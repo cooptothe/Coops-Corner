@@ -42,6 +42,16 @@ class DatabaseCatalogTests(unittest.TestCase):
         self._stored_props.start()
         self.addCleanup(self._stored_props.stop)
 
+    def test_quote_age_uses_provider_time_not_later_capture(self):
+        rows=board()
+        old=NOW-timedelta(minutes=20)
+        for row in rows:
+            row['provider_updated_at']=old
+        raw=build_raw(rows,PEOPLE,now=NOW)
+        for contract in raw['contracts']:
+            for value in contract['observed'].values():
+                self.assertEqual(datetime.fromisoformat(value.replace('Z','+00:00')),old)
+
     def test_board_builds_real_tools(self):
         catalog = FixtureCatalog(raw=build_raw(board(), PEOPLE, now=NOW))
         self.assertEqual('database', catalog.data_mode)

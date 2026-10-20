@@ -249,3 +249,14 @@
     white-space: normal;
   }
 }
+
+.ev-age-review {
+  opacity: 1;
+  color: #e8bd73;
+}
+.ev-age-warning {
+  display: block;
+  font-size: 10px;
+  line-height: 1.3;
+  white-space: normal;
+}

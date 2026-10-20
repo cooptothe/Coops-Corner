@@ -160,9 +160,11 @@ class Ledger(unittest.TestCase):
         self.assertFalse(any(q['market']['key']==self.prop.markets[0] and q['book']['key']==self.prop.books[0] and q['event']['id']=='event1' for q in remaining))
 
     def test_stale_quotes_expire_without_new_capture(self):
-        self.complete(self.main)
-        self.assertEqual(len(self.g.snapshots(NOW+timedelta(seconds=359))),1)
-        self.assertEqual(self.g.snapshots(NOW+timedelta(seconds=360)),[])
+        body=payload(self.main)
+        body[0]['commence_time']=(NOW+timedelta(hours=2)).isoformat()
+        self.complete(self.main,body=body)
+        self.assertEqual(len(self.g.snapshots(NOW+timedelta(seconds=1799))),1)
+        self.assertEqual(self.g.snapshots(NOW+timedelta(seconds=1800)),[])
 
     def test_no_replay_after_skipped_ticks_and_source_floors_persist(self):
         self.complete(self.main)

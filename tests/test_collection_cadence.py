@@ -11,10 +11,10 @@ class RevisedScheduleTests(unittest.TestCase):
             self.assertEqual(interval('props','standard',NOW,NOW+timedelta(seconds=seconds)),expected)
         self.assertEqual(interval('main','standard',NOW),300)
         self.assertEqual(interval('additional','standard',NOW),120)
-        self.assertEqual(snapshot_max_age('main','standard'),360)
-        self.assertEqual(snapshot_max_age('additional','standard'),180)
-        self.assertEqual(snapshot_max_age('props','standard'),180)
-        self.assertEqual(snapshot_max_age('main','exchange'),60)
+        self.assertEqual(snapshot_max_age('main','standard'),1800)
+        self.assertEqual(snapshot_max_age('additional','standard'),1800)
+        self.assertEqual(snapshot_max_age('props','standard'),1800)
+        self.assertEqual(snapshot_max_age('main','exchange'),1800)
 
     def test_main_bands_follow_soonest_upcoming_game(self):
         for seconds, expected in [(7200,300),(7201,900),(21600,900),(21601,3600)]:

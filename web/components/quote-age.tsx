@@ -1,5 +1,6 @@
 "use client";
 import { memo, useSyncExternalStore } from "react";
+import { quoteAgeStatus } from "../lib/quote-age";
 import { ageLabel } from "../../frontend/format.mjs";
 
 const listeners = new Set<() => void>();
@@ -42,8 +43,24 @@ export const QuoteAge = memo(function QuoteAge({
     () => clock,
     () => 0,
   );
+  const status = quoteAgeStatus(value, now);
+  const review = status === "review" || status === "expired";
   return (
-    <span className="ev-age">{value && now ? ageLabel(value, now) : "—"}</span>
+    <span
+      className={`ev-age${review ? " ev-age-review" : ""}`}
+      title={
+        review
+          ? "Stored price: confirm current odds at the sportsbook."
+          : undefined
+      }
+    >
+      {value && now && status !== "unknown" ? ageLabel(value, now) : "\u2014"}
+      {review && (
+        <span className="ev-age-warning">
+          {status === "expired" ? "Expired price" : "Verify odds"}
+        </span>
+      )}
+    </span>
   );
 });
 export const quoteClock = { subscribe, getSnapshot: () => clock };

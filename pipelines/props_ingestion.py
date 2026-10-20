@@ -20,7 +20,7 @@ STORE = ROOT / 'retained' / 'props' / 'latest.json'
 BOOKS = PARAMS['bookmakers'] + ',williamhill_us,fanatics'
 BOOKMAKER_REGIONS = 2
 # Prop prices move fast, so a fetch older than this stops counting (the main tools use two hours).
-MAX_AGE = int(os.environ.get('CORNER_PROPS_MAX_AGE_SECONDS', '3600'))
+MAX_AGE = int(os.environ.get('CORNER_PROPS_MAX_AGE_SECONDS', '1800'))
 
 
 def _when(text):

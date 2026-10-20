@@ -143,7 +143,5 @@ def plan(now, active_keys, events, *, additional=False):
 
 
 def snapshot_max_age(kind, group):
-    """Explicit source-age ceilings; never re-date a quote to keep it visible."""
-    if group == 'exchange':
-        return 60
-    return 360 if kind == 'main' else 180
+    """Retain quotes for at most 30 minutes of source age, never re-date them."""
+    return 1800

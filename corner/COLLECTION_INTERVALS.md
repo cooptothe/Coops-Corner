@@ -1,13 +1,13 @@
-# Scheduled collection forecast — October 20, 2026
+# Scheduled collection forecast â€” October 20, 2026
 
 ## Final owner scope
 
-8 a.m.–midnight America/Chicago, including the November DST change.
-Main leagues: >6 hours to the next game hourly; 2–6 hours every 15 minutes;
+8 a.m.â€“midnight America/Chicago, including the November DST change.
+Main leagues: >6 hours to the next game hourly; 2â€“6 hours every 15 minutes;
 final 2 hours every 5 minutes. One league request captures its main board:
 when several games overlap, its closest upcoming game determines its cadence.
 Additional markets: every 2 minutes in the final hour, existing 50-event/day
-and 30,000-credit/day safeguards retained. Props: >6 hours hourly; 2–6 hours
+and 30,000-credit/day safeguards retained. Props: >6 hours hourly; 2â€“6 hours
 every 5 minutes; final 2 hours every minute. No scheduled NCAA football,
 men's basketball or women's basketball props. College main/additional markets
 remain. Dormant exchange groups remain disabled; no history collector enabled.
@@ -17,7 +17,7 @@ remain. Dormant exchange groups remain disabled; no history collector enabled.
 Free ESPN public scoreboard queries were downloaded for each day October 21
 through December 1, 2026. Fifteen non-tennis league queries per day succeeded;
 UFC and ATP/WTA used available tournament/card range responses. Event IDs were
-deduplicated within each league. October 21–November 20 Central contains 3,187
+deduplicated within each league. October 21â€“November 20 Central contains 3,187
 listed non-tennis events; November UTC contains 4,116. The raw public schedule
 lookup also returned nine ATP and seventeen WTA tournaments overlapping the
 initial period. Tournaments are not individual matches: future draws cannot
@@ -66,11 +66,14 @@ latency SLA. No actual VPS load test for this new schedule is claimed.
 
 ## Freshness and rollout
 
-Main source-age ceiling is six minutes; standard props/additional remain
-three minutes and exchange remains one minute. Neither receipt nor replay
-re-dates provider prices. Distant main and 2–6-hour props polls intentionally
-produce gaps after expiry. Do not claim hourly main quotes remain actionable
-for a whole hour. Withdrawals and reader failures continue to fail closed.
+Owner update: all scheduled source-age ceilings are 30 minutes (1,800 seconds).
+Neither receipt nor replay re-dates provider prices. Source age and capture age
+must both remain under that ceiling. Prices five minutes or older are marked
+"Verify odds"; display is not proof the edge still exists at the sportsbook.
+Withdrawals, started games and reader failures still remove results immediately.
+Existing expired snapshots are not rewritten or resurrected; the new ceiling
+applies to new captures after rollout. Hourly distant main polling can still
+have gaps after 30 minutes, as explicitly requested by the owner’s age limit.
 Strict CLV evidence windows are unchanged, so slower main polling may leave
 more bets without a qualifying closing sample.
 

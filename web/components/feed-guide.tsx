@@ -41,10 +41,12 @@ export function FeedGuide({ view }: { view: View }) {
           six hours, and five minutes in the final two hours. Additional markets
           target two minutes in the final hour. Pro player props target five
           minutes from two to six hours and one minute in the final two hours;
-          NCAA props are not collected. Main quotes expire after six minutes of
-          source age, other standard quotes after three, so slower polling can
-          leave gaps. Queues and provider delays can slow updates. Confirm every
-          price at the sportsbook before placing a bet.
+          NCAA props are not collected. Quotes remain eligible for up to 30
+          minutes of actual source age. Older prices are marked for
+          verification; a displayed edge does not confirm that the sportsbook
+          still offers it. Withdrawals, started games and reader failures can
+          remove a result sooner. Confirm every price at the sportsbook before
+          placing a bet.
         </p>
         <p className="exposure-legend">
           <span className="exposure-dot related" /> Yellow: an open bet on the

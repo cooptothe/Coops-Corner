@@ -175,8 +175,17 @@ class Adapters(unittest.TestCase):
         self.assertEqual({q['book'] for q in quotes},{'draftkings','novig'})
         later=read_props(self.g.path,NOW+timedelta(seconds=61))
         quotes=later['events']['event1']['markets']['player_points']['quotes']
-        self.assertEqual({q['book'] for q in quotes},{'draftkings'})
-        self.assertEqual(read_props(self.g.path,NOW+timedelta(seconds=181)),{'events':{}})
+        self.assertEqual({q['book'] for q in quotes},{'draftkings','novig'})
+        self.assertEqual(read_props(self.g.path,NOW+timedelta(seconds=1801)),{'events':{}})
+
+    def test_props_retained_until_thirty_minutes_of_source_age(self):
+        from dataclasses import replace
+        job=replace(self.jobs[2],starts_at=(NOW+timedelta(hours=2)).isoformat())
+        body={**self.priced(job),'commence_time':job.starts_at}
+        with patch.object(self,'priced',return_value=body):
+            self.settle(job)
+        self.assertTrue(read_props(self.g.path,NOW+timedelta(seconds=1799))['events'])
+        self.assertEqual(read_props(self.g.path,NOW+timedelta(seconds=1800)),{'events':{}})
 
     def test_simulation_store_cannot_be_a_member_props_source(self):
         with self.assertRaises(ValueError):read_props(Path(self.tmp.name)/'collection-simulation.sqlite3',NOW)
@@ -193,14 +202,16 @@ class Adapters(unittest.TestCase):
         self.assertEqual(len(selected),2)
         with patch.dict(os.environ,{'CORNER_PRIVATE_BETA':'1','CORNER_COLLECTION_DB':str(self.g.path)}):
             self.assertEqual(keep_latest_capture(selected),selected)
-        self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=61)),[rows[0]])
+        self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=61)),rows[:2])
 
-    def test_main_five_minute_poll_has_bounded_source_age(self):
-        self.settle(self.jobs[0])
+    def test_main_thirty_minute_retention_has_bounded_source_age(self):
+        body={**self.priced(self.jobs[0]),'commence_time':(NOW+timedelta(hours=2)).isoformat()}
+        with patch.object(self,'priced',return_value=body):
+            self.settle(self.jobs[0])
         rows=[self.row('draftkings')]
-        self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=300)),rows)
-        self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=360)),[])
-        stale=[{**rows[0],'provider_updated_at':NOW-timedelta(seconds=361)}]
+        self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=1799)),rows)
+        self.assertEqual(main_scopes(rows,self.g.path,NOW+timedelta(seconds=1800)),[])
+        stale=[{**rows[0],'provider_updated_at':NOW-timedelta(seconds=1801)}]
         self.assertEqual(main_scopes(stale,self.g.path,NOW),[])
 
     def test_withdrawn_book_scope_cannot_survive_in_postgres_rows(self):

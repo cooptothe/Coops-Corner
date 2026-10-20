@@ -109,6 +109,11 @@ def _iso(value):
     return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
+def _source_time(row):
+    """Display the earlier provider/capture time; rereading is not a new price."""
+    return min(row['observed_at'], row.get('provider_updated_at') or row['observed_at'])
+
+
 def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCES, targets=DEFAULT_TARGETS):
     """Pure transformation of DB rows into the catalog's raw contract shape."""
     references, targets = supported_books(references), supported_books(targets)
@@ -172,7 +177,7 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
                                for b, c in sorted(complete.items())},
                         source_ids={b: [native_ids(b, link=c[s].get('outcome_url')) for s in sides]
                                     for b, c in sorted(complete.items())},
-                        observed={b: _iso(min(c[s]['observed_at'] for s in sides)) for b, c in complete.items()})
+                        observed={b: _iso(min(_source_time(c[s]) for s in sides)) for b, c in complete.items()})
         game = dict(id=event, sport_key=SPORT_KEYS.get(games[event]['competition_code'], games[event]['competition_code']),
                     competition=_label(games[event]['competition_code'], games[event]['competition_name']), name=f'{away} at {home}',
                     starts_at=_iso(games[event]['scheduled_start']), scope='full_game', participants=sorted([home, away]))
@@ -284,7 +289,7 @@ class LiveCatalog:
         self._connect = connect
         self._ttl = ttl_seconds if ttl_seconds is not None else 15
         self._max_age = timedelta(seconds=max_age_seconds if max_age_seconds is not None
-                                  else int(os.environ.get('CORNER_TOOLS_MAX_AGE_SECONDS', '7200')))
+                                  else int(os.environ.get('CORNER_TOOLS_MAX_AGE_SECONDS', '1800')))
         self._references = tuple(references) if references else _env_books('CORNER_TOOLS_REFERENCE_BOOKS', DEFAULT_REFERENCES)
         self._targets = tuple(targets) if targets else _env_books('CORNER_TOOLS_TARGET_BOOKS', DEFAULT_TARGETS)
         self._clock = clock or (lambda: datetime.now(timezone.utc))
