@@ -22,14 +22,15 @@ def clock():
     return datetime.now(timezone.utc)
 
 
-def writer():
+def writer(config=None):
     """No default config, owner fallback, role creation, or credential logging."""
+    config = os.environ if config is None else config
     conn = psycopg2.connect(
-        host=os.environ['CORNER_COLLECTION_DB_HOST'],
-        port=os.environ['CORNER_COLLECTION_DB_PORT'],
-        dbname=os.environ['CORNER_COLLECTION_DB_NAME'],
-        user=os.environ['CORNER_COLLECTION_DB_USER'],
-        password=os.environ['CORNER_COLLECTION_DB_PASSWORD'],
+        host=config['CORNER_COLLECTION_DB_HOST'],
+        port=config['CORNER_COLLECTION_DB_PORT'],
+        dbname=config['CORNER_COLLECTION_DB_NAME'],
+        user=config['CORNER_COLLECTION_DB_USER'],
+        password=config['CORNER_COLLECTION_DB_PASSWORD'],
         connect_timeout=5, options='-c statement_timeout=15000 -c lock_timeout=5000')
     try:
         with conn.cursor() as cur:

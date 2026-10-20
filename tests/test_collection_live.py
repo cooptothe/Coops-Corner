@@ -15,7 +15,7 @@ from pipelines.collection_runner import Runner
 from tests.test_collection_adapters import Session, Response
 
 NOW = parse('2026-10-19T15:00:00Z')
-ZERO = {'main': 0, 'props': 0, 'metadata': 0}
+ZERO = {'main': 0, 'props': 0, 'metadata': 0, 'history': 0}
 
 def headers(used, actual=0):
     return {'x-requests-used': str(used), 'x-requests-remaining': str(TOTAL-used), 'x-requests-last': str(actual)}
@@ -57,7 +57,7 @@ class LiveTests(unittest.TestCase):
                 quota_headers(value)
 
     def test_preexisting_usage_debits_pool_before_claim(self):
-        self.bind(7999999, {'main': 7999999, 'props': 0, 'metadata': 0})
+        self.bind(7899999, {'main': 7899999, 'props': 0, 'metadata': 0, 'history': 0})
         self.acquire()
         with self.assertRaisesRegex(Refused, 'Pool limit'):
             self.claim()
@@ -91,7 +91,7 @@ class LiveTests(unittest.TestCase):
         self.g.authorize('worker', self.now, self.identity)
 
     def test_successful_charge_reconciles_exact_used_and_remaining(self):
-        self.bind(10, {'main': 10, 'props': 0, 'metadata': 0})
+        self.bind(10, {'main': 10, 'props': 0, 'metadata': 0, 'history': 0})
         self.acquire()
         token = self.claim()
         self.assertEqual(self.g.finish(self.job, token, 'worker', NOW, headers(13, 3), []), 'published')
@@ -166,22 +166,22 @@ class LiveTests(unittest.TestCase):
         self.assertEqual(self.g.status()['cycles'][0]['accounted']['main'], 3)
 
     def test_reconciliation_refuses_live_lease_and_decreasing_baseline(self):
-        self.bind(10, {'main': 10, 'props': 0, 'metadata': 0})
+        self.bind(10, {'main': 10, 'props': 0, 'metadata': 0, 'history': 0})
         self.acquire()
         with self.assertRaises(Refused):
-            self.g.reconcile(NOW, 10, TOTAL-10, {'main': 10, 'props': 0, 'metadata': 0}, {}, {}, 'fixture')
+            self.g.reconcile(NOW, 10, TOTAL-10, {'main': 10, 'props': 0, 'metadata': 0, 'history': 0}, {}, {}, 'fixture')
         self.g.release('worker')
         with self.assertRaises(Refused):
             self.g.reconcile(NOW, 10, TOTAL-10, ZERO, {}, {}, 'fixture')
 
     def test_external_usage_allocation_is_explicit_and_audited(self):
         self.bind()
-        self.g.reconcile(NOW, 50, TOTAL-50, {'main': 50, 'props': 0, 'metadata': 0}, {}, {}, 'external consumer receipt')
+        self.g.reconcile(NOW, 50, TOTAL-50, {'main': 50, 'props': 0, 'metadata': 0, 'history': 0}, {}, {}, 'external consumer receipt')
         self.assertEqual(self.g.status()['cycles'][0]['accounted']['main'], 50)
 
     def test_protected_reserve_prevents_binding(self):
         with self.assertRaises(Refused):
-            self.bind(TOTAL-PROTECTED, {'main': 8000000, 'props': 5000000, 'metadata': 500000})
+            self.bind(TOTAL-PROTECTED, {'main': 7900000, 'props': 5000000, 'metadata': 500000, 'history':100000})
 
     def test_fake_live_pipeline_discovery_odds_and_replay_cadence(self):
         self.bind()
@@ -223,9 +223,9 @@ class LiveTests(unittest.TestCase):
         token = self.g.authorize('worker', NOW, self.identity, inventory=True)
         self.g.inventory_unknown(token, 'worker', NOW)
         self.g.release('worker')
-        self.g.reconcile(NOW, 7, TOTAL-7, {'main': 5, 'props': 0, 'metadata': 0}, {}, {token: 2}, 'verified inventory and external usage')
+        self.g.reconcile(NOW, 7, TOTAL-7, {'main': 5, 'props': 0, 'metadata': 0, 'history': 0}, {}, {token: 2}, 'verified inventory and external usage')
         self.g.resume(NOW, 'reviewed exception')
-        self.assertEqual(self.g.status()['cycles'][0]['accounted'], {'main': 5, 'props': 0, 'metadata': 2})
+        self.assertEqual(self.g.status()['cycles'][0]['accounted'], {'main': 5, 'props': 0, 'metadata': 2, 'history':0})
 
     def test_cycle_reset_never_reuses_old_binding(self):
         self.bind()

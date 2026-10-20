@@ -17,7 +17,8 @@ SPORTS = ('americanfootball_nfl','americanfootball_ncaaf','basketball_nba','bask
           'soccer_germany_bundesliga','soccer_italy_serie_a','soccer_france_ligue_one',
           'soccer_uefa_champs_league','basketball_wnba','basketball_wncaab',
           'tennis_atp','tennis_wta','mma_mixed_martial_arts')
-POOLS = {'main':8_000_000, 'props':5_000_000, 'metadata':500_000}
+BUDGET_VERSION = 'pregame-lab-history-100k-v1'
+POOLS = {'main':7_900_000, 'props':5_000_000, 'metadata':500_000, 'history':100_000}
 TOTAL = 15_000_000
 PROTECTED = 1_500_000
 

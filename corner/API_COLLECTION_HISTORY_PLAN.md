@@ -2,7 +2,9 @@
 
 Revised October 19, 2026 — America/Chicago.
 Owner clarification: paid historical odds are needed ONLY for The Lab.
-Status: planning only. No provider calls, runtime cap changes or activation.
+Status: scope and activation plan. October 20 update: the reviewed four-pool
+policy is implemented for new paused ledger bindings; no historical adapter
+or Lab historical dispatch is enabled.
 This revision replaces the earlier general 500K historical-research proposal.
 
 ## 1. Lab data sources and scope
@@ -57,11 +59,12 @@ returns to planned main-market headroom; the protected reserve is unchanged.
 The 100K is a ceiling, not a target. If The Lab only displays current-threshold
 hit rates and game logs, historical-odds spending can remain ZERO.
 
-The current implemented governor still has 8M main / 5M props / 500K metadata
-and 1.5M reserve, with no historical adapter or fourth pool. Implementing the
-100K Lab pool requires an audited carve-out from main, preserving prior usage,
-reservations, unknown charges and cycle bindings. Do not reset the ledger or
-claim this document has changed deployed limits.
+The governor now uses the four pools above, with a versioned per-cycle policy
+record. Initial setup is allowed only for a new ledger and freshly verified
+zero usage. Existing cycles missing that policy are refused for dispatch; an
+audited legacy migration is separate work. No historical transport is enabled.
+The owner must deploy and run the paused setup before claiming a VPS binding.
+Never reset existing accounting to adopt a policy change.
 
 ## 3. 16-hour pregame schedule
 
@@ -212,4 +215,5 @@ Sources verified October 19, 2026:
 - Existing free-statistics implementation: corner/TRENDS.md and pipelines/trends_service.py.
 
 This document is proposed scope/budget, not a claim that the historical adapter,
-new quota pool or historical-line UI has been implemented or activated.
+historical-line UI has been implemented or activated. The new quota pool is
+implemented only as a protected allocation in the reviewed governor policy.

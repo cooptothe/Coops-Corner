@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import secrets
 
-from corner.collection_policy import POOLS, TOTAL, PROTECTED, aware
+from corner.collection_policy import POOLS, TOTAL, PROTECTED, BUDGET_VERSION, aware
 from corner.credit_governor import Governor, Refused
 
 
@@ -38,6 +38,9 @@ class LiveGovernor(Governor):
             cycle_id TEXT PRIMARY KEY REFERENCES cycles(id), key_hash TEXT NOT NULL,
             used INTEGER NOT NULL, checked REAL NOT NULL,
             offsets TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS quota_policy(
+            cycle_id TEXT PRIMARY KEY REFERENCES cycles(id), version TEXT NOT NULL,
+            limits_json TEXT NOT NULL, total INTEGER NOT NULL, protected INTEGER NOT NULL);
           CREATE TABLE IF NOT EXISTS quota_inventory(
             token TEXT PRIMARY KEY, cycle_id TEXT NOT NULL REFERENCES cycles(id),
             owner TEXT NOT NULL, started REAL NOT NULL, state TEXT NOT NULL,
@@ -75,6 +78,7 @@ class LiveGovernor(Governor):
                 raise Refused('Existing cycle cannot be rebound or reset')
             db.execute('INSERT INTO quota_bindings VALUES(?,?,?,?,?)',
                        (cycle, key_hash, used, now.timestamp(), json.dumps(offsets)))
+            db.execute('INSERT INTO quota_policy VALUES(?,?,?,?,?)',(cycle,BUDGET_VERSION,json.dumps(POOLS,sort_keys=True),TOTAL,PROTECTED))
             self._audit(db, now, 'bind', evidence, {'cycle': cycle, 'used': used, 'offsets': offsets})
 
     def accounted(self, db, cycle):
@@ -91,6 +95,9 @@ class LiveGovernor(Governor):
         row = db.execute('SELECT b.* FROM quota_bindings b JOIN cycles c ON c.id=b.cycle_id WHERE c.starts<=? AND c.ends>?', (now.timestamp(), now.timestamp())).fetchone()
         if row is None:
             raise Refused('No bound provider billing cycle')
+        policy=db.execute('SELECT version,limits_json,total,protected FROM quota_policy WHERE cycle_id=?',(row['cycle_id'],)).fetchone()
+        if not policy or policy[0]!=BUDGET_VERSION or json.loads(policy[1])!=POOLS or policy[2]!=TOTAL or policy[3]!=PROTECTED:
+            raise Refused('Budget policy missing or changed; explicit review required, never reset the cycle')
         return row
 
     def authorize(self, owner, now, key_hash, *, inventory=False):
