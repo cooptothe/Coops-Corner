@@ -59,12 +59,14 @@ def status(path=STATE):
         if version!=BUDGET_VERSION or json.loads(limits)!=POOLS or total!=TOTAL or reserve!=PROTECTED:
             raise SetupError('Ledger budget policy differs; stop and review.')
         cycle=db.execute('SELECT starts,ends FROM cycles WHERE id=?',(binding[0][0],)).fetchone()
-        return dict(result='initialized_paused',cycle_id=binding[0][0],
+        paid=db.execute('SELECT count(*) FROM dispatches').fetchone()[0]
+        unresolved=db.execute("SELECT count(*) FROM attempts WHERE state IN ('unknown','inflight')").fetchone()[0]
+        return dict(result='commissioned_paused' if paid else 'initialized_paused',cycle_id=binding[0][0],
             quota_cycle_start_utc=datetime.fromtimestamp(cycle[0],timezone.utc).isoformat(),
             next_quota_reset_utc=datetime.fromtimestamp(cycle[1],timezone.utc).isoformat(),
             provider_used=binding[0][1],pools=json.loads(limits),protected_reserve=reserve,
-            budget_version=version,paused=True,worker_started=False,paid_odds_calls=0,
-            note='No odds smoke, publication, freshness, exchange classification or recurring activation is proved by setup.')
+            budget_version=version,paused=True,worker_started=False,paid_odds_calls=paid,unresolved_requests=unresolved,
+            note='Ledger accounting only; consult smoke evidence for publication and freshness. Recurring activation is not proved by setup.')
 
 def main():
     os.umask(0o077)
