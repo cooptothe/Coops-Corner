@@ -100,9 +100,9 @@ class Provider:
         status,data,headers=self._get(path,params)
         if status==200:
             if job.kind in ('props','additional'):
-                if not isinstance(data,dict):raise RuntimeError('Invalid event odds envelope')
-                data=[data]
-            if not isinstance(data,list):raise RuntimeError('Invalid odds envelope')
+                # Preserve verified quota headers even when the envelope is malformed.
+                # The live settlement path quarantines invalid data after accounting.
+                data=[data] if isinstance(data,dict) else {'invalid_event_envelope': True}
         return status,data,headers,aware(self.clock())
 
     def discover(self):

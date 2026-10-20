@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import secrets
+import sqlite3
 
 from corner.collection_policy import POOLS, TOTAL, PROTECTED, BUDGET_VERSION, aware
 from corner.credit_governor import Governor, Refused
@@ -34,6 +35,9 @@ class LiveGovernor(Governor):
             raise ValueError('Live quota cannot use simulation state')
         super().__init__(path)
         self.db.executescript('''
+          CREATE TABLE IF NOT EXISTS collection_quarantine(
+            job_key TEXT PRIMARY KEY REFERENCES jobs(key), token TEXT NOT NULL,
+            created REAL NOT NULL, code TEXT NOT NULL, detail TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS quota_bindings(
             cycle_id TEXT PRIMARY KEY REFERENCES cycles(id), key_hash TEXT NOT NULL,
             used INTEGER NOT NULL, checked REAL NOT NULL,
@@ -49,6 +53,21 @@ class LiveGovernor(Governor):
             id INTEGER PRIMARY KEY, at REAL NOT NULL, action TEXT NOT NULL,
             evidence TEXT NOT NULL, detail TEXT NOT NULL);
         ''')
+
+    def ready(self, job, now):
+        if self.db.execute('SELECT 1 FROM collection_quarantine WHERE job_key=?', (job.key,)).fetchone():
+            return False
+        return super().ready(job, now)
+
+    def claim(self, job, owner, now):
+        if self.db.execute('SELECT 1 FROM collection_quarantine WHERE job_key=?', (job.key,)).fetchone():
+            raise Refused('Scope quarantined; review before any new purchase')
+        return super().claim(job, owner, now)
+
+    def quarantine(self, db, job_key, token, now, code, detail):
+        db.execute('INSERT OR IGNORE INTO collection_quarantine VALUES(?,?,?,?,?)',
+                   (job_key, token, now.timestamp(), code, json.dumps(detail, sort_keys=True)))
+        db.execute("UPDATE jobs SET state='blocked',last_error=? WHERE key=?", (code, job_key))
 
     def _audit(self, db, now, action, evidence, detail):
         if not isinstance(evidence, str) or not evidence.strip() or len(evidence) > 500:
@@ -183,10 +202,45 @@ class LiveGovernor(Governor):
             except Refused as error:
                 reason = str(error)
                 db.execute('UPDATE controls SET paused=? WHERE id=1', (reason,))
-            self._audit(db, now, 'odds-response', 'provider response', {'token': token, 'reason': reason})
+            actual = quota_headers(headers)[2] if not reason else None
+            self._audit(db, now, 'odds-response', 'provider response',
+                        {'token': token, 'reason': reason, 'actual': actual,
+                         'http_status': status, 'charge_verified': not bool(reason)})
         # A crash between quota evidence and settlement conservatively leaves an
         # unknown reservation. Quota drift must never publish a successful scope.
-        result = super().finish(job, token, owner, now, headers, payload, 503 if reason else status)
+        def rejected(code):
+            with self.transaction() as db:
+                self._fence(db, owner, now.timestamp())
+                attempt = db.execute("SELECT reserved FROM attempts WHERE token=? AND state='inflight'", (token,)).fetchone()
+                if not attempt or actual is None or actual > attempt[0]:
+                    raise Refused('Unverified charge cannot be quarantined automatically')
+                db.execute("UPDATE attempts SET state='settled',actual=?,finished=? WHERE token=?", (actual, now.timestamp(), token))
+                encoded = json.dumps(payload, separators=(',', ':'))
+                self.quarantine(db, job.key, token, now, code,
+                                {'kind': job.kind, 'sport': job.sport, 'event_id': job.event_id,
+                                 'actual': actual, 'http_status': status,
+                                 'payload': payload if len(encoded.encode()) <= 1048576 else None})
+                for book in job.books:
+                    for market in job.markets:
+                        db.execute('UPDATE snapshots SET expires_at=min(expires_at,?) WHERE kind=? AND sport=? AND book=? AND market=?' +
+                                   (' AND event_id=?' if job.event_id else ''),
+                                   (now.timestamp(),job.kind,job.sport,book,market) + ((job.event_id,) if job.event_id else ()))
+                self._audit(db, now, 'quarantine', 'Verified provider charge; invalid scope excluded',
+                            {'token': token, 'job_key': job.key, 'code': code, 'actual': actual})
+            return 'quarantined'
+
+        reservation = self.db.execute('SELECT reserved FROM attempts WHERE token=?', (token,)).fetchone()[0]
+        if not reason and actual <= reservation and status in (400, 404, 422):
+            return rejected('provider_scope_rejected')
+        try:
+            result = super().finish(job, token, owner, now, headers, payload, 503 if reason else status)
+        except (ValueError, TypeError, KeyError, AttributeError, sqlite3.IntegrityError) as error:
+            if reason or isinstance(error, Refused) or actual is None or actual > reservation:
+                raise
+            codes = {'Mismatched event': 'event_mismatch', 'Mismatched props event': 'event_mismatch',
+                     'Unexpected bookmaker': 'book_mismatch', 'Unexpected market': 'market_mismatch',
+                     'Future provider timestamp': 'future_source_timestamp', 'Expected event list': 'invalid_envelope'}
+            return rejected(codes.get(str(error), 'snapshot_' + type(error).__name__))
         if reason:
             with self.transaction() as db:
                 self._fence(db, owner, now.timestamp())

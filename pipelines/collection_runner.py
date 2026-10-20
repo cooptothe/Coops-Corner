@@ -126,18 +126,29 @@ class Runner:
             except Refused:
                 continue
             try:
+                phase = 'transport'
                 status, payload, headers, received = self.transport(self.g, job, token, self.owner)
                 current = self.now()
                 if abs((current - aware(received)).total_seconds()) > 5:
                     raise ValueError('Invalid receipt clock')
+                phase = 'settlement_and_snapshot'
                 result = self.g.finish(job, token, self.owner, current, headers, payload, status)
+                if result == 'quarantined':
+                    executed += 1
+                    continue
                 if result != 'published':
                     self.pause('Uncertain or rejected collection response; operator review required')
                     break
-            except Exception:
+            except Exception as error:
                 try:
                     self.g.unknown(token, self.owner, self.now())
                     self.pause('Uncertain collection request; operator review required')
+                    detail = {'phase': phase, 'error_type': type(error).__name__,
+                              'job_key': job.key, 'kind': job.kind, 'sport': job.sport, 'token': token}
+                    if hasattr(self.g, '_audit'):
+                        with self.g.transaction() as db:
+                            self.g._audit(db, self.now(), 'request-failed', 'Sanitized worker failure', detail)
+                    print(json.dumps({'state': 'request_failed', **detail}), flush=True)
                 except Refused:
                     # Do not mutate another owner's state. Expiry recovery holds
                     # this attempt as unknown before a successor may buy odds.
