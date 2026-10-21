@@ -110,7 +110,10 @@ class RunnerTests(unittest.TestCase):
         self.calls.clear()
         r.publisher = lambda *args: (_ for _ in ()).throw(RuntimeError())
         self.now += timedelta(seconds=60)
-        self.assertEqual(r.tick()['state'], 'publication_failed')
+        failure = r.tick()
+        self.assertEqual(failure['state'], 'publication_failed')
+        self.assertEqual(failure['error_type'], 'RuntimeError')
+        self.assertIsNone(failure['sqlstate'])
         self.assertEqual(self.calls, [])
 
     def test_clock_rechecked_between_requests(self):

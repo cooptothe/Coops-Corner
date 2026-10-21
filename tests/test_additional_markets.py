@@ -97,7 +97,7 @@ class AdditionalTests(unittest.TestCase):
   e={'id':'e','sport_key':'basketball_nba','commence_time':START.isoformat()}
   jobs=[j for j in plan(NOW,['basketball_nba'],[e],additional=True) if j.kind=='additional']
   self.assertEqual(2,len(jobs));self.assertTrue(all(j.pool=='main' and j.cost==5 for j in jobs))
-  self.assertEqual(60,interval('additional','standard',NOW,START));self.assertEqual(20,interval('additional','exchange',NOW,START))
+  self.assertEqual(120,interval('additional','standard',NOW,START));self.assertEqual(120,interval('additional','exchange',NOW,START))
   e['commence_time']=(NOW+timedelta(hours=2,seconds=1)).isoformat()
   self.assertFalse(any(j.kind=='additional' for j in plan(NOW,['basketball_nba'],[e],additional=True)))
  def test_additional_snapshot_authority_withdrawal_and_expiry(self):

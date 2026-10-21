@@ -181,15 +181,19 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
             books.add(book_key)
             seen = set()
             ambiguous = set()
-            if book_key == "betopenly":
-                # The peer marketplace may publish several offers for a single
-                # selection. No offer depth/acceptance rule is modeled: exclude
-                # every ambiguous selection, not every other book in the event.
+            if book_key == "betopenly" or any(
+                    item.get("key") in ADDITIONAL_MARKETS
+                    for item in _array(book.get("markets", []), "markets") if isinstance(item, dict)):
+                # Alternate feeds can repeat the same exact selection/line, even
+                # with different prices or source IDs. Never pick the first/best
+                # price: exclude all copies of that ambiguous identity only.
+                # Other lines, teams, books and markets remain publishable.
                 counts = Counter()
                 for item in _array(book.get("markets", []), "markets"):
                     item = _object(item, "market")
                     market_key = _text(item.get("key"), "market key")
                     if market_key not in SUPPORTED_MARKETS:continue
+                    if book_key != "betopenly" and market_key not in ADDITIONAL_MARKETS:continue
                     for offer in _array(item.get("outcomes", []), "outcomes"):
                         _object(offer, "outcome")
                         point = offer.get("point")
@@ -240,7 +244,9 @@ def normalize_featured_payload(raw_body: bytes, *, received_at: datetime):
                     identity = (key, name, point, subject)
                     if identity in ambiguous:
                         if pointer not in excluded_ambiguous:
-                            excluded.append(ExcludedMarket(pointer, key, "ambiguous_peer_offers_excluded"))
+                            excluded.append(ExcludedMarket(pointer, key,
+                                "ambiguous_peer_offers_excluded" if book_key == "betopenly"
+                                else "ambiguous_duplicate_quote_identity_excluded"))
                             excluded_ambiguous.add(pointer)
                         continue
                     if identity in seen:

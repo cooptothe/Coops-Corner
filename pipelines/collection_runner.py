@@ -72,8 +72,12 @@ class Runner:
                     published = 1
                 if self.g.db.execute('SELECT 1 FROM publication_outbox WHERE published_at IS NULL').fetchone():
                     return {'state': 'publication_pending', 'executed': 0, 'published': published}
-            except Exception:
-                return {'state': 'publication_failed', 'executed': 0}
+            except Exception as error:
+                # Class and SQLSTATE are safe diagnostics; never log raw SQL,
+                # connection strings, response bodies or exception messages.
+                return {'state': 'publication_failed', 'executed': 0,
+                        'error_type': type(error).__name__,
+                        'sqlstate': getattr(error, 'pgcode', None)}
         if self.g.status()['paused']:
             return {'state': 'paused', 'executed': 0}
         if not open_now(now):
