@@ -5,7 +5,7 @@ from tests import test_prop_markets as fixtures
 class NovigProps(unittest.TestCase):
     def test_novig_counts_for_props_and_remains_a_target(self):
         self.assertIn('novig', PROP_SHARP_BOOKS)
-        self.assertNotIn('novig', SHARP_BOOKS)
+        self.assertIn('novig', SHARP_BOOKS)
         event = fixtures.FanDuelReference.stored({'novig': (1.91, 1.91), 'pinnacle': (1.91, 1.91),
                                        'fanduel': (1.91, 1.91), 'draftkings': (2.2, 1.65)})
         bets = build_bets({'e': event})

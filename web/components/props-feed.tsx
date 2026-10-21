@@ -64,7 +64,7 @@ const BOOK_NAMES: Record<string, string> = {
   prophetx: "ProphetX",
   kalshi: "Kalshi",
 };
-// Only these books are offered as bettable options; sharps feed the fair price only.
+// Supported books can be targets and references; each target excludes its own price.
 const BETTING_BOOKS = [
   "betmgm",
   "betrivers",
@@ -636,11 +636,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
             apply. Integer lines are conditional on no push.
           </p>
           <p>
-            Reference influence is weighted, not equal: FanDuel carries the
-            highest current player-prop prior, followed by Pinnacle, then other
-            eligible references. These are provisional reputation weights, not
-            measured accuracy rankings. Each row shows the weights actually
-            used; the offered sportsbook never prices its own bet.
+            All supported books may contribute matching reference prices. Their
+            influence depends on the sport and market: NBA props emphasize
+            FanDuel; markets with limited evidence use balanced, conservative
+            priors. These are provisional policy weights, not measured accuracy
+            rankings. Each row shows the weights actually used; the offered
+            sportsbook never prices its own bet.
           </p>
         </details>
         <FeedFilters active={!settings.atDefaults}>

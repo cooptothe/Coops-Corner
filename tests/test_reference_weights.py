@@ -11,7 +11,7 @@ class Weights(unittest.TestCase):
         self.assertGreater(reference_weight('pinnacle', 'mma_mixed_martial_arts'), reference_weight('betfair_ex_uk', 'mma_mixed_martial_arts'))
         self.assertGreater(reference_weight('betfair_ex_uk', 'soccer_epl'), reference_weight('prophetx', 'soccer_epl'))
         self.assertEqual(reference_weight('pinnacle', 'basketball_wnba'), reference_weight('betfair_ex_uk', 'basketball_wnba'))
-        for sport in ('basketball_nba', 'basketball_wnba', 'americanfootball_nfl', 'baseball_mlb', 'icehockey_nhl'):
+        for sport in ('basketball_nba', 'baseball_mlb'):
             self.assertGreater(reference_weight('fanduel', sport, player_props=True), reference_weight('pinnacle', sport, player_props=True))
 
     def test_main_ev_uses_weighted_devigged_probabilities(self):
@@ -33,8 +33,9 @@ class Weights(unittest.TestCase):
         from corner.pricing import no_vig_pair
         a = no_vig_pair(D(2), D(3))[0][0]
         b = no_vig_pair(D(3), D(2))[0][0]
-        self.assertAlmostEqual(float(fair), float((a*5+b*2)/7))
-        self.assertEqual((None,[]), pm._fair_first_side(prices, exclude='fanduel', sport_key='basketball_nba'))
+        self.assertAlmostEqual(float(fair), float((a*4+b)/5))
+        self.assertEqual(set(pm._fair_first_side(prices, exclude='fanduel', sport_key='basketball_nba')[1]), {'pinnacle','draftkings'})
+        self.assertEqual((None,[]),pm._fair_first_side({'fanduel':prices['fanduel'],'pinnacle':prices['pinnacle']},exclude='fanduel',sport_key='basketball_nba'))
         weights = normalized_reference_weights(['fanduel'], 'soccer_epl', player_props=True)
         self.assertEqual(weights, {'fanduel':D(1)})
 
@@ -44,11 +45,11 @@ class Weights(unittest.TestCase):
     def test_expanded_props_pair_excludes_target_and_keeps_two_references(self):
         for sport in ('basketball_nba','americanfootball_nfl','baseball_mlb','icehockey_nhl','soccer_epl'):
             for book in ('betonlineag','bovada'):
-                self.assertEqual(reference_weight(book,sport,player_props=True),D(1))
+                self.assertGreater(reference_weight(book,sport,player_props=True),D(0))
             prices={'betonlineag':{0:D('2.1'),1:D('1.9')},
                     'bovada':{0:D('2.2'),1:D('1.8')},
                     'draftkings':{0:D('2'),1:D('2')}}
             fair,used=pm._fair_first_side(prices,exclude='draftkings',sport_key=sport)
             self.assertIsNotNone(fair)
             self.assertEqual(set(used),{'betonlineag','bovada'})
-            self.assertEqual(pm._fair_first_side(prices,exclude='bovada',sport_key=sport),(None,[]))
+            self.assertEqual(set(pm._fair_first_side(prices,exclude='bovada',sport_key=sport)[1]),{'betonlineag','draftkings'})

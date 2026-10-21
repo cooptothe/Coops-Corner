@@ -264,7 +264,7 @@ class FixtureCatalog:
             back = [o for o in current if o.market_key == key]
             refs = [o for o in back if o.sportsbook_id in references]
             full = tuple(r for r in references if sum(o.sportsbook_id == r for o in refs) == len(selections))
-            # Fixtures need every named reference; database mode uses whichever sharp books fully price this contract (min 2).
+            # Fixtures need every named reference; database mode uses whichever eligible books fully price this contract (min 2).
             used = full if self.data_mode == 'database' else references
             sport_key = game_meta[game_id]['sport_key']
             complete_refs = sufficient_references(full, sport_key) if self.data_mode == 'database' else len(full) == len(references)

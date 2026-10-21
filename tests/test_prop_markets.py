@@ -100,7 +100,7 @@ class FanDuelReference(unittest.TestCase):
 
     def test_fanduel_is_a_reference_for_props_only(self):
         self.assertIn('fanduel', pm.PROP_SHARP_BOOKS)
-        self.assertNotIn('fanduel', pm.SHARP_BOOKS)
+        self.assertIn('fanduel', pm.SHARP_BOOKS)
 
     def test_fanduel_plus_one_sharp_now_prices_other_books(self):
         bets = pm.build_bets({'e': self.stored({'pinnacle': (1.91, 1.91), 'fanduel': (1.91, 1.91), 'draftkings': (2.2, 1.65)})})
@@ -141,7 +141,7 @@ class FanDuelReference(unittest.TestCase):
 
     def test_main_ev_feed_references_are_unchanged(self):
         from api.database import DEFAULT_REFERENCES
-        self.assertNotIn('fanduel', DEFAULT_REFERENCES)
+        self.assertIn('fanduel', DEFAULT_REFERENCES)
 
 
 if __name__ == '__main__':

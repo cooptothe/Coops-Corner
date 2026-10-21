@@ -3,11 +3,11 @@ import type { View } from "../lib/contracts";
 const GUIDES: Record<View, [string, string]> = {
   positive_ev: [
     "Find and review an EV bet",
-    "Narrow the feed by event time, EV range, odds, and sportsbook. Select a bet to review its reference prices and size a stake. Open its sportsbook link to review the available price; log it only after placing it yourself.",
+    "Fair prices use all eligible matching books with sport and market weights, excluding the target itself. These weights are policy priors, not proven predictive accuracy. Narrow the feed by event time, EV range, odds, and sportsbook. Select a bet to review its reference prices and size a stake. Open its sportsbook link to review the available price; log it only after placing it yourself.",
   ],
   props: [
     "Find a player prop",
-    "Choose a sport and player market. Estimates remove margin from complete two-sided reference prices. EV includes modeled fees and uses the lower of power and proportional estimates; this is model sensitivity, not a confidence interval. One-sided props can use automatically estimated margins from complete prices at two other reference books in the same event and prop market; these results are labeled as modeled. The target can be one-sided. Caesars and Fanatics can supply cash-price references; DFS sources are excluded. Check the final price and payout at the book. Filtering never triggers a provider request.",
+    "Choose a sport and player market. Estimates remove margin from complete two-sided reference prices. EV includes modeled fees and uses the lower of power and proportional estimates; this is model sensitivity, not a confidence interval. One-sided props can use automatically estimated margins from complete prices at two other reference books in the same event and prop market; these results are labeled as modeled. The target can be one-sided. All supported books can supply references, weighted by sport and market policy; the target is excluded and at least two other eligible books are required. DFS sources remain excluded. Check the final price and payout at the book. Filtering never triggers a provider request.",
   ],
   arbitrage: [
     "Compare both sides",

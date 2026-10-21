@@ -20,7 +20,7 @@ class ScorerPairs(unittest.TestCase):
                 self.assertEqual(target['side'],'Yes')
                 self.assertNotIn('draftkings',target['sharps'])
                 self.assertEqual(target['probability_basis'],'weighted_power_no_vig')
-                self.assertGreater(D(target['reference_weights']['fanduel']),D(target['reference_weights']['pinnacle']))
+                self.assertEqual(D(target['reference_weights']['fanduel']),D(target['reference_weights']['pinnacle']))
                 weights={b:D(w) for b,w in target['reference_weights'].items()}
                 power=weights['fanduel']*no_vig_pair(D('4'),D('1.4'))[0][0]+weights['pinnacle']*no_vig_pair(D('5'),D('1.3'))[0][0]
                 self.assertAlmostEqual(float(target['fair_probability']),float(power),places=5)

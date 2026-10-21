@@ -77,7 +77,7 @@ class DatabaseCatalogTests(unittest.TestCase):
 
     def test_ev_requires_every_reference_book(self):
         rows = [r for r in board() if r['book_code'] != 'prophetx']
-        catalog = FixtureCatalog(raw=build_raw(rows, PEOPLE, now=NOW))
+        catalog = FixtureCatalog(raw=build_raw(rows, PEOPLE, now=NOW,references=('pinnacle','prophetx')))
         self.assertNotIn('positive_ev', {r.kind for r in catalog.rows})
 
     def test_incomplete_books_and_unsupported_lines_are_skipped(self):

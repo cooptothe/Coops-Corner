@@ -23,11 +23,14 @@ BetRivers, Pinnacle, BetOnline, Caesars (williamhill_us), Bovada: nine books.
 Props add Fanatics: ten books, still one region-equivalent. Manual requests
 remain fifteen main/sixteen props books, still two billing blocks. Dormant
 exchange groups retain their old unverified policy and remain disabled.
-BetOnline and Bovada remain eligible main/props references with relative weight
-1; existing FanDuel/Pinnacle props weights, target exclusion, matched lines,
-devigging and the two-reference gate are unchanged. One-sided margin estimates
-remain modeled assumptions, not fitted win probabilities. User filters cannot
-change reference policy. Caesars remains a props target and eligible reference.
+All supported books with valid matching quotes now contribute as eligible
+main/props references, weighted by the researched server policy documented in
+REFERENCE_RESEARCH.md. Every target excludes its own book. Two reference sources
+remain required for props; the existing soccer-main exception is unchanged.
+Same-exchange regional aliases do not inflate independent source counts. DFS
+remains excluded. Numerical weight priors changed with the October 21 update;
+acquisition books, cadences and the budget below did not change.
+
 
 ## Budget and daily alternate limits
 

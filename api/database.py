@@ -16,14 +16,14 @@ from corner.links import clean_links
 from corner.collection_readers import store_path as scheduled_store_path, main_scopes
 from corner.native_ids import native_ids
 from corner.book_policy import supported_book, supported_books
-from corner.pricing import fee_policy
+from corner.pricing import fee_policy, reference_eligible
+from corner.reference_weights import REFERENCE_BOOKS
 
 log = logging.getLogger('corner.api.database')
 
 SETTLEMENT_IDENTITY = 'the-odds-api-main-lines-full-game/1'
 # Main-line references; these books remain eligible betting targets too.
-MAIN_ADDED_REFERENCES = ('betonlineag', 'bovada')
-DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket') + MAIN_ADDED_REFERENCES
+DEFAULT_REFERENCES = tuple(sorted(REFERENCE_BOOKS))
 # Empty = every book present in the data is a bettable target; the user filters in the UI.
 DEFAULT_TARGETS = ()
 FALLBACK_TARGET = 'draftkings'
@@ -115,9 +115,10 @@ def _source_time(row):
     return min(row['observed_at'], row.get('provider_updated_at') or row['observed_at'])
 
 
-def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCES, targets=DEFAULT_TARGETS):
+def build_raw(quote_rows, participant_rows, *, now, references=None, targets=DEFAULT_TARGETS):
     """Pure transformation of DB rows into the catalog's raw contract shape."""
-    references, targets = supported_books(references), supported_books(targets)
+    explicit_references = references is not None
+    references, targets = supported_books(references or ()), supported_books(targets)
     people = {}
     for event_id, role, name in participant_rows:
         people.setdefault(str(event_id), {})[role] = name
@@ -196,6 +197,8 @@ def build_raw(quote_rows, participant_rows, *, now, references=DEFAULT_REFERENCE
                               competition=_label(r['competition_code'], r['competition_name']), name=f'{away} at {home}', starts_at=_iso(r['scheduled_start']),
                               scope='full_game', participants=sorted([home, away])))
     captured = max(observed) if observed else now
+    if not explicit_references:
+        references=tuple(sorted(b for b in books if reference_eligible(b)))
     targets = tuple(targets) if targets else tuple(sorted(books)) or (FALLBACK_TARGET,)
     book_ids = sorted(set(books) | set(references) | set(targets))
     return dict(format='corner.product_fixture/1', data_mode='database', captured_at=_iso(captured), observed_at=_iso(captured),
@@ -291,7 +294,7 @@ class LiveCatalog:
         self._ttl = ttl_seconds if ttl_seconds is not None else 15
         self._max_age = timedelta(seconds=max_age_seconds if max_age_seconds is not None
                                   else int(os.environ.get('CORNER_TOOLS_MAX_AGE_SECONDS', '1800')))
-        self._references = tuple(references) if references else tuple(dict.fromkeys((*_env_books('CORNER_TOOLS_REFERENCE_BOOKS', DEFAULT_REFERENCES), *MAIN_ADDED_REFERENCES)))
+        self._references = tuple(references) if references is not None else None  # Production: all available eligible books; legacy env lists cannot narrow it.
         self._targets = tuple(targets) if targets else _env_books('CORNER_TOOLS_TARGET_BOOKS', DEFAULT_TARGETS)
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._lock = threading.Lock()

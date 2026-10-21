@@ -42,7 +42,7 @@ class ExpandedMainTests(unittest.TestCase):
 
     def test_new_cash_books_are_targets_and_selected_main_references(self):
         for book in ('betonlineag','williamhill_us','bovada'):
-            self.assertEqual(book in DEFAULT_REFERENCES,book in ('betonlineag','bovada'))
+            self.assertIn(book,DEFAULT_REFERENCES)
             raw=build_raw(board()+[q(book,'moneyline',s,'4') for s in ('home','away')],PEOPLE,now=NOW)
             self.assertIn(book,raw['target_books'])
             catalog=FixtureCatalog(raw=raw)
