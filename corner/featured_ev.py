@@ -7,6 +7,7 @@ explicit payoff model when those branches have supplied probabilities.
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
+from functools import lru_cache
 from corner.reference_policy import sufficient_references
 from corner.reference_weights import reference_weight, WEIGHT_VERSION
 from corner.reference_policy import reference_source
@@ -80,6 +81,28 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
         _require((offer.contract_id, offer.market_key) == (market.contract_id, market.market_key),
                  "incompatible reference contract or direction")
         _require(offer.selection_id in market.selection_ids, "unexpected selection")
+    probabilities, references = _reference_consensus(market, offers, books, sport_key)
+    consensus = dict(probabilities)
+    p = consensus[target.selection_id]
+    odds, amount, commission = map(Fraction, (target.decimal_odds, stake, target.commission_rate))
+    if target.market_key in LAY_MARKETS:
+        expected = amount * ((1 - p) * (1 - commission) - p * (odds - 1))
+        capital = amount * (odds - 1)
+    else:
+        expected = amount * (p * (odds - 1) * (1 - commission) - (1 - p))
+        capital = amount
+    return FeaturedEV(market.contract_id, target.quote_id, target.selection_id, tuple(references),
+                      tuple((s, _decimal_ratio(consensus[s])) for s in sorted(consensus)), _decimal_ratio(p),
+                      _decimal_ratio(expected), _decimal_ratio(expected / capital), stake, _decimal_ratio(capital))
+
+
+@lru_cache(maxsize=4096)
+def _reference_consensus(market, offers, books, sport_key):
+    """Bounded exact computation cache; callers still validate every request.
+
+    Immutable keys contain every reference identity, price, contract and book.
+    Freshness and eligibility remain enforced by the catalog before calculation.
+    """
     consensus = {s: Fraction(0) for s in market.selection_ids}
     source_counts = Counter(reference_source(b) for b in books)
     weights = {book: Fraction(reference_weight(book, sport_key, market_key=market.market_key))/source_counts[reference_source(book)] for book in books}
@@ -96,14 +119,4 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
             consensus[selection] += probability * weights[book] / total_weight
         references.append(ReferenceProbability(book, tuple(o.quote_id for o in sorted(entries, key=lambda o: o.selection_id)),
                           tuple((s, _decimal_ratio(probabilities[s])) for s in sorted(probabilities)), _decimal_ratio(total), _decimal_ratio(weights[book] / total_weight)))
-    p = consensus[target.selection_id]
-    odds, amount, commission = map(Fraction, (target.decimal_odds, stake, target.commission_rate))
-    if target.market_key in LAY_MARKETS:
-        expected = amount * ((1 - p) * (1 - commission) - p * (odds - 1))
-        capital = amount * (odds - 1)
-    else:
-        expected = amount * (p * (odds - 1) * (1 - commission) - (1 - p))
-        capital = amount
-    return FeaturedEV(market.contract_id, target.quote_id, target.selection_id, tuple(references),
-                      tuple((s, _decimal_ratio(consensus[s])) for s in sorted(consensus)), _decimal_ratio(p),
-                      _decimal_ratio(expected), _decimal_ratio(expected / capital), stake, _decimal_ratio(capital))
+    return tuple(consensus.items()), tuple(references)

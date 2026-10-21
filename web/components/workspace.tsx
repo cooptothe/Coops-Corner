@@ -194,7 +194,9 @@ export default function Workspace({ view }: { view: View }) {
     setUpdating(true);
     (async () => {
       try {
-        await reloadToolsOnce();
+        // Scheduled catalogs already refresh on read; avoid a forced rebuild on page load.
+        // Local manual mode retains its explicit reload, and manual fetches publish separately.
+        if (!user?.role && !light) await reloadToolsOnce();
         if (controller.signal.aborted) return;
         const caps = await request<Capabilities>("capabilities", {
           signal: controller.signal,
