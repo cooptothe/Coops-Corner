@@ -247,6 +247,8 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
         catalog.verify_snapshot(query.snapshot_id)
         if query.game_id is not None:
             catalog.game(query.game_id)
+        if kind != 'positive_ev' and query.devig_method != 'current':
+            raise APIProblem(422, 'inapplicable_filter', 'devig_method applies only to positive_ev.')
         if kind != 'positive_ev' and query.minimum_ev_ratio != '0':
             raise APIProblem(422, 'inapplicable_filter', 'minimum_ev_ratio applies only to positive_ev.')
         if kind != 'low_hold' and query.maximum_loss_ratio != '0.01':
@@ -259,7 +261,8 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
         if query.sort == 'minimum_profit' and kind == 'positive_ev':
             raise APIProblem(422, 'inapplicable_sort', 'positive_ev has no minimum_profit projection.')
         def matching():
-            rows = [row for row in catalog.rows if row.kind == kind
+            source = catalog.ev_rows(query.devig_method) if kind == 'positive_ev' else catalog.rows
+            rows = [row for row in source if row.kind == kind
                     and (query.game_id is None or query.game_id == row.game_id)
                     and (query.sport_key is None or query.sport_key == catalog.game_map[row.game_id].sport_key)
                     and (query.market_key is None or query.market_key == row.market_key)
@@ -271,7 +274,7 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
             return rows
 
         # The filter, its ordering and the page are separate steps: paging through one feed sorts it once.
-        which = (kind, query.game_id, query.sport_key, query.market_key, query.sportsbook_id, query.minimum_ev_ratio, query.maximum_loss_ratio)
+        which = (kind, query.game_id, query.sport_key, query.market_key, query.sportsbook_id, query.minimum_ev_ratio, query.maximum_loss_ratio, query.devig_method)
         return result(paginate(matching, query, ('conditional_ev_ratio', 'minimum_profit', 'capital_required'),
                                memo=catalog.memo, memo_key=which))
 

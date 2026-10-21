@@ -1,4 +1,9 @@
 "use client";
+import {
+  DevigComparison,
+  DevigSelector,
+  type DevigResult,
+} from "./devig-comparison";
 import { fairOddsRange } from "../lib/fair-odds-filter";
 import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
@@ -83,6 +88,7 @@ interface Vm {
   startMs: number;
   sharps: string;
   observedAt: string;
+  devigComparisons?: DevigResult[];
   fairProb: string;
   ref: Record<string, RefValue>;
   links: QuoteLinks | null;
@@ -112,7 +118,7 @@ export interface KellyVm {
 }
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 
-const ROW_HEIGHT = { wide: 88, compact: 244 };
+const ROW_HEIGHT = { wide: 120, compact: 280 };
 const OVERSCAN = 6;
 const SHARP_BOOKS = new Set([
   "pinnacle",
@@ -141,6 +147,7 @@ export function legacySizing(): Partial<SizingSettings> | null {
     : null;
 }
 type EvSettings = {
+  devigMethod: string;
   minWinChance: string;
   timeFilter: string;
   offBooks: string[];
@@ -153,6 +160,7 @@ type EvSettings = {
   sportKey: string;
 };
 const EV_DEFAULTS: EvSettings = {
+  devigMethod: "current",
   minWinChance: "0",
   timeFilter: "default",
   offBooks: [],
@@ -220,6 +228,7 @@ function toVm(
     startMs: g?.starts_at ? new Date(g.starts_at).getTime() : Infinity,
     sharps,
     observedAt: row.oldest_observed_at,
+    devigComparisons: row.calculation.devig_comparisons,
     fairProb: row.calculation.conditional_fair_probability,
     ref: quoteRef(q),
     links: q.links ?? null,
@@ -353,6 +362,7 @@ const Row = memo(
           )}
           <small>Fair {vm.fairOdds ?? "—"}</small>
           <small>{vm.sharps}</small>
+          <DevigComparison rows={vm.devigComparisons} />
         </div>
         <div role="cell" className="ev-cell ev-time">
           <Age value={vm.observedAt} />
@@ -365,6 +375,8 @@ const Row = memo(
     a.vm.ev === b.vm.ev &&
     a.vm.decimalOdds === b.vm.decimalOdds &&
     a.vm.observedAt === b.vm.observedAt &&
+    JSON.stringify(a.vm.devigComparisons) ===
+      JSON.stringify(b.vm.devigComparisons) &&
     a.top === b.top &&
     a.height === b.height &&
     a.selected === b.selected &&
@@ -566,6 +578,7 @@ export function KellyWidget({
 }
 
 export default function EvFeed({ data }: { data: Data }) {
+  const [devigMethod, setDevigMethod] = useState("current");
   const parlay = useParlay();
   useEffect(() => {
     if (parlay?.draft.active) setSelected(null);
@@ -596,11 +609,12 @@ export default function EvFeed({ data }: { data: Data }) {
   const previous = useRef<Map<string, { odds: string; ev: string }>>(new Map());
   const tickRef = useRef(0);
 
-  const pricingSelection = data.meta.snapshot_id;
+  const pricingSelection = `${data.meta.snapshot_id}|${devigMethod}`;
   const settings = useToolSettings<EvSettings>({
     tool: "positive_ev",
     defaults: EV_DEFAULTS,
     snapshot: {
+      devigMethod,
       minWinChance,
       timeFilter,
       offBooks: sorted(offBooks),
@@ -613,6 +627,20 @@ export default function EvFeed({ data }: { data: Data }) {
       sportKey,
     },
     apply: (s) => {
+      setDevigMethod(
+        choice(
+          s.devigMethod,
+          [
+            "current",
+            "multiplicative",
+            "additive",
+            "power",
+            "shin",
+            "worst_case",
+          ],
+          "current",
+        ),
+      );
       setMinWinChance(savedWinChance(s.minWinChance));
       setTimeFilter(savedTimeFilter(s.timeFilter));
       setOffBooks(new Set(list(s.offBooks)));
@@ -651,6 +679,9 @@ export default function EvFeed({ data }: { data: Data }) {
       "tools/positive_ev",
       data.meta.snapshot_id,
       controller.signal,
+      {
+        params: devigMethod === "current" ? {} : { devig_method: devigMethod },
+      },
     )
       .then((items) => {
         if (!controller.signal.aborted) {
@@ -663,7 +694,7 @@ export default function EvFeed({ data }: { data: Data }) {
           setError(e instanceof Error ? e.message : "Request failed.");
       });
     return () => controller.abort();
-  }, [data, retry]);
+  }, [data, retry, devigMethod]);
 
   const maps = useMemo(
     () => ({
@@ -817,6 +848,7 @@ export default function EvFeed({ data }: { data: Data }) {
       <section className="ev-layout" aria-label="Positive EV feed">
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
+          <DevigSelector value={devigMethod} onChange={setDevigMethod} />
           <div className="ev-filter-actions">
             <ParlayToolbar />
             <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />

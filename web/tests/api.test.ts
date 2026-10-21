@@ -2,7 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { validateEnvelope, request, allPages, ApiError } from "../lib/api.ts";
+import {
+  validateEnvelope,
+  request,
+  allPages,
+  sharedPages,
+  ApiError,
+} from "../lib/api.ts";
 const meta = {
   format: "corner.product_api/1",
   data_mode: "fixture",
@@ -142,4 +148,50 @@ test("Next public assets match original supplied brand bytes", () => {
         .digest("hex"),
       sha,
     );
+});
+
+test("shared pagination separates method caches and sends method on every page", async () => {
+  const original = globalThis.fetch;
+  const calls: string[] = [];
+  try {
+    globalThis.fetch = async (url) => {
+      const query = new URL(String(url), "http://localhost").searchParams;
+      const method = query.get("devig_method")!;
+      const offset = Number(query.get("offset"));
+      calls.push(method);
+      return new Response(
+        JSON.stringify({
+          meta: { ...meta, snapshot_id: "fixture:devig-test" },
+          data: {
+            items: [method + offset],
+            offset,
+            total: 2,
+            next_offset: offset === 0 ? 1 : null,
+          },
+        }),
+      );
+    };
+    const signal = new AbortController().signal;
+    const power = await sharedPages(
+      "tools/positive_ev",
+      "fixture:devig-test",
+      signal,
+      { limit: 1, params: { devig_method: "power" } },
+    );
+    const additive = await sharedPages(
+      "tools/positive_ev",
+      "fixture:devig-test",
+      signal,
+      { limit: 1, params: { devig_method: "additive" } },
+    );
+    assert.deepEqual(power, ["power0", "power1"]);
+    assert.deepEqual(additive, ["additive0", "additive1"]);
+    await sharedPages("tools/positive_ev", "fixture:devig-test", signal, {
+      limit: 1,
+      params: { devig_method: "power" },
+    });
+    assert.deepEqual(calls, ["power", "power", "additive", "additive"]);
+  } finally {
+    globalThis.fetch = original;
+  }
 });

@@ -116,6 +116,8 @@ export interface PropBet {
   market_width_cents?: string | null;
   reference_weights?: Record<string, string>;
   reference_weight_version?: string;
+  devig_comparisons?:
+    import("../components/devig-comparison").DevigResult[] | null;
   allocation_sensitivity?: {
     probability_min: string;
     probability_max: string;

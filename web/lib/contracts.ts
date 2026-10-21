@@ -92,6 +92,7 @@ export interface FeaturedEV {
   target_quote_id: string;
   stake: DecimalText;
   capital_at_risk: DecimalText;
+  devig_comparisons?: import("../components/devig-comparison").DevigResult[];
   conditional_expected_profit: DecimalText;
   conditional_fair_probability: DecimalText;
   conditional_ev_ratio_on_capital: DecimalText;

@@ -213,6 +213,7 @@ class FixtureCatalog:
         if not targets or not targets <= book_map.keys() or (self.data_mode != 'database' and targets.intersection(references)):
             raise ValueError('invalid target/reference routing')
         line_bets, rows = [], []
+        self._ev_inputs = []
         for contract in raw['contracts']:
             key, game_id, contract_id = contract['market_key'], contract['game_id'], contract['id']
             if contract_id in self.contracts or game_id not in game_meta:
@@ -274,6 +275,7 @@ class FixtureCatalog:
                 target_refs = [o for o in refs if o.sportsbook_id in target_used]
                 if not sufficient_references(target_used, sport_key):
                     continue
+                self._ev_inputs.append((market, target, tuple(target_refs), target_used, sport_key))
                 result = calculate_featured_ev(market, target, target_refs, required_reference_books=target_used, stake=D(100), sport_key=sport_key)
                 if result.conditional_ev_ratio_on_capital > 0:
                     ids = [target.quote_id] + [o.quote_id for o in target_refs]
@@ -335,6 +337,29 @@ class FixtureCatalog:
         # Snapshot covers data AND calculated output, so pagination clients notice
         # changed calculator output after a deploy even if fixture bytes are equal.
         self.snapshot_id = self.data_mode + ':' + digest(dict(source=raw, games=self.games, quotes=self.quotes, rows=self.rows))
+
+    def ev_rows(self, method):
+        if method == 'current':
+            return [row for row in self.rows if row.kind == 'positive_ev']
+        cache_key = ('devig_rows', method)
+        if cache_key not in self.memo:
+            rows = []
+            for market, target, refs, books, sport in self._ev_inputs:
+                try:
+                    result = calculate_featured_ev(market, target, refs, required_reference_books=books,
+                                                  stake=D(100), sport_key=sport, devig_method=method)
+                except ToolInputError as error:
+                    if str(error) == 'devig method unavailable for reference population':
+                        continue
+                    raise
+                if result.conditional_ev_ratio_on_capital <= D('1e-20'):
+                    continue
+                ids = [target.quote_id] + [o.quote_id for o in refs]
+                rows.append(EVRow(**self._row(self.game_for_contract[market.contract_id], market.contract_id,
+                    target.market_key, ids, 'positive_ev', result, result.capital_at_risk,
+                    ev=result.conditional_ev_ratio_on_capital), calculation=result))
+            self.memo[cache_key] = tuple(rows)
+        return self.memo[cache_key]
 
     def _row(self, game_id, contract, key, ids, kind, result, capital, minimum=None, ev=None):
         return dict(id=f'{kind}:' + digest(result), game_id=game_id, contract_id=contract, market_key=key,

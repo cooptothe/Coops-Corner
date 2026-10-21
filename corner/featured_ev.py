@@ -4,10 +4,11 @@ Explicit exact contract matching is required. This does not estimate push,
 nonrunner, dead-heat, or invalidation probabilities from two-way prices. Use the
 explicit payoff model when those branches have supplied probabilities.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from fractions import Fraction
 from functools import lru_cache
+from corner.devig_methods import comparisons, pooled_distributions, distributions
 from corner.reference_policy import sufficient_references
 from corner.reference_weights import reference_weight, WEIGHT_VERSION
 from corner.reference_policy import reference_source
@@ -47,10 +48,12 @@ class FeaturedEV:
     unconditional_ev_ratio: None = None
     format: str = FORMAT
     availability_verified: bool = False
+    devig_comparisons: tuple = ()
+    applied_devig_method: str = 'multiplicative'
 
 
 def calculate_featured_ev(market, target, reference_offers, *, required_reference_books,
-                         stake=Decimal("1"), sport_key=''):
+                         stake=Decimal("1"), sport_key='', devig_method='current'):
     """Use every explicitly required complete reference book; never silently drop one.
 
     Three-way h2h includes draw, outrights includes every declared entrant. Spread
@@ -83,6 +86,25 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
         _require(offer.selection_id in market.selection_ids, "unexpected selection")
     probabilities, references = _reference_consensus(market, offers, books, sport_key)
     consensus = dict(probabilities)
+    _require(devig_method in {'current', 'multiplicative', 'additive', 'power', 'shin', 'worst_case'}, 'unsupported devig method')
+    populations = tuple((tuple(o.decimal_odds for o in sorted(
+        (o for o in offers if o.sportsbook_id == reference.sportsbook_id), key=lambda o: o.selection_id)),
+        reference.weight) for reference in references)
+    applied_method = 'multiplicative'
+    if devig_method != 'current':
+        methods = dict(pooled_distributions(populations))
+        _require(devig_method in methods, 'devig method unavailable for reference population')
+        applied_method = devig_method
+        if devig_method == 'worst_case':
+            index = sorted(market.selection_ids).index(target.selection_id)
+            choose = max if target.market_key in LAY_MARKETS else min
+            applied_method = choose((name for name in methods if name != 'worst_case'),
+                                    key=lambda name: methods[name][index])
+        values = methods[applied_method]
+        consensus = dict(zip(sorted(market.selection_ids), map(Fraction, values)))
+        references = tuple(replace(reference, probabilities=tuple(zip(sorted(market.selection_ids),
+                           dict(distributions(population[0]))[applied_method])))
+                           for reference, population in zip(references, populations))
     p = consensus[target.selection_id]
     odds, amount, commission = map(Fraction, (target.decimal_odds, stake, target.commission_rate))
     if target.market_key in LAY_MARKETS:
@@ -91,9 +113,14 @@ def calculate_featured_ev(market, target, reference_offers, *, required_referenc
     else:
         expected = amount * (p * (odds - 1) * (1 - commission) - (1 - p))
         capital = amount
+    comparison = comparisons(populations, sorted(market.selection_ids).index(target.selection_id),
+                             target.decimal_odds, target.commission_rate,
+                             lay=target.market_key in LAY_MARKETS)
     return FeaturedEV(market.contract_id, target.quote_id, target.selection_id, tuple(references),
                       tuple((s, _decimal_ratio(consensus[s])) for s in sorted(consensus)), _decimal_ratio(p),
-                      _decimal_ratio(expected), _decimal_ratio(expected / capital), stake, _decimal_ratio(capital))
+                      _decimal_ratio(expected), _decimal_ratio(expected / capital), stake, _decimal_ratio(capital), devig_comparisons=comparison,
+                      devig_method='proportional_reputation_weighted_consensus' if devig_method == 'current' else devig_method,
+                      applied_devig_method=applied_method)
 
 
 @lru_cache(maxsize=4096)

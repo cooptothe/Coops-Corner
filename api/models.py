@@ -162,6 +162,7 @@ class BulkQuoteQuery(QuoteQuery):
 
 
 class ToolQuery(PageQuery):
+    devig_method: Literal['current', 'multiplicative', 'additive', 'power', 'shin', 'worst_case'] = 'current'
     # Same bounded bulk paging as quotes; alternate-line result sets exceed 10k.
     offset: int = Field(default=0, ge=0, le=100000)
     limit: int = Field(default=25, ge=1, le=1000)

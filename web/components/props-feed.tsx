@@ -1,4 +1,10 @@
 "use client";
+import { selectPropDevig } from "../lib/devig-selection";
+import {
+  DevigComparison,
+  DevigSelector,
+  type DevigResult,
+} from "./devig-comparison";
 import { fairOddsRange } from "../lib/fair-odds-filter";
 import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
@@ -99,11 +105,14 @@ interface Vm extends KellyVm {
   marketWidth: number | null;
   sharps: string;
   referenceWeights: string;
+  devigComparisons?: DevigResult[] | null;
   allocationSensitivity: PropBet["allocation_sensitivity"];
   observedAt: string | null;
 }
 
-function toVm(b: PropBet): Vm {
+function toVm(original: PropBet, method = "current"): Vm | null {
+  const b = selectPropDevig(original, method);
+  if (!b) return null;
   let fairOdds: string | null = null;
   try {
     fairOdds = american(divDecimal("1", b.fair_probability));
@@ -146,6 +155,7 @@ function toVm(b: PropBet): Vm {
           `${bookName(book)} ${(Number(weight) * 100).toFixed(1)}%`,
       )
       .join(" · "),
+    devigComparisons: b.devig_comparisons,
     allocationSensitivity: b.allocation_sensitivity,
     observedAt: b.observed_at,
     strategy: "prop",
@@ -200,6 +210,7 @@ function Age({ value }: { value: string | null }) {
 }
 
 type PropsSettings = {
+  devigMethod: string;
   minWinChance: string;
   oneSidedMargin: string;
   timeFilter: string;
@@ -219,6 +230,7 @@ type PropsSettings = {
   offBooks: string[];
 };
 const PROPS_DEFAULTS: PropsSettings = {
+  devigMethod: "current",
   minWinChance: "0",
   oneSidedMargin: "",
   timeFilter: "default",
@@ -239,6 +251,7 @@ const PROPS_DEFAULTS: PropsSettings = {
 };
 
 export default function PropsFeed({ reload }: { reload: number }) {
+  const [devigMethod, setDevigMethod] = useState("current");
   const parlay = useParlay();
   useEffect(() => {
     if (parlay?.draft.active) setSelected(null);
@@ -296,6 +309,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         : null,
     },
     snapshot: {
+      devigMethod,
       minWinChance,
       oneSidedMargin,
       timeFilter,
@@ -315,6 +329,20 @@ export default function PropsFeed({ reload }: { reload: number }) {
       offBooks: sorted(offBooks),
     },
     apply: (s) => {
+      setDevigMethod(
+        choice(
+          s.devigMethod,
+          [
+            "current",
+            "multiplicative",
+            "additive",
+            "power",
+            "shin",
+            "worst_case",
+          ],
+          "current",
+        ),
+      );
       setMinWinChance(savedWinChance(s.minWinChance));
       const margin = text(s.oneSidedMargin, /^\d{1,2}(\.\d{1,2})?$/, "");
       setOneSidedMargin(Number(margin) <= 50 ? margin : "");
@@ -413,9 +441,10 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const all = useMemo(
     () =>
       (pricedSnapshot === pricingSelection ? (status?.bets ?? []) : [])
-        .map(toVm)
+        .map((bet) => toVm(bet, devigMethod))
+        .filter((bet): bet is Vm => bet !== null)
         .sort(SORTS.ev),
-    [status, pricedSnapshot, pricingSelection],
+    [status, pricedSnapshot, pricingSelection, devigMethod],
   );
   const parlayLegs = useMemo(
     () => all.map((v) => builderLeg(v, "prop")),
@@ -646,6 +675,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
         </details>
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
+          <DevigSelector value={devigMethod} onChange={setDevigMethod} />
           <div className="ev-filter-actions">
             <ParlayToolbar />
             <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
@@ -1041,6 +1071,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
                       <strong>{percent(v.fair)} estimated chance</strong>
                       <small>Fair {v.fairOdds ?? "—"}</small>
                       <small>{v.sharps}</small>
+                      <DevigComparison rows={v.devigComparisons} />
+                      {!v.devigComparisons?.length && (
+                        <small>
+                          Margin model - devig method does not apply
+                        </small>
+                      )}
                       {v.referenceWeights && (
                         <details>
                           <summary>Reference weights</summary>

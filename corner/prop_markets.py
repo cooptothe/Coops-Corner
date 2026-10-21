@@ -16,6 +16,7 @@ from corner.market_width import widest_market_width
 from corner.pricing import fee_policy, reference_eligible, no_vig_pair, DFS, VERSION as PRICING_VERSION
 from corner.pricing import one_sided_margin as validate_one_sided_margin
 from corner.scorer_research import scorer_sensitivity
+from corner.devig_methods import comparisons
 
 # All supported books are eligible; the names remain compatibility exports.
 # Eligibility is checked per quote, never restricted by a legacy env list.
@@ -449,6 +450,11 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
                                 sensitivity_refs.append({'price':pair[side],'weight':weights[reference],'maximum_overround':high})
                             if len(sensitivity_refs)==len(used):
                                 allocation = scorer_sensitivity(sensitivity_refs,net_decimal_odds=net_odds)
+                        comparison = None
+                        if all(set(prices[b]) == {0, 1} and b not in DFS for b in used):
+                            populations = tuple((tuple(prices[b][s] for s in (0, 1)), weights[b]) for b in used)
+                            comparison = [{k: str(v) for k, v in row.items()} for row in
+                                          comparisons(populations, side, price, policy.commission)]
                         bets.append({
                             'id': f'{event_id}:{market_key}:{player}:{point or ""}:{book}:{side}',
                             'event_id': event_id, 'sport_key': sport, 'home': ev['home_team'],
@@ -466,6 +472,7 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
                             'fallback_reference_books': fallback_books,
                             'margin_evidence': margin_evidence,
                             'allocation_sensitivity': allocation,
+                            'devig_comparisons': comparison,
                             'settlement_basis': 'decisive_settlement_conditional' if conditional else 'binary_no_push_assumed',
                             'sharps': used,
                             'reference_policy': 'all_eligible_props_references/min-two-v2',

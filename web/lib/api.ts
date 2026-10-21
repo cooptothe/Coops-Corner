@@ -111,6 +111,7 @@ const PAGE_LIMIT = 100;
 const FAN_OUT = 6; // the browser's connections per host; more only queues
 
 interface PageOptions {
+  params?: Record<string, string>;
   limit?: number;
   maxOffset?: number;
 }
@@ -159,7 +160,7 @@ export async function allPages<T>(
   const { limit, maxOffset } = pageSettings(path, options);
   const get = async (offset: number) => {
     const { data } = await request<Page<T>>(path, {
-      params: { limit, offset, snapshot_id: snapshot },
+      params: { ...options.params, limit, offset, snapshot_id: snapshot },
       snapshot,
       signal,
     });
@@ -231,7 +232,7 @@ export function sharedPages<T>(
   options: PageOptions = {},
 ): Promise<T[]> {
   const { limit, maxOffset } = pageSettings(path, options);
-  const key = `${snapshot}|${path}|${limit}|${maxOffset}`;
+  const key = `${snapshot}|${path}|${limit}|${maxOffset}|${JSON.stringify(Object.entries(options.params ?? {}).sort())}`;
   let pending = shared.get(key);
   if (!pending) {
     pending = allPages<T>(
