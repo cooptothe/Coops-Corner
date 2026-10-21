@@ -44,8 +44,8 @@ class RunnerTests(unittest.TestCase):
         second = self.runner()
         self.assertEqual(second.tick()['executed'], 0)
         self.assertEqual(self.discoveries, 1)
-        self.now += timedelta(seconds=20)
-        self.assertEqual(second.tick()['executed'], 1)
+        self.now += timedelta(seconds=120)
+        self.assertEqual(second.tick()['executed'], 2)
 
     def test_round_robin_survives_restart(self):
         r = self.runner(max_jobs=1)

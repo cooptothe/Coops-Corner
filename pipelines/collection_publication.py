@@ -13,7 +13,7 @@ import re
 import sqlite3
 import tempfile
 
-from corner.collection_policy import Job, aware, NO_SCHEDULED_PROPS, BASE_STANDARD, STANDARD
+from corner.collection_policy import Job, aware, NO_SCHEDULED_PROPS, BASE_STANDARD, STANDARD, LEGACY_STANDARD, EXCHANGE, LEGACY_EXCHANGE
 
 
 class MainPublisher:
@@ -32,8 +32,12 @@ class MainPublisher:
         info['books']=tuple(info['books']);info['markets']=tuple(info['markets'])
         job=Job(**info)
         # Replay previously purchased six-book captures exactly as acquired.
-        # New claims still require the full current nine-book scope.
-        validation = replace(job, books=STANDARD) if job.kind in ('main','additional') and job.group == 'standard' and job.books == BASE_STANDARD else job
+        # New claims require the complete current group; retained captures keep original scope.
+        validation = job
+        if job.kind in ('main','additional') and job.group == 'standard' and job.books in (BASE_STANDARD, LEGACY_STANDARD):
+            validation = replace(job, books=STANDARD)
+        elif job.group == 'exchange' and job.books == LEGACY_EXCHANGE:
+            validation = replace(job, books=EXCHANGE)
         validation.validate()
         if job.kind not in ('main','additional'):raise ValueError('Main publisher cannot publish props')
         raw=json.dumps(record['events'],separators=(',',':')).encode()

@@ -17,7 +17,7 @@ class CashPropBooks(unittest.TestCase):
             self.assertEqual(fee_policy(book).commission,Decimal(0))
         self.assertEqual(len(set(requested)),16)
         self.assertEqual(len(PROP_STANDARD),10)
-        self.assertEqual(len(STANDARD),9)
+        self.assertEqual(len(STANDARD),10)
         for book in ('prizepicks','underdog','pick6','dabble_us_dfs'):
             self.assertNotIn(book,requested)
             self.assertNotIn(book,PROP_STANDARD)

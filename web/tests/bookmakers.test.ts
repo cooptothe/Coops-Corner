@@ -4,7 +4,7 @@ import { feedBooks } from "../lib/bookmakers";
 
 test("canonical capitalization wins over raw provider IDs", () => {
   const books = feedBooks(
-    ["betopenly", "polymarket", "williamhill_us", "fanatics"].map((id) => ({
+    ["betopenly", "polymarket_us", "williamhill_us", "fanatics"].map((id) => ({
       id,
       name: id,
     })),
@@ -12,7 +12,7 @@ test("canonical capitalization wins over raw provider IDs", () => {
   );
   for (const [id, name] of [
     ["betopenly", "BetOpenly"],
-    ["polymarket", "Polymarket"],
+    ["polymarket_us", "Polymarket"],
     ["williamhill_us", "Caesars"],
     ["fanatics", "Fanatics"],
   ])
@@ -22,26 +22,26 @@ test("canonical capitalization wins over raw provider IDs", () => {
 test("main filters include the new books without stored quotes", () => {
   const ids = feedBooks([]).map((b) => b.id);
   assert.ok(ids.includes("betopenly"));
-  assert.ok(ids.includes("polymarket"));
+  assert.ok(ids.includes("polymarket_us"));
   assert.ok(ids.includes("pinnacle"));
 });
 test("props include all configured books and preserve additional captured books", () => {
   const books = feedBooks(
     [
       { id: "another", name: "Another book" },
-      { id: "polymarket", name: "Polymarket" },
+      { id: "polymarket_us", name: "Polymarket" },
     ],
     true,
   );
   for (const id of [
     "williamhill_us",
     "fanatics",
-    "polymarket",
+    "polymarket_us",
     "betopenly",
     "another",
   ])
     assert.ok(books.some((b) => b.id === id));
-  assert.equal(books.filter((b) => b.id === "polymarket").length, 1);
+  assert.equal(books.filter((b) => b.id === "polymarket_us").length, 1);
 });
 
 test("withdrawn DFS sources cannot reappear from retained captures", () => {

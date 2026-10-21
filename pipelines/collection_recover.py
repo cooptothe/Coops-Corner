@@ -10,7 +10,7 @@ from corner.collection_activation import APPROVAL, STATE, RETAINED, ROOT
 from corner.collection_quota import LiveGovernor, key_identity
 from corner.collection_maintenance import maintenance_lock
 from corner.credit_governor import Refused
-from corner.collection_policy import parse
+from corner.collection_policy import parse, ALL_BOOKS, ALL_BOOKS_PROFILE, CADENCE_VERSION
 from pipelines import collection_onboarding as onboarding
 from pipelines.recovery_probe import write_private
 
@@ -57,6 +57,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--accept-single-request-quota-delta', action='store_true',
                         help='Operator confirms no other key consumer; accept fresh total minus all known charges for one old unknown request')
+    parser.add_argument('--enable-all-books', action='store_true', help='Explicitly authorize all 16 books at the reviewed budgeted pregame cadence')
     args = parser.parse_args()
     g = None
     step = 'stopped_worker_preflight'
@@ -77,7 +78,7 @@ def main():
         if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
             raise Refused('Root-controlled prior activation required')
         approval = json.loads(APPROVAL.read_text())
-        if approval.get('profile') != 'standard-pregame-v1' or approval.get('approved') is not True:
+        if approval.get('profile') not in ('standard-pregame-v1', ALL_BOOKS_PROFILE) or approval.get('approved') is not True:
             raise Refused('Reviewed standard profile required')
         with maintenance_lock(exclusive=True):
             g = LiveGovernor(STATE)
@@ -92,6 +93,9 @@ def main():
                             stderr=subprocess.DEVNULL,timeout=10).strip(),
                             quota_checked_at=quota['checked_at_utc'],provider_used=quota['provider_used'],
                             provider_remaining=quota['provider_remaining'])
+            if args.enable_all_books or approval.get('profile') == ALL_BOOKS_PROFILE:
+                approval.update(profile=ALL_BOOKS_PROFILE, requested_books=list(ALL_BOOKS), cadence_version=CADENCE_VERSION,
+                                pending=['Live added-book coverage and throughput confirmation', 'Account-specific exchange fee context where applicable'])
             step = 'renew_root_approval_candidate'
             write_private(RETAINED/'activation'/'approval.json',approval)
             print(json.dumps({'result':'recovery_prepared','provider_used':quota['provider_used'],

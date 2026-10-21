@@ -20,10 +20,11 @@ HEADERS={'x-requests-last','x-requests-used','x-requests-remaining','date'}
 
 
 class Provider:
-    def __init__(self,*,key='',enabled=False,exchange_verified=False,session=None,clock=None):
+    def __init__(self,*,key='',enabled=False,exchange_verified=False,budgeted_pregame=False,session=None,clock=None):
         self.key=key
         self.enabled=enabled
         self.exchange_verified=exchange_verified
+        self.budgeted_pregame=budgeted_pregame
         self.session=session or requests.Session()
         self.session.trust_env=False
         self.clock=clock or (lambda:datetime.now(timezone.utc))
@@ -75,8 +76,12 @@ class Provider:
         job.validate();now=self.gate()
         if not SAFE.fullmatch(job.sport) or job.event_id and not SAFE.fullmatch(job.event_id):
             raise Refused('Invalid provider path identity')
-        if job.group=='exchange' and not self.exchange_verified:
-            raise Refused('Exchange classification/cadence needs verification')
+        if job.group=='exchange' and not self.exchange_verified and not self.budgeted_pregame:
+            raise Refused('Exchange acquisition requires explicit budgeted-profile approval')
+        if self.budgeted_pregame:
+            from corner.collection_policy import interval
+            if interval(job.kind, job.group, now, parse(job.starts_at) if job.starts_at else None) < 60:
+                raise Refused('Budgeted pregame cadence cannot be faster than 60 seconds')
         # Reservations are one dispatch only, not a reusable permit.
         with governor.transaction() as db:
             governor._fence(db,owner,now.timestamp())
@@ -99,7 +104,7 @@ class Provider:
             delta=now.timestamp()-row['started']
             db.execute('UPDATE jobs SET last_started=?,next_due=next_due+? WHERE key=?',(now.timestamp(),delta,job.key))
         params={'bookmakers':','.join(job.books),'markets':','.join(job.markets),
-                'oddsFormat':'decimal','dateFormat':'iso','includeLinks':'true','includeSids':'true'}
+                'oddsFormat':'decimal','dateFormat':'iso','includeLinks':'true','includeSids':'true','includeBetLimits':'true'}
         if job.kind=='main':
             path=f'/{job.sport}/odds'
             params.update(commenceTimeFrom=now.strftime('%Y-%m-%dT%H:%M:%SZ'),

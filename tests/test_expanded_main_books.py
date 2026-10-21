@@ -18,9 +18,9 @@ from tests.test_database_catalog import board, q, PEOPLE, NOW
 
 class ExpandedMainTests(unittest.TestCase):
     def test_book_tiers_and_props_scope_are_preserved(self):
-        self.assertEqual(len(STANDARD),9)
+        self.assertEqual(len(STANDARD),10)
         self.assertEqual(len(PROP_STANDARD),10)
-        self.assertEqual(len(set(PARAMS['bookmakers'].split(','))),15)
+        self.assertEqual(len(set(PARAMS['bookmakers'].split(','))),16)
         self.assertEqual(len(set(BOOKS.split(','))),16)
         for book in ('betonlineag','williamhill_us','bovada'):
             self.assertIn(book,STANDARD)
@@ -38,7 +38,7 @@ class ExpandedMainTests(unittest.TestCase):
         # Even 82 keys polling all sixteen hours on a 31-day month fit main pool,
         # including 50 additional events per day (30 calls, five market keys).
         self.assertLessEqual(82*960*3*31 + 50*30*5*31,POOLS['main'])
-        self.assertEqual(interval('main','standard',NOW),60)
+        self.assertEqual(interval('main','standard',NOW),120)
 
     def test_new_cash_books_are_targets_and_selected_main_references(self):
         for book in ('betonlineag','williamhill_us','bovada'):

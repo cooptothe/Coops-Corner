@@ -29,15 +29,14 @@ class OptimizedCadence(unittest.TestCase):
         self.assertEqual(PROTECTED,1500000)
 
     def test_standard_floors_and_distant_bands(self):
-        for month,far in [(10,180),(11,150),(2,150)]:
-            now=datetime(2026,month,15,16,tzinfo=timezone.utc)
-            for remaining in (1,3600,7200,21600):
-                self.assertEqual(interval('props','standard',now,now+timedelta(seconds=remaining)),60)
-            self.assertEqual(interval('props','standard',now,now+timedelta(seconds=21601)),far)
-            for remaining in (1,3600,3601,7200):
-                expected=60 if remaining<=3600 else 300
-                self.assertEqual(interval('additional','standard',now,now+timedelta(seconds=remaining)),expected)
-            self.assertEqual(interval('main','standard',now),60)
+        now=datetime(2026,11,15,16,tzinfo=timezone.utc)
+        for group in ('standard','exchange'):
+            for remaining, expected in [(1,60),(7200,60),(7201,120),(14401,180),(21601,300),(43201,600)]:
+                self.assertEqual(interval('props',group,now,now+timedelta(seconds=remaining)),expected)
+            for remaining, expected in [(1,60),(900,60),(901,120),(1801,300),(3601,600)]:
+                self.assertEqual(interval('additional',group,now,now+timedelta(seconds=remaining)),expected)
+            self.assertEqual(interval('main',group,now),120)
+
 
     def test_daily_caps_refuse_extra_events_and_credit_reservations(self):
         now=datetime(2026,11,15,16,tzinfo=timezone.utc)

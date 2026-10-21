@@ -36,16 +36,19 @@ export function FeedGuide({ view }: { view: View }) {
         <strong>{title}</strong>
         <p>{description}</p>
         <p>
-          On the beta's scheduled feed, main odds target a one-minute refresh
-          throughout the collection window. Additional markets target five
-          minutes from one to two hours before start, then one minute in the
-          final hour. Pro player props target one minute in the final six hours
-          and 2.5–3 minutes earlier within the 24-hour horizon; NCAA props are
-          not collected. Quotes remain eligible for up to 30 minutes of actual
-          source age. Older prices are marked for verification; a displayed edge
-          does not confirm that the sportsbook still offers it. Withdrawals,
-          started games and reader failures can remove a result sooner. Confirm
-          every price at the sportsbook before placing a bet.
+          Scheduled collection requests all 16 configured books. Main lines
+          accelerate through 15, 10, 5, 3 and 2-minute bands as kickoff
+          approaches. Props use 10 minutes at 12-24 hours, 5 minutes at 6-12
+          hours, 3 minutes at 4-6 hours, 2 minutes at 2-4 hours and one minute
+          in the final two hours. Alternates begin two hours before start,
+          accelerating through 10, 5, 2 and one-minute bands. Exchanges follow
+          the same bands; there are no sub-minute requests. NCAA props are not
+          collected. Availability varies by book and market. Quotes remain
+          eligible for up to 30 minutes of actual source age. Older prices are
+          marked for verification; a displayed edge does not confirm that the
+          sportsbook still offers it. Withdrawals, started games and reader
+          failures can remove a result sooner. Confirm every price at the
+          sportsbook before placing a bet.
         </p>
         <p className="exposure-legend">
           <span className="exposure-dot related" /> Yellow: an open bet on the

@@ -1,6 +1,5 @@
 """Pure collection policy. All clock inputs are timezone aware; no provider calls."""
 from dataclasses import dataclass
-import calendar
 import math
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
@@ -11,9 +10,14 @@ from corner.additional_markets import SCHEDULED_ADDITIONAL_MARKETS as ADDITIONAL
 
 CENTRAL = pytz.timezone('America/Chicago')
 BASE_STANDARD = ('draftkings','fanduel','espnbet','betmgm','betrivers','pinnacle')
-STANDARD = BASE_STANDARD + ('betonlineag','williamhill_us','bovada')
-# Proposed fast classifications require measured provider validation before live use.
-EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket')
+LEGACY_STANDARD = BASE_STANDARD + ('betonlineag','williamhill_us','bovada')
+STANDARD = LEGACY_STANDARD + ('fanatics',)
+# Separate acquisition groups, each within the provider's ten-book billing block.
+LEGACY_EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket')
+EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket_us')
+ALL_BOOKS = STANDARD + EXCHANGE
+ALL_BOOKS_PROFILE = 'all-books-pregame-v1'
+CADENCE_VERSION = 'all-books-countdown-60s-floor-v1'
 PROP_STANDARD = BASE_STANDARD + ('williamhill_us','fanatics','betonlineag','bovada')
 SPORTS = ('americanfootball_nfl','americanfootball_ncaaf','basketball_nba','basketball_ncaab',
           'baseball_mlb','icehockey_nhl','soccer_usa_mls','soccer_epl','soccer_spain_la_liga',
@@ -47,25 +51,26 @@ def supported(sport):
 
 
 def interval(kind, group, now, starts=None):
-    floor = 20 if group == 'exchange' else 60
+    """Budgeted countdown bands; exchanges never get a sub-minute exception."""
+    remaining = (aware(starts)-aware(now)).total_seconds() if starts is not None else None
     if kind == 'main':
-        if group == 'exchange':
-            return 20
-        return 60
+        if remaining is None or remaining <= 3600: return 120
+        if remaining <= 7200: return 180
+        if remaining <= 21600: return 300
+        if remaining <= 43200: return 600
+        return 900
     if kind == 'additional':
-        if group == 'exchange':
-            return 20
-        return 60 if starts is None or (aware(starts)-aware(now)).total_seconds() <= 3600 else 300
-    remaining = (aware(starts)-aware(now)).total_seconds()
-    if remaining <= 0:
-        raise ValueError('Started event')
-    if group == 'exchange':
-        # Dormant, unverified exchange acquisition retains its prior policy.
-        return 20 if remaining <= 7200 else 300 if remaining <= 21600 else 3600
-    if remaining <= 21600:
-        return floor
-    # Longer months get a slower distant-event band; never poll below 60s.
-    return 180 if calendar.monthrange(aware(now).year, aware(now).month)[1] == 31 else 150
+        if remaining is None or remaining <= 900: return 60
+        if remaining <= 1800: return 120
+        if remaining <= 3600: return 300
+        return 600
+    if remaining is None or remaining <= 0:
+        raise ValueError('Upcoming event start required')
+    if remaining <= 7200: return 60
+    if remaining <= 14400: return 120
+    if remaining <= 21600: return 180
+    if remaining <= 43200: return 300
+    return 600
 
 
 def additional_limits(cycle_start, cycle_end):
@@ -76,11 +81,12 @@ def additional_limits(cycle_start, cycle_end):
     Only the existing cycle dates are read; no policy or accounting migration.
     """
     days = max(1, math.ceil((aware(cycle_end)-aware(cycle_start)).total_seconds()/86400))
-    main_ceiling = 82 * 16 * 60 * 3 * days
+    # Two groups at two minutes: same maximum credit rate as one at one minute.
+    main_ceiling = 82 * 16 * 30 * 3 * 2 * days
     # UTC quota cycles touch an extra Central calendar date at both edges.
     # Budget that partial date too; a busy short day can still hit its cap.
     daily_credits = min(30000, max(0, (POOLS['main']-main_ceiling)//(days+1)))
-    # At most 60 minute polls + 12 five-minute polls per event, five keys.
+    # Two groups: at most 36 polls each across the four alternate countdown bands.
     events = min(75, daily_credits // (72 * len(ADDITIONAL_MARKETS)))
     return events, daily_credits
 

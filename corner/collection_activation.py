@@ -5,7 +5,7 @@ from pathlib import Path
 import stat
 import subprocess
 
-from corner.collection_policy import parse, TOTAL, PROTECTED
+from corner.collection_policy import parse, TOTAL, PROTECTED, ALL_BOOKS, ALL_BOOKS_PROFILE, CADENCE_VERSION
 from corner.credit_governor import Refused
 from pipelines.collection_provider import EARLIEST
 
@@ -46,8 +46,10 @@ def activation(now, *, startup=False):
             raise Refused('Explicit activation approval is absent')
         evidence = approval.get('evidence', {})
         profile = approval.get('profile', 'full-v1')
-        if profile not in ('full-v1', 'standard-pregame-v1'):
+        if profile not in ('full-v1', 'standard-pregame-v1', ALL_BOOKS_PROFILE):
             raise Refused('Unknown collection activation profile')
+        if profile == ALL_BOOKS_PROFILE and (approval.get('requested_books') != list(ALL_BOOKS) or approval.get('cadence_version') != CADENCE_VERSION):
+            raise Refused('All-book activation scope or cadence differs from reviewed policy')
         required = EVIDENCE if profile == 'full-v1' else tuple(k for k in EVIDENCE if k not in ('exchange_classification_verified', 'full_slate_throughput_measured'))
         if any(not isinstance(evidence.get(k), str) or not evidence[k].strip() for k in required):
             raise Refused('Activation acceptance evidence is incomplete')

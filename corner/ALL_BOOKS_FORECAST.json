@@ -1,0 +1,50 @@
+{
+  "scope": "Full November 2026 UTC; saved public schedule, not live provider coverage",
+  "source_events_sha256": "57164071e63b5d153c650e28fe66213ac13d5cd4bf3a2e08201392d67545bce3",
+  "requested_books": 16,
+  "billing_blocks_per_combined_scope": 2,
+  "props_markets_by_league": {
+    "nfl": 20,
+    "nba": 16,
+    "wnba": 16,
+    "mlb": 17,
+    "nhl": 10,
+    "mls": 8,
+    "epl": 8,
+    "laliga": 8,
+    "bundesliga": 8,
+    "seriea": 8,
+    "ligue1": 8,
+    "ucl": 8
+  },
+  "props_credits_by_league": {
+    "nfl": 749280,
+    "nba": 2106528,
+    "nhl": 1260980,
+    "mls": 99616,
+    "epl": 91424,
+    "laliga": 138816,
+    "bundesliga": 85488,
+    "seriea": 114160,
+    "ligue1": 111360,
+    "ucl": 157184
+  },
+  "props_total": 4914836,
+  "props_pool_cap": 5000000,
+  "main_82_key_two_group_120s_ceiling": 7084800,
+  "additional_daily_event_cap": 73,
+  "additional_daily_credit_cap": 26296,
+  "additional_ceiling": 815176,
+  "metadata_allowance": 500000,
+  "lab_history_allowance": 100000,
+  "reserve": 1500000,
+  "provider_calls": 0,
+  "notes": [
+    "Main bound uses fastest band all 16 hours; actual countdown bands are slower.",
+    "Props simulated on a 30-second grid, both book groups, all configured keys returned.",
+    "Saved schedule can omit events; actual pools and global reserve remain hard limits.",
+    "No NCAA props. No automatic next-cycle activation."
+  ],
+  "planning_total": 13414812,
+  "remaining_under_planning_envelope": 1585188
+}

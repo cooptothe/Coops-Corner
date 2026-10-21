@@ -5,7 +5,7 @@ cd /srv/corner/app
 if systemctl is-active --quiet corner-collection.service; then
   echo "Stop collector before installing this release."; exit 1
 fi
-.venv-api/bin/python -m unittest tests.test_all_book_references tests.test_reference_weights tests.test_prop_markets tests.test_one_sided_props tests.test_scorer_pairs tests.test_optimized_cadence tests.test_expanded_main_books tests.test_cash_prop_books tests.test_collection_worker tests.test_collection_cadence tests.test_collection_adapters tests.test_collection_runner tests.test_collection_live tests.test_collection_recovery tests.test_collection_maintenance tests.test_database_catalog tests.test_props_refresh
+.venv-api/bin/python -m unittest tests.test_all_book_collection tests.test_all_book_references tests.test_reference_weights tests.test_prop_markets tests.test_one_sided_props tests.test_scorer_pairs tests.test_optimized_cadence tests.test_expanded_main_books tests.test_cash_prop_books tests.test_collection_worker tests.test_collection_cadence tests.test_collection_adapters tests.test_collection_runner tests.test_collection_live tests.test_collection_recovery tests.test_collection_maintenance tests.test_database_catalog tests.test_props_refresh
 sudo systemctl stop corner-staging-web
 (cd web && pnpm test && pnpm build)
 .venv-api/bin/python - <<'PY'
@@ -24,7 +24,7 @@ props=list(dict.fromkeys([b.strip() for b in v.get('CORNER_PROPS_REFERENCE_BOOKS
 set_key(str(p),'CORNER_TOOLS_REFERENCE_BOOKS',','.join(main))
 set_key(str(p),'CORNER_PROPS_REFERENCE_BOOKS',','.join(props))
 p.chmod(0o600)
-assert len(STANDARD)==9 and len(PROP_STANDARD)==10
+assert len(STANDARD)==10 and len(PROP_STANDARD)==10
 print('Main and props reference configuration updated; staging remains key-free.')
 PY
 # Wait only for a single interrupted request to become eligible for existing
@@ -41,7 +41,9 @@ if rows:
     if delay:print('Waiting for interrupted request recovery window.',flush=True)
     time.sleep(delay)
 PY
-.venv-api/bin/python -m pipelines.collection_recover --accept-single-request-quota-delta
+recovery_options=()
+if [ "${CORNER_ENABLE_ALL_BOOKS:-0}" = "1" ]; then recovery_options+=(--enable-all-books); fi
+.venv-api/bin/python -m pipelines.collection_recover --accept-single-request-quota-delta "${recovery_options[@]}"
 sudo install -o root -g root -m 644 /srv/corner/collection/activation/approval.json /etc/corner/collection-activation.json
 sudo systemctl restart corner-staging-accounts corner-staging-api
 sudo systemctl start corner-staging-web corner-collection

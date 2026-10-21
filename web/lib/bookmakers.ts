@@ -10,12 +10,13 @@ export const MAIN_BOOKS = [
   { id: "prophetx", name: "ProphetX" },
   { id: "kalshi", name: "Kalshi" },
   { id: "betopenly", name: "BetOpenly" },
-  { id: "polymarket", name: "Polymarket" },
+  { id: "polymarket_us", name: "Polymarket" },
   { id: "betonlineag", name: "BetOnline" },
   { id: "williamhill_us", name: "Caesars" },
   { id: "bovada", name: "Bovada" },
+  { id: "fanatics", name: "Fanatics" },
 ];
-export const PROP_BOOKS = [...MAIN_BOOKS, { id: "fanatics", name: "Fanatics" }];
+export const PROP_BOOKS = [...MAIN_BOOKS];
 
 export function bookDisplayName(id: string, fallback = id) {
   return PROP_BOOKS.find((book) => book.id === id)?.name ?? fallback;

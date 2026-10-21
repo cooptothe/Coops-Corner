@@ -23,6 +23,7 @@ BOOK_DOMAINS = {
     'betfair_ex_uk': ('betfair.com',),
     'betopenly': ('betopenly.com',),
     'polymarket': ('polymarket.com', 'polymarket.us'),
+    'polymarket_us': ('polymarket.us',),
     'williamhill_us': ('caesars.com', 'williamhill.com'),
     'fanatics': ('sportsbook.fanatics.com',),
     'betonlineag': ('betonline.ag',),

@@ -9,7 +9,7 @@ import time
 import psycopg2
 
 from corner.collection_activation import activation, STATE, RETAINED
-from corner.collection_policy import parse
+from corner.collection_policy import parse, ALL_BOOKS_PROFILE
 from corner.collection_quota import LiveGovernor, key_identity
 from corner.credit_governor import Refused
 from corner.collection_maintenance import maintenance_lock, MaintenanceBusy
@@ -70,7 +70,7 @@ class LiveProvider(Provider):
 
     def discover(self):
         inventory = super().discover()
-        if activation(self.clock()).get('profile') == 'standard-pregame-v1':
+        if activation(self.clock()).get('profile') in ('standard-pregame-v1', ALL_BOOKS_PROFILE):
             upcoming = {event['sport_key'] for event in inventory['events']}
             inventory['active_sport_keys'] = [key for key in inventory['active_sport_keys'] if key in upcoming]
         return inventory
@@ -132,7 +132,8 @@ def main():
                             should_stop=lambda: stop[0], additional=True,
                             job_filter=(lambda job: job.group == 'standard') if approval.get('profile') == 'standard-pregame-v1' else None)
             provider = LiveProvider(g, runner.owner, key=os.environ['ODDS_API_KEY'], enabled=True,
-                                    exchange_verified=approval.get('profile') != 'standard-pregame-v1', clock=clock, should_stop=lambda: stop[0])
+                                    exchange_verified=approval.get('profile') == 'full-v1',
+                                    budgeted_pregame=approval.get('profile') == ALL_BOOKS_PROFILE, clock=clock, should_stop=lambda: stop[0])
             runner.discover = provider.discover
             runner.transport = provider.odds
         def stopping(*args):
