@@ -227,18 +227,28 @@ export default function InvitationPage() {
             </nav>
             <section id="your-seat" className="family-section">
               <p className="family-eyebrow">
-                {offer.cohort === "friend"
-                  ? "FIVE FRIEND PLACES · SEPARATE FROM BETA"
-                  : "TEN BETA PLACES"}
+                {offer.cohort === "family"
+                  ? "TWO BROTHER PLACES · ALWAYS FREE"
+                  : offer.cohort === "friend"
+                    ? "FIVE FRIEND PLACES · SEPARATE FROM BETA"
+                    : "TEN BETA PLACES"}
               </p>
               <h2>{offer.title}</h2>
               <p className="family-lead">{offer.access}</p>
               <p>{offer.pricing}</p>
-              <p>
-                Beta access ends <strong>{offer.end_label}</strong>. There are
-                no automatic charges. Live is a separate future package; it is
-                not available just because a rate is reserved.
-              </p>
+              {offer.cohort === "family" ? (
+                <p>
+                  Your membership has no expiry and stays free after beta. Live
+                  tools are included when available. Keep this personal
+                  invitation private.
+                </p>
+              ) : (
+                <p>
+                  Beta access ends <strong>{offer.end_label}</strong>. There are
+                  no automatic charges. Live is a separate future package; it is
+                  not available just because a rate is reserved.
+                </p>
+              )}
               {offer.cohort === "beta" && !offer.paid && (
                 <p>
                   The optional $50 fee covers only the remaining beta period,
@@ -424,9 +434,11 @@ export default function InvitationPage() {
                 ],
                 [
                   "What happens after my free access?",
-                  offer.cohort === "friend"
-                    ? "Your complimentary beta ends November 20. Your locked future rates are $25/month standard or $50/month live when that package becomes available. No renewal or live service starts here."
-                    : "A trial lasts seven days from its recorded activation, with all beta access ending November 20. Paying the optional $50 beta fee secures the $50/month standard launch rate. Without it, the standard launch rate is $125/month. No automatic renewal starts here.",
+                  offer.cohort === "family"
+                    ? "Your family access stays free permanently, including standard and live tools when available. There is no trial, subscription fee or membership expiry."
+                    : offer.cohort === "friend"
+                      ? "Your complimentary beta ends November 20. Your locked future rates are $25/month standard or $50/month live when that package becomes available. No renewal or live service starts here."
+                      : "A trial lasts seven days from its recorded activation, with all beta access ending November 20. Paying the optional $50 beta fee secures the $50/month standard launch rate. Without it, the standard launch rate is $125/month. No automatic renewal starts here.",
                 ],
                 [
                   "Why are there no bets or no fresh odds?",

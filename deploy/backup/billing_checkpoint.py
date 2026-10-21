@@ -8,7 +8,7 @@ import sqlite3
 
 BILLING_PATH = 'config/billing.json'
 EXPECTED_REFERENCE = '/srv/corner/config/billing.json'
-BILLING_TABLES = ('beta_members','beta_invites','beta_trials','beta_payment_requests','beta_payment_receipts','beta_audit','beta_friend_rates','beta_invitation_pages','beta_invitation_acceptances','beta_invitation_feedback')
+BILLING_TABLES = ('beta_members','beta_invites','beta_trials','beta_payment_requests','beta_payment_receipts','beta_audit','beta_friend_rates','beta_family_invites','beta_family_members','beta_invitation_pages','beta_invitation_acceptances','beta_invitation_feedback')
 
 
 def billing_reference(staging):

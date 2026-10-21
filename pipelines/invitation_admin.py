@@ -20,7 +20,7 @@ def main():
             import time
             # Gather secrets before the write transaction; never hold a database lock at a prompt.
             pool='friend' if args.action=='friends' else 'beta'
-            count=store._db.execute("SELECT count(*) FROM beta_invites WHERE cohort=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>?",(pool,time.time())).fetchone()[0]
+            count=store._db.execute("SELECT count(*) FROM beta_invites i WHERE cohort=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>? AND NOT EXISTS(SELECT 1 FROM beta_family_invites f WHERE f.invite_id=i.id)",(pool,time.time())).fetchone()[0]
             if count:
                 print(f'{count} live {pool} invitations already reserve places. Enter each saved code privately; no new places will be created.')
                 friend_tokens=[getpass(f'Existing {pool} code {i+1}/{count} (hidden): ') for i in range(count)]
@@ -43,7 +43,7 @@ def main():
                             raise TrackerError('Friends are already enrolled; no unused invitations to prepare. No new codes created.',409)
                         friend_tokens=[code for _,code in beta_access.issue_friend_codes(db,row[0],count=5,evidence='Owner requested five family invitations')]
                     for code in friend_tokens:
-                        if welcome.lookup(db,code)['cohort']!=pool:raise TrackerError('Use only the existing codes for this pool.',400)
+                        if beta_access.invite_cohort(db,welcome.lookup(db,code))!=pool:raise TrackerError('Use only the existing codes for this pool.',400)
                     result='\n\n'.join(f'{pool.title()} {i+1} private link: '+welcome.wrap(db,row[0],code) for i,code in enumerate(friend_tokens))
                 elif args.action=='link':result=welcome.wrap(db,row[0],token)
                 else:

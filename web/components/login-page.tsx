@@ -144,7 +144,8 @@ export default function LoginPage() {
                 maxLength={200}
               />
               <small>
-                Private beta access requires a code issued for your username.
+                Use your private invitation code. Choose your username when you
+                create your account.
               </small>
             </label>
           )}

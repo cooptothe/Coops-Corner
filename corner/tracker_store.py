@@ -360,7 +360,7 @@ class TrackerStore:
                 self._db.execute('INSERT INTO users(id,username,username_key,password_hash,created_at) VALUES(?,?,?,?,?)',
                                  (user_id, username, username_key, password_hash, now_iso()))
                 from corner import beta_access
-                if beta_access.enabled():
+                if beta_access.enabled() or beta_access.family_invitation(self._db,invite_token):
                     beta_access.enroll(self._db, user_id, username_key, invite_token)
                 if first and not beta_access.enabled():
                     self._db.execute('UPDATE bets SET user_id=? WHERE user_id IS NULL', (user_id,))
@@ -373,8 +373,8 @@ class TrackerStore:
                 self._db.execute('ROLLBACK')
                 raise
         user = {'id': user_id, 'username': username}
-        if beta_access.enabled():
-            row = self.user_by_id(user_id)
+        row = self.user_by_id(user_id)
+        if beta_access.enabled() or row.get('beta_cohort')=='family':
             user.update(role=row['beta_role'], access_kind=row['beta_access_kind'], founder=row['beta_founder'], cohort=row.get('beta_cohort'), friend_rates=row.get('beta_friend_rates'))
         return user
 

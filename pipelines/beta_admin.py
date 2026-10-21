@@ -20,7 +20,7 @@ def main():
         p = commands.add_parser(name)
         p.add_argument('username', **({'nargs':'?'} if name=='invite' else {}))
         p.add_argument('--kind', choices=('preview','paid_beta'), required=True)
-        p.add_argument('--cohort', choices=('beta','friend'), default='beta')
+        p.add_argument('--cohort', choices=('beta','friend','family'), default='beta')
         p.add_argument('--evidence', required=True,
                        help='Preview reason or operator-verified receipt reference; no secrets')
         if name == 'invite':
@@ -31,6 +31,10 @@ def main():
     p.add_argument('--evidence',required=True)
     p = commands.add_parser('friend-codes')
     p.add_argument('--count',type=int,default=5)
+    p.add_argument('--hours',type=int,default=168)
+    p.add_argument('--evidence',required=True)
+    p = commands.add_parser('family-codes')
+    p.add_argument('--count',type=int,default=2)
     p.add_argument('--hours',type=int,default=168)
     p.add_argument('--evidence',required=True)
     p = commands.add_parser('move-friend')
@@ -60,8 +64,10 @@ def main():
                 elif args.command == 'status':
                     print(f'Beta places occupied or reserved: {beta.occupied(db)}/{beta.LIMIT}')
                     print(f'Friend places occupied or reserved: {beta.occupied(db,cohort="friend")}/{beta.FRIEND_LIMIT}')
-                    for row in db.execute('SELECT u.username, m.role, m.state, m.access_kind, m.founder, m.cohort FROM users u LEFT JOIN beta_members m ON u.id=m.user_id ORDER BY u.username_key'):
-                        print('\t'.join(str(x) if x is not None else 'not enrolled' for x in row))
+                    print(f'Permanent family places occupied or reserved: {beta.occupied(db,cohort="family")}/{beta.FAMILY_LIMIT}')
+                    for row in db.execute('SELECT u.username, m.role, m.state, m.access_kind, m.founder, m.cohort, u.id FROM users u LEFT JOIN beta_members m ON u.id=m.user_id ORDER BY u.username_key'):
+                        values=list(row[:-1]);values[-1]=beta.member_cohort(db,row[-1],values[-1])
+                        print('\t'.join(str(x) if x is not None else 'not enrolled' for x in values))
                 else:
                     if not args.operator:
                         parser.error('--operator is required for access mutations')
@@ -74,6 +80,8 @@ def main():
                         friend_codes=beta.issue_beta_codes(db,actor,count=args.count,hours=args.hours,evidence=args.evidence)
                     elif args.command == 'friend-codes':
                         friend_codes=beta.issue_friend_codes(db,actor,count=args.count,hours=args.hours,evidence=args.evidence)
+                    elif args.command == 'family-codes':
+                        friend_codes=beta.issue_family_codes(db,actor,count=args.count,hours=args.hours,evidence=args.evidence)
                     elif args.command == 'invite':
                         invite_id, token = beta.issue(db, actor, auth.clean_username(args.username)[1] if args.username else '', hours=args.hours, access_kind=args.kind, evidence=args.evidence, cohort=args.cohort, unbound=not bool(args.username))
                         issued_invite=(invite_id,token,welcome.wrap(db,actor,token))
@@ -105,9 +113,9 @@ def main():
                     label=datetime.fromtimestamp(expires,ZoneInfo('America/Chicago')).strftime('%b %d, %Y %I:%M %p Central')
                 except ZoneInfoNotFoundError:
                     label=datetime.fromtimestamp(expires,timezone.utc).strftime('%b %d, %Y %I:%M %p UTC')
-                label_pool='Beta' if args.command=='beta-codes' else 'Friend'
+                label_pool='Brother' if args.command=='family-codes' else 'Beta' if args.command=='beta-codes' else 'Friend'
                 print(f'{label_pool} {index} | ID: {invite_id} | Expires: {label}\nCode (shown once): {code}\nPrivate link: https://coopscorner.tech/invite#{code}')
-            if friend_codes:print('Each code reserves one place in its own pool and works once with a new chosen username. Store privately and share one code per friend.')
+            if friend_codes:print('Each code reserves one place in its own pool and works once with a new chosen username. Store privately and share one code per recipient.')
     except (TrackerError, auth.AuthError) as exc:
         parser.exit(1, str(exc)+'\n')
     finally:

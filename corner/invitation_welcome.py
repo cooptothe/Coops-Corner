@@ -20,22 +20,24 @@ def offer(db, token, user=None):
     if row['redeemed_by']:
         if not user or user['id']!=row['redeemed_by']:beta.fail('Sign in to the account that claimed this invitation.',status=401)
     elif row['expires_at']<=time.time():beta.fail('Invitation expired.',status=404)
-    if time.time()>=beta_terms.BETA_END:
+    cohort=beta.invite_cohort(db,row)
+    family=cohort=='family'
+    if not family and time.time()>=beta_terms.BETA_END:
         beta.fail('This beta has ended.',status=410)
-    friend=row['cohort']=='friend'
+    friend=cohort=='friend'
     paid=row['access_kind']=='paid_beta'
     trial_available=beta_terms.trial_available(time.time())
-    return dict(cohort=row['cohort'],claimed=bool(row['redeemed_by']),paid=paid,version=VERSION,terms_version=beta_terms.VERSION,
+    return dict(cohort=cohort,claimed=bool(row['redeemed_by']),paid=paid,version=VERSION,terms_version=beta_terms.VERSION,
         expires_at=row['expires_at'],username=row['username_key'],trial_available=trial_available,
-        title='The inner circle' if friend else 'The founding table',
-        access=('Complimentary beta access through November 20, 2026.' if friend else
+        title='A brother at the table' if family else 'The inner circle' if friend else 'The founding table',
+        access=('Permanent complimentary access to all available tools, including standard and live when available. No trial or payment required.' if family else 'Complimentary beta access through November 20, 2026.' if friend else
                 'Your verified paid beta access runs through November 20, 2026.' if paid else
                 'Seven days free when your trial is activated. Then choose whether to pay $50 for the remaining beta.' if trial_available else
                 'A full seven-day trial is no longer available. Contact your host before joining.'),
-        pricing=('$25/month standard or $50/month live when available, both locked in after release.' if friend else
+        pricing=('Always free. $0 for standard and live; no subscription or recurring charge.' if family else '$25/month standard or $50/month live when available, both locked in after release.' if friend else
                  '$50/month pregame standard locked in after release.' if paid else
                  'Paying the beta fee locks $50/month pregame standard after release. Otherwise the launch rate is $125/month.'),
-        end_label='November 20, 2026 at 11:59 p.m. Central')
+        end_label='No expiry' if family else 'November 20, 2026 at 11:59 p.m. Central')
 
 def wrap(db, actor, token):
     beta.require_operator(db,actor)

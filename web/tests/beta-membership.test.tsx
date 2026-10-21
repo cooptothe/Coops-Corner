@@ -61,13 +61,39 @@ test("expired members retain recovery information", () => {
   assert.doesNotMatch(html, /preview access is unchanged/);
 });
 
-
 test("friends see complimentary access and their locked rates without a beta purchase offer", () => {
-  const html=renderToStaticMarkup(<MembershipOffer offer={{...offer,cohort:"friend",friend_rates:{standard_usd_cents:2500,live_usd_cents:5000,locked:true}}} />);
-  assert.match(html,/complimentary/);
-  assert.match(html,/25\/month standard/);
-  assert.match(html,/50\/month live/);
-  assert.match(html,/when available/);
-  assert.match(html,/locked-in/);
-  assert.doesNotMatch(html,/7 days free|skip the|125\/month|Pay with|beta fee locks in/);
+  const html = renderToStaticMarkup(
+    <MembershipOffer
+      offer={{
+        ...offer,
+        cohort: "friend",
+        friend_rates: {
+          standard_usd_cents: 2500,
+          live_usd_cents: 5000,
+          locked: true,
+        },
+      }}
+    />,
+  );
+  assert.match(html, /complimentary/);
+  assert.match(html, /25\/month standard/);
+  assert.match(html, /50\/month live/);
+  assert.match(html, /when available/);
+  assert.match(html, /locked-in/);
+  assert.doesNotMatch(
+    html,
+    /7 days free|skip the|125\/month|Pay with|beta fee locks in/,
+  );
+});
+
+test("family membership is permanently free even after private beta", () => {
+  for (const private_beta of [true, false]) {
+    const html = renderToStaticMarkup(
+      <MembershipOffer offer={{ ...offer, private_beta, cohort: "family" }} />,
+    );
+    assert.match(html, /Always free/);
+    assert.match(html, /No expiry/);
+    assert.match(html, /standard and live/);
+    assert.doesNotMatch(html, /November 20|\$50|125|checkout|days free/i);
+  }
 });

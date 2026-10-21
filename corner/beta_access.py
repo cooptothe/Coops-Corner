@@ -1,8 +1,8 @@
 """Private beta access. Mutations run in the caller's BEGIN IMMEDIATE transaction.
 
-Invites reserve one of ten beta places or five separate friend places.
+Invites reserve one of ten beta places, five friend places, or two permanent family places.
 Suspension retains its place; explicit
-closure releases it. Only hashed, expiring invite codes persist. Open codes bind to the first successful signup; explicitly named legacy invitations retain their identity restriction.
+closure releases it. Only hashed, expiring invite codes persist in the account database. Open codes bind to the first successful signup; explicitly named legacy invitations retain their identity restriction.
 An operator issues paid invites only after independently verifying the receipt.
 """
 import hashlib
@@ -14,7 +14,8 @@ from corner.tracker_store import TrackerError
 
 LIMIT = 10
 FRIEND_LIMIT = 5
-COHORT_LIMITS = {"beta": LIMIT, "friend": FRIEND_LIMIT}
+FAMILY_LIMIT = 2
+COHORT_LIMITS = {"beta": LIMIT, "friend": FRIEND_LIMIT, "family": FAMILY_LIMIT}
 
 
 def enabled():
@@ -67,6 +68,13 @@ def initialize(db):
     );
     ''')
     db.executescript('''
+    -- Additive family markers avoid rebuilding legacy tables with cohort CHECKs.
+    -- Physical cohort='friend' rows with these markers belong only to family.
+    CREATE TABLE IF NOT EXISTS beta_family_invites(
+      invite_id TEXT PRIMARY KEY REFERENCES beta_invites(id));
+    CREATE TABLE IF NOT EXISTS beta_family_members(
+      user_id TEXT PRIMARY KEY REFERENCES beta_members(user_id),
+      granted_at REAL NOT NULL, evidence TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS beta_invitation_pages(invite_id TEXT PRIMARY KEY REFERENCES beta_invites(id));
     CREATE TABLE IF NOT EXISTS beta_invitation_acceptances(
       invite_id TEXT REFERENCES beta_invites(id), version TEXT, terms_version TEXT,
@@ -105,14 +113,32 @@ def audit(db, actor, action, subject, detail=''):
 def occupied(db, now=None, *, cohort='beta'):
     if cohort not in COHORT_LIMITS:fail('Unknown membership pool.',status=400)
     now = time.time() if now is None else now
-    members = db.execute("SELECT count(*) FROM beta_members WHERE role='member' AND state!='closed' AND cohort=?", (cohort,)).fetchone()[0]
-    invites = db.execute('SELECT count(*) FROM beta_invites WHERE revoked=0 AND redeemed_by IS NULL AND expires_at>? AND cohort=?', (now,cohort)).fetchone()[0]
+    if cohort=='family':
+        members=db.execute("SELECT count(*) FROM beta_members m JOIN beta_family_members f ON f.user_id=m.user_id WHERE m.role='member' AND m.state!='closed'").fetchone()[0]
+        invites=db.execute('SELECT count(*) FROM beta_invites i JOIN beta_family_invites f ON f.invite_id=i.id WHERE i.revoked=0 AND i.redeemed_by IS NULL AND i.expires_at>?',(now,)).fetchone()[0]
+        return members+invites
+    members = db.execute("SELECT count(*) FROM beta_members m WHERE role='member' AND state!='closed' AND cohort=? AND NOT EXISTS(SELECT 1 FROM beta_family_members f WHERE f.user_id=m.user_id)", (cohort,)).fetchone()[0]
+    invites = db.execute('SELECT count(*) FROM beta_invites i WHERE revoked=0 AND redeemed_by IS NULL AND expires_at>? AND cohort=? AND NOT EXISTS(SELECT 1 FROM beta_family_invites f WHERE f.invite_id=i.id)', (now,'friend' if cohort=='family' else cohort)).fetchone()[0]
     return members + invites
 
 
 def validate_cohort(cohort, access_kind):
-    if cohort not in COHORT_LIMITS or (cohort=='friend' and access_kind!='preview'):
+    if cohort not in COHORT_LIMITS or (cohort in ('friend','family') and access_kind!='preview'):
         fail('Friends receive complimentary beta access; choose a valid pool and kind.',status=400)
+
+
+def invite_cohort(db, invite):
+    return 'family' if db.execute('SELECT 1 FROM beta_family_invites WHERE invite_id=?',(invite['id'],)).fetchone() else invite['cohort']
+
+
+def family_invitation(db, token):
+    return isinstance(token,str) and 20<=len(token)<=200 and bool(db.execute(
+        'SELECT 1 FROM beta_invites i JOIN beta_family_invites f ON f.invite_id=i.id WHERE i.token_hash=?',
+        (digest(token),)).fetchone())
+
+
+def member_cohort(db, user_id, fallback):
+    return 'family' if db.execute('SELECT 1 FROM beta_family_members WHERE user_id=?',(user_id,)).fetchone() else fallback
 
 
 def friend_rates(db, user_id, evidence):
@@ -127,7 +153,10 @@ def capacity(db, cohort, *, redeem=False):
 
 
 def decorate(db, row):
-    if row is None or not enabled():
+    if row is None:
+        return row
+    family = member_cohort(db,row['id'],None)=='family'
+    if not enabled() and not family:
         return row
     row = dict(row)
     membership = db.execute('SELECT role,state,founder,access_kind,cohort,created_at FROM beta_members WHERE user_id=?', (row['id'],)).fetchone()
@@ -135,12 +164,12 @@ def decorate(db, row):
                beta_state=membership[1] if membership else None,
                beta_founder=bool(membership[2]) if membership else False,
                beta_access_kind=membership[3] if membership else None,
-               beta_cohort=membership[4] if membership else None,
+               beta_cohort='family' if family else membership[4] if membership else None,
                beta_member_created_at=membership[5] if membership else None)
-    if membership and membership[4]=='friend':
+    if membership and membership[4]=='friend' and not family:
         rates=db.execute('SELECT standard_usd_cents,live_usd_cents FROM beta_friend_rates WHERE user_id=?',(row['id'],)).fetchone()
         row['beta_friend_rates']={'standard_usd_cents':rates[0],'live_usd_cents':rates[1],'locked':True} if rates else None
-    if trials_enabled() and row.get('beta_cohort')!='friend':
+    if trials_enabled() and row.get('beta_cohort') not in ('friend','family'):
         trial = db.execute('SELECT started_at FROM beta_trials WHERE user_id=?', (row['id'],)).fetchone()
         row['beta_trial_started_at'] = trial[0] if trial else None
     return row
@@ -155,6 +184,9 @@ def trials_enabled():
 
 def access_status(row, now=None):
     from corner import beta_terms
+    if row and row.get('beta_cohort')=='family':
+        return {'state':'complimentary','expires_at':None,'allowed':active(row),'enforced':True,
+                'packages':['standard','live'],'permanent':True}
     if enabled() and row and row.get('beta_cohort')=='friend':
         if not active(row) or not row.get('beta_friend_rates'):
             return {'state':'unavailable','expires_at':None,'allowed':False,'enforced':True}
@@ -191,6 +223,8 @@ def start_trial(db, actor, username_key):
 
 
 def active(row):
+    if row and row.get('beta_cohort')=='family':
+        return row.get('beta_state')=='active' and row.get('beta_role')=='member'
     return not enabled() or bool(row and row.get('beta_state') == 'active' and row.get('beta_role') in ('admin', 'member'))
 
 
@@ -208,12 +242,13 @@ def enroll(db, user_id, username_key, token):
         fail('This invitation is invalid, expired, or belongs to another username.', 'invalid_invite')
     from corner.invitation_welcome import require_acceptance
     require_acceptance(db,invite)
-    cohort=invite['cohort']
+    cohort=invite_cohort(db,invite)
     validate_cohort(cohort,invite['access_kind'])
     capacity(db,cohort,redeem=True)
     paid = invite['access_kind'] == 'paid_beta'
     db.execute('INSERT INTO beta_members(user_id,role,state,founder,access_kind,evidence,created_at,cohort) VALUES(?,?,?,?,?,?,?,?)',
-               (user_id,'member','active',int(paid),invite['access_kind'],invite['evidence'],now,cohort))
+               (user_id,'member','active',int(paid),invite['access_kind'],invite['evidence'],now,'friend' if cohort=='family' else cohort))
+    if cohort=='family':db.execute('INSERT INTO beta_family_members VALUES(?,?,?)',(user_id,now,invite['evidence']))
     if cohort=='friend':friend_rates(db,user_id,invite['evidence'])
     if cohort=='beta' and not paid and trials_enabled():
         from corner import beta_terms
@@ -260,10 +295,11 @@ def issue(db, actor, username_key, *, hours=48, access_kind, evidence, cohort='b
     if username_key and db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>?', (username_key, time.time())).fetchone():
         fail('This username already has a live invitation.', status=409)
     capacity(db,cohort)
-    token = (('FRIEND-' if cohort=='friend' else 'BETA-') if unbound else '') + secrets.token_urlsafe(32)
+    token = (('FAMILY-' if cohort=='family' else 'FRIEND-' if cohort=='friend' else 'BETA-') if unbound else '') + secrets.token_urlsafe(32)
     invite_id = secrets.token_hex(12)
     db.execute('INSERT INTO beta_invites(id,token_hash,username_key,expires_at,access_kind,evidence,created_at,cohort) VALUES(?,?,?,?,?,?,?,?)',
-               (invite_id, digest(token), username_key, time.time()+hours*3600, access_kind, evidence.strip(), time.time(),cohort))
+               (invite_id, digest(token), username_key, time.time()+hours*3600, access_kind, evidence.strip(), time.time(),'friend' if cohort=='family' else cohort))
+    if cohort=='family':db.execute('INSERT INTO beta_family_invites VALUES(?)',(invite_id,))
     audit(db,actor,'issue_invite',invite_id,access_kind+':'+cohort+(':unbound' if unbound else ''))
     return invite_id, token
 
@@ -282,7 +318,8 @@ def grant(db, actor, username_key, access_kind, evidence, *, cohort='beta'):
     if db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>?',(username_key,time.time())).fetchone():
         fail('Resolve the existing invitation before granting access.',status=409)
     db.execute('INSERT INTO beta_members(user_id,role,state,founder,access_kind,evidence,created_at,cohort) VALUES(?,?,?,?,?,?,?,?)',
-               (user[0],'member','active',int(access_kind=='paid_beta'),access_kind,evidence.strip(),time.time(),cohort))
+               (user[0],'member','active',int(access_kind=='paid_beta'),access_kind,evidence.strip(),time.time(),'friend' if cohort=='family' else cohort))
+    if cohort=='family':db.execute('INSERT INTO beta_family_members VALUES(?,?,?)',(user[0],time.time(),evidence.strip()))
     if cohort=='friend':friend_rates(db,user[0],evidence.strip())
     db.execute('UPDATE users SET session_epoch=session_epoch+1 WHERE id=?', (user[0],))
     audit(db, actor, 'grant', user[0], access_kind)
@@ -296,7 +333,7 @@ def state(db, actor, username_key, value):
     if not row or row['role'] == 'admin':
         fail('Use a member account; operator access cannot be changed here.', status=409)
     if row['state']=='closed' and value!='closed':
-        capacity(db,row['cohort'])
+        capacity(db,member_cohort(db,row['user_id'],row['cohort']))
     db.execute('UPDATE beta_members SET state=? WHERE user_id=?', (value, row['user_id']))
     db.execute('UPDATE users SET session_epoch=session_epoch+1 WHERE id=?', (row['user_id'],))
     audit(db, actor, 'state', row['user_id'], value)
@@ -345,4 +382,15 @@ def issue_beta_codes(db, actor, *, count=1, hours=168, evidence):
     if occupied(db,cohort='beta')+count>LIMIT:
         fail('Not enough free beta places; no codes were created.','beta_full',409)
     return [issue(db,actor,'',hours=hours,access_kind='preview',cohort='beta',
+                  evidence=evidence,unbound=True) for _ in range(count)]
+
+
+def issue_family_codes(db, actor, *, count=2, hours=168, evidence):
+    """Reserve only the two permanent complimentary family places, atomically."""
+    require_operator(db,actor)
+    if type(count) is not int or not 1<=count<=FAMILY_LIMIT:
+        fail('Choose one or two family codes.',status=400)
+    if occupied(db,cohort='family')+count>FAMILY_LIMIT:
+        fail('Family places already active or reserved; use the saved links.','beta_full',409)
+    return [issue(db,actor,'',hours=hours,access_kind='preview',cohort='family',
                   evidence=evidence,unbound=True) for _ in range(count)]

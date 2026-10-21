@@ -20,6 +20,15 @@ def create_router(ctx):
         if denied:
             return denied
         config = checkout_config()
+        if user.get('cohort')=='family':
+            return JSONResponse({'private_beta':beta_access.enabled(),'cohort':'family',
+                'membership':user.get('membership'),'friend_rates':None,'stage':'preparation',
+                'payments_enabled':False,'checkout_eligible':False,'terms_version':beta_terms.VERSION,
+                'trial_days':0,'price_usd_cents':0,'launch_monthly_usd_cents':0,
+                'standard_monthly_usd_cents':0,'founder_monthly_usd_cents':0,
+                'package_label':'All available standard and live tools','founder':False,
+                'access_end_label':'No expiry','assets':[],'support_email':SUPPORT_EMAIL},
+                headers={'Cache-Control':'no-store'})
         return JSONResponse({
             'private_beta': beta_access.enabled(),
             'cohort': user.get('cohort','beta'),
@@ -27,7 +36,7 @@ def create_router(ctx):
             'membership': user.get('membership'),
             'stage': 'manual_review' if config else 'preparation',
             'payments_enabled': bool(config),
-            'checkout_eligible': bool(config) and user.get('role') == 'member' and user.get('access_kind') == 'preview' and user.get('cohort')!='friend',
+            'checkout_eligible': bool(config) and user.get('role') == 'member' and user.get('access_kind') == 'preview' and user.get('cohort')=='beta',
             'terms_version': beta_terms.VERSION,
             'trial_days': beta_terms.TRIAL_SECONDS//86400,
             'price_usd_cents': beta_terms.PRICE_USD_CENTS,
@@ -45,6 +54,8 @@ def create_router(ctx):
         user, denied = ctx.require(request, write=write)
         if denied:
             return denied
+        if user.get('cohort')=='family':
+            return JSONResponse({'error':'Your family membership is permanently free. No payment is required.','code':'complimentary_access'},status_code=403)
         config = checkout_config()
         if config is None:
             return JSONResponse({'error':'Payments are not open yet. No funds should be sent.',

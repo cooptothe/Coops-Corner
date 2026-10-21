@@ -1,5 +1,5 @@
 export type InvitationOffer = {
-  cohort: "beta" | "friend";
+  cohort: "beta" | "friend" | "family";
   paid: boolean;
   claimed: boolean;
   version: string;
