@@ -1,0 +1,25 @@
+{
+  "scope": "Full November 2026 UTC quota cycle; conservative planning envelope, not expected bill",
+  "source_events_sha256": "57164071e63b5d153c650e28fe66213ac13d5cd4bf3a2e08201392d67545bce3",
+  "source": "Saved October 20 public ESPN schedule research; no paid odds calls",
+  "main_82_keys_every_minute_16h": 7084800,
+  "additional_daily_credit_cap": 26296,
+  "additional_daily_event_cap": 73,
+  "additional_possible_central_dates": 31,
+  "additional_credit_ceiling": 815176,
+  "props_all_configured_markets_saved_schedule": 4933976,
+  "metadata_allowance": 500000,
+  "lab_history_allowance_not_activated": 100000,
+  "spending_envelope": 13433952,
+  "remaining_envelope": 1566048,
+  "hard_protected_reserve": 1500000,
+  "pool_caps_unchanged": true,
+  "notes": [
+    "Props simulated on a 30-second dispatch grid, all configured markets returned on each poll.",
+    "November distant props 150 seconds; 31-day months use 180 seconds.",
+    "Schedules, books and actual market availability vary; no guaranteed closing balance.",
+    "Additional allowance and 82-key main count are ceilings, not actual event coverage.",
+    "The 5M props allocation remains a hard cap; higher workload can exhaust it.",
+    "No automatic next-cycle binding, no historical collector activation."
+  ]
+}

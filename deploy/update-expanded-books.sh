@@ -5,7 +5,7 @@ cd /srv/corner/app
 if systemctl is-active --quiet corner-collection.service; then
   echo "Stop collector before installing this release."; exit 1
 fi
-.venv-api/bin/python -m unittest tests.test_expanded_main_books tests.test_reference_weights tests.test_cash_prop_books tests.test_collection_worker tests.test_collection_cadence tests.test_collection_adapters tests.test_collection_runner tests.test_collection_live tests.test_collection_recovery tests.test_collection_maintenance tests.test_database_catalog tests.test_props_refresh
+.venv-api/bin/python -m unittest tests.test_optimized_cadence tests.test_expanded_main_books tests.test_reference_weights tests.test_cash_prop_books tests.test_collection_worker tests.test_collection_cadence tests.test_collection_adapters tests.test_collection_runner tests.test_collection_live tests.test_collection_recovery tests.test_collection_maintenance tests.test_database_catalog tests.test_props_refresh
 sudo systemctl stop corner-staging-web
 (cd web && pnpm test && pnpm build)
 .venv-api/bin/python - <<'PY'
@@ -58,4 +58,4 @@ systemctl is-active corner-collection corner-staging-accounts corner-staging-api
 .venv-api/bin/python -m pipelines.collection_admin status --state /srv/corner/config/collection-live.sqlite3
 sudo journalctl -u corner-collection.service -n 10 --no-pager
 git log -1 --oneline
-echo 'Expanded books deployed. Inspect worker publication status above; actual provider coverage varies by market.'
+echo 'Optimized cadence and expanded books deployed. Inspect worker publication status above; actual provider coverage varies by market.'

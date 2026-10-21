@@ -11,7 +11,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 
-from corner.collection_policy import CENTRAL, POOLS, TOTAL, PROTECTED, aware, interval, open_now, parse, snapshot_max_age
+from corner.collection_policy import CENTRAL, POOLS, TOTAL, PROTECTED, aware, interval, open_now, parse, snapshot_max_age, additional_limits
 
 
 class Refused(ValueError):
@@ -126,7 +126,7 @@ class Governor:
             self._fence(db,owner,stamp)
             pause=db.execute('SELECT paused FROM controls WHERE id=1').fetchone()[0]
             if pause: raise Refused(pause)
-            cycle=db.execute('SELECT id FROM cycles WHERE starts<=? AND ends>?',(stamp,stamp)).fetchone()
+            cycle=db.execute('SELECT id,starts,ends FROM cycles WHERE starts<=? AND ends>?',(stamp,stamp)).fetchone()
             if not cycle: raise Refused('No explicit billing cycle covers this time')
             prior=db.execute('SELECT * FROM jobs WHERE key=?',(job.key,)).fetchone()
             if prior and (prior['state'] in ('inflight','blocked') or prior['next_due']>stamp):
@@ -135,13 +135,16 @@ class Governor:
             # ready() adjusts due times using the last dispatch, never replaying missed ticks.
             day = now.astimezone(CENTRAL).date().isoformat()
             if job.kind == 'additional':
-                if parse(job.starts_at) > now + timedelta(hours=1):
-                    raise Refused('Additional markets only in final pregame hour')
+                if parse(job.starts_at) > now + timedelta(hours=2):
+                    raise Refused('Additional markets only in final two pregame hours')
+                event_limit, credit_limit = additional_limits(
+                    datetime.fromtimestamp(cycle['starts'],timezone.utc),
+                    datetime.fromtimestamp(cycle['ends'],timezone.utc))
                 known = db.execute('SELECT 1 FROM additional_events WHERE day=? AND sport=? AND event_id=?',(day,job.sport,job.event_id)).fetchone()
-                if not known and db.execute('SELECT count(*) FROM additional_events WHERE day=?',(day,)).fetchone()[0] >= 50:
+                if not known and db.execute('SELECT count(*) FROM additional_events WHERE day=?',(day,)).fetchone()[0] >= event_limit:
                     raise Refused('Additional-market daily event cap')
                 used = db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0) FROM attempts a JOIN additional_attempts x ON x.token=a.token WHERE x.day=?',(day,)).fetchone()[0]
-                if used + job.cost > 30000:
+                if used + job.cost > credit_limit:
                     raise Refused('Additional-market daily credit cap')
             sums=self.accounted(db,cycle[0])
             if sums.get(job.pool,0)+job.cost>POOLS[job.pool]: raise Refused('Pool limit')

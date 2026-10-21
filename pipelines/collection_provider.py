@@ -27,6 +27,7 @@ class Provider:
         self.session=session or requests.Session()
         self.session.trust_env=False
         self.clock=clock or (lambda:datetime.now(timezone.utc))
+        self._next_request_at = 0.0
 
     def close(self):self.session.close()
 
@@ -40,7 +41,14 @@ class Provider:
 
     def _get(self,path,params):
         self.gate()
+        # Shared by inventory and odds in this serial provider. Stay well below
+        # the published paid-plan 30 requests/s ceiling; never retry a charge.
+        wait = self._next_request_at - time.monotonic()
+        if wait > 0:
+            time.sleep(wait)
+        self.gate()
         start=time.monotonic()
+        self._next_request_at = start + 0.1
         try:
             with self.session.get(BASE+path,params={**params,'apiKey':self.key},
                                   timeout=(5,20),allow_redirects=False,stream=True,

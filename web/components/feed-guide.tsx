@@ -37,9 +37,10 @@ export function FeedGuide({ view }: { view: View }) {
         <p>{description}</p>
         <p>
           On the beta's scheduled feed, main odds target a one-minute refresh
-          throughout the collection window. Additional markets target two
-          minutes in the final hour. Pro player props target five minutes from
-          two to six hours and one minute in the final two hours; NCAA props are
+          throughout the collection window. Additional markets target five
+          minutes from one to two hours before start, then one minute in the
+          final hour. Pro player props target one minute in the final six hours
+          and 2.5–3 minutes earlier within the 24-hour horizon; NCAA props are
           not collected. Quotes remain eligible for up to 30 minutes of actual
           source age. Older prices are marked for verification; a displayed edge
           does not confirm that the sportsbook still offers it. Withdrawals,

@@ -1,5 +1,7 @@
 """Pure collection policy. All clock inputs are timezone aware; no provider calls."""
 from dataclasses import dataclass
+import calendar
+import math
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import pytz
@@ -51,15 +53,36 @@ def interval(kind, group, now, starts=None):
             return 20
         return 60
     if kind == 'additional':
-        return 20 if group == 'exchange' else 120
+        if group == 'exchange':
+            return 20
+        return 60 if starts is None or (aware(starts)-aware(now)).total_seconds() <= 3600 else 300
     remaining = (aware(starts)-aware(now)).total_seconds()
     if remaining <= 0:
         raise ValueError('Started event')
-    if remaining <= 7200:
-        return floor
+    if group == 'exchange':
+        # Dormant, unverified exchange acquisition retains its prior policy.
+        return 20 if remaining <= 7200 else 300 if remaining <= 21600 else 3600
     if remaining <= 21600:
-        return 300
-    return 3600
+        return floor
+    # Longer months get a slower distant-event band; never poll below 60s.
+    return 180 if calendar.monthrange(aware(now).year, aware(now).month)[1] == 31 else 150
+
+
+def additional_limits(cycle_start, cycle_end):
+    """Keep daily alternate spend inside main allocation after an 82-key ceiling.
+
+    82 is a conservative planning assumption, not provider coverage or a sport
+    cap. Durable monthly pool and global reserve checks remain authoritative.
+    Only the existing cycle dates are read; no policy or accounting migration.
+    """
+    days = max(1, math.ceil((aware(cycle_end)-aware(cycle_start)).total_seconds()/86400))
+    main_ceiling = 82 * 16 * 60 * 3 * days
+    # UTC quota cycles touch an extra Central calendar date at both edges.
+    # Budget that partial date too; a busy short day can still hit its cap.
+    daily_credits = min(30000, max(0, (POOLS['main']-main_ceiling)//(days+1)))
+    # At most 60 minute polls + 12 five-minute polls per event, five keys.
+    events = min(75, daily_credits // (72 * len(ADDITIONAL_MARKETS)))
+    return events, daily_credits
 
 
 @dataclass(frozen=True)
@@ -131,7 +154,7 @@ def plan(now, active_keys, events, *, additional=False):
         if identity in seen:
             continue
         seen.add(identity)
-        if additional and start <= now + timedelta(hours=1):
+        if additional and start <= now + timedelta(hours=2):
             for group,books in (('standard',STANDARD),('exchange',EXCHANGE)):
                 jobs.append(Job('additional',sport,group,books,ADDITIONAL_MARKETS,event['id'],event['commence_time']))
         if sport in NO_SCHEDULED_PROPS or not family(sport):

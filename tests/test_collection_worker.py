@@ -53,7 +53,7 @@ class Policy(unittest.TestCase):
         with self.assertRaises(ValueError): open_now(datetime(2026,10,16))
 
     def test_props_bands_and_main_floor(self):
-        for seconds,standard,exchange in [(900,60,20),(901,60,20),(7200,60,20),(7201,300,300),(21600,300,300),(21601,3600,3600)]:
+        for seconds,standard,exchange in [(900,60,20),(901,60,20),(7200,60,20),(7201,60,300),(21600,60,300),(21601,180,3600)]:
             for group,expected in [('standard',standard),('exchange',exchange)]:
                 self.assertEqual(interval('props',group,NOW,NOW+timedelta(seconds=seconds)),expected)
         self.assertEqual(interval('main','standard',NOW),60)

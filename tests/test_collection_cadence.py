@@ -7,10 +7,10 @@ from tests.test_collection_adapters import event, NOW
 
 class RevisedScheduleTests(unittest.TestCase):
     def test_exact_bands(self):
-        for seconds, expected in [(1,60),(900,60),(901,60),(7200,60),(7201,300),(21600,300),(21601,3600)]:
+        for seconds, expected in [(1,60),(900,60),(901,60),(7200,60),(7201,60),(21600,60),(21601,180)]:
             self.assertEqual(interval('props','standard',NOW,NOW+timedelta(seconds=seconds)),expected)
         self.assertEqual(interval('main','standard',NOW),60)
-        self.assertEqual(interval('additional','standard',NOW),120)
+        self.assertEqual(interval('additional','standard',NOW),60)
         self.assertEqual(snapshot_max_age('main','standard'),1800)
         self.assertEqual(snapshot_max_age('additional','standard'),1800)
         self.assertEqual(snapshot_max_age('props','standard'),1800)
@@ -41,8 +41,8 @@ class RevisedScheduleTests(unittest.TestCase):
                     (NOW+timedelta(hours=1)).isoformat())
             with self.assertRaises(ValueError):job.validate()
 
-    def test_additional_final_hour_boundary(self):
-        for seconds, expected in [(3600,True),(3601,False),(1,True)]:
+    def test_additional_final_two_hour_boundary(self):
+        for seconds, expected in [(3600,True),(3601,True),(7200,True),(7201,False),(1,True)]:
             e={**event(),'commence_time':(NOW+timedelta(seconds=seconds)).isoformat()}
             jobs=plan(NOW,['basketball_nba'],[e],additional=True)
             self.assertEqual(any(j.kind=='additional' for j in jobs),expected)
