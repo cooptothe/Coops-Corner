@@ -2,20 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DevigComparison } from "../components/devig-comparison";
+import { DevigSelector } from "../components/devig-comparison";
 
-test("devig comparison stays absent when complete references are unavailable", () => {
-  assert.equal(renderToStaticMarkup(<DevigComparison rows={null} />), "");
-  assert.equal(renderToStaticMarkup(<DevigComparison rows={[]} />), "");
-});
-test("comparison is opt-in and does not render a table for every feed row", () => {
+test("devig methods remain available in the dropdown without comparison buttons", () => {
   const html = renderToStaticMarkup(
-    <DevigComparison
-      rows={[{ method: "power", probability: ".5", ev: ".1" }]}
-    />,
+    <DevigSelector value="power" onChange={() => {}} />,
   );
-  assert.match(html, /Compare devig/);
-  assert.doesNotMatch(html, /<table|<dialog/);
+  assert.match(html, /DEVIG METHOD/);
+  assert.match(html, /value="power" selected/);
+  assert.doesNotMatch(html, /Compare devig|<button|<dialog/);
 });
 
 import { selectPropDevig } from "../lib/devig-selection";

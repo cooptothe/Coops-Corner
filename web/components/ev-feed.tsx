@@ -1,9 +1,5 @@
 "use client";
-import {
-  DevigComparison,
-  DevigSelector,
-  type DevigResult,
-} from "./devig-comparison";
+import { DevigSelector } from "./devig-comparison";
 import { fairOddsRange } from "../lib/fair-odds-filter";
 import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
@@ -88,7 +84,6 @@ interface Vm {
   startMs: number;
   sharps: string;
   observedAt: string;
-  devigComparisons?: DevigResult[];
   fairProb: string;
   ref: Record<string, RefValue>;
   links: QuoteLinks | null;
@@ -118,7 +113,7 @@ export interface KellyVm {
 }
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 
-const ROW_HEIGHT = { wide: 120, compact: 280 };
+const ROW_HEIGHT = { wide: 88, compact: 244 };
 const OVERSCAN = 6;
 const SHARP_BOOKS = new Set([
   "pinnacle",
@@ -228,7 +223,6 @@ function toVm(
     startMs: g?.starts_at ? new Date(g.starts_at).getTime() : Infinity,
     sharps,
     observedAt: row.oldest_observed_at,
-    devigComparisons: row.calculation.devig_comparisons,
     fairProb: row.calculation.conditional_fair_probability,
     ref: quoteRef(q),
     links: q.links ?? null,
@@ -362,7 +356,6 @@ const Row = memo(
           )}
           <small>Fair {vm.fairOdds ?? "—"}</small>
           <small>{vm.sharps}</small>
-          <DevigComparison rows={vm.devigComparisons} />
         </div>
         <div role="cell" className="ev-cell ev-time">
           <Age value={vm.observedAt} />
@@ -375,8 +368,6 @@ const Row = memo(
     a.vm.ev === b.vm.ev &&
     a.vm.decimalOdds === b.vm.decimalOdds &&
     a.vm.observedAt === b.vm.observedAt &&
-    JSON.stringify(a.vm.devigComparisons) ===
-      JSON.stringify(b.vm.devigComparisons) &&
     a.top === b.top &&
     a.height === b.height &&
     a.selected === b.selected &&

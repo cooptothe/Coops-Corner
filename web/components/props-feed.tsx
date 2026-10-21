@@ -1,10 +1,6 @@
 "use client";
 import { selectPropDevig } from "../lib/devig-selection";
-import {
-  DevigComparison,
-  DevigSelector,
-  type DevigResult,
-} from "./devig-comparison";
+import { DevigSelector, type DevigResult } from "./devig-comparison";
 import { fairOddsRange } from "../lib/fair-odds-filter";
 import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
@@ -1071,7 +1067,6 @@ export default function PropsFeed({ reload }: { reload: number }) {
                       <strong>{percent(v.fair)} estimated chance</strong>
                       <small>Fair {v.fairOdds ?? "—"}</small>
                       <small>{v.sharps}</small>
-                      <DevigComparison rows={v.devigComparisons} />
                       {!v.devigComparisons?.length && (
                         <small>
                           Margin model - devig method does not apply

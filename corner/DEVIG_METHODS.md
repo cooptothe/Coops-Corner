@@ -1,7 +1,7 @@
 # Devig method comparisons
 
-Both EV feeds offer **Compare devig** on rows whose references contain complete,
-matching markets. The method dropdown updates displayed probabilities, fair odds, EV, filters and
+Both EV feeds offer a **Devig method** dropdown for complete, matching reference
+markets. There are no row-level comparison buttons. The method dropdown updates displayed probabilities, fair odds, EV, filters and
 new bet-sizing inputs together. It never changes reference books or weights,
 provider fetches, or previously tracked bet records. Selection is saved per account
 and included in presets; App default restores the existing pricing policy. Main EV retains its proportional headline. Props retain power probability
@@ -32,9 +32,7 @@ can receive comparisons if its references have genuine complete matching pairs.
 Numerical calculations use Decimal with bounded precision and cached immutable
 price/weight vectors. Comparison values are delivered to 12 decimal places;
 selected main-feed qualification excludes numerical dust at or below 1e-20. Cached distributions never replace upstream freshness,
-withdrawal or eligibility checks. Each cache is bounded at 4096 entries. Charts
-and comparison tables are created only on opening the dialog; feed virtualization
-is preserved. No provider calls, acquisition changes or additional credits.
+withdrawal or eligibility checks. Each cache is bounded at 4096 entries. No comparison dialogs or tables are rendered; feed virtualization is preserved. No provider calls, acquisition changes or additional credits.
 
 The formulas are standard margin models, not a reproduction of OddsJam proprietary
 algorithms. None is empirically validated for our deployment merely by being added.
