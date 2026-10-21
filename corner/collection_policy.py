@@ -8,10 +8,11 @@ from corner.prop_markets import SCHEDULED_FAMILIES as FAMILIES, family
 from corner.additional_markets import SCHEDULED_ADDITIONAL_MARKETS as ADDITIONAL_MARKETS
 
 CENTRAL = pytz.timezone('America/Chicago')
-STANDARD = ('draftkings','fanduel','espnbet','betmgm','betrivers','pinnacle')
+BASE_STANDARD = ('draftkings','fanduel','espnbet','betmgm','betrivers','pinnacle')
+STANDARD = BASE_STANDARD + ('betonlineag','williamhill_us','bovada')
 # Proposed fast classifications require measured provider validation before live use.
 EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket')
-PROP_STANDARD = STANDARD + ('williamhill_us','fanatics')
+PROP_STANDARD = BASE_STANDARD + ('williamhill_us','fanatics','betonlineag','bovada')
 SPORTS = ('americanfootball_nfl','americanfootball_ncaaf','basketball_nba','basketball_ncaab',
           'baseball_mlb','icehockey_nhl','soccer_usa_mls','soccer_epl','soccer_spain_la_liga',
           'soccer_germany_bundesliga','soccer_italy_serie_a','soccer_france_ligue_one',
@@ -48,8 +49,7 @@ def interval(kind, group, now, starts=None):
     if kind == 'main':
         if group == 'exchange':
             return 20
-        remaining = (aware(starts)-aware(now)).total_seconds() if starts else 0
-        return 3600 if remaining > 21600 else 900 if remaining > 7200 else 300
+        return 60
     if kind == 'additional':
         return 20 if group == 'exchange' else 120
     remaining = (aware(starts)-aware(now)).total_seconds()

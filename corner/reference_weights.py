@@ -7,7 +7,7 @@ or future observations are used to estimate current EV.
 from decimal import Decimal
 from corner.book_policy import supported_book
 
-WEIGHT_VERSION = 'reputation-priors/3-cash-props'
+WEIGHT_VERSION = 'reputation-priors/5-expanded-props'
 EXCHANGES = frozenset({'betfair_ex_uk', 'betfair_ex_eu', 'betfair_ex_au'})
 OTHER_EXCHANGES = frozenset({'prophetx', 'kalshi', 'betopenly', 'polymarket', 'novig'})
 
@@ -41,6 +41,10 @@ def reference_weight(book, sport_key='', *, player_props=False):
         return Decimal('1')
     # The guide does not establish a dominant WNBA or challenger benchmark.
     if sport_key == 'basketball_wnba' or 'challenger' in sport_key:
+        return Decimal('1')
+    # Owner-selected main references; unit weight is a policy prior, not a
+    # claim of empirically established sharpness or equivalence to Pinnacle.
+    if book in {'betonlineag', 'bovada'}:
         return Decimal('1')
     profile = MAIN_PROFILES.get(family, {})
     key = 'betfair_exchange' if book in EXCHANGES else book

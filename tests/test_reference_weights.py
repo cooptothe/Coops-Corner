@@ -40,3 +40,15 @@ class Weights(unittest.TestCase):
 
     def test_legacy_generic_calculations_remain_equal(self):
         self.assertEqual(normalized_reference_weights(['pinnacle', 'betfair_ex_uk']), {'pinnacle':D('.5'),'betfair_ex_uk':D('.5')})
+
+    def test_expanded_props_pair_excludes_target_and_keeps_two_references(self):
+        for sport in ('basketball_nba','americanfootball_nfl','baseball_mlb','icehockey_nhl','soccer_epl'):
+            for book in ('betonlineag','bovada'):
+                self.assertEqual(reference_weight(book,sport,player_props=True),D(1))
+            prices={'betonlineag':{0:D('2.1'),1:D('1.9')},
+                    'bovada':{0:D('2.2'),1:D('1.8')},
+                    'draftkings':{0:D('2'),1:D('2')}}
+            fair,used=pm._fair_first_side(prices,exclude='draftkings',sport_key=sport)
+            self.assertIsNotNone(fair)
+            self.assertEqual(set(used),{'betonlineag','bovada'})
+            self.assertEqual(pm._fair_first_side(prices,exclude='bovada',sport_key=sport),(None,[]))

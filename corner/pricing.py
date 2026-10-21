@@ -10,8 +10,8 @@ from functools import lru_cache
 from corner.book_policy import DFS_BOOKS, supported_book
 
 D = Decimal
-VERSION = 'reviewed-pricing/2026-10-20.1'
-SPORTSBOOKS = frozenset({'draftkings', 'fanduel', 'espnbet', 'betmgm', 'betrivers', 'pinnacle', 'williamhill_us', 'fanatics'})
+VERSION = 'reviewed-pricing/2026-10-20.2'
+SPORTSBOOKS = frozenset({'draftkings', 'fanduel', 'espnbet', 'betmgm', 'betrivers', 'pinnacle', 'williamhill_us', 'fanatics', 'betonlineag', 'bovada'})
 DFS = DFS_BOOKS
 
 

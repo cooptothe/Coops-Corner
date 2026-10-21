@@ -37,9 +37,10 @@ class Policy(unittest.TestCase):
         sports=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='SPORTS' for t in n.targets))
         self.assertEqual(set(sports),set(SPORTS))
         self.assertFalse(set(STANDARD)&set(EXCHANGE))
-        self.assertEqual(len(STANDARD+EXCHANGE),12)
-        self.assertEqual(len(PROP_STANDARD+EXCHANGE),14)
-        self.assertNotIn('betonlineag',STANDARD+EXCHANGE+PROP_STANDARD)
+        self.assertEqual(len(STANDARD+EXCHANGE),15)
+        self.assertEqual(len(PROP_STANDARD+EXCHANGE),16)
+        self.assertIn('betonlineag',STANDARD)
+        self.assertIn('betonlineag',PROP_STANDARD)
 
     def test_central_boundaries_and_dst(self):
         for day in ('2026-10-16','2026-11-01','2027-03-14'):
@@ -55,7 +56,7 @@ class Policy(unittest.TestCase):
         for seconds,standard,exchange in [(900,60,20),(901,60,20),(7200,60,20),(7201,300,300),(21600,300,300),(21601,3600,3600)]:
             for group,expected in [('standard',standard),('exchange',exchange)]:
                 self.assertEqual(interval('props',group,NOW,NOW+timedelta(seconds=seconds)),expected)
-        self.assertEqual(interval('main','standard',NOW),300)
+        self.assertEqual(interval('main','standard',NOW),60)
         self.assertEqual(interval('main','exchange',NOW),20)
 
     def test_all_families_no_event_cap_and_no_started_events(self):
@@ -168,10 +169,10 @@ class Ledger(unittest.TestCase):
 
     def test_no_replay_after_skipped_ticks_and_source_floors_persist(self):
         self.complete(self.main)
-        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=299)))
-        self.assertTrue(self.g.ready(self.main,NOW+timedelta(seconds=300)))
+        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=59)))
+        self.assertTrue(self.g.ready(self.main,NOW+timedelta(seconds=60)))
         self.g.close();self.g=Governor(self.path)
-        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=299)))
+        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=59)))
 
     def test_closed_window_and_expired_cycle_never_reserve(self):
         closed=parse('2026-10-17T06:00:00Z')

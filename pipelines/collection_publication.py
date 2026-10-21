@@ -3,6 +3,7 @@
 MainPublisher needs an explicitly supplied restricted writer connection. API
 processes retain their reader login. PostgreSQL ingestion remains replayable.
 """
+from dataclasses import replace
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -12,7 +13,7 @@ import re
 import sqlite3
 import tempfile
 
-from corner.collection_policy import Job, aware, NO_SCHEDULED_PROPS
+from corner.collection_policy import Job, aware, NO_SCHEDULED_PROPS, BASE_STANDARD, STANDARD
 
 
 class MainPublisher:
@@ -29,7 +30,11 @@ class MainPublisher:
         if not re.fullmatch(r'[a-f0-9]{48}',token):raise ValueError('Invalid publication identity')
         info=dict(record['job'])
         info['books']=tuple(info['books']);info['markets']=tuple(info['markets'])
-        job=Job(**info);job.validate()
+        job=Job(**info)
+        # Replay previously purchased six-book captures exactly as acquired.
+        # New claims still require the full current nine-book scope.
+        validation = replace(job, books=STANDARD) if job.kind in ('main','additional') and job.group == 'standard' and job.books == BASE_STANDARD else job
+        validation.validate()
         if job.kind not in ('main','additional'):raise ValueError('Main publisher cannot publish props')
         raw=json.dumps(record['events'],separators=(',',':')).encode()
         folder=self.root/token

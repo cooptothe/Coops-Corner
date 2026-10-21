@@ -11,12 +11,11 @@ export const MAIN_BOOKS = [
   { id: "kalshi", name: "Kalshi" },
   { id: "betopenly", name: "BetOpenly" },
   { id: "polymarket", name: "Polymarket" },
-];
-export const PROP_BOOKS = [
-  ...MAIN_BOOKS,
+  { id: "betonlineag", name: "BetOnline" },
   { id: "williamhill_us", name: "Caesars" },
-  { id: "fanatics", name: "Fanatics" },
+  { id: "bovada", name: "Bovada" },
 ];
+export const PROP_BOOKS = [...MAIN_BOOKS, { id: "fanatics", name: "Fanatics" }];
 
 export function bookDisplayName(id: string, fallback = id) {
   return PROP_BOOKS.find((book) => book.id === id)?.name ?? fallback;
@@ -33,7 +32,6 @@ export function feedBooks(
   for (const book of captured.filter(
     (book) =>
       ![
-        "betonlineag",
         "betonline",
         "prizepicks",
         "underdog",

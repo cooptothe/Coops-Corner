@@ -1,6 +1,6 @@
 """Player-prop capture: free events list, then one paid per-event odds call per event.
 
-Cost is about two credits per market returned per event (fourteen books count as two regions).
+Cost is about two credits per market returned per event (sixteen books count as two regions).
 Nothing runs on a timer and nothing retries. Normalized quotes are merged into
 retained/props/latest.json.
 """
@@ -17,7 +17,9 @@ from pipelines.odds_ingestion import BASE, PARAMS, fetch
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / 'retained' / 'props' / 'latest.json'
-BOOKS = PARAMS['bookmakers'] + ',williamhill_us,fanatics'
+# Keep props acquisition independent of main/alternate bookmaker expansion.
+from corner.collection_policy import PROP_STANDARD, EXCHANGE
+BOOKS = ','.join(PROP_STANDARD + EXCHANGE)
 BOOKMAKER_REGIONS = 2
 # Prop prices move fast, so a fetch older than this stops counting (the main tools use two hours).
 MAX_AGE = int(os.environ.get('CORNER_PROPS_MAX_AGE_SECONDS', '1800'))

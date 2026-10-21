@@ -17,13 +17,18 @@ from corner.pricing import fee_policy, reference_eligible, no_vig_pair, DFS, VER
 from corner.pricing import one_sided_margin as validate_one_sided_margin
 from corner.scorer_research import scorer_sensitivity
 
-# Same reference books (and environment override) as the main +EV feed in api/database.py.
-SHARP_BOOKS = frozenset(supported_books(b.strip() for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
+# Props have a separate operator policy; owner-selected additions are always
+# eligible through PROP_EXTRA_SHARPS, even with a legacy environment override.
+_props_reference_setting = os.environ.get('CORNER_PROPS_REFERENCE_BOOKS')
+if _props_reference_setting is None:
+    _props_reference_setting = ','.join(b for b in os.environ.get('CORNER_TOOLS_REFERENCE_BOOKS', '').split(',')
+                                        if b.strip() not in {'betonlineag', 'bovada'})
+SHARP_BOOKS = frozenset(supported_books(b.strip() for b in _props_reference_setting.split(',')
                         if b.strip())) or frozenset({'pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket'})
 MIN_SHARPS = 2  # the +EV feed requires at least two sharp books fully pricing the line
 # Books that also count as a reference for player props only. They still appear as bets: a book's own bet is
 # priced against the other reference books, never against itself.
-PROP_EXTRA_SHARPS = frozenset({'fanduel', 'williamhill_us', 'fanatics', 'novig'})
+PROP_EXTRA_SHARPS = frozenset({'fanduel', 'williamhill_us', 'fanatics', 'novig', 'betonlineag', 'bovada'})
 PROP_SHARP_BOOKS = SHARP_BOOKS | PROP_EXTRA_SHARPS
 # Over/Under or Yes/No priced on both sides ('two_way'), or a Yes-only / winner list ('yes_only').
 TWO_WAY, YES_ONLY = 'two_way', 'yes_only'

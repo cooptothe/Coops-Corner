@@ -10,14 +10,14 @@ from pipelines.props_ingestion import BOOKS
 class CashPropBooks(unittest.TestCase):
     def test_local_and_scheduled_requests_replace_dfs_without_new_credit_tier(self):
         requested=BOOKS.split(',')
-        for book in ('williamhill_us','fanatics'):
+        for book in ('williamhill_us','fanatics','betonlineag','bovada'):
             self.assertIn(book,requested)
             self.assertIn(book,PROP_STANDARD)
             self.assertTrue(reference_eligible(book))
             self.assertEqual(fee_policy(book).commission,Decimal(0))
-        self.assertEqual(len(set(requested)),14)
-        self.assertEqual(len(PROP_STANDARD),8)
-        self.assertEqual(len(STANDARD),6)
+        self.assertEqual(len(set(requested)),16)
+        self.assertEqual(len(PROP_STANDARD),10)
+        self.assertEqual(len(STANDARD),9)
         for book in ('prizepicks','underdog','pick6','dabble_us_dfs'):
             self.assertNotIn(book,requested)
             self.assertNotIn(book,PROP_STANDARD)

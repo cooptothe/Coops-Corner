@@ -27,13 +27,13 @@ from corner.ingestion import (_seed_provider, _create_batch, _create_payload, _r
 ROOT=Path(__file__).resolve().parents[1]
 BASE='https://api.the-odds-api.com/v4/sports'
 SPORT='americanfootball_nfl'
-# Twelve named books count as two regions (six credits for three main-line markets).
+# Fifteen named books count as two regions (six credits for three main-line markets).
 # Main-line references include pinnacle, betfair_ex_uk, prophetx, kalshi, betopenly and polymarket.
 BOOKMAKER_REGIONS = 2
 LOCAL_ADDITIONAL_MAX_EVENTS = None
 ADDITIONAL_CREDITS = len(ADDITIONAL_MARKETS) * BOOKMAKER_REGIONS
 CREDITS_PER_SPORT = 6  # featured request; each upcoming event adds at most 12 credits
-PARAMS={'bookmakers':'draftkings,fanduel,espnbet,betmgm,novig,betrivers,pinnacle,betfair_ex_uk,prophetx,kalshi,betopenly,polymarket','markets':'h2h,spreads,totals',
+PARAMS={'bookmakers':'draftkings,fanduel,espnbet,betmgm,novig,betrivers,pinnacle,betfair_ex_uk,prophetx,kalshi,betopenly,polymarket,betonlineag,williamhill_us,bovada','markets':'h2h,spreads,totals',
         'oddsFormat':'decimal','dateFormat':'iso','includeLinks':'true','includeSids':'true'}
 SAFE_HEADERS={'date','content-type','x-requests-used','x-requests-remaining','x-requests-last'}
 

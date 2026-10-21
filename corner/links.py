@@ -25,6 +25,8 @@ BOOK_DOMAINS = {
     'polymarket': ('polymarket.com', 'polymarket.us'),
     'williamhill_us': ('caesars.com', 'williamhill.com'),
     'fanatics': ('sportsbook.fanatics.com',),
+    'betonlineag': ('betonline.ag',),
+    'bovada': ('bovada.lv',),
 }
 _PLACEHOLDER = re.compile(r'\{([^{}]*)\}')
 _HOST = re.compile(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$')

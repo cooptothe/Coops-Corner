@@ -9,7 +9,7 @@ class RevisedScheduleTests(unittest.TestCase):
     def test_exact_bands(self):
         for seconds, expected in [(1,60),(900,60),(901,60),(7200,60),(7201,300),(21600,300),(21601,3600)]:
             self.assertEqual(interval('props','standard',NOW,NOW+timedelta(seconds=seconds)),expected)
-        self.assertEqual(interval('main','standard',NOW),300)
+        self.assertEqual(interval('main','standard',NOW),60)
         self.assertEqual(interval('additional','standard',NOW),120)
         self.assertEqual(snapshot_max_age('main','standard'),1800)
         self.assertEqual(snapshot_max_age('additional','standard'),1800)
@@ -17,7 +17,7 @@ class RevisedScheduleTests(unittest.TestCase):
         self.assertEqual(snapshot_max_age('main','exchange'),1800)
 
     def test_main_bands_follow_soonest_upcoming_game(self):
-        for seconds, expected in [(7200,300),(7201,900),(21600,900),(21601,3600)]:
+        for seconds, expected in [(7200,60),(7201,60),(21600,60),(21601,60)]:
             e={**event(),'commence_time':(NOW+timedelta(seconds=seconds)).isoformat()}
             job=plan(NOW,['basketball_nba'],[e])[0]
             from corner.collection_policy import parse

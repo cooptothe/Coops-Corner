@@ -6,6 +6,8 @@ export const VAULT = "vault";
 
 const BOOK_LABELS: Record<string, string> = {
   vault: "Vault (bank)",
+  betonlineag: "BetOnline",
+  bovada: "Bovada",
   draftkings: "DraftKings",
   fanduel: "FanDuel",
   betmgm: "BetMGM",
@@ -25,6 +27,8 @@ const BOOK_LABELS: Record<string, string> = {
   betfair: "Betfair",
 };
 export const COMMON_BOOKS = [
+  "betonlineag",
+  "bovada",
   "draftkings",
   "fanduel",
   "betmgm",
@@ -44,6 +48,7 @@ export function bookCode(label: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 40);
+  if (slug === "betonline") return "betonlineag";
   if (BOOK_LABELS[slug]) return slug;
   const squashed = slug.replace(/_/g, "");
   return (
@@ -80,6 +85,8 @@ const LEAGUE_LABELS: Record<string, string> = {
   mma_mixed_martial_arts: "MMA",
 };
 const ABBR: Record<string, string> = {
+  betonlineag: "BOL",
+  bovada: "BOV",
   draftkings: "DK",
   fanduel: "FD",
   betmgm: "MGM",

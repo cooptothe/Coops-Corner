@@ -36,17 +36,15 @@ export function FeedGuide({ view }: { view: View }) {
         <strong>{title}</strong>
         <p>{description}</p>
         <p>
-          On the beta’s scheduled feed, main odds target hourly updates more
-          than six hours before the league’s next game, 15 minutes from two to
-          six hours, and five minutes in the final two hours. Additional markets
-          target two minutes in the final hour. Pro player props target five
-          minutes from two to six hours and one minute in the final two hours;
-          NCAA props are not collected. Quotes remain eligible for up to 30
-          minutes of actual source age. Older prices are marked for
-          verification; a displayed edge does not confirm that the sportsbook
-          still offers it. Withdrawals, started games and reader failures can
-          remove a result sooner. Confirm every price at the sportsbook before
-          placing a bet.
+          On the beta's scheduled feed, main odds target a one-minute refresh
+          throughout the collection window. Additional markets target two
+          minutes in the final hour. Pro player props target five minutes from
+          two to six hours and one minute in the final two hours; NCAA props are
+          not collected. Quotes remain eligible for up to 30 minutes of actual
+          source age. Older prices are marked for verification; a displayed edge
+          does not confirm that the sportsbook still offers it. Withdrawals,
+          started games and reader failures can remove a result sooner. Confirm
+          every price at the sportsbook before placing a bet.
         </p>
         <p className="exposure-legend">
           <span className="exposure-dot related" /> Yellow: an open bet on the

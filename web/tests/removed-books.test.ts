@@ -6,8 +6,8 @@ test("withdrawn sportsbook stays absent even in a retained catalog", () => {
   for (const books of [
     MAIN_BOOKS,
     PROP_BOOKS,
-    feedBooks([{ id: "betonlineag", name: "BetOnline" }]),
+    feedBooks([{ id: "prizepicks", name: "PrizePicks" }]),
   ]) {
-    assert.ok(!books.some((book) => book.id === "betonlineag"));
+    assert.ok(!books.some((book) => book.id === "prizepicks"));
   }
 });

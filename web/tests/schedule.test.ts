@@ -132,3 +132,15 @@ test("days follow the Chicago calendar, with Today and Tomorrow labels", () => {
   assert.equal(dayHeading("2026-10-11", now), "Sunday, October 11");
   assert.equal(timeLabel("2026-10-09T00:15:00Z"), "7:15 PM");
 });
+
+test("expanded cash books can supply schedule best prices", () => {
+  for (const book of ["betonlineag", "williamhill_us", "bovada"]) {
+    const quotes = [
+      ...pair("draftkings", "s:-3.5", 1.9, 1.9, -3.5),
+      ...pair(book, "s:-3.5", 2.1, 2.1, -3.5),
+    ];
+    const line = buildGameLines(quotes, all).get("g1")!.spreads!;
+    assert.equal(line.sides.home.bookId, book);
+    assert.equal(line.sides.away.bookId, book);
+  }
+});

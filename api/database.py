@@ -22,7 +22,8 @@ log = logging.getLogger('corner.api.database')
 
 SETTLEMENT_IDENTITY = 'the-odds-api-main-lines-full-game/1'
 # Main-line references; these books remain eligible betting targets too.
-DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket')
+MAIN_ADDED_REFERENCES = ('betonlineag', 'bovada')
+DEFAULT_REFERENCES = ('pinnacle', 'betfair_ex_uk', 'prophetx', 'kalshi', 'betopenly', 'polymarket') + MAIN_ADDED_REFERENCES
 # Empty = every book present in the data is a bettable target; the user filters in the UI.
 DEFAULT_TARGETS = ()
 FALLBACK_TARGET = 'draftkings'
@@ -290,7 +291,7 @@ class LiveCatalog:
         self._ttl = ttl_seconds if ttl_seconds is not None else 15
         self._max_age = timedelta(seconds=max_age_seconds if max_age_seconds is not None
                                   else int(os.environ.get('CORNER_TOOLS_MAX_AGE_SECONDS', '1800')))
-        self._references = tuple(references) if references else _env_books('CORNER_TOOLS_REFERENCE_BOOKS', DEFAULT_REFERENCES)
+        self._references = tuple(references) if references else tuple(dict.fromkeys((*_env_books('CORNER_TOOLS_REFERENCE_BOOKS', DEFAULT_REFERENCES), *MAIN_ADDED_REFERENCES)))
         self._targets = tuple(targets) if targets else _env_books('CORNER_TOOLS_TARGET_BOOKS', DEFAULT_TARGETS)
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._lock = threading.Lock()
