@@ -1,3 +1,5 @@
+"use client";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 
 export function PersonalNav({
@@ -5,9 +7,16 @@ export function PersonalNav({
 }: {
   current: "tracker" | "account" | "lab";
 }) {
+  const nav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (matchMedia("(max-width: 700px)").matches)
+      nav.current
+        ?.querySelector<HTMLElement>('[aria-current="page"]')
+        ?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [current]);
   return (
-    <nav className="personal-nav" aria-label="Workspace">
-      <Link href="/games">Games</Link>
+    <nav ref={nav} className="personal-nav" aria-label="Workspace">
+      <Link href="/games">Schedule</Link>
       <Link href="/positive_ev">Positive EV</Link>
       <Link href="/props">Player props</Link>
       <Link href="/lab" aria-current={current === "lab" ? "page" : undefined}>

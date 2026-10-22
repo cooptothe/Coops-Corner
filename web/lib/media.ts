@@ -8,6 +8,20 @@ export type MediaKind = "team" | "player";
 
 const cache = new Map<string, string | null>();
 const queued = new Map<string, Set<string>>();
+const pending = new Set<string>();
+const jobs: (() => Promise<void>)[] = [];
+let active = 0;
+const CONCURRENCY = 3;
+function pump() {
+  while (active < CONCURRENCY && jobs.length) {
+    const job = jobs.shift()!;
+    active++;
+    void job().finally(() => {
+      active--;
+      pump();
+    });
+  }
+}
 const attempts = new Map<string, number>();
 const listeners = new Set<() => void>();
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -48,11 +62,15 @@ function settle(
       again.push(name);
     } else {
       cache.set(key, results[name] ?? null);
+      pending.delete(key);
     }
   }
   if (again.length)
     setTimeout(() => {
-      for (const name of again) enqueue(kind, sport, name);
+      for (const name of again) {
+        pending.delete(keyOf(kind, sport, name));
+        enqueue(kind, sport, name);
+      }
       schedule();
     }, RETRY_MS);
   notify();
@@ -84,9 +102,12 @@ function flush() {
     queued.delete(group);
     const [kind, sport] = group.split("|") as [MediaKind, string];
     const list = [...names];
-    for (let i = 0; i < list.length; i += BATCH)
-      void send(kind, sport, list.slice(i, i + BATCH));
+    for (let i = 0; i < list.length; i += BATCH) {
+      const batch = list.slice(i, i + BATCH);
+      jobs.push(() => send(kind, sport, batch));
+    }
   }
+  pump();
 }
 
 const schedule = () => {
@@ -95,7 +116,8 @@ const schedule = () => {
 
 function enqueue(kind: MediaKind, sport: string, name: string) {
   const key = keyOf(kind, sport, name);
-  if (cache.has(key)) return;
+  if (cache.has(key) || pending.has(key)) return;
+  pending.add(key);
   const group = `${kind}|${sport}`;
   let names = queued.get(group);
   if (!names) queued.set(group, (names = new Set()));

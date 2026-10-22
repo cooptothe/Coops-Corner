@@ -10,7 +10,8 @@ cd /srv/corner/app
   tests.test_collection_runner tests.test_collection_live \
   tests.test_collection_recovery tests.test_collection_health \
   tests.test_collection_maintenance tests.test_scheduled_only \
-  tests.test_product_api
+  tests.test_product_api tests.test_prop_decimal_output tests.test_devig_methods \
+  tests.test_performance_paths
 .venv-api/bin/python -c 'import httpx; from pipelines.live_odds_client import client'
 (cd web && pnpm test)
 

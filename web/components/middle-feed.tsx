@@ -1,4 +1,6 @@
 "use client";
+import { Countdown } from "./countdown";
+export { Countdown } from "./countdown";
 import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
 import { FeedFilters } from "./feed-filters";
 import { useDialogFocus } from "./use-dialog-focus";
@@ -34,7 +36,7 @@ import { LegLinks } from "./bet-link";
 import type { QuoteLinks } from "../lib/bet-links";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Matchup } from "./media";
-import { ErrorCard, Loading } from "./workspace";
+import { ErrorCard, Loading } from "./feedback";
 
 type MidRow = Extract<ToolRow, { kind: "middle" }>;
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
@@ -96,26 +98,6 @@ const MIDDLE_DEFAULTS: MiddleSettings = {
 const MISS_PATTERN = /^\d{1,3}$/;
 const WINDOW_PATTERN = /^\d{1,4}(\.\d{1,2})?$/;
 const MARKET_NAMES = MARKETS as Record<string, string>;
-export function Countdown({ value }: { value: string }) {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => tick((n) => n + 1), 30000);
-    return () => clearInterval(timer);
-  }, []);
-  const ms = new Date(value).getTime() - Date.now();
-  if (!value || Number.isNaN(ms)) return null;
-  if (ms <= 0) return <span>started</span>;
-  const m = Math.floor(ms / 60000);
-  const d = Math.floor(m / 1440);
-  return (
-    <span>
-      starts in{" "}
-      {d > 0
-        ? `${d}d ${Math.floor((m % 1440) / 60)}h`
-        : `${Math.floor(m / 60)}h ${m % 60}m`}
-    </span>
-  );
-}
 
 const money = (n: number) => usd(n.toFixed(2));
 const pct = (n: number) =>

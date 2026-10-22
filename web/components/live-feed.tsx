@@ -1,9 +1,18 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "./auth-provider";
-import EvFeed from "./ev-feed";
-import ArbFeed from "./arb-feed";
-import MiddleFeed from "./middle-feed";
+import dynamic from "next/dynamic";
+import { Loading } from "./feedback";
+export { LiveSwitch } from "./live-switch";
+const EvFeed = dynamic(() => import("./ev-feed"), {
+  loading: () => <Loading text="Opening live EV…" />,
+});
+const ArbFeed = dynamic(() => import("./arb-feed"), {
+  loading: () => <Loading text="Opening live arbitrage…" />,
+});
+const MiddleFeed = dynamic(() => import("./middle-feed"), {
+  loading: () => <Loading text="Opening live middles…" />,
+});
 import {
   liveFresh,
   liveProduct,
@@ -11,33 +20,6 @@ import {
   type LiveKind,
 } from "../lib/live-feed";
 import "../app/live-feed.css";
-export function LiveSwitch({
-  enabled,
-  onChange,
-}: {
-  enabled: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <div className="live-mode-control">
-      <span className={!enabled ? "selected" : ""}>Pregame</span>
-      <button
-        type="button"
-        className="live-mode-switch"
-        role="switch"
-        aria-label="Live mode · Premium"
-        aria-checked={enabled}
-        onClick={() => onChange(!enabled)}
-      >
-        <span />
-      </button>
-      <span className={enabled ? "selected" : ""}>
-        Live <small>Premium</small>
-      </span>
-    </div>
-  );
-}
-
 export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
   const { user } = useAuth();
   const premium = user?.username.toLowerCase() === "wonya";
@@ -50,9 +32,11 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
   useEffect(() => {
     if (!premium) return;
     let alive = true;
+    let inFlight = false;
     let controller: AbortController | null = null;
     const load = async () => {
-      if (document.hidden) return;
+      if (document.hidden || inFlight) return;
+      inFlight = true;
       controller?.abort();
       const current = new AbortController();
       controller = current;
@@ -84,13 +68,19 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
         }
       } finally {
         clearTimeout(timeout);
+        inFlight = false;
       }
     };
     void load();
+    const onVisible = () => {
+      if (!document.hidden) void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     const timer = setInterval(() => void load(), 15000),
       tick = setInterval(() => setClock(Date.now()), 1000);
     return () => {
       alive = false;
+      document.removeEventListener("visibilitychange", onVisible);
       controller?.abort();
       clearInterval(timer);
       clearInterval(tick);

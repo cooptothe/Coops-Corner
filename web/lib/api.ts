@@ -1,3 +1,4 @@
+import { subscribeStorageOwner } from "./user-storage.ts";
 import { notifyUnauthorized } from "./auth-api.ts";
 import type { Envelope, Page } from "./contracts.ts";
 
@@ -225,6 +226,7 @@ const SHARED_MAX = 8;
 export function invalidateSharedPages(): void {
   shared.clear();
 }
+subscribeStorageOwner(invalidateSharedPages);
 export function sharedPages<T>(
   path: string,
   snapshot: string,

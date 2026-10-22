@@ -56,7 +56,7 @@ export default function AccountPage() {
   };
 
   return (
-    <main className="personal-workspace account-page">
+    <main id="main" tabIndex={-1} className="personal-workspace account-page">
       <header className="personal-header page-header">
         <Link href="/games">
           <Image

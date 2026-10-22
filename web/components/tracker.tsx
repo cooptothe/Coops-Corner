@@ -3,7 +3,15 @@ import { FeedFilters } from "./feed-filters";
 import { PersonalNav } from "./personal-nav";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   addBets,
   addCash,
@@ -117,7 +125,10 @@ export default function Tracker() {
     return () => clearInterval(timer);
   }, []);
 
+  const loadingState = useRef(false);
   const load = useCallback(async (quiet: boolean) => {
+    if (loadingState.current) return;
+    loadingState.current = true;
     try {
       await importLegacySlip();
       const state = await loadTracker();
@@ -147,6 +158,8 @@ export default function Tracker() {
         setLoadError(message(e, "The tracker could not be loaded."));
         setPhase("error");
       }
+    } finally {
+      loadingState.current = false;
     }
   }, []);
   useEffect(() => {
@@ -172,19 +185,25 @@ export default function Tracker() {
   useEffect(() => {
     if (!watching || phase !== "ready") return;
     let stopped = false;
+    let inFlight = false;
+    const controller = new AbortController();
     const poll = async () => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible" || inFlight) return;
+      inFlight = true;
       try {
-        const result = await loadLive();
+        const result = await loadLive(controller.signal);
         if (!stopped) dispatch({ type: "LIVE_UPDATE", live: result.live });
       } catch {
         // A missed poll is harmless; the next one retries.
+      } finally {
+        inFlight = false;
       }
     };
     poll();
     const timer = setInterval(poll, LIVE_EVERY);
     return () => {
       stopped = true;
+      controller.abort();
       clearInterval(timer);
     };
   }, [watching, watchKey, phase]);
@@ -305,14 +324,15 @@ export default function Tracker() {
     },
   });
 
+  const deferredQuery = useDeferredValue(filters.query);
   const filtered = useMemo(
     () =>
       view.bets.filter(
         (b) =>
-          matchesFilters(b, filters) &&
+          matchesFilters(b, { ...filters, query: deferredQuery }) &&
           matchesPerformanceWindow(b, windowDays, now),
       ),
-    [view.bets, filters, windowDays, now],
+    [view.bets, filters, deferredQuery, windowDays, now],
   );
   const ordered = useMemo(() => orderBets(filtered), [filtered]);
   const balances = useMemo(
@@ -359,7 +379,7 @@ export default function Tracker() {
 
   const f = filters;
   return (
-    <main className="personal-workspace trk-page">
+    <main id="main" tabIndex={-1} className="personal-workspace trk-page">
       <header className="personal-header page-header">
         <Link href="/games">
           <Image

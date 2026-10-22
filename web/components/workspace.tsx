@@ -1,8 +1,11 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import { ErrorCard, Loading } from "./feedback";
+export { ErrorCard, Loading } from "./feedback";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MARKETS,
   TITLES,
@@ -26,15 +29,30 @@ import type {
 import { VIEWS } from "../lib/contracts";
 import { UserMenu, useAuth } from "./auth-provider";
 import { Cards, Details, OddsMatrix } from "./market-views";
-import PromoFeed from "./promo-feed";
-import EvFeed from "./ev-feed";
-import ArbFeed from "./arb-feed";
-import MiddleFeed from "./middle-feed";
-import ScheduleFeed from "./schedule-feed";
-import PropsFeed from "./props-feed";
+const PromoFeed = dynamic(() => import("./promo-feed"), {
+  loading: () => <Loading text="Opening tool…" />,
+});
+const EvFeed = dynamic(() => import("./ev-feed"), {
+  loading: () => <Loading text="Opening tool…" />,
+});
+const ArbFeed = dynamic(() => import("./arb-feed"), {
+  loading: () => <Loading text="Opening tool…" />,
+});
+const MiddleFeed = dynamic(() => import("./middle-feed"), {
+  loading: () => <Loading text="Opening tool…" />,
+});
+const ScheduleFeed = dynamic(() => import("./schedule-feed"), {
+  loading: () => <Loading text="Opening tool…" />,
+});
+const PropsFeed = dynamic(() => import("./props-feed"), {
+  loading: () => <Loading text="Opening tool…" />,
+});
 import FreshOdds from "./fresh-odds";
 import { FeedGuide } from "./feed-guide";
-import PremiumLiveFeed, { LiveSwitch } from "./live-feed";
+import { LiveSwitch } from "./live-switch";
+const PremiumLiveFeed = dynamic(() => import("./live-feed"), {
+  loading: () => <Loading text="Opening live feed…" />,
+});
 
 const DESCRIPTIONS: Record<View, string> = {
   positive_ev:
@@ -106,38 +124,21 @@ const errorText = (error: unknown) =>
   error instanceof Error
     ? error.message
     : "An unexpected request error occurred.";
-export function Loading({ text }: { text: string }) {
-  return (
-    <div className="loading" role="status">
-      <span className="spinner" />
-      {text}
-    </div>
-  );
-}
-export function ErrorCard({
-  message,
-  retry,
-}: {
-  message: string;
-  retry: () => void;
-}) {
-  return (
-    <div className="error-card" role="alert">
-      <h3>Unable to complete this request</h3>
-      <p>{message}</p>
-      <button className="button" onClick={retry}>
-        Try again
-      </button>
-    </div>
-  );
-}
 export default function Workspace({ view }: { view: View }) {
   const router = useRouter();
+  const navigation = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (matchMedia("(max-width: 700px)").matches)
+      navigation.current
+        ?.querySelector<HTMLElement>('[aria-current="page"]')
+        ?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [view]);
   const { user } = useAuth();
   const [liveMode, setLiveMode] = useState(false);
   const supportsLive =
     view === "positive_ev" || view === "arbitrage" || view === "middle";
   const showingLive = supportsLive && liveMode;
+  const loadedSnapshot = useRef<string | null>(null);
   const [scheduledTick, setScheduledTick] = useState(0);
   const [data, setData] = useState<Data | null>(null),
     [bootError, setBootError] = useState(""),
@@ -210,14 +211,21 @@ export default function Workspace({ view }: { view: View }) {
         const caps = await request<Capabilities>("capabilities", {
           signal: controller.signal,
         });
+        if (
+          loadedSnapshot.current ===
+          `${user?.id}|${light}|${caps.meta.snapshot_id}`
+        )
+          return;
         if (light) {
-          if (!controller.signal.aborted)
+          if (!controller.signal.aborted) {
+            loadedSnapshot.current = `${user?.id}|${light}|${caps.meta.snapshot_id}`;
             setData({
               caps: caps.data,
               games: [],
               quotes: [],
               meta: caps.meta,
             });
+          }
           return;
         }
         const snapshot = caps.meta.snapshot_id;
@@ -238,8 +246,10 @@ export default function Workspace({ view }: { view: View }) {
             (rank.get(a.game_id) ?? games.length) -
             (rank.get(b.game_id) ?? games.length),
         );
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          loadedSnapshot.current = `${user?.id}|${light}|${snapshot}`;
           setData({ caps: caps.data, games, quotes, meta: caps.meta });
+        }
       } catch (error) {
         if (!controller.signal.aborted) setBootError(errorText(error));
       } finally {
@@ -248,7 +258,7 @@ export default function Workspace({ view }: { view: View }) {
     })();
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reload, light, scheduledTick, showingLive]);
+  }, [reload, light, scheduledTick, showingLive, user?.id]);
   useEffect(() => {
     if (!data || view === "promo" || isEv(view)) return;
     const controller = new AbortController();
@@ -338,7 +348,7 @@ export default function Workspace({ view }: { view: View }) {
           <span className="workspace-dot" />
           {showingLive ? "LIVE · PREMIUM" : "PREGAME WORKSPACE"}
         </div>
-        <nav>
+        <nav ref={navigation}>
           <p className="nav-label">FIND AN EDGE</p>
           {VIEWS.map((v, i) => (
             <span key={v}>

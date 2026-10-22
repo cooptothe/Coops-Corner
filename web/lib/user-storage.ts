@@ -1,11 +1,20 @@
 // Browser-side preferences (saved filters, bankroll box, Kelly multiplier, league picker) belong to the signed-in
 // account, so two people sharing a browser never see or overwrite each other's settings.
 let owner: string | null = null;
+const ownerListeners = new Set<() => void>();
+export function subscribeStorageOwner(listener: () => void) {
+  ownerListeners.add(listener);
+  return () => {
+    ownerListeners.delete(listener);
+  };
+}
 
 const PREFIX = "corner.u.";
 
 export function setStorageOwner(userId: string | null): void {
+  if (owner === userId) return;
   owner = userId;
+  ownerListeners.forEach((listener) => listener());
 }
 
 const scoped = (key: string) => `${PREFIX}${owner}.${key}`;

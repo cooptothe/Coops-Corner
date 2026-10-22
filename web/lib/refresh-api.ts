@@ -1,3 +1,4 @@
+import { parsePropsStatus } from "./props-response";
 import { announceOddsUpdated } from "./odds-updates";
 import { notifyUnauthorized } from "./auth-api";
 import type { QuoteLinks } from "./bet-links";
@@ -130,6 +131,7 @@ export interface PropBet {
   links?: QuoteLinks | null;
 }
 export interface PropsStatus {
+  invalid_bets?: number;
   manual_fetch_enabled?: boolean;
   sports: { key: string; label: string }[];
   markets: Record<string, PropMarketInfo[]>;
@@ -178,7 +180,7 @@ async function propsCall(
   )
     notifyUnauthorized();
   if (!response.ok) throw new Error(data.error ?? "Request failed.");
-  return data as PropsStatus;
+  return parsePropsStatus(data);
 }
 export const loadProps = (signal?: AbortSignal, oneSidedMargin?: string) =>
   propsCall("GET", undefined, signal, oneSidedMargin);

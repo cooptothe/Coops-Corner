@@ -56,7 +56,7 @@ import { Avatar, Matchup } from "./media";
 import { BetLinkButton } from "./bet-link";
 import { PlacedChip, PlacedNoteFor, PlacedProvider, usePlaced } from "./placed";
 import { SettingsBar, useToolSettings } from "./tool-settings";
-import { ErrorCard, Loading } from "./workspace";
+import { ErrorCard, Loading } from "./feedback";
 
 type EvRow = Extract<ToolRow, { kind: "positive_ev" }>;
 type Flash = "up" | "down";

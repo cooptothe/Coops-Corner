@@ -45,7 +45,7 @@ import { LegLinks } from "./bet-link";
 import type { QuoteLinks } from "../lib/bet-links";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Matchup } from "./media";
-import { ErrorCard, Loading } from "./workspace";
+import { ErrorCard, Loading } from "./feedback";
 
 type ArbRow = Extract<ToolRow, { kind: "arbitrage" }>;
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };

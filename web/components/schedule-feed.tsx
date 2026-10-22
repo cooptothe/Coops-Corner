@@ -6,7 +6,7 @@ import "../app/schedule-markets.css";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { date } from "../../frontend/format.mjs";
 import { list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
@@ -25,7 +25,7 @@ import { ScheduleQuote } from "./schedule-quote";
 import { Menu, shortBook } from "./arb-feed";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Avatar } from "./media";
-import { Countdown } from "./middle-feed";
+import { Countdown } from "./countdown";
 
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 
@@ -139,6 +139,7 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
   const [league, setLeague] = useState("");
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [offBooks, setOffBooks] = useState<Set<string>>(() => new Set());
   const [dayCount, setDayCount] = useState(FIRST_DAYS);
   const settings = useToolSettings<ScheduleSettings>({
@@ -205,14 +206,14 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   const activeLeague = leagues.some((l) => l.key === league) ? league : "";
 
   const visible = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = deferredSearch.trim().toLowerCase();
     return upcoming.filter(
       (g) =>
         matchesTime(g.starts_at) &&
         (!activeLeague || g.sport_key === activeLeague) &&
         (!term || `${g.name} ${g.competition}`.toLowerCase().includes(term)),
     );
-  }, [matchesTime, upcoming, activeLeague, search]);
+  }, [matchesTime, upcoming, activeLeague, deferredSearch]);
   const days = useMemo(() => {
     const groups = new Map<string, Game[]>();
     for (const g of visible) {

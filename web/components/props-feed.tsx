@@ -21,7 +21,14 @@ import { feedBooks, PROP_BOOKS } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   american,
   ageLabel,
@@ -52,7 +59,7 @@ import { FeedChangeNote, useFeedChanges, useOpenBet } from "./feed-updates";
 import { Avatar, Matchup } from "./media";
 import Link from "next/link";
 import { labHref } from "../lib/lab";
-import { ErrorCard, Loading } from "./workspace";
+import { ErrorCard, Loading } from "./feedback";
 
 const BOOK_NAMES: Record<string, string> = {
   draftkings: "DraftKings",
@@ -259,6 +266,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const [sportKey, setSportKey] = useState("");
   const [marketKey, setMarketKey] = useState("");
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [eventId, setEventId] = useState("");
   const [minEv, setMinEv] = useState("0");
   const [minWinChance, setMinWinChance] = useState("0");
@@ -504,7 +512,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     [minOdds, maxOdds],
   );
   const visible = useMemo(() => {
-    const needle = search.trim().toLowerCase();
+    const needle = deferredSearch.trim().toLowerCase();
     return inSport
       .filter(
         (v) =>
@@ -530,7 +538,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
     offBooks,
     activeMarket,
     activeEvent,
-    search,
+    deferredSearch,
     minRatio,
     maxEv,
     maxWidth,
@@ -544,7 +552,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
       sportKey,
       marketKey,
       eventId,
-      search,
+      deferredSearch,
       minEv,
       maxEv,
       maxWidth,
@@ -955,6 +963,12 @@ export default function PropsFeed({ reload }: { reload: number }) {
               </select>
             </label>
           </div>
+          {!!status.invalid_bets && (
+            <p className="feed-data-notice" role="status">
+              {status.invalid_bets} incomplete or invalid prop records were
+              excluded. Valid opportunities remain available.
+            </p>
+          )}
           <div
             role="table"
             aria-label="Player prop bets"
@@ -978,7 +992,9 @@ export default function PropsFeed({ reload }: { reload: number }) {
                 <p>
                   {hiddenAsOld
                     ? `Prop odds go stale quickly, so fetches older than ${Math.round(status.max_age_seconds / 60)} minutes are hidden. The last fetch was ${date(status.last_success_at ?? "")}. This feed will use the next scheduled capture.`
-                    : "No positive estimated edges meet these filters. Check your maximum odds, EV limit and enabled books. One-sided estimates require two other matching reference books; automatic mode uses paired prices, observed margins, then a labeled 10% assumption with a 20% stress check. Set market width to No limit to allow prices with unavailable width."}
+                    : all.length
+                      ? "No positive-EV props match your current filters and devig method. Adjust your filters or choose another method."
+                      : "No player prop opportunities are available right now. This feed updates automatically when new odds are available."}
                 </p>
                 {!settings.atDefaults && (
                   <button

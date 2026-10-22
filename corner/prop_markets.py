@@ -295,7 +295,7 @@ def _fair_first_side(prices, exclude=None, sport_key=''):
 
 def _q(value):
     rounded = value.quantize(Decimal('0.000001'), ROUND_HALF_EVEN)
-    return str(abs(rounded) if rounded == 0 else rounded)
+    return format(abs(rounded) if rounded == 0 else rounded, 'f')
 
 
 def _observed_margin(groups, book, excluded_player):
@@ -453,7 +453,7 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
                         comparison = None
                         if all(set(prices[b]) == {0, 1} and b not in DFS for b in used):
                             populations = tuple((tuple(prices[b][s] for s in (0, 1)), weights[b]) for b in used)
-                            comparison = [{k: str(v) for k, v in row.items()} for row in
+                            comparison = [{k: format(v, 'f') if isinstance(v, Decimal) else str(v) for k, v in row.items()} for row in
                                           comparisons(populations, side, price, policy.commission)]
                         bets.append({
                             'id': f'{event_id}:{market_key}:{player}:{point or ""}:{book}:{side}',

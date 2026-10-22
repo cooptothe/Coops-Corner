@@ -260,3 +260,48 @@
   line-height: 1.3;
   white-space: normal;
 }
+
+/* Every tool uses the same touch-sized controls, including dense Lab splits
+   and textareas in account, invitation and feedback forms. */
+@media (max-width: 700px) {
+  textarea,
+  .account-page input:not([type="checkbox"]),
+  .account-page select,
+  .family-invite input:not([type="checkbox"]) {
+    font-size: 16px;
+    max-width: 100%;
+    min-width: 0;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 88px;
+  }
+  .lab-cash .lab-chart-controls button,
+  .lab-cash .lab-stat-tabs button,
+  .lab-cash .lab-split-buttons button,
+  .lab-cash .lab-splits details button,
+  .lab-cash .button,
+  .lc-mobile-switch button {
+    min-height: 44px;
+  }
+  .personal-header > div,
+  .account-card,
+  .account-card form,
+  .beta-checkout,
+  .feed-data-notice {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .parlay-book-picker,
+  .refresh-review {
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+  }
+}
+.feed-data-notice {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
