@@ -127,7 +127,7 @@ class SessionGate:
         self.app, self.check, self.catalog, self.cookie = app, check, catalog, cookie.encode()
 
     async def __call__(self, scope, receive, send):
-        if scope['type'] != 'http' or not scope['path'].startswith('/api/v1'):
+        if scope['type'] != 'http' or not scope['path'].startswith('/api/v1') or scope['path'] == '/api/v1/cron/refresh-live-odds':
             return await self.app(scope, receive, send)
         token = None
         for key, value in scope['headers']:
@@ -281,6 +281,10 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
     @api.post('/api/v1/calculators/promo', response_model=Envelope[PromoResponse], tags=['calculators'])
     def promo(command: PromoRequest):
         return result(catalog.promo(command))
+
+    from pipelines.live_odds_service import create_router as live_router
+    from pipelines.accounts import AuthContext
+    api.include_router(live_router(AuthContext()))
 
     # Static UI is last: API/docs keep their routes. Only this asset directory is
     # exposed, never the repo root, .env, fixtures, reports or credentials.

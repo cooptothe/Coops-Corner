@@ -61,6 +61,8 @@ class Governor:
         CREATE TABLE IF NOT EXISTS publication_outbox (
           token TEXT PRIMARY KEY REFERENCES attempts(token), payload TEXT NOT NULL,
           published_at REAL);
+        CREATE TABLE IF NOT EXISTS live_captures(sport TEXT,book_group TEXT,captured REAL,payload TEXT,PRIMARY KEY(sport,book_group));
+        CREATE TABLE IF NOT EXISTS live_attempts(token TEXT PRIMARY KEY REFERENCES attempts(token),day TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS additional_events(day TEXT NOT NULL, sport TEXT NOT NULL, event_id TEXT NOT NULL, PRIMARY KEY(day,sport,event_id));
         CREATE TABLE IF NOT EXISTS additional_attempts(token TEXT PRIMARY KEY REFERENCES attempts(token), day TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS collection_live_snapshots
@@ -146,12 +148,19 @@ class Governor:
                 used = db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0) FROM attempts a JOIN additional_attempts x ON x.token=a.token WHERE x.day=?',(day,)).fetchone()[0]
                 if used + job.cost > credit_limit:
                     raise Refused('Additional-market daily credit cap')
+            if job.kind == 'live':
+                from corner.live_odds import enabled, MONTHLY_CAP, DAILY_CAP
+                if not enabled(now): raise Refused('Premium live scheduling disabled')
+                month_used = db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0) FROM attempts a JOIN live_attempts l ON l.token=a.token WHERE a.cycle_id=?',(cycle[0],)).fetchone()[0]
+                day_used = db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0) FROM attempts a JOIN live_attempts l ON l.token=a.token WHERE a.cycle_id=? AND l.day=?',(cycle[0],day)).fetchone()[0]
+                if month_used+job.cost>MONTHLY_CAP or day_used+job.cost>DAILY_CAP: raise Refused('Premium live sub-limit')
             sums=self.accounted(db,cycle[0])
             if sums.get(job.pool,0)+job.cost>POOLS[job.pool]: raise Refused('Pool limit')
             if sum(sums.values())+job.cost>TOTAL-PROTECTED: raise Refused('Protected reserve')
             token=secrets.token_hex(24)
             db.execute("INSERT INTO jobs(key,next_due,state,last_started) VALUES(?,?,'inflight',?) ON CONFLICT(key) DO UPDATE SET next_due=excluded.next_due,state='inflight',last_started=excluded.last_started,last_error=''",(job.key,stamp+period,stamp))
             db.execute("INSERT INTO attempts(token,job_key,cycle_id,pool,reserved,state,owner,started) VALUES(?,?,?,?,?,'inflight',?,?)",(token,job.key,cycle[0],job.pool,job.cost,owner,stamp))
+            if job.kind == 'live': db.execute('INSERT INTO live_attempts VALUES(?,?)',(token,day))
             if job.kind == 'additional':
                 db.execute('INSERT OR IGNORE INTO additional_events VALUES(?,?,?)',(day,job.sport,job.event_id))
                 db.execute('INSERT INTO additional_attempts VALUES(?,?)',(token,day))
@@ -215,6 +224,9 @@ class Governor:
             db.execute("UPDATE jobs SET state='blocked',last_error='uncertain provider result' WHERE key=?",(row[0],))
 
     def _publish(self,db,job,payload,now):
+        if job.kind == 'live':
+            from corner.live_odds import store
+            return store(db,job,payload,now)
         if not isinstance(payload,list): raise ValueError('Expected event list')
         rows=[];nowstamp=now.timestamp()
         for event in payload:

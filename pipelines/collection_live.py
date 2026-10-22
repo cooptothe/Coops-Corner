@@ -128,8 +128,9 @@ def main():
                     raise Refused('Approved billing dates differ from durable ledger')
             conn = writer()
             conn.close()
+            from corner.live_odds import jobs as live_jobs
             runner = Runner(g, None, None, publisher=MainPublisher(RETAINED, writer), clock=clock,
-                            should_stop=lambda: stop[0], additional=True,
+                            should_stop=lambda: stop[0], additional=True, live_jobs=live_jobs,
                             job_filter=(lambda job: job.group == 'standard') if approval.get('profile') == 'standard-pregame-v1' else None)
             provider = LiveProvider(g, runner.owner, key=os.environ['ODDS_API_KEY'], enabled=True,
                                     exchange_verified=approval.get('profile') == 'full-v1',

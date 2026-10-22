@@ -53,6 +53,7 @@ def supported(sport):
 def interval(kind, group, now, starts=None):
     """Budgeted countdown bands; exchanges never get a sub-minute exception."""
     remaining = (aware(starts)-aware(now)).total_seconds() if starts is not None else None
+    if kind == 'live': return 60
     if kind == 'main':
         if remaining is None or remaining <= 3600: return 120
         if remaining <= 7200: return 180
@@ -108,14 +109,14 @@ class Job:
 
     @property
     def pool(self):
-        return 'main' if self.kind == 'additional' else self.kind
+        return 'main' if self.kind in ('additional','live') else self.kind
 
     @property
     def cost(self):
         return len(self.markets) * ((len(self.books)+9)//10)
 
     def validate(self):
-        if self.kind not in ('main','props','additional') or not supported(self.sport):
+        if self.kind not in ('main','props','additional','live') or not supported(self.sport):
             raise ValueError('Unsupported job scope')
         if self.kind == 'props' and self.sport in NO_SCHEDULED_PROPS:
             raise ValueError('NCAA player props are excluded from scheduled collection')

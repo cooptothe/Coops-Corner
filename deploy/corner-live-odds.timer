@@ -1,0 +1,9 @@
+[Unit]
+Description=Premium live request queue every minute
+[Timer]
+OnBootSec=45
+OnUnitActiveSec=60
+AccuracySec=1
+Unit=corner-live-odds.service
+[Install]
+WantedBy=timers.target

@@ -34,6 +34,7 @@ import ScheduleFeed from "./schedule-feed";
 import PropsFeed from "./props-feed";
 import FreshOdds from "./fresh-odds";
 import { FeedGuide } from "./feed-guide";
+import PremiumLiveFeed, { LiveSwitch } from "./live-feed";
 
 const DESCRIPTIONS: Record<View, string> = {
   positive_ev:
@@ -133,6 +134,10 @@ export function ErrorCard({
 export default function Workspace({ view }: { view: View }) {
   const router = useRouter();
   const { user } = useAuth();
+  const [liveMode, setLiveMode] = useState(false);
+  const supportsLive =
+    view === "positive_ev" || view === "arbitrage" || view === "middle";
+  const showingLive = supportsLive && liveMode;
   const [scheduledTick, setScheduledTick] = useState(0);
   const [data, setData] = useState<Data | null>(null),
     [bootError, setBootError] = useState(""),
@@ -174,7 +179,7 @@ export default function Workspace({ view }: { view: View }) {
   // Reads retained snapshots only. Background tabs and an in-flight load do not
   // start another poll; local non-beta use keeps its manual-fetch workflow.
   useEffect(() => {
-    if (!user?.role || updating) return;
+    if (showingLive || !user?.role || updating) return;
     let timer: ReturnType<typeof setTimeout>;
     const later = () => {
       timer = setTimeout(() => {
@@ -184,8 +189,12 @@ export default function Workspace({ view }: { view: View }) {
     };
     later();
     return () => clearTimeout(timer);
-  }, [user?.role, updating, scheduledTick]);
+  }, [user?.role, updating, scheduledTick, showingLive]);
   useEffect(() => {
+    if (showingLive) {
+      setUpdating(false);
+      return;
+    }
     const controller = new AbortController();
     // Keep the current data on screen while an update loads: clearing it would unmount the
     // feed, close an open calculator and lose scroll position. The new data replaces it at once.
@@ -239,7 +248,7 @@ export default function Workspace({ view }: { view: View }) {
     })();
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reload, light, scheduledTick]);
+  }, [reload, light, scheduledTick, showingLive]);
   useEffect(() => {
     if (!data || view === "promo" || isEv(view)) return;
     const controller = new AbortController();
@@ -327,7 +336,7 @@ export default function Workspace({ view }: { view: View }) {
         </Link>
         <div className="workspace-label">
           <span className="workspace-dot" />
-          PREGAME WORKSPACE
+          {showingLive ? "LIVE · PREMIUM" : "PREGAME WORKSPACE"}
         </div>
         <nav>
           <p className="nav-label">FIND AN EDGE</p>
@@ -356,18 +365,22 @@ export default function Workspace({ view }: { view: View }) {
         <div className="sidebar-foot">
           <span className={`status-dot ${data ? "connected" : ""}`} />
           <span>
-            {data
-              ? data.meta.data_mode === "database"
-                ? "Workspace connected"
-                : "Demo data connected"
-              : bootError
-                ? "Workspace temporarily unavailable"
-                : "Connecting to your workspace"}
+            {showingLive
+              ? "Premium live mode"
+              : data
+                ? data.meta.data_mode === "database"
+                  ? "Workspace connected"
+                  : "Demo data connected"
+                : bootError
+                  ? "Workspace temporarily unavailable"
+                  : "Connecting to your workspace"}
           </span>
           <small>
-            {data?.meta.data_mode === "database"
-              ? "Retained pre-game quotes"
-              : "Fixture environment"}{" "}
+            {showingLive
+              ? "Live main-line snapshots"
+              : data?.meta.data_mode === "database"
+                ? "Retained pre-game quotes"
+                : "Fixture environment"}{" "}
             · No live execution
           </small>
           <Link href="/account">Account &amp; preferences →</Link>
@@ -388,7 +401,7 @@ export default function Workspace({ view }: { view: View }) {
                 ↻ Updating prices…
               </span>
             )}
-            <FreshOdds />
+            {!showingLive && <FreshOdds />}
             <UserMenu />
           </div>
         </header>
@@ -403,8 +416,22 @@ export default function Workspace({ view }: { view: View }) {
               {ICONS[view]}
             </span>
           </div>
-          <FeedGuide view={view} />
-          {bootError ? (
+          {supportsLive && (
+            <LiveSwitch enabled={showingLive} onChange={setLiveMode} />
+          )}
+          {!showingLive && <FeedGuide view={view} />}
+          {showingLive ? (
+            <PremiumLiveFeed
+              key={`${view}:${user?.id}`}
+              kind={
+                view === "positive_ev"
+                  ? "ev"
+                  : view === "arbitrage"
+                    ? "arbitrage"
+                    : "middle"
+              }
+            />
+          ) : bootError ? (
             <ErrorCard
               message={bootError}
               retry={() => setReload((v) => v + 1)}
@@ -722,15 +749,17 @@ export default function Workspace({ view }: { view: View }) {
           )}
           <footer className="page-footer">
             <span>
-              {data
-                ? `${data.meta.data_mode === "database" ? "Newest stored quote" : "Fixture captured"} ${date(data.meta.captured_at)} · Not a live refresh`
-                : "No snapshot loaded"}
+              {showingLive
+                ? "Live snapshots · prices and availability can change before acceptance"
+                : data
+                  ? `${data.meta.data_mode === "database" ? "Newest stored quote" : "Fixture captured"} ${date(data.meta.captured_at)} · Not a live refresh`
+                  : "No snapshot loaded"}
             </span>
             <span>Exact inputs. Transparent calculations.</span>
           </footer>
         </main>
       </div>
-      {detail && data && (
+      {!showingLive && detail && data && (
         <Details
           row={detail}
           quotes={quoteMap}

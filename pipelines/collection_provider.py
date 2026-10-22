@@ -30,7 +30,9 @@ class Provider:
         self.clock=clock or (lambda:datetime.now(timezone.utc))
         self._next_request_at = 0.0
 
-    def close(self):self.session.close()
+    def close(self):
+        self.session.close()
+        if getattr(self,'_live_client',None): self._live_client.close()
 
     def gate(self):
         now=aware(self.clock())
@@ -49,6 +51,11 @@ class Provider:
             time.sleep(wait)
         self.gate()
         start=time.monotonic()
+        if getattr(self,'_live_request',False):
+            from pipelines.live_odds_client import fetch, client
+            if not getattr(self,'_live_client',None): self._live_client=client()
+            self._next_request_at=start+0.1
+            return fetch(self._live_client,path,params,self.key)
         self._next_request_at = start + 0.1
         try:
             with self.session.get(BASE+path,params={**params,'apiKey':self.key},
@@ -105,12 +112,19 @@ class Provider:
             db.execute('UPDATE jobs SET last_started=?,next_due=next_due+? WHERE key=?',(now.timestamp(),delta,job.key))
         params={'bookmakers':','.join(job.books),'markets':','.join(job.markets),
                 'oddsFormat':'decimal','dateFormat':'iso','includeLinks':'true','includeSids':'true','includeBetLimits':'true'}
-        if job.kind=='main':
+        if job.kind in ('main','live'):
             path=f'/{job.sport}/odds'
-            params.update(commenceTimeFrom=now.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                          commenceTimeTo=(now+timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%SZ'))
+            if job.kind == 'main':
+                params.update(commenceTimeFrom=now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                              commenceTimeTo=(now+timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%SZ'))
+            else:
+                params['commenceTimeTo']=now.strftime('%Y-%m-%dT%H:%M:%SZ')
         else:path=f'/{job.sport}/events/{job.event_id}/odds'
-        status,data,headers=self._get(path,params)
+        self._live_request = job.kind == 'live'
+        try:
+            status,data,headers=self._get(path,params)
+        finally:
+            self._live_request = False
         if status==200:
             if job.kind in ('props','additional'):
                 # Preserve verified quota headers even when the envelope is malformed.
@@ -132,6 +146,7 @@ class Provider:
                      and isinstance(s.get('key'),str) and supported(s['key'])
                      and s['key'] not in ('tennis_atp','tennis_wta')})
         events=[]
+        live_events=[]
         for key in keys:
             if not SAFE.fullmatch(key):raise RuntimeError('Invalid sport identity')
             code,data,h=self._get(f'/{key}/events',{'dateFormat':'iso'})
@@ -142,7 +157,8 @@ class Provider:
                     raise RuntimeError('Invalid event identity')
                 start=parse(event['commence_time'])
                 if now<start<=now+timedelta(hours=24):events.append(event)
-        return {'active_sport_keys':keys,'events':events,'discovered_at':aware(self.clock()).isoformat()}
+                elif now-timedelta(hours=12)<=start<=now:live_events.append(event)
+        return {'active_sport_keys':keys,'events':events,'live_events':live_events,'discovered_at':aware(self.clock()).isoformat()}
 
     @staticmethod
     def _free_response(status,headers):

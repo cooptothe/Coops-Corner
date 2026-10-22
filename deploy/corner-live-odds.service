@@ -1,0 +1,16 @@
+[Unit]
+Description=Queue premium live main-line refresh (no provider key)
+After=corner-staging-api.service
+
+[Service]
+Type=oneshot
+User=corneradmin
+Group=corneradmin
+WorkingDirectory=/srv/corner/app
+ExecStart=/srv/corner/app/.venv-api/bin/python -m pipelines.live_odds_cron
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

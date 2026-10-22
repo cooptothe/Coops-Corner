@@ -19,9 +19,10 @@ from pipelines.collection_worker import fixture_transport
 
 class Runner:
     def __init__(self, governor, discover, transport, *, clock=None, publisher=None,
-                 owner=None, max_jobs=4, should_stop=None, additional=False, job_filter=None):
+                 owner=None, max_jobs=4, should_stop=None, additional=False, job_filter=None, live_jobs=None):
         if not 1 <= max_jobs <= 20:
             raise ValueError('max_jobs must be between 1 and 20')
+        self.live_jobs = live_jobs
         self.job_filter = job_filter or (lambda job: True)
         self.additional = additional
         self.g = governor
@@ -142,6 +143,9 @@ class Runner:
             return {'state': 'inventory_expired', 'executed': 0}
         inventory = json.loads(row['payload'])
         jobs = sorted((job for job in plan(self.now(), inventory['active_sport_keys'], inventory['events'], additional=self.additional) if self.job_filter(job)), key=lambda j: j.key)
+        if self.live_jobs:
+            jobs += [job for job in self.live_jobs(self.now(),inventory) if self.job_filter(job)]
+            jobs.sort(key=lambda j:j.key)
         # Persist a round-robin cursor so a restart cannot starve later events.
         jobs = [j for j in jobs if j.key > row['cursor']] + [j for j in jobs if j.key <= row['cursor']]
         executed = 0
