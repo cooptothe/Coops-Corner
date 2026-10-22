@@ -11,7 +11,7 @@ sudo systemctl stop corner-collection.service
 import sqlite3,time
 from corner.collection_activation import STATE
 with sqlite3.connect(STATE.resolve().as_uri()+'?mode=ro',uri=True) as db:
-    rows=db.execute("SELECT started FROM attempts WHERE state='unknown'").fetchall()
+    rows=db.execute("SELECT started FROM attempts WHERE state='unknown' UNION ALL SELECT started FROM quota_inventory WHERE state='unknown'").fetchall()
 if len(rows)==1:
     delay=125-(time.time()-rows[0][0])
     if delay>125: raise SystemExit('Unexpected request timestamp; stopped.')

@@ -83,4 +83,40 @@ class Recovery(LiveTests):
                   {'provider_used':4,'provider_remaining':14999996},accept_single_delta=True)
         self.assertEqual(self.g.status()['unknown_attempts'],1)
 
+class InventoryRecovery(unittest.TestCase):
+    setUp=LiveTests.setUp
+    tearDown=LiveTests.tearDown
+    bind=LiveTests.bind
+    acquire=LiveTests.acquire
+    def uncertain_inventory(self):
+        self.bind();self.acquire()
+        token=self.g.authorize('worker',NOW,self.identity,inventory=True)
+        self.g.inventory_unknown(token,'worker',NOW)
+        self.g.release('worker')
+        return token
+
+    def test_old_inventory_recovers_with_fresh_unchanged_quota(self):
+        token=self.uncertain_inventory()
+        result=reconcile_known_failure(self.g,NOW+timedelta(minutes=3),
+                    {'provider_used':0,'provider_remaining':15000000},accept_single_delta=True)
+        self.assertEqual(result,{token:0})
+        self.assertEqual(self.g.db.execute('SELECT state,actual FROM quota_inventory').fetchone()[:],('settled',0))
+        self.assertFalse(self.g.status()['paused'])
+        self.assertIsNone(self.g.db.execute('SELECT 1 FROM attempts').fetchone())
+
+    def test_inventory_drift_young_or_no_acceptance_stays_unknown(self):
+        self.uncertain_inventory()
+        for later,used,accepted in [(180,1,True),(30,0,True),(180,0,False)]:
+            with self.assertRaises(Refused):
+                reconcile_known_failure(self.g,NOW+timedelta(seconds=later),
+                  {'provider_used':used,'provider_remaining':15000000-used},accept_single_delta=accepted)
+        self.assertEqual(self.g.db.execute('SELECT state FROM quota_inventory').fetchone()[0],'unknown')
+
+    def test_multiple_inventory_failures_are_not_guessed(self):
+        self.uncertain_inventory()
+        self.g.db.execute("INSERT INTO quota_inventory SELECT 'second',cycle_id,owner,started,state,actual FROM quota_inventory")
+        with self.assertRaises(Refused):
+            reconcile_known_failure(self.g,NOW+timedelta(minutes=3),
+                {'provider_used':0,'provider_remaining':15000000},accept_single_delta=True)
+
 if __name__=='__main__':unittest.main()

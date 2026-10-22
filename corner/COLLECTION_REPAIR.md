@@ -8,8 +8,9 @@ Normal collection purchases resume under the existing budgets after startup.
 The owner confirmed the API key is exclusive to this VPS collector.
 
 The optional two-minute systemd watchdog repairs only an active worker paused
-with exactly one uncertain odds request at least 125 seconds old, no unresolved
-inventory calls, and an unchanged approved release. It attempts at most three
+with exactly one uncertain odds or inventory request at least 125 seconds old
+and an unchanged approved release. An inventory request can settle at zero only
+when the fresh exclusive-key quota total exactly matches all known settled costs. It attempts at most three
 repairs per hour. It does not restart an intentionally stopped worker or pull code.
 Disable automatic recovery with `sudo systemctl disable --now corner-collection-recovery.timer`.
 Logs: `sudo journalctl -u corner-collection-recovery.service -n 30 --no-pager`.
@@ -32,7 +33,7 @@ remain unchanged. No tool clears quarantines or resets ledgers. Inspect retained
 isolated captures before any explicit future replay; they are not acknowledged
 as successful publications.
 
-Multiple uncertain calls, unresolved inventory, quota drift, expired approval,
+Multiple uncertain calls, inflight inventory, quota drift, expired approval,
 credential changes, pool/reserve limits, database permissions and corruption
 require operator review. The scripts stop rather than bypass these conditions.
 November quota rollover still requires explicit approval of the new cycle.

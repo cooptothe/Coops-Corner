@@ -18,9 +18,25 @@ from pipelines.recovery_probe import write_private
 def reconcile_known_failure(g, now, quota, *, accept_single_delta=False):
     binding = g._binding(g.db, now)
     unknown = g.db.execute("SELECT * FROM attempts WHERE state='unknown'").fetchall()
-    if len(unknown) > 1 or g.db.execute("SELECT 1 FROM quota_inventory WHERE state!='settled'").fetchone():
+    inventory = g.db.execute("SELECT * FROM quota_inventory WHERE state!='settled'").fetchall()
+    if len(unknown)+len(inventory) > 1:
         raise Refused('More than one uncertain request requires explicit operator evidence')
     settlements = {}
+    inventory_settlements = {}
+    if inventory:
+        row = inventory[0]
+        if (row['state'] != 'unknown' or not accept_single_delta
+                or now.timestamp()-row['started'] < 125 or row['cycle_id'] != binding['cycle_id']):
+            raise Refused('One old unknown inventory request and exclusive-key acceptance required')
+        known = sum(json.loads(binding['offsets']).values())
+        for table in ('attempts', 'quota_inventory'):
+            known += g.db.execute("SELECT coalesce(sum(actual),0) FROM "+table+
+                                  " WHERE cycle_id=? AND state='settled'", (binding['cycle_id'],)).fetchone()[0]
+        # Discovery is zero-charge. A fresh exclusive-key total equal to all
+        # settled costs proves no charge; never allocate unexplained drift.
+        if quota['provider_used'] != known or row['actual'] not in (None, 0):
+            raise Refused('Inventory recovery requires an unchanged verified quota total')
+        inventory_settlements[row['token']] = 0
     if unknown:
         row = unknown[0]
         records = g.db.execute("SELECT at,detail FROM quota_audit WHERE action='odds-response' ORDER BY id DESC").fetchall()
@@ -47,9 +63,9 @@ def reconcile_known_failure(g, now, quota, *, accept_single_delta=False):
                          {'actual':actual,'response_audit_at':at,'scope_review_required':True,
                           'basis':'saved_verified_response' if verified else 'operator_accepted_provider_total_delta'})
     g.reconcile(now, quota['provider_used'], quota['provider_remaining'], json.loads(binding['offsets']),
-                settlements, {}, 'Stopped-worker recovery; explicit operator acceptance of current provider usage, all settled costs and one quarantined request')
+                settlements, inventory_settlements, 'Stopped-worker recovery; exclusive-key fresh total confirms all settled costs and at most one uncertain request')
     g.resume(now, 'Resume healthy scopes only; quarantine remains enforced')
-    return settlements
+    return {**settlements, **inventory_settlements}
 
 
 def main():
