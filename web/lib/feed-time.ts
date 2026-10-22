@@ -15,13 +15,17 @@ export function matchesFeedTime(
   startsAt: string,
   filter: TimeFilter,
   now: number,
+  live = false,
 ): boolean {
   if (filter === "default") return true;
   const start = Date.parse(startsAt);
-  if (!Number.isFinite(start) || start <= now) return false;
+  if (!Number.isFinite(start) || (live ? start > now : start <= now))
+    return false;
   if (filter === "today") return dayKey(start) === dayKey(now);
   const hours = { "8h": 8, "24h": 24, "3d": 72, "1w": 168 }[filter];
-  return start <= now + hours * 60 * 60 * 1000;
+  return live
+    ? start >= now - hours * 60 * 60 * 1000
+    : start <= now + hours * 60 * 60 * 1000;
 }
 
 export function savedTimeFilter(value: unknown): TimeFilter {

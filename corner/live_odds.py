@@ -100,10 +100,10 @@ def active_market(market: dict[str, Any], event: dict[str, Any], now: datetime) 
         return True
     except (ValueError, KeyError, TypeError, ArithmeticError): return False
 
-def feed(path: Path, now: datetime | None = None) -> dict[str, Any]:
+def feed(path: Path, now: datetime | None = None, devig_method: str = 'current') -> dict[str, Any]:
     now = aware(now or datetime.now(timezone.utc))
     base: dict[str, Any] = {'format': 'corner.live_odds/1', 'as_of': now.isoformat(),
-        'premium': True, 'enabled': bool(config()), 'state': 'waiting', 'events': [],
+        'devig_method':devig_method, 'premium': True, 'enabled': bool(config()), 'state': 'waiting', 'events': [],
         'source': 'the-odds-api', 'refresh_seconds': 60, 'freshness_seconds': FRESH_SECONDS,
         'monthly_subcap': MONTHLY_CAP, 'daily_subcap': DAILY_CAP,
         'budget_basis': 'within_existing_main_pool', 'game_stoppage_confirmed': False}
@@ -148,13 +148,16 @@ def feed(path: Path, now: datetime | None = None) -> dict[str, Any]:
         candidates = []
         if count:
             from corner.live_tools import opportunities
-            candidates = opportunities({**event,'bookmakers':selected})
+            candidates = opportunities({**event,'bookmakers':selected},devig_method)
         base['events'].append({'id':event_id,'sport_key':sport,'home_team':event.get('home_team',''),
             'away_team':event.get('away_team',''), 'commence_time':event['commence_time'],
             'is_live_inferred':True, 'game_stoppage_confirmed':False,
             'is_suspended':suspended, 'status':'active' if count else 'no_active_lines' if all_fresh else 'unknown',
             'reason':'fresh_complete_markets' if count else 'no_usable_prices_in_fresh_capture' if all_fresh else 'capture_stale_missing_or_collector_paused',
-            'active_market_count':count, 'books':books, 'opportunities':candidates})
+            'active_market_count':count, 'books':books,
+            'tool_rows':[c['tool_row'] for c in candidates],
+            'quotes':list({q['id']:q for c in candidates for q in c['quotes']}.values()),
+            'opportunities':[{**{k:v for k,v in c.items() if k not in ('tool_row','quotes')},'row_id':c['tool_row']['id']} for c in candidates]})
     base['state'] = 'paused' if paused else 'after_hours' if not open_now(now) else 'ready' if base['events'] else 'no_live_events'
     if not paused and open_now(now) and (base.get('live_credits_accounted',0)+3>MONTHLY_CAP or base.get('live_daily_credits_accounted',0)+3>DAILY_CAP): base['state']='live_budget_limit'
     return base
@@ -162,14 +165,14 @@ def feed(path: Path, now: datetime | None = None) -> dict[str, Any]:
 _cache_lock = threading.Lock()
 _cache: tuple[str, float, dict[str, Any]] | None = None
 
-def cached_feed(path: Path) -> dict[str, Any]:
+def cached_feed(path: Path, devig_method: str = 'current') -> dict[str, Any]:
     """Bound expensive analysis to one build per two seconds across API threads."""
     global _cache
-    key = str(path.resolve())
+    key = str(path.resolve())+'|'+devig_method
     with _cache_lock:
         now = time.monotonic()
         if _cache and _cache[0] == key and now-_cache[1] < 2:
             return _cache[2]
-        result = feed(path)
+        result = feed(path,devig_method=devig_method)
         _cache = (key,time.monotonic(),result)
         return result

@@ -1,7 +1,11 @@
+import type { Capabilities, Game, Meta, Quote, ToolRow } from "./contracts";
+import { sport } from "../../frontend/format.mjs";
+import { MAIN_BOOKS } from "./bookmakers";
 export type LiveKind = "ev" | "arbitrage" | "middle";
 export type LiveStatus = "active" | "no_active_lines" | "unknown";
 export type LiveMarket = "h2h" | "spreads" | "totals";
 export interface LiveCandidate {
+  row_id?: string;
   expires_at: number;
   kind: LiveKind;
   market: LiveMarket;
@@ -34,6 +38,9 @@ export interface LiveBook {
   }[];
 }
 export interface LiveEvent {
+  commence_time?: string;
+  tool_rows?: ToolRow[];
+  quotes?: Quote[];
   id: string;
   sport_key: string;
   home_team: string;
@@ -46,6 +53,7 @@ export interface LiveEvent {
 }
 export interface LiveFeed {
   format: "corner.live_odds/1";
+  devig_method?: string;
   as_of: string;
   enabled: boolean;
   state: string;
@@ -131,4 +139,47 @@ export function liveFresh(
     elapsedMs <= 20000 &&
     candidate.expires_at > Date.parse(serverAsOf) / 1000 + elapsedMs / 1000
   );
+}
+
+// The standard feed renderers consume the same contract in both modes.
+// Only fresh live candidates are supplied; never fall back to pregame odds.
+export function liveProduct(feed: LiveFeed, status: string, elapsed: number) {
+  const events = feed.events.filter((e) => !status || e.status === status);
+  const quotes = new Map<string, Quote>();
+  const rows: ToolRow[] = [];
+  const games: Game[] = events.map((e) => {
+    const eligible = new Set(
+      e.opportunities
+        .filter((c) => liveFresh(c, feed.as_of, elapsed))
+        .map((c) => c.row_id),
+    );
+    rows.push(...(e.tool_rows ?? []).filter((r) => eligible.has(r.id)));
+    for (const q of e.quotes ?? []) quotes.set(q.id, q);
+    return {
+      id: e.id,
+      sport_key: e.sport_key,
+      competition: sport(e.sport_key),
+      name: `${e.away_team} at ${e.home_team}`,
+      starts_at: e.commence_time ?? "",
+      scope: "full_game",
+      market_keys: ["h2h", "spreads", "totals"],
+      quote_count: e.quotes?.length ?? 0,
+      phase: "unknown",
+    };
+  });
+  const caps: Capabilities = {
+    market_keys: ["h2h", "spreads", "totals"],
+    tools: ["positive_ev", "arbitrage", "middle"],
+    sports: [...new Set(games.map((g) => g.sport_key))],
+    books: MAIN_BOOKS.map((b) => ({ ...b, commission: null })),
+  };
+  const meta: Meta = {
+    format: "corner.product_api/1",
+    data_mode: "database",
+    snapshot_id: `live:${feed.as_of}:${feed.devig_method ?? "current"}`,
+    captured_at: feed.as_of,
+    production_authorized: false,
+    availability_verified: false,
+  };
+  return { data: { caps, games, quotes: [...quotes.values()], meta }, rows };
 }

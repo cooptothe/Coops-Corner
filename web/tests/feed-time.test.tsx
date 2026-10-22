@@ -57,3 +57,17 @@ test("buttons expose all choices and mark the active filter accessibly", () => {
   ])
     assert.ok(html.includes(label));
 });
+
+test("live time filters include actual started games without changing pregame behavior", () => {
+  const now = Date.parse("2026-10-22T18:00:00Z");
+  const started = "2026-10-22T17:00:00Z";
+  assert.equal(matchesFeedTime(started, "8h", now, true), true);
+  assert.equal(matchesFeedTime(started, "8h", now), false);
+  assert.equal(matchesFeedTime("2026-10-22T19:00:00Z", "8h", now, true), false);
+  assert.equal(matchesFeedTime("2026-10-22T09:00:00Z", "8h", now, true), false);
+  const html = renderToStaticMarkup(
+    <FeedTimeFilter live value="8h" onChange={() => {}} />,
+  );
+  assert.match(html, /Started in last 8 hours/);
+  assert.doesNotMatch(html, /Next 8 hours/);
+});

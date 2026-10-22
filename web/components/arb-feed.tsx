@@ -642,8 +642,16 @@ export function Menu({
   );
 }
 
-export default function ArbFeed({ data }: { data: Data }) {
-  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
+export default function ArbFeed({
+  data,
+  liveRows,
+}: {
+  data: Data;
+  liveRows?: ToolRow[];
+}) {
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter(
+    liveRows !== undefined,
+  );
   const [rows, setRows] = useState<ArbRow[] | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -686,6 +694,11 @@ export default function ArbFeed({ data }: { data: Data }) {
     },
   });
   useEffect(() => {
+    if (liveRows !== undefined) {
+      setError("");
+      setRows(liveRows.filter((r): r is ArbRow => r.kind === "arbitrage"));
+      return;
+    }
     const controller = new AbortController();
     setError("");
     sharedPages<ToolRow>(
@@ -702,7 +715,7 @@ export default function ArbFeed({ data }: { data: Data }) {
           setError(e instanceof Error ? e.message : "Request failed.");
       });
     return () => controller.abort();
-  }, [data, retry]);
+  }, [data, retry, liveRows]);
 
   const maps = useMemo(
     () => ({
@@ -806,7 +819,11 @@ export default function ArbFeed({ data }: { data: Data }) {
       <section className="arb-layout" aria-label="Arbitrage feed">
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
-          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          <FeedTimeFilter
+            live={liveRows !== undefined}
+            value={timeFilter}
+            onChange={setTimeFilter}
+          />
           <Menu
             title="Sportsbooks"
             items={bookItems}

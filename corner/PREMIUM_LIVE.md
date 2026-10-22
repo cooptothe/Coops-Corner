@@ -10,9 +10,8 @@ headers or client state cannot grant access. Other accounts receive 403 from
 GET `/api/v1/live-stoppages`; anonymous requests receive 401. All responses are
 no-store. The UI gate is only an additional presentation layer.
 
-The compact, branded odds grid virtualizes rows, freezes event metadata, shows
-American prices, flashes changes briefly, and supports market/league/availability
-filters. Play means lines open; pause means no active lines in fresh captures.
+Live uses the same responsive feed components, saved filters, cards and calculators
+as pregame. It retains virtualization and brief price-change flashes. Play means lines open; pause means no active lines in fresh captures.
 Unknown means stale/missing data or a paused collector. No icon asserts that play
 has stopped. Rendering and polling cannot establish executable liquidity.
 
@@ -96,3 +95,26 @@ settlement and UI virtualization. Synthetic fixtures exist only in tests/isolate
 preview. They prove logic, not live provider coverage or industry certification.
 The wonya authenticated journey and real live coverage must be checked after
 deployment. No wallet transfer or payable checkout is enabled by this feature.
+
+
+## Shared feed layouts and collection evidence
+
+Live mode now renders the existing EV, Arbitrage and Middles components, including
+saved filters, fair-price range, win-chance and EV controls, sizing and calculators.
+Live uses full calculator results and source quotes rather than a separate grid.
+The devig selector reprices saved live captures; it does not request provider odds.
+Time controls use elapsed start windows for live games; actual start times are retained.
+Play/pause filters describe line availability; stale prices are never revived for stopped games.
+
+`python -m pipelines.live_odds_status` reads the ledger and reports cron freshness,
+actual live capture ages, active market counts and the existing spending subcaps.
+It makes zero provider calls. A running service alone is not evidence of fresh odds.
+The deployment script enables the live timer and repairs/restarts the existing collector.
+Within the collection window and when in-play events exist, fresh capture groups should
+appear as the shared worker processes its queue. Outside the window, after_hours is expected.
+
+The deployment's read-only `--wait-seconds 75` check waits for expected live capture
+groups without making extra provider calls. It fails if scheduling is disabled,
+the cron marker is stale, collection is paused, a live subcap blocks it, or expected
+captures do not become fresh. With no in-play events it explicitly reports that
+live odds were not proved; this is not reported as successful live coverage.

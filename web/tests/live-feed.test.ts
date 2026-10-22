@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   liveRows,
+  liveProduct,
   liveRange,
   liveFresh,
   liveAmerican,
@@ -83,4 +84,40 @@ test("live price cells consistently display American odds", () => {
   assert.equal(liveAmerican(2.2), "+120");
   assert.equal(liveAmerican(1.5), "-200");
   assert.equal(liveAmerican(1), "—");
+});
+
+test("live product keeps standard feed contracts and expires rows without inventing new timestamps", () => {
+  const row = {
+    id: "live:one",
+    kind: "positive_ev",
+    game_id: "open",
+    quote_ids: ["q"],
+    market_key: "h2h",
+  } as import("../lib/contracts").ToolRow;
+  const enriched: LiveFeed = {
+    ...feed,
+    events: [
+      {
+        ...feed.events[0],
+        commence_time: "2026-10-22T17:00:00Z",
+        tool_rows: [row],
+        quotes: [],
+        opportunities: [
+          {
+            ...candidate,
+            row_id: row.id,
+            expires_at: Date.parse(feed.as_of) / 1000 + 5,
+          },
+        ],
+      },
+    ],
+  };
+  const product = liveProduct(enriched, "active", 4000);
+  assert.equal(product.rows.length, 1);
+  assert.equal(product.rows[0], row);
+  assert.equal(product.data.games[0].starts_at, "2026-10-22T17:00:00Z");
+  assert.equal(product.data.games[0].competition, "NBA");
+  assert.equal(product.data.caps.books.length, 16);
+  assert.equal(liveProduct(enriched, "active", 5000).rows.length, 0);
+  assert.equal(liveProduct(enriched, "no_active_lines", 0).rows.length, 0);
 });

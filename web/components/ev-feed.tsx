@@ -568,13 +568,25 @@ export function KellyWidget({
   );
 }
 
-export default function EvFeed({ data }: { data: Data }) {
+export default function EvFeed({
+  data,
+  liveRows,
+  liveMethod,
+  onLiveMethod,
+}: {
+  data: Data;
+  liveRows?: ToolRow[];
+  liveMethod?: string;
+  onLiveMethod?: (method: string) => void;
+}) {
   const [devigMethod, setDevigMethod] = useState("current");
   const parlay = useParlay();
   useEffect(() => {
     if (parlay?.draft.active) setSelected(null);
   }, [parlay?.draft.active]);
-  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter(
+    liveRows !== undefined,
+  );
   const [rows, setRows] = useState<EvRow[] | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -664,6 +676,15 @@ export default function EvFeed({ data }: { data: Data }) {
     presets: false,
   });
   useEffect(() => {
+    if (liveRows !== undefined) {
+      setError("");
+      setRows(liveRows.filter((r): r is EvRow => r.kind === "positive_ev"));
+      onLiveMethod?.(devigMethod);
+      setPricedSnapshot(
+        liveMethod === devigMethod ? pricingSelection : undefined,
+      );
+      return;
+    }
     const controller = new AbortController();
     setError("");
     sharedPages<ToolRow>(
@@ -685,7 +706,7 @@ export default function EvFeed({ data }: { data: Data }) {
           setError(e instanceof Error ? e.message : "Request failed.");
       });
     return () => controller.abort();
-  }, [data, retry, devigMethod]);
+  }, [data, retry, devigMethod, liveRows, liveMethod, onLiveMethod]);
 
   const maps = useMemo(
     () => ({
@@ -842,7 +863,11 @@ export default function EvFeed({ data }: { data: Data }) {
           <DevigSelector value={devigMethod} onChange={setDevigMethod} />
           <div className="ev-filter-actions">
             <ParlayToolbar />
-            <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+            <FeedTimeFilter
+              live={liveRows !== undefined}
+              value={timeFilter}
+              onChange={setTimeFilter}
+            />
           </div>
           <RangeFilter
             label="Minimum estimated win chance"

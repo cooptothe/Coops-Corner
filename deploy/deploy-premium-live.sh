@@ -6,7 +6,7 @@ cd /srv/corner/app
 
 # Tests precede any web stop. Existing site stays available if these fail.
 .venv-api/bin/python -m unittest \
-  tests.test_live_odds tests.test_collection_adapters \
+  tests.test_live_odds tests.test_live_products tests.test_collection_adapters \
   tests.test_collection_runner tests.test_collection_live \
   tests.test_collection_recovery tests.test_collection_health \
   tests.test_collection_maintenance tests.test_scheduled_only \
@@ -97,5 +97,7 @@ code="$(curl -s -o /dev/null -w '%{http_code}' https://coopscorner.tech/api/v1/l
 systemctl is-active corner-staging-web corner-staging-api corner-collection.service \
   corner-collection-recovery.timer corner-live-odds.timer
 sudo journalctl -u corner-live-odds.service -n 4 --no-pager
+.venv-api/bin/python -m pipelines.live_odds_status --wait-seconds 75
+
 git log -1 --oneline
-echo 'Premium live switches deployed. Sign in as wonya and turn Live on in EV, Arbitrage, or Middles. Market-status and live-price coverage still require observation on the real provider.'
+echo 'Shared feed layouts and premium live collection deployed. Sign in as wonya and turn Live on in EV, Arbitrage, or Middles. Market-status and live-price coverage still require observation on the real provider.'

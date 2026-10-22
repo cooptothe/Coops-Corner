@@ -32,9 +32,12 @@ class LiveGame(BaseModel):
     active_market_count: int = Field(ge=0)
     books: list[BookAvailability]
     opportunities: list[dict[str, Any]]
+    tool_rows: list[dict[str, Any]] = []
+    quotes: list[dict[str, Any]] = []
 
 class LiveStatusFeed(BaseModel):
     format: Literal['corner.live_odds/1']
+    devig_method: str = 'current'
     as_of: str
     premium: bool
     enabled: bool
@@ -57,13 +60,13 @@ def create_router(ctx: AuthContext, *, path: Path | None = None) -> APIRouter:
         path = STATE
 
     @router.get('/api/v1/live-stoppages',response_model=LiveStatusFeed)
-    async def stoppages(request: Request) -> Any:
+    async def stoppages(request: Request, devig_method: Literal['current','multiplicative','additive','power','shin','worst_case'] = 'current') -> Any:
         user, denied = ctx.require(request,write=False)
         if denied: return denied
         if not live_odds.premium(user):
             return reply(403,{'error':'Live tools are a Premium feature.','code':'premium_required'})
         try:
-            data = await run_in_threadpool(live_odds.cached_feed,path)
+            data = await run_in_threadpool(live_odds.cached_feed,path,devig_method)
             return reply(200,LiveStatusFeed.model_validate(data).model_dump(mode='json'))
         except Exception:
             return reply(503,{'error':'Live status is temporarily unavailable.','code':'live_unavailable'})

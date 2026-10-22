@@ -453,8 +453,16 @@ function Calculator({
   );
 }
 
-export default function MiddleFeed({ data }: { data: Data }) {
-  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter();
+export default function MiddleFeed({
+  data,
+  liveRows,
+}: {
+  data: Data;
+  liveRows?: ToolRow[];
+}) {
+  const { timeFilter, setTimeFilter, matchesTime } = useFeedTimeFilter(
+    liveRows !== undefined,
+  );
   const [rows, setRows] = useState<MidRow[] | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -503,6 +511,11 @@ export default function MiddleFeed({ data }: { data: Data }) {
     },
   });
   useEffect(() => {
+    if (liveRows !== undefined) {
+      setError("");
+      setRows(liveRows.filter((r): r is MidRow => r.kind === "middle"));
+      return;
+    }
     const controller = new AbortController();
     setError("");
     sharedPages<ToolRow>(
@@ -519,7 +532,7 @@ export default function MiddleFeed({ data }: { data: Data }) {
           setError(e instanceof Error ? e.message : "Request failed.");
       });
     return () => controller.abort();
-  }, [data, retry]);
+  }, [data, retry, liveRows]);
 
   const maps = useMemo(
     () => ({
@@ -644,7 +657,11 @@ export default function MiddleFeed({ data }: { data: Data }) {
       <section className="arb-layout" aria-label="Middles feed">
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
-          <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          <FeedTimeFilter
+            live={liveRows !== undefined}
+            value={timeFilter}
+            onChange={setTimeFilter}
+          />
           <Menu
             title="Sportsbooks"
             items={bookItems}

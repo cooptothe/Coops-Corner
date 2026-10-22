@@ -8,6 +8,8 @@ from decimal import Decimal as D
 from itertools import combinations
 from functools import lru_cache
 import json
+from datetime import datetime, timezone
+from api.catalog import wire, digest
 from typing import Any
 from corner.featured_tools import MatchedMarket, Offer, calculate_back_cover, ToolInputError
 from corner.featured_ev import calculate_featured_ev
@@ -18,12 +20,12 @@ from corner.collection_policy import parse
 
 MAX_SKEW = 10
 
-def opportunities(event: dict[str, Any]) -> list[dict[str, Any]]:
+def opportunities(event: dict[str, Any], devig_method: str = 'current') -> list[dict[str, Any]]:
     # Unchanged source snapshots reuse the same analysis across cached API reads.
-    return _analyze(json.dumps(event,sort_keys=True,separators=(',',':')))
+    return _analyze(json.dumps(event,sort_keys=True,separators=(',',':')), devig_method)
 
 @lru_cache(maxsize=512)
-def _analyze(encoded: str) -> list[dict[str, Any]]:
+def _analyze(encoded: str, devig_method: str) -> list[dict[str, Any]]:
     event: dict[str, Any] = json.loads(encoded)
     groups: dict[tuple[str,str],list[tuple[str,dict[str,Any]]]] = {}
     for book in event['bookmakers']:
@@ -37,6 +39,22 @@ def _analyze(encoded: str) -> list[dict[str, Any]]:
                 if D(line)*2 != (D(line)*2).to_integral_value(): continue
             groups.setdefault((key,line),[]).append((book['key'],market))
     result: list[dict[str,Any]] = []
+    quotes: dict[str,dict[str,Any]] = {}
+    def attach(candidate, calculation, offers, capital, minimum=None, ev_ratio=None):
+        ids = [o.quote_id for o in offers]
+        candidate['tool_row'] = {
+            'id': 'live:'+digest([candidate['kind'],ids]), 'game_id':event['id'],
+            'contract_id':calculation.contract_id, 'market_key':candidate['market'],
+            'kind':'positive_ev' if candidate['kind']=='ev' else candidate['kind'],
+            'quote_ids':ids,'sportsbook_ids':sorted({o.sportsbook_id for o in offers}),'capital_required':str(capital),
+            'minimum_profit':None if minimum is None else str(minimum),
+            'conditional_ev_ratio':None if ev_ratio is None else str(ev_ratio),
+            'oldest_observed_at':datetime.fromtimestamp(candidate['expires_at']-90,timezone.utc).isoformat(),
+            'calculation':wire(calculation)}
+        needed=set(ids)
+        for ref in getattr(calculation,'reference_books',()): needed.update(ref.quote_ids)
+        candidate['quotes']=[quotes[q] for q in sorted(needed)]
+        result.append(candidate)
     line_bets: list[tuple[LineBet,float]] = []
     for (key,line), blocks in groups.items():
         # Drop duplicate bookmaker blocks rather than double-weight them.
@@ -58,6 +76,16 @@ def _analyze(encoded: str) -> list[dict[str, Any]]:
                 quote = f"{contract}:{book}:{outcome['name']}"
                 offer = Offer(quote,contract,key,outcome['name'],book,D(str(outcome['price'])),D(0))
                 refs.append(offer)
+                side = ('over' if outcome['name']=='Over' else 'under') if key=='totals' else ('home' if outcome['name']==event['home_team'] else 'away' if outcome['name']==event['away_team'] else 'draw')
+                quotes[quote]={'id':quote,'game_id':event['id'],'contract_id':contract,
+                    'market_key':key,'sportsbook_id':book,'selection_id':outcome['name'],
+                    'selection_name':outcome['name'],'side':side,
+                    'point':str(outcome['point']) if 'point' in outcome else None,
+                    'decimal_odds':str(outcome['price']),
+                    'commission_rate':str(rate) if rate is not None else None,
+                    'fee_status':'known' if rate is not None else 'unknown',
+                    'evidence_kind':'retained_provider_quote','current_availability':'unverified',
+                    'observed_at':market['last_update'],'provider_updated_at':market['last_update'],'links':None}
                 if rate is not None:
                     offer = Offer(quote,contract,key,outcome['name'],book,D(str(outcome['price'])),rate)
                     executable.append(offer)
@@ -68,13 +96,13 @@ def _analyze(encoded: str) -> list[dict[str, Any]]:
             books = tuple(sorted({r.sportsbook_id for r in refs if r.sportsbook_id!=target.sportsbook_id}))
             if not sufficient_references(books,event['sport_key']): continue
             try:
-                ev = calculate_featured_ev(matched,target,[r for r in refs if r.sportsbook_id in books],required_reference_books=books,sport_key=event['sport_key'])
+                ev = calculate_featured_ev(matched,target,[r for r in refs if r.sportsbook_id in books],required_reference_books=books,sport_key=event['sport_key'],devig_method=devig_method)
             except ToolInputError: continue
             if ev.conditional_ev_ratio_on_capital > 0:
-                result.append({'kind':'ev','market':key,'line':line,'selection':target.selection_id,
+                attach({'kind':'ev','market':key,'line':line,'selection':target.selection_id,
                     'book':target.sportsbook_id,'decimal_odds':str(target.decimal_odds),
                     'fair_probability':str(ev.conditional_fair_probability),
-                    'ev_percent':str(ev.conditional_ev_ratio_on_capital*100),'reference_books':list(books),'expires_at':min(source_times.values())+90})
+                    'ev_percent':str(ev.conditional_ev_ratio_on_capital*100),'reference_books':list(books),'expires_at':min(source_times.values())+90}, ev, [target], ev.capital_at_risk, ev_ratio=ev.conditional_ev_ratio_on_capital)
         if executable and set(o.selection_id for o in executable)==set(selections):
             cover = calculate_back_cover(matched,executable,total_stake=D(100))
             if len({leg.sportsbook_id for leg in cover.legs}) == 1:
@@ -89,9 +117,9 @@ def _analyze(encoded: str) -> list[dict[str, Any]]:
                         if len({leg.sportsbook_id for leg in candidate.legs})>1: alternatives.append(candidate)
                 if alternatives: cover=max(alternatives,key=lambda c:c.minimum_decisive_profit)
             if cover.minimum_decisive_profit>0 and len({leg.sportsbook_id for leg in cover.legs})>1:
-                result.append({'kind':'arbitrage','market':key,'line':line,
+                attach({'kind':'arbitrage','market':key,'line':line,
                     'profit_per_100':str(cover.minimum_decisive_profit),'refund_possible':refund,'expires_at':min(source_times.values())+90,
-                    'legs':[{'book':leg.sportsbook_id,'selection':leg.selection_id,'decimal_odds':str(leg.decimal_odds),'stake':str(leg.stake)} for leg in cover.legs]})
+                    'legs':[{'book':leg.sportsbook_id,'selection':leg.selection_id,'decimal_odds':str(leg.decimal_odds),'stake':str(leg.stake)} for leg in cover.legs]}, cover, cover.legs, cover.total_stake, cover.minimum_modeled_profit)
     for (first,at),(second,bt) in combinations(line_bets,2):
         if (first.contract_id!=second.contract_id or first.side==second.side or first.sportsbook_id==second.sportsbook_id or abs(at-bt)>MAX_SKEW): continue
         if not _full_win_window(first.market_key,first.side,first.line,second.side,second.line): continue
@@ -99,11 +127,11 @@ def _analyze(encoded: str) -> list[dict[str, Any]]:
             middle = calculate_middle(contract_id=first.contract_id,first=first,second=second,refund_possible=False)
         except ToolInputError: continue
         if middle.double_win_ranges:
-            result.append({'kind':'middle','market':first.market_key,
+            attach({'kind':'middle','market':first.market_key,
                 'window':list(middle.double_win_ranges),'expires_at':min(at,bt)+90,
                 'worst_profit_per_100':str(middle.payoff.minimum_modeled_profit),
                 'best_profit_per_100':str(middle.payoff.maximum_modeled_profit),
-                'legs':[{'book':b.sportsbook_id,'selection':b.side,'line':str(b.line),'decimal_odds':str(b.decimal_odds),'stake':str(b.stake)} for b in (first,second)]})
+                'legs':[{'book':b.sportsbook_id,'selection':b.side,'line':str(b.line),'decimal_odds':str(b.decimal_odds),'stake':str(b.stake)} for b in (first,second)]}, middle, (first,second), first.stake+second.stake, middle.payoff.minimum_modeled_profit)
     for candidate in result:
         candidate.update(availability_verified=False,game_state_verified=False,
                          settlement_rules_verified=False,basis='snapshot_estimate')

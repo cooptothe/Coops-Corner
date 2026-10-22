@@ -6,7 +6,7 @@ import {
   type TimeFilter,
 } from "../lib/feed-time";
 
-export function useFeedTimeFilter() {
+export function useFeedTimeFilter(live = false) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("default");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -23,8 +23,8 @@ export function useFeedTimeFilter() {
     setTimeFilter(value);
   };
   const matchesTime = useCallback(
-    (startsAt: string) => matchesFeedTime(startsAt, timeFilter, now),
-    [timeFilter, now],
+    (startsAt: string) => matchesFeedTime(startsAt, timeFilter, now, live),
+    [timeFilter, now, live],
   );
   return { timeFilter, setTimeFilter: choose, matchesTime };
 }
@@ -32,7 +32,9 @@ export function useFeedTimeFilter() {
 export function FeedTimeFilter({
   value,
   onChange,
+  live = false,
 }: {
+  live?: boolean;
   value: TimeFilter;
   onChange: (value: TimeFilter) => void;
 }) {
@@ -50,13 +52,19 @@ export function FeedTimeFilter({
           onClick={() => onChange(key)}
           title={
             key === "today"
-              ? "Upcoming games today in America/Chicago"
+              ? live
+                ? "Games started today in America/Chicago"
+                : "Upcoming games today in America/Chicago"
               : key === "default"
                 ? "Show all available event times"
                 : undefined
           }
         >
-          {label}
+          {live
+            ? label
+                .replace("Next ", "Started in last ")
+                .replace("All available", "All live games")
+            : label}
         </button>
       ))}
     </div>
