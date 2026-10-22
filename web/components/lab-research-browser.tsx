@@ -50,6 +50,7 @@ export default function LabResearchBrowser({
     ...DEFAULT_LAB_FILTERS,
   });
   const search = useDeferredValue(filters.search);
+  const [inventoryError, setInventoryError] = useState("");
   const [selected, setSelected] = useState("");
   const [reports, setReports] = useState<Record<string, TrendReport>>({});
   const [rates, setRates] = useState<Record<string, LabRates>>({});
@@ -80,7 +81,7 @@ export default function LabResearchBrowser({
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    setError("");
+    setInventoryError("");
     loadTrendOptions(controller.signal)
       .then((data) => {
         if (controller.signal.aborted) return;
@@ -109,7 +110,7 @@ export default function LabResearchBrowser({
           );
       })
       .catch((e) => {
-        if (!controller.signal.aborted) setError(e.message);
+        if (!controller.signal.aborted) setInventoryError(e.message);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -309,6 +310,18 @@ export default function LabResearchBrowser({
       ?.scrollBy({ left: direction * 320, behavior: "smooth" });
   return (
     <section className="lab-cash" aria-label="Player props research workspace">
+      {inventoryError && (
+        <div className="lc-alert" role="alert">
+          <strong>The game and player list could not load.</strong>
+          <p>{inventoryError}</p>
+          <button
+            className="button secondary"
+            onClick={() => setRetry((n) => n + 1)}
+          >
+            Reload slate
+          </button>
+        </div>
+      )}
       <div className="lc-topbar">
         <div className="lc-pills" role="group" aria-label="Choose sport">
           {sports.map((s) => (
@@ -659,9 +672,11 @@ export default function LabResearchBrowser({
             )}
             {!loading && !rows.length && (
               <div className="lc-list-empty">
-                {contracts.length
-                  ? "No players match. Reset filters or load missing history."
-                  : "No saved props yet. This slate fills after the scheduled odds update."}
+                {inventoryError
+                  ? "The slate request failed. Use Reload slate above."
+                  : contracts.length
+                    ? "No players match. Reset filters or load missing history."
+                    : "No unexpired collected props are available. The Lab currently depends on saved odds; this does not mean there are no scheduled games or player statistics."}
               </div>
             )}
           </div>
