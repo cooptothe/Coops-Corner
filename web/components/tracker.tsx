@@ -50,7 +50,10 @@ import {
   PickMenu,
 } from "./tracker-parts";
 
-import { PERFORMANCE_WINDOWS, performanceBounds } from "../lib/tracker-windows";
+import {
+  PERFORMANCE_WINDOWS,
+  matchesPerformanceWindow,
+} from "../lib/tracker-windows";
 type TrackerSettings = {
   tab: string;
   windowDays: number;
@@ -303,8 +306,13 @@ export default function Tracker() {
   });
 
   const filtered = useMemo(
-    () => view.bets.filter((b) => matchesFilters(b, filters)),
-    [view.bets, filters],
+    () =>
+      view.bets.filter(
+        (b) =>
+          matchesFilters(b, filters) &&
+          matchesPerformanceWindow(b, windowDays, now),
+      ),
+    [view.bets, filters, windowDays, now],
   );
   const ordered = useMemo(() => orderBets(filtered), [filtered]);
   const balances = useMemo(
@@ -313,7 +321,7 @@ export default function Tracker() {
   );
   const total = useMemo(() => totals(balances), [balances]);
   const kpi = useMemo(
-    () => kpis(filtered, ...performanceBounds(windowDays, now)),
+    () => kpis(filtered),
     // `now` moves once a minute, which is fine granularity for a day-sized window.
     [filtered, windowDays, now],
   );
@@ -434,9 +442,10 @@ export default function Tracker() {
               <span>PERFORMANCE WINDOW</span>
               <select
                 value={windowDays ?? ""}
-                onChange={(e) =>
-                  setWindowDays(e.target.value ? Number(e.target.value) : null)
-                }
+                onChange={(e) => {
+                  setWindowDays(e.target.value ? Number(e.target.value) : null);
+                  setShown(PAGE);
+                }}
               >
                 {PERFORMANCE_WINDOWS.map(({ value, label }) => (
                   <option key={value} value={value || ""}>
@@ -560,7 +569,11 @@ export default function Tracker() {
                   <h3>No bets match these filters</h3>
                   <button
                     className="button secondary"
-                    onClick={() => setFilters(EMPTY_FILTERS)}
+                    onClick={() => {
+                      setFilters(EMPTY_FILTERS);
+                      setWindowDays(null);
+                      setShown(PAGE);
+                    }}
                   >
                     Clear filters
                   </button>

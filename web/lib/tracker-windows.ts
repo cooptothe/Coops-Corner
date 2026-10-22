@@ -1,3 +1,5 @@
+import type { TrackerBet } from "./tracker-api";
+
 /** Stable numeric IDs retain existing saved seven/thirty-day preferences. */
 export const PERFORMANCE_WINDOWS = [
   { value: 1, label: "Today" },
@@ -40,4 +42,22 @@ export function performanceBounds(
     return [now - value * 86400000, now + 1];
   }
   return [start.getTime(), now + 1];
+}
+
+/** Ledger dates follow the event shown on the row, with placement as fallback.
+ * Today's upcoming games belong to today even before their start time.
+ */
+export function matchesPerformanceWindow(
+  bet: Pick<TrackerBet, "starts_at" | "placed_at">,
+  value: number | null,
+  now: number,
+): boolean {
+  if (value == null || value === 0) return true;
+  const [start, yesterdayEnd] = performanceBounds(value, now);
+  const tomorrow = new Date(now);
+  tomorrow.setHours(0, 0, 0, 0);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const end = value === -1 ? yesterdayEnd! : tomorrow.getTime();
+  const at = new Date(bet.starts_at ?? bet.placed_at).getTime();
+  return Number.isFinite(at) && at >= start! && at < end;
 }

@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { performanceBounds } from "../lib/tracker-windows";
+import {
+  performanceBounds,
+  matchesPerformanceWindow,
+} from "../lib/tracker-windows";
 import { kpis } from "../lib/tracker-math";
 import type { TrackerBet } from "../lib/tracker-api";
 
@@ -49,4 +52,26 @@ test("six calendar months clamps to month end and includes the boundary", () => 
   ]);
   assert.deepEqual(performanceBounds(0, now), [null, null]);
   assert.deepEqual(performanceBounds(7, now), [now - 7 * 86400000, now + 1]);
+});
+
+test("yesterday ledger uses event dates, not placement or settlement day", () => {
+  const now = new Date(2026, 9, 22, 12).getTime();
+  const placed_at = new Date(2026, 9, 21, 9).toISOString();
+  const at = (day: number, hour = 12) => ({
+    placed_at,
+    starts_at: new Date(2026, 9, day, hour).toISOString(),
+  });
+  assert.equal(matchesPerformanceWindow(at(21), -1, now), true);
+  assert.equal(matchesPerformanceWindow(at(22), -1, now), false);
+  assert.equal(matchesPerformanceWindow(at(20), -1, now), false);
+  assert.equal(matchesPerformanceWindow(at(22, 0), -1, now), false);
+  assert.equal(matchesPerformanceWindow(at(22, 23), 1, now), true);
+  assert.equal(matchesPerformanceWindow(at(23, 0), 1, now), false);
+  assert.equal(
+    matchesPerformanceWindow({ placed_at, starts_at: null }, -1, now),
+    true,
+  );
+  assert.equal(matchesPerformanceWindow(at(22), null, now), true);
+  assert.equal(matchesPerformanceWindow(at(20), 3, now), true);
+  assert.equal(matchesPerformanceWindow(at(19), 3, now), false);
 });
