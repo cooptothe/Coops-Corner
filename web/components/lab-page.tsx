@@ -12,7 +12,7 @@ export default function LabPage({
   selectedBetId: string | null;
 }) {
   return (
-    <main id="main" className="personal-workspace lab-page">
+    <main id="main" className="personal-workspace lab-page lab-redesign">
       <header className="personal-header page-header">
         <Link href="/positive_ev">
           <Image
@@ -25,9 +25,7 @@ export default function LabPage({
         <div>
           <p className="eyebrow">RESEARCH YOUR NEXT PLAY</p>
           <h1>The Lab</h1>
-          <p className="subtitle">
-            Know the player. Read the matchup. Build your slip.
-          </p>
+          <p className="subtitle">Player props. Every angle.</p>
         </div>
         <div className="page-actions">
           <Link className="button secondary" href="/props">
@@ -38,14 +36,11 @@ export default function LabPage({
       </header>
       <PersonalNav current="lab" />
       <div className="lab-intro">
-        <p>
-          Choose a game and player. Compare recent results, review the matchup,
-          then add a selection to your parlay.
-        </p>
+        <p>Explore the slate. Find a player. Test your line.</p>
         <ParlayToolbar />
       </div>
-      <LabCoverage />
       <LabResearch selectedBetId={selectedBetId} />
+      <LabCoverage />
     </main>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import LabResearchBrowser from "./lab-research-browser";
 import { LabInsight } from "./lab-insight";
 import { LabChart } from "./lab-chart";
@@ -45,7 +46,7 @@ function AddToParlay({ contract }: { contract: TrendContract }) {
   );
 }
 
-export function TrendResults({
+function TrendResultsView({
   report,
   quotes,
   onPick,
@@ -56,7 +57,7 @@ export function TrendResults({
 }) {
   return (
     <div className="trend-results">
-      <header>
+      <header className="lc-selected-offer">
         <p>
           Selected offer · {bookName(report.contract.book)}{" "}
           {report.contract.price_kind === "indicative"
@@ -89,7 +90,10 @@ export function TrendResults({
         onPick={onPick}
         renderAction={(quote) => <AddToParlay contract={quote} />}
       />
-      <LabInsight report={report} />
+      <details className="lc-model-context">
+        <summary>Projection &amp; research context</summary>
+        <LabInsight report={report} />
+      </details>
       <details className="trend-model">
         <summary>Advanced model details</summary>
         <h4>Historical estimate</h4>
@@ -215,6 +219,8 @@ export function TrendResults({
     </div>
   );
 }
+
+export const TrendResults = memo(TrendResultsView);
 
 export default function LabResearch({
   selectedBetId,

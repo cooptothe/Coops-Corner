@@ -338,7 +338,8 @@ def create_router(ctx,service=None):
                     windows={**report['windows'],'h2h':report['matchup'],
                              'season':summarize([g for g in season if g['season']==season_year],number(item['point']),{'Yes':'Over','No':'Under'}.get(item['side'],item['side']))}
                     result.append({'id':ident,'status':'available','price':item['price'],
-                                   'observed_at':item.get('observed_at'),'windows':windows})
+                                   'observed_at':item.get('observed_at'),'windows':windows,
+                                   'recent_values':[g['value'] for g in sorted(report.get('history_games',report['games']),key=lambda g:instant(g['date']),reverse=True)[:5]][::-1]})
                 except (ResearchUnavailable,ValueError,KeyError,TypeError,sqlite3.Error):
                     result.append({'id':ident,'status':'history_unavailable','price':item['price'],
                                    'observed_at':item.get('observed_at')})

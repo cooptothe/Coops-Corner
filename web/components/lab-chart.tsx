@@ -23,13 +23,13 @@ export function LabChart({
   renderAction?: (quote: TrendContract) => React.ReactNode;
 }) {
   const chartRef = useRef<HTMLElement>(null);
-  const [chartWidth, setChartWidth] = useState(800);
+  const [chartWidth, setChartWidth] = useState(640);
   useEffect(() => {
     const element = chartRef.current;
     if (!element || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
-      if (width) setChartWidth(Math.max(360, Math.round(width)));
+      if (width) setChartWidth(Math.max(260, Math.round(width)));
     });
     observer.observe(element);
     return () => observer.disconnect();
@@ -217,6 +217,48 @@ export function LabChart({
               onChange={(e) => setTarget(e.target.value)}
             />
           </label>
+          {!binary && (
+            <label className="field">
+              <span>Saved lines</span>
+              <select
+                aria-label="Saved sportsbook lines"
+                value={
+                  quotes.some(
+                    (q) =>
+                      q.event_id === report.contract.event_id &&
+                      q.player === report.contract.player &&
+                      q.market_key === report.contract.market_key &&
+                      q.point === target,
+                  )
+                    ? target
+                    : ""
+                }
+                onChange={(e) => {
+                  if (e.target.value) setTarget(e.target.value);
+                }}
+              >
+                <option value="">Custom line</option>
+                {[
+                  ...new Set(
+                    quotes
+                      .filter(
+                        (q) =>
+                          q.event_id === report.contract.event_id &&
+                          q.player === report.contract.player &&
+                          q.market_key === report.contract.market_key,
+                      )
+                      .map((q) => q.point),
+                  ),
+                ]
+                  .sort((a, b) => Number(a) - Number(b))
+                  .map((point) => (
+                    <option key={point} value={point}>
+                      {point}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
           <label className="field">
             <span>Chart</span>
             <select
@@ -235,6 +277,62 @@ export function LabChart({
             only; it does not create a sportsbook offer or change your parlay
             leg.
           </p>
+        )}
+        <div
+          className="lc-hit-windows"
+          role="group"
+          aria-label="Historical hit-rate windows"
+        >
+          {(["5", "10", "20", "season", "h2h"] as const).map((value) => {
+            const result = labHistory(
+              report,
+              value,
+              valid ? line : Number(report.contract.point),
+              side,
+              splits,
+            );
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={window === value}
+                onClick={() => setWindow(value)}
+              >
+                <span>
+                  {value === "season"
+                    ? "SEASON"
+                    : value === "h2h"
+                      ? "H2H"
+                      : `L${value}`}
+                </span>
+                <strong>
+                  {result.hitRate == null
+                    ? "—"
+                    : `${Math.round(result.hitRate * 100)}%`}
+                </strong>
+                <small>
+                  {result.wins}/{result.decisive}
+                  {result.pushes ? ` · ${result.pushes}P` : ""}
+                </small>
+              </button>
+            );
+          })}
+        </div>
+        {!binary && (
+          <label className="lc-line-slider">
+            <span>
+              Research line <strong>{valid ? target : "—"}</strong>
+            </span>
+            <input
+              aria-label="Adjust research threshold"
+              type="range"
+              min={Math.min(0, minimum)}
+              max={Math.ceil(maximum + 5)}
+              step="0.5"
+              value={valid ? line : 0}
+              onChange={(e) => setTarget(e.target.value)}
+            />
+          </label>
         )}
         <div className="lab-key-metrics">
           <div>
@@ -291,23 +389,6 @@ export function LabChart({
                     </g>
                   );
                 })}
-                <line
-                  x1="45"
-                  x2={chartWidth - 40}
-                  y1={y(line)}
-                  y2={y(line)}
-                  stroke="#ff97b2"
-                  strokeDasharray="6 4"
-                />
-                <text
-                  x={chartWidth - 40}
-                  y={y(line) - 8}
-                  textAnchor="end"
-                  fill="#ffb1bf"
-                  fontSize="12"
-                >
-                  Line {target}
-                </text>
                 {chart === "line" && (
                   <polyline
                     points={games
@@ -333,6 +414,15 @@ export function LabChart({
                       tabIndex={0}
                       onMouseEnter={() => setTooltip(g)}
                       onMouseLeave={() => setTooltip(null)}
+                      onClick={() =>
+                        setTooltip((old) => (old?.id === g.id ? null : g))
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setTooltip(g);
+                        }
+                      }}
                       onFocus={() => setTooltip(g)}
                       onBlur={() => setTooltip(null)}
                       role="img"
@@ -341,9 +431,18 @@ export function LabChart({
                       <title>{`${labDate(g.date, true)} vs ${g.opponent}: ${value}; ${report.workload_label}: ${g.workload ?? "unavailable"}`}</title>
                       {chart === "bar" ? (
                         <rect
-                          x={x(i) - Math.min(20, 230 / games.length)}
+                          x={
+                            x(i) -
+                            Math.min(
+                              15,
+                              ((chartWidth - 100) / games.length) * 0.34,
+                            )
+                          }
                           y={Math.min(y(value), y(0))}
-                          width={Math.min(40, 460 / games.length)}
+                          width={Math.min(
+                            30,
+                            ((chartWidth - 100) / games.length) * 0.68,
+                          )}
                           height={Math.max(2, Math.abs(y(value) - y(0)))}
                           rx="3"
                           fill={color}
@@ -360,7 +459,15 @@ export function LabChart({
                       >
                         {games.length <= 20 ? value : ""}
                       </text>
-                      {i % Math.max(1, Math.ceil(games.length / 10)) === 0 && (
+                      {i %
+                        Math.max(
+                          1,
+                          Math.ceil(
+                            games.length /
+                              Math.max(2, Math.floor((chartWidth - 100) / 60)),
+                          ),
+                        ) ===
+                        0 && (
                         <text
                           x={x(i)}
                           y="235"
@@ -374,6 +481,26 @@ export function LabChart({
                     </g>
                   );
                 })}
+                <g pointerEvents="none">
+                  <line
+                    x1="45"
+                    x2={chartWidth - 40}
+                    y1={y(line)}
+                    y2={y(line)}
+                    stroke="#ff97b2"
+                    strokeDasharray="6 4"
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={chartWidth - 40}
+                    y={y(line) - 8}
+                    textAnchor="end"
+                    fill="#ffb1bf"
+                    fontSize="10"
+                  >
+                    Line {target}
+                  </text>
+                </g>
               </svg>
             </div>
             {tooltip && (
@@ -402,7 +529,7 @@ export function LabChart({
               : "No usable games in this window."}
           </p>
         )}
-        <details className="lab-filtered-log">
+        <details className="lab-filtered-log" open>
           <summary>Filtered game log · {history.games.length} games</summary>
           <div className="trend-table">
             <table>
@@ -483,7 +610,7 @@ export function LabChart({
         </section>
       </section>
       <aside className="lab-splits" aria-label="Contextual splits">
-        <h3>Refine history</h3>
+        <h3>Contextual splits</h3>
         <p className="trk-muted">
           Applies instantly to the chart and hit rate.
         </p>
@@ -566,6 +693,47 @@ export function LabChart({
             With / without teammate
           </button>
         </details>
+        <section className="lc-splits-table">
+          <h4>Split hit rates</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Split</th>
+                <th>Hit</th>
+                <th>Games</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(
+                [
+                  ["All", {}],
+                  ["Home", { venue: "home" }],
+                  ["Away", { venue: "away" }],
+                  ["H2H", { h2h: true }],
+                ] as [string, HistorySplits][]
+              ).map(([name, split]) => {
+                const result = labHistory(
+                  report,
+                  window,
+                  valid ? line : Number(report.contract.point),
+                  side,
+                  { ...splits, venue: "all", h2h: false, ...split },
+                );
+                return (
+                  <tr key={name}>
+                    <th>{name}</th>
+                    <td>
+                      {result.hitRate == null
+                        ? "—"
+                        : `${Math.round(result.hitRate * 100)}%`}
+                    </td>
+                    <td>{result.games.length}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
         <div className="lab-context-note">
           <h4>Context to check</h4>
           <a

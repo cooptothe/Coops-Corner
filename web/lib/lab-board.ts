@@ -6,6 +6,7 @@ export interface LabRates {
   id: string;
   status: string;
   warm_attempted?: boolean;
+  recent_values?: string[];
   price?: string;
   observed_at?: string | null;
   windows?: Record<string, TrendSummary>;
@@ -57,6 +58,7 @@ export function currentRates(
 export function labBoardBase(
   contracts: TrendContract[],
   filters: LabFilters,
+  retainBooks = false,
 ): TrendContract[] {
   const query = filters.search.trim().toLowerCase();
   const selected = contracts.filter(
@@ -73,6 +75,7 @@ export function labBoardBase(
           .toLowerCase()
           .includes(query)),
   );
+  if (retainBooks) return selected;
   const choices = new Map<string, TrendContract>();
   for (const c of selected) {
     const key = JSON.stringify([
@@ -97,6 +100,7 @@ export function filterLabBoard(
   contracts: TrendContract[],
   filters: LabFilters,
   rates: Record<string, LabRates>,
+  retainBooks = false,
 ): TrendContract[] {
   if (!validLabOdds(filters.minOdds) || !validLabOdds(filters.maxOdds))
     return [];
@@ -104,7 +108,7 @@ export function filterLabBoard(
     const n = Number(price);
     return n >= 2 ? (n - 1) * 100 : -100 / (n - 1);
   };
-  const rows = labBoardBase(contracts, filters).filter((c) => {
+  const rows = labBoardBase(contracts, filters, retainBooks).filter((c) => {
     const rate = currentRates(c, rates[c.id])?.windows?.[filters.window];
     const odds = american(c.price);
     if (c.price_kind === "indicative" && (filters.minOdds || filters.maxOdds))
@@ -145,6 +149,11 @@ export function reportRates(report: TrendReport): LabRates {
   return {
     id: report.contract.id,
     status: "available",
+    recent_values: [...(report.history_games ?? report.games)]
+      .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+      .slice(0, 5)
+      .reverse()
+      .map((g) => g.value),
     price: report.contract.price,
     observed_at: report.contract.observed_at,
     windows: {

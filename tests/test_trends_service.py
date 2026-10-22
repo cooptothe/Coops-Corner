@@ -201,3 +201,22 @@ class ResearchPagination(unittest.TestCase):
             self.assertEqual(one['total'],2005)
             self.assertIsNone(three['next_offset'])
             self.assertEqual(client.get('/api/refresh/v1/props/trends/options?limit=1001').status_code,422)
+
+
+class BoardRecentForm(unittest.TestCase):
+    def test_board_exposes_only_five_ordered_cached_values(self):
+        class Context:
+            def require(self,request,*,write): return {},None
+        calls=[]
+        games=[{'date':f'2030-01-{day:02d}T12:00:00Z','value':str(day),'season':2030} for day in range(1,8)]
+        class Service:
+            def research(self,item,*,cached_only):
+                calls.append(cached_only)
+                return {'windows':{},'matchup':{},'games':games,'history_games':games,'season_games':[]}
+        app=FastAPI();app.include_router(create_router(Context(),Service()))
+        with patch('pipelines.trends_service.contracts',return_value={'id':CONTRACT}):
+            response=TestClient(app).get('/api/refresh/v1/props/trends/board?id=id')
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json()['items'][0]['recent_values'],['3','4','5','6','7'])
+        self.assertEqual(calls,[True])
+        self.assertEqual(response.json()['odds_provider_calls'],0)

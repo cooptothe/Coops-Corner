@@ -1,11 +1,17 @@
 "use client";
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Avatar } from "./media";
 import { american } from "../../frontend/format.mjs";
 import { bookDisplayName } from "../lib/bookmakers";
-import { labDate, labGameId, labDay } from "../lib/lab";
+import { labDate, labGameId, labDay, labLeg } from "../lib/lab";
 import { useParlay } from "./parlay-builder";
-import { labLeg } from "../lib/lab";
 import {
   loadTrendOptions,
   trendsRequest,
@@ -18,13 +24,16 @@ import {
   DEFAULT_LAB_FILTERS,
   filterLabBoard,
   labBoardBase,
-  validLabOdds,
   type LabFilters,
   type LabRates,
 } from "../lib/lab-board";
-const label = (c: TrendContract) =>
-  c.market_label ??
-  c.market_key.replace(/^(player|batter|pitcher)_/, "").replaceAll("_", " ");
+import {
+  labPlayerRows,
+  leagueName,
+  propLabel,
+  virtualRows,
+} from "../lib/lab-workspace";
+
 export default function LabResearchBrowser({
   selectedBetId,
   renderReport,
@@ -42,26 +51,32 @@ export default function LabResearchBrowser({
   });
   const search = useDeferredValue(filters.search);
   const [selected, setSelected] = useState("");
-  const [report, setReport] = useState<TrendReport | null>(null);
+  const [reports, setReports] = useState<Record<string, TrendReport>>({});
   const [rates, setRates] = useState<Record<string, LabRates>>({});
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [warming, setWarming] = useState(false);
-  const [error, setError] = useState("");
-  const [boardError, setBoardError] = useState("");
-  const [retry, setRetry] = useState(0);
-  const [page, setPage] = useState(0);
-  const detail = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false),
+    [warming, setWarming] = useState(false);
+  const [error, setError] = useState(""),
+    [boardError, setBoardError] = useState("");
+  const [retry, setRetry] = useState(0),
+    [scrollTop, setScrollTop] = useState(0);
+  const [mobileView, setMobileView] = useState<"players" | "analysis">(
+    "players",
+  );
+  const [showSlate, setShowSlate] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
   const warmAbort = useRef<AbortController | null>(null);
-  const parlay = useParlay();
-  const register = parlay?.register;
+  const reportCache = useRef<Record<string, TrendReport>>({});
+  const report = reports[selected];
+  const parlay = useParlay(),
+    register = parlay?.register;
   useEffect(() => () => warmAbort.current?.abort(), []);
   useEffect(() => {
     register?.(
       "lab",
       contracts.map(labLeg).filter((x): x is NonNullable<typeof x> => !!x),
     );
-  }, [register, contracts]);
+  }, [contracts, register]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -70,14 +85,28 @@ export default function LabResearchBrowser({
       .then((data) => {
         if (controller.signal.aborted) return;
         setContracts(data.contracts);
-        if (selectedBetId) {
-          const found = data.contracts.find((c) => c.bet_id === selectedBetId);
-          if (found) setSelected(found.id);
-          else
-            setError(
-              "Those odds have expired. Choose another prop to research.",
-            );
+        const requested = data.contracts.find(
+          (c) => c.bet_id === selectedBetId,
+        );
+        const first =
+          requested ??
+          data.contracts.find((c) => c.sport_key === "basketball_nba") ??
+          data.contracts[0];
+        if (first) {
+          setFilters((old) => ({
+            ...old,
+            sport: old.sport || first.sport_key,
+            market: old.market || first.market_key,
+          }));
+          if (requested) {
+            setSelected(requested.id);
+            setMobileView("analysis");
+          }
         }
+        if (selectedBetId && !requested)
+          setBoardError(
+            "That offer has expired. Browse the current slate below.",
+          );
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
@@ -87,11 +116,56 @@ export default function LabResearchBrowser({
       });
     return () => controller.abort();
   }, [selectedBetId, retry]);
+
+  const viewFilters = useMemo(
+    () => ({ ...filters, search }),
+    [filters, search],
+  );
+  const base = useMemo(
+    () => labPlayerRows(labBoardBase(contracts, viewFilters, true)),
+    [contracts, viewFilters],
+  );
+  const rows = useMemo(
+    () => labPlayerRows(filterLabBoard(contracts, viewFilters, rates, true)),
+    [contracts, viewFilters, rates],
+  );
+  const range = virtualRows(rows.length, scrollTop);
+  const visible = rows.slice(range.start, range.end);
+  const update = <K extends keyof LabFilters>(key: K, value: LabFilters[K]) => {
+    setFilters((old) => ({
+      ...old,
+      [key]: value,
+      ...(key === "sport" ? { game: "", market: "", team: "", date: "" } : {}),
+      ...(key === "date" ? { game: "" } : {}),
+    }));
+    setScrollTop(0);
+    listRef.current?.scrollTo({ top: 0 });
+  };
+  // Keep the detail scoped to the current slate/search, even after filter changes.
+  useEffect(() => {
+    if (!rows.length) {
+      setSelected("");
+      return;
+    }
+    const exact = contracts.find((c) => c.id === selected);
+    const included = rows.some(
+      (c) =>
+        c.id === selected ||
+        (exact &&
+          labGameId(c) === labGameId(exact) &&
+          c.player === exact.player &&
+          c.market_key === exact.market_key),
+    );
+    if (!included) setSelected(rows[0].id);
+  }, [rows, selected, contracts]);
   useEffect(() => {
     if (!selected) return;
+    if (reportCache.current[selected]) {
+      setBusy(false);
+      return;
+    }
     const controller = new AbortController();
     setBusy(true);
-    setReport(null);
     setError("");
     trendsRequest<TrendReport>(
       `?${new URLSearchParams({ id: selected })}`,
@@ -99,7 +173,8 @@ export default function LabResearchBrowser({
     )
       .then((data) => {
         if (controller.signal.aborted) return;
-        setReport(data);
+        reportCache.current[data.contract.id] = data;
+        setReports((old) => ({ ...old, [data.contract.id]: data }));
         setRates((old) => ({ ...old, [data.contract.id]: reportRates(data) }));
       })
       .catch((e) => {
@@ -110,33 +185,13 @@ export default function LabResearchBrowser({
       });
     return () => controller.abort();
   }, [selected, retry]);
+  // Fetch cached summaries only for visible rows. No fan-out over the whole slate.
+  const visibleIds = visible.map((c) => c.id).join(",");
   useEffect(() => {
-    if (report) detail.current?.focus({ preventScroll: true });
-  }, [report]);
-  const viewFilters = useMemo(
-    () => ({ ...filters, search }),
-    [filters, search],
-  );
-  const base = useMemo(
-    () => labBoardBase(contracts, viewFilters),
-    [contracts, viewFilters],
-  );
-  const rows = useMemo(
-    () => filterLabBoard(contracts, viewFilters, rates),
-    [contracts, viewFilters, rates],
-  );
-  const count = Math.max(1, Math.ceil(rows.length / 24));
-  const currentPage = Math.min(page, count - 1);
-  const visible = rows.slice(currentPage * 24, (currentPage + 1) * 24);
-  // With a hit-rate filter, load missing cached summaries in bounded pages even when no rows match yet.
-  const cachedIds = (visible.length ? visible : base.slice(0, 24))
-    .map((c) => c.id)
-    .join(",");
-  useEffect(() => {
-    if (!cachedIds) return;
-    const controller = new AbortController();
-    const query = new URLSearchParams();
-    for (const id of cachedIds.split(",")) query.append("id", id);
+    if (!visibleIds) return;
+    const controller = new AbortController(),
+      query = new URLSearchParams();
+    for (const id of visibleIds.split(",")) query.append("id", id);
     trendsRequest<{ items: LabRates[] }>(`/board?${query}`, controller.signal)
       .then((data) => {
         if (!controller.signal.aborted)
@@ -154,464 +209,532 @@ export default function LabResearchBrowser({
       .catch(() => {
         if (!controller.signal.aborted)
           setBoardError(
-            "Hit rates are temporarily unavailable. You can still browse props and open player research.",
+            "Some saved hit rates are unavailable. Open a player to load their history.",
           );
       });
     return () => controller.abort();
-  }, [cachedIds]);
-  const update = <K extends keyof LabFilters>(key: K, value: LabFilters[K]) => {
-    setFilters((old) => ({
-      ...old,
-      [key]: value,
-      ...(key === "sport" ? { game: "", market: "", team: "" } : {}),
-    }));
-    setPage(0);
-  };
+  }, [visibleIds]);
   async function loadRates() {
     warmAbort.current?.abort();
     const controller = new AbortController();
     warmAbort.current = controller;
     setWarming(true);
     setBoardError("");
-    const targets = (
-      filters.minRate || filters.minGames || filters.sort === "rate"
-        ? base.filter((c) => !rates[c.id]?.warm_attempted && currentRates(c, rates[c.id])?.status !== "available").slice(0, 24)
-        : visible
-    ).filter((c) => currentRates(c, rates[c.id])?.status !== "available");
+    const targets = (rows.length ? visible : base)
+      .filter(
+        (c) =>
+          !rates[c.id]?.warm_attempted &&
+          currentRates(c, rates[c.id])?.status !== "available",
+      )
+      .slice(0, 24);
     if (!targets.length) {
-      setBoardError("All matching props on this page have been checked. Some sources may have no game history.");
+      setBoardError(
+        "Visible players have been checked. Some sources have no matching history.",
+      );
       setWarming(false);
       return;
     }
     try {
-      for (let i = 0; i < targets.length; i += 5) {
+      for (let i = 0; i < targets.length; i += 4) {
         if (controller.signal.aborted) break;
         const query = new URLSearchParams({ warm: "1" });
-        for (const c of targets.slice(i, i + 5)) query.append("id", c.id);
+        for (const c of targets.slice(i, i + 4)) query.append("id", c.id);
         const data = await trendsRequest<{ items: LabRates[] }>(
           `/board?${query}`,
           controller.signal,
         );
         if (!controller.signal.aborted)
-          setRates((old) => {
-            const next = { ...old };
-            for (const item of data.items)
-              next[item.id] = {
-                ...item,
-                warm_attempted:
-                  item.warm_attempted || old[item.id]?.warm_attempted,
-              };
-            return next;
-          });
+          setRates((old) => ({
+            ...old,
+            ...Object.fromEntries(
+              data.items.map((x) => [x.id, { ...x, warm_attempted: true }]),
+            ),
+          }));
       }
     } catch (e) {
       if (!controller.signal.aborted)
         setBoardError(
           e instanceof Error
             ? e.message
-            : "Some history couldn't be loaded. Try opening the player.",
+            : "History is temporarily unavailable.",
         );
     } finally {
       if (warmAbort.current === controller) setWarming(false);
     }
   }
-  const games = [
+  const games = useMemo(
+    () =>
+      [
+        ...new Map(
+          contracts
+            .filter(
+              (c) =>
+                (!filters.sport || c.sport_key === filters.sport) &&
+                (!filters.date || labDay(c.starts_at) === filters.date),
+            )
+            .map((c) => [labGameId(c), c]),
+        ).values(),
+      ].sort(
+        (a, b) => Date.parse(a.starts_at ?? "") - Date.parse(b.starts_at ?? ""),
+      ),
+    [contracts, filters.sport, filters.date],
+  );
+  const sports = [...new Set(contracts.map((c) => c.sport_key))];
+  const markets = [
     ...new Map(
       contracts
-        .filter(
-          (c) =>
-            (!filters.sport || c.sport_key === filters.sport) &&
-            (!filters.date || labDay(c.starts_at) === filters.date),
-        )
-        .map((c) => [labGameId(c), c]),
-    ).values(),
+        .filter((c) => !filters.sport || c.sport_key === filters.sport)
+        .map((c) => [c.market_key, propLabel(c)]),
+    ).entries(),
   ];
-  const select = (
-    name: keyof LabFilters,
-    title: string,
-    options: [string, string][],
-  ) => (
-    <label className="field">
-      <span>{title}</span>
-      <select
-        value={String(filters[name])}
-        onChange={(e) => update(name, e.target.value as never)}
-      >
-        <option value="">All</option>
-        {options.map(([value, text]) => (
-          <option key={value} value={value}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
+  const pick = useCallback(
+    (id: string) => {
+      const quote = contracts.find((c) => c.id === id);
+      if (quote)
+        setFilters((old) => ({
+          ...old,
+          ...(old.market && old.market !== quote.market_key
+            ? { market: quote.market_key }
+            : {}),
+        }));
+      setSelected(id);
+      setMobileView("analysis");
+    },
+    [contracts],
   );
+  const active = contracts.find((q) => q.id === selected);
+  const scrollSlate = (direction: number) =>
+    document
+      .getElementById("lab-game-slate")
+      ?.scrollBy({ left: direction * 320, behavior: "smooth" });
   return (
-    <section
-      className="lab-research-board"
-      aria-label="All available props research"
-    >
-      <header className="lab-board-heading">
-        <div>
-          <p className="eyebrow">GAMES · PLAYERS · PROPS</p>
-          <h2>Research the slate</h2>
-          <p>
-            Browse every available collected prop. No positive-EV requirement.
-          </p>
+    <section className="lab-cash" aria-label="Player props research workspace">
+      <div className="lc-topbar">
+        <div className="lc-pills" role="group" aria-label="Choose sport">
+          {sports.map((s) => (
+            <button
+              key={s}
+              aria-pressed={filters.sport === s}
+              onClick={() => update("sport", s)}
+            >
+              {leagueName(s)}
+            </button>
+          ))}
+          {loading && <span>Loading slate…</span>}
         </div>
-        <button
-          className="button secondary"
-          onClick={() => {
-            setFilters({ ...DEFAULT_LAB_FILTERS });
-            setPage(0);
-          }}
-        >
-          Reset filters
-        </button>
-      </header>
-      <div className="lab-board-filters">
-        {select(
-          "sport",
-          "League",
-          [...new Set(contracts.map((c) => c.sport_key))].map((s) => [
-            s,
-            s.split("_").slice(1).join(" ").toUpperCase(),
-          ]),
-        )}
-        <label className="field">
-          <span>Game date · Central</span>
+        <label className="lc-date">
+          <span className="sr-only">Game date · Central</span>
           <input
             type="date"
+            aria-label="Game date · Central"
             value={filters.date}
-            onChange={(e) => {
-              update("date", e.target.value);
-              update("game", "");
-            }}
+            onChange={(e) => update("date", e.target.value)}
           />
-        </label>
-        {select(
-          "game",
-          "Game",
-          games.map((c) => [labGameId(c), `${c.away} @ ${c.home}`]),
-        )}
-        {select("market", "Prop", [
-          ...new Map(
-            contracts
-              .filter((c) => !filters.sport || c.sport_key === filters.sport)
-              .map((c) => [c.market_key, label(c)]),
-          ).entries(),
-        ])}
-        {select(
-          "side",
-          "Side",
-          [...new Set(contracts.map((c) => c.side))].map((s) => [s, s]),
-        )}
-        {select(
-          "book",
-          "Sportsbook",
-          [...new Set(contracts.map((c) => c.book))].map((s) => [
-            s,
-            bookDisplayName(s),
-          ]),
-        )}
-        <label className="field lab-board-search">
-          <span>Find a player or team</span>
-          <input
-            type="search"
-            placeholder="Player, team or prop"
-            value={filters.search}
-            onChange={(e) => update("search", e.target.value)}
-          />
-        </label>
-      </div>
-      <details className="lab-board-extra">
-        <summary>Hit-rate, odds &amp; matchup filters</summary>
-        <div className="lab-board-filters">
-          <label className="field">
-            <span>Hit-rate window</span>
-            <select
-              value={filters.window}
-              onChange={(e) =>
-                update("window", e.target.value as LabFilters["window"])
-              }
-            >
-              {[
-                ["5", "Last 5"],
-                ["10", "Last 10"],
-                ["20", "Last 20"],
-                ["season", "Season"],
-                ["h2h", "Head to head"],
-              ].map(([v, t]) => (
-                <option value={v} key={v}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Minimum historical hit rate · {filters.minRate}%</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              value={filters.minRate}
-              onChange={(e) => update("minRate", Number(e.target.value))}
-            />
-          </label>
-          <label className="field">
-            <span>Minimum games in sample</span>
-            <input
-              type="number"
-              min="0"
-              max="400"
-              value={filters.minGames}
-              onChange={(e) =>
-                update(
-                  "minGames",
-                  Math.max(0, Math.min(400, Number(e.target.value))),
-                )
-              }
-            />
-          </label>
-          {select(
-            "team",
-            "Team in matchup",
-            [...new Set(contracts.flatMap((c) => [c.home, c.away]))]
-              .sort()
-              .map((t) => [t, t]),
-          )}
-          <label className="field">
-            <span>Minimum American odds</span>
-            <input
-              inputMode="text"
-              placeholder="e.g. -200"
-              value={filters.minOdds}
-              onChange={(e) => update("minOdds", e.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>Maximum American odds</span>
-            <input
-              inputMode="text"
-              placeholder="e.g. +300"
-              value={filters.maxOdds}
-              onChange={(e) => update("maxOdds", e.target.value)}
-            />
-          </label>
-        </div>
-        <p>
-          Hit rates exclude pushes. Missing history stays visible unless you set
-          a hit-rate or sample filter. Season uses available current-season
-          games.
-        </p>
-      </details>
-      <div className="lab-board-actions">
-        <p role="status">
-          {loading
-            ? "Loading available props…"
-            : `${rows.length} props · ${games.length} games`}
-        </p>
-        <label className="field">
-          <span>Sort by</span>
-          <select
-            value={filters.sort}
-            onChange={(e) => update("sort", e.target.value)}
-          >
-            <option value="time">Game time</option>
-            <option value="name">Player name</option>
-            <option value="rate">Historical hit rate</option>
-          </select>
         </label>
         <button
-          className="button secondary"
-          disabled={warming || loading || !base.length}
-          onClick={loadRates}
+          className="lc-reset"
+          onClick={() => {
+            setFilters({ ...DEFAULT_LAB_FILTERS, sport: filters.sport });
+            setScrollTop(0);
+            listRef.current?.scrollTo({ top: 0 });
+          }}
         >
-          {warming
-            ? "Loading game logs…"
-            : filters.minRate || filters.minGames || filters.sort === "rate"
-              ? "Load more hit rates"
-              : "Load hit rates for this page"}
+          Reset
         </button>
-        {warming && (
-          <button
-            className="button secondary"
-            onClick={() => {
-              warmAbort.current?.abort();
-              setWarming(false);
-            }}
-          >
-            Stop loading
-          </button>
-        )}
       </div>
-      <p className="trk-muted">
-        Rates use saved game logs. Hit-rate sorting and filters cover loaded
-        history only. Loading missing rates uses free research sources, not paid
-        odds calls. With all books selected, each row shows the best listed
-        price before fees.
-      </p>
-      {boardError && <p role="status">{boardError}</p>}
-      {(!validLabOdds(filters.minOdds) || !validLabOdds(filters.maxOdds)) && (
-        <p role="alert">Use American odds such as -110 or +150.</p>
-      )}
-      {!loading && !rows.length && (
-        <p role="status">
-          {contracts.length
-            ? "No props match these filters. Reset filters or load missing hit rates."
-            : "No props have been collected yet. Games and props appear after an odds update."}
-        </p>
-      )}
-      <div className="lab-board-scroll">
-        <table className="lab-board-table">
-          <caption>Available props and historical hit rates</caption>
-          <thead>
-            <tr>
-              {[
-                "Player & prop",
-                "Game",
-                "Sportsbook / odds",
-                "L5",
-                "L10",
-                "L20",
-                "Season",
-                "Research",
-              ].map((t) => (
-                <th key={t} scope="col">
-                  {t}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((c) => {
-              const history = currentRates(c, rates[c.id]);
+      <div className="lc-slate-heading">
+        <button
+          className="lc-slate-toggle"
+          aria-expanded={showSlate}
+          aria-controls="lab-game-slate"
+          onClick={() => setShowSlate(!showSlate)}
+        >
+          Game slate{" "}
+          <span>
+            {games.length} games {showSlate ? "−" : "+"}
+          </span>
+        </button>
+        <span className="lc-desktop-label">
+          GAME SLATE <small>Times in Central</small>
+        </span>
+        <div className="lc-slate-arrows">
+          <button aria-label="Previous games" onClick={() => scrollSlate(-1)}>
+            ‹
+          </button>
+          <button aria-label="Next games" onClick={() => scrollSlate(1)}>
+            ›
+          </button>
+        </div>
+      </div>
+      <div
+        id="lab-game-slate"
+        className={`lc-slate ${showSlate ? "is-open" : ""}`}
+        role="group"
+        aria-label="Game slate"
+      >
+        <button
+          className="lc-game lc-all-games"
+          aria-pressed={!filters.game}
+          onClick={() => update("game", "")}
+        >
+          <strong>All games</strong>
+          <span>{games.length} matchups</span>
+        </button>
+        {games.map((c) => (
+          <button
+            className="lc-game"
+            key={labGameId(c)}
+            aria-pressed={filters.game === labGameId(c)}
+            onClick={() => update("game", labGameId(c))}
+          >
+            <span>
+              <Avatar
+                kind="team"
+                sportKey={c.sport_key}
+                name={c.away}
+                size={18}
+              />
+              {c.away}
+            </span>
+            <span>
+              <Avatar
+                kind="team"
+                sportKey={c.sport_key}
+                name={c.home}
+                size={18}
+              />
+              {c.home}
+            </span>
+            <time>{c.starts_at ? labDate(c.starts_at) : "Time pending"}</time>
+          </button>
+        ))}
+      </div>
+      <div className="lc-mobile-switch" role="group" aria-label="Research view">
+        <button
+          aria-pressed={mobileView === "players"}
+          onClick={() => setMobileView("players")}
+        >
+          Players <span>{rows.length}</span>
+        </button>
+        <button
+          aria-pressed={mobileView === "analysis"}
+          disabled={!selected}
+          onClick={() => setMobileView("analysis")}
+        >
+          Player analysis
+        </button>
+      </div>
+      <div className="lc-dashboard" data-mobile-view={mobileView}>
+        <aside className="lc-master" aria-label="Player and market list">
+          <label className="lc-search">
+            <span className="sr-only">Search players or teams</span>
+            <input
+              type="search"
+              placeholder="Search player or team"
+              value={filters.search}
+              onChange={(e) => update("search", e.target.value)}
+            />
+          </label>
+          <div className="lc-market-tabs" role="group" aria-label="Market type">
+            <button
+              aria-pressed={!filters.market}
+              onClick={() => update("market", "")}
+            >
+              All props
+            </button>
+            {markets.map(([key, text]) => (
+              <button
+                key={key}
+                aria-pressed={filters.market === key}
+                onClick={() => update("market", key)}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+          <div className="lc-list-tools">
+            <label>
+              <span className="sr-only">Sort players</span>
+              <select
+                aria-label="Sort players"
+                value={filters.sort}
+                onChange={(e) => update("sort", e.target.value)}
+              >
+                <option value="time">Game time</option>
+                <option value="name">Player A–Z</option>
+                <option value="rate">Hit rate ↓</option>
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">Hit-rate window</span>
+              <select
+                aria-label="Hit-rate window"
+                value={filters.window}
+                onChange={(e) =>
+                  update("window", e.target.value as LabFilters["window"])
+                }
+              >
+                {[
+                  ["5", "L5"],
+                  ["10", "L10"],
+                  ["20", "L20"],
+                  ["season", "Season"],
+                  ["h2h", "H2H"],
+                ].map(([v, t]) => (
+                  <option key={v} value={v}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <details className="lc-list-filters">
+            <summary>
+              Player filters{" "}
+              <small>
+                {filters.minRate
+                  ? `${filters.minRate}%+ hit rate`
+                  : "Side, book & sample"}
+              </small>
+            </summary>
+            <div>
+              <label>
+                Side
+                <select
+                  value={filters.side}
+                  onChange={(e) => update("side", e.target.value)}
+                >
+                  <option value="">All sides</option>
+                  {[...new Set(contracts.map((c) => c.side))].map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Sportsbook
+                <select
+                  value={filters.book}
+                  onChange={(e) => update("book", e.target.value)}
+                >
+                  <option value="">All sportsbooks</option>
+                  {[...new Set(contracts.map((c) => c.book))].map((b) => (
+                    <option key={b} value={b}>
+                      {bookDisplayName(b)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Min. hit rate · {filters.minRate}%
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={filters.minRate}
+                  onChange={(e) => update("minRate", Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Min. sample
+                <input
+                  type="number"
+                  min="0"
+                  max="400"
+                  value={filters.minGames}
+                  onChange={(e) =>
+                    update(
+                      "minGames",
+                      Math.max(0, Math.min(400, Number(e.target.value))),
+                    )
+                  }
+                />
+              </label>
+            </div>
+          </details>
+          <div className="lc-column-labels">
+            <span>PLAYER / MARKET</span>
+            <span>LINE</span>
+            <span>
+              {filters.window === "season" ? "SEASON" : `L${filters.window}`}{" "}
+              HIT
+            </span>
+          </div>
+          <div
+            className="lc-player-scroll"
+            ref={listRef}
+            onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+            role="list"
+            aria-label="Available player props"
+            aria-busy={loading}
+          >
+            <div style={{ height: range.top }} aria-hidden="true" />
+            {visible.map((c, index) => {
+              const rate = currentRates(c, rates[c.id])?.windows?.[
+                filters.window
+              ];
+              const chosen =
+                c.id === selected ||
+                (active &&
+                  c.player === active.player &&
+                  c.market_key === active.market_key &&
+                  labGameId(c) === labGameId(active));
               return (
-                <tr key={c.id} aria-selected={selected === c.id}>
-                  <td>
-                    <span className="lab-player-choice">
-                      <Avatar
-                        kind="player"
-                        name={c.player}
-                        sportKey={c.sport_key}
-                        size={34}
-                      />
-                      <span>
-                        <strong>{c.player}</strong>
-                        <small>
-                          {label(c)} · {c.side}
-                          {["Over", "Under"].includes(c.side)
-                            ? ` ${c.point}`
-                            : ""}
-                        </small>
-                      </span>
+                <div
+                  role="listitem"
+                  key={c.id}
+                  aria-posinset={range.start + index + 1}
+                  aria-setsize={rows.length}
+                >
+                  <button
+                    className="lc-player"
+                    aria-pressed={!!chosen}
+                    onClick={() => pick(c.id)}
+                    title={`${c.player} · ${propLabel(c)} · ${c.away} @ ${c.home}`}
+                  >
+                    <Avatar
+                      kind="player"
+                      sportKey={c.sport_key}
+                      name={c.player}
+                      size={28}
+                    />
+                    <span className="lc-player-name">
+                      <strong>{c.player}</strong>
+                      <small>
+                        <span
+                          className="lc-mini-dots"
+                          aria-label="Last five games, oldest first"
+                        >
+                          {(
+                            currentRates(c, rates[c.id])?.recent_values ?? []
+                          ).map((v, i) => (
+                            <i
+                              key={i}
+                              title={`${v}: ${Number(v) === Number(c.point) ? "push" : (["Over", "Yes"].includes(c.side) ? Number(v) > Number(c.point) : Number(v) < Number(c.point)) ? "hit" : "miss"}`}
+                              style={{
+                                background:
+                                  Number(v) === Number(c.point)
+                                    ? "#a1a1aa"
+                                    : (
+                                          ["Over", "Yes"].includes(c.side)
+                                            ? Number(v) > Number(c.point)
+                                            : Number(v) < Number(c.point)
+                                        )
+                                      ? "#22c55e"
+                                      : "#ef4444",
+                              }}
+                            />
+                          ))}
+                        </span>
+                        {propLabel(c)} · {c.away} @ {c.home}
+                      </small>
                     </span>
-                  </td>
-                  <td>
-                    {c.away} @ {c.home}
-                    <small>
-                      {c.starts_at ? labDate(c.starts_at) : "Time unavailable"}
-                    </small>
-                  </td>
-                  <td>
-                    {bookDisplayName(c.book)}
-                    <strong>
-                      {c.price_kind === "indicative"
-                        ? "Indicative / lineup payout"
-                        : american(c.price)}
-                    </strong>
-                  </td>
-                  {["5", "10", "20", "season"].map((w) => {
-                    const r = history?.windows?.[w];
-                    return (
-                      <td key={w}>
-                        {r?.hit_rate != null ? (
-                          <>
-                            <strong>{(r.hit_rate * 100).toFixed(0)}%</strong>
-                            <small>
-                              {r.wins}/{r.wins + r.losses}
-                              {r.pushes ? ` · ${r.pushes} pushes` : ""}
-                            </small>
-                          </>
-                        ) : (
-                          <span title="Open player research or load missing game logs">
-                            —
-                          </span>
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td>
-                    <button
-                      className="button secondary"
-                      onClick={() => {
-                        setSelected(c.id);
-                        detail.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                      }}
+                    <span className="lc-line">
+                      <small>{c.side}</small>
+                      <strong>
+                        {["Yes", "No"].includes(c.side) ? "—" : c.point}
+                      </strong>
+                    </span>
+                    <span
+                      className={`lc-rate ${rate?.hit_rate != null && rate.hit_rate >= 0.7 ? "is-high" : ""}`}
+                      title={
+                        rate
+                          ? `${rate.wins}/${rate.wins + rate.losses} decisive games; ${rate.pushes} pushes`
+                          : "History not loaded"
+                      }
                     >
-                      {selected === c.id ? "Selected" : "View player"}
-                    </button>
-                  </td>
-                </tr>
+                      {rate?.hit_rate != null
+                        ? `${Math.round(rate.hit_rate * 100)}%`
+                        : "—"}
+                    </span>
+                  </button>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-      {count > 1 && (
-        <nav className="lab-board-actions" aria-label="Research board pages">
-          <button
-            className="button secondary"
-            disabled={!currentPage}
-            onClick={() => setPage(currentPage - 1)}
-          >
-            Previous
-          </button>
-          <span>
-            {currentPage + 1} / {count}
-          </span>
-          <button
-            className="button secondary"
-            disabled={currentPage >= count - 1}
-            onClick={() => setPage(currentPage + 1)}
-          >
-            Next
-          </button>
-        </nav>
-      )}
-      <div
-        ref={detail}
-        tabIndex={-1}
-        className="lab-report"
-        aria-label="Selected player research"
-      >
-        {busy && <p role="status">Loading this player's history and news…</p>}
-        {error && (
-          <div role="alert">
-            <p>{error}</p>
-            <button
-              className="button secondary"
-              onClick={() => setRetry((n) => n + 1)}
-            >
-              Try again
-            </button>
+            <div style={{ height: range.bottom }} aria-hidden="true" />
+            {loading && (
+              <div className="lc-list-empty" role="status">
+                Loading saved props…
+              </div>
+            )}
+            {!loading && !rows.length && (
+              <div className="lc-list-empty">
+                {contracts.length
+                  ? "No players match. Reset filters or load missing history."
+                  : "No saved props yet. This slate fills after the scheduled odds update."}
+              </div>
+            )}
           </div>
-        )}
-        {report &&
-          !busy &&
-          report.contract.id === selected &&
-          renderReport(report, contracts, setSelected)}
-        {!selected && (
-          <p className="lab-board-start">
-            Choose any prop above to explore its game logs, matchup, news and
-            sportsbook lines.
+          <footer className="lc-list-footer">
+            <span>{rows.length} player props</span>
+            <button
+              disabled={warming || loading || !base.length}
+              onClick={loadRates}
+            >
+              {warming ? "Loading…" : "Load hit rates"}
+            </button>
+            {warming && (
+              <button
+                onClick={() => {
+                  warmAbort.current?.abort();
+                  setWarming(false);
+                }}
+              >
+                Stop
+              </button>
+            )}
+          </footer>
+          <p className="lc-source-note">
+            Hit rates use loaded history, not win predictions. Missing history
+            is shown as —.
           </p>
-        )}
+        </aside>
+        <div
+          className="lc-detail"
+          aria-label="Selected player research"
+          aria-busy={busy}
+        >
+          {error && (
+            <div role="alert" className="lc-alert">
+              <p>{error}</p>
+              <button
+                className="button secondary"
+                onClick={() => setRetry((n) => n + 1)}
+              >
+                Try again
+              </button>
+            </div>
+          )}
+          {busy && (
+            <div className="lc-detail-loading" role="status">
+              <div className="lc-skeleton" />
+              <p>Loading player history & matchup…</p>
+              <div className="lc-skeleton lc-skeleton-chart" />
+            </div>
+          )}
+          {!busy && report && renderReport(report, contracts, pick)}
+          {!busy && !report && !error && (
+            <div className="lc-detail-empty">
+              <span>THE LAB</span>
+              <h2>Find your angle.</h2>
+              <p>
+                Choose a player to explore game logs, compare lines and research
+                the matchup.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+      {boardError && (
+        <p className="lc-alert" role="status">
+          {boardError}
+        </p>
+      )}
+      <footer className="lc-footnote">
+        Research all collected props, independent of +EV. Main line uses the
+        widest saved book coverage; alternate lines and exact offers are inside
+        player analysis. Sorting by hit rate uses loaded history only.
+      </footer>
     </section>
   );
 }
