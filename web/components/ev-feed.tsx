@@ -580,7 +580,8 @@ export default function EvFeed({
   onLiveMethod?: (method: string) => void;
 }) {
   const [devigMethod, setDevigMethod] = useState("current");
-  const parlay = useParlay();
+  const parlayContext = useParlay();
+  const parlay = liveRows === undefined ? parlayContext : null;
   useEffect(() => {
     if (parlay?.draft.active) setSelected(null);
   }, [parlay?.draft.active]);
@@ -861,14 +862,12 @@ export default function EvFeed({
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
           <DevigSelector value={devigMethod} onChange={setDevigMethod} />
-          <div className="ev-filter-actions">
-            <ParlayToolbar />
-            <FeedTimeFilter
-              live={liveRows !== undefined}
-              value={timeFilter}
-              onChange={setTimeFilter}
-            />
-          </div>
+          {liveRows === undefined && (
+            <div className="ev-filter-actions">
+              <ParlayToolbar />
+              <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+            </div>
+          )}
           <RangeFilter
             label="Minimum estimated win chance"
             value={minWinChance}

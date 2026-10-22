@@ -819,11 +819,9 @@ export default function ArbFeed({
       <section className="arb-layout" aria-label="Arbitrage feed">
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
-          <FeedTimeFilter
-            live={liveRows !== undefined}
-            value={timeFilter}
-            onChange={setTimeFilter}
-          />
+          {liveRows === undefined && (
+            <FeedTimeFilter value={timeFilter} onChange={setTimeFilter} />
+          )}
           <Menu
             title="Sportsbooks"
             items={bookItems}

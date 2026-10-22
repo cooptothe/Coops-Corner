@@ -23,7 +23,8 @@ export function useFeedTimeFilter(live = false) {
     setTimeFilter(value);
   };
   const matchesTime = useCallback(
-    (startsAt: string) => matchesFeedTime(startsAt, timeFilter, now, live),
+    // Live has no time controls; saved pregame windows must not hide live rows.
+    (startsAt: string) => live || matchesFeedTime(startsAt, timeFilter, now),
     [timeFilter, now, live],
   );
   return { timeFilter, setTimeFilter: choose, matchesTime };

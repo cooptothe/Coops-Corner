@@ -103,7 +103,8 @@ Live mode now renders the existing EV, Arbitrage and Middles components, includi
 saved filters, fair-price range, win-chance and EV controls, sizing and calculators.
 Live uses full calculator results and source quotes rather than a separate grid.
 The devig selector reprices saved live captures; it does not request provider odds.
-Time controls use elapsed start windows for live games; actual start times are retained.
+Live hides event-time controls and Parlay mode; saved pregame time windows and
+parlay drafts do not filter or intercept live rows. Actual start times are retained.
 Play/pause filters describe line availability; stale prices are never revived for stopped games.
 
 `python -m pipelines.live_odds_status` reads the ledger and reports cron freshness,
