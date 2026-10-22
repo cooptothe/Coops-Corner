@@ -10,7 +10,13 @@ import {
 import { Avatar } from "./media";
 import { american } from "../../frontend/format.mjs";
 import { bookDisplayName } from "../lib/bookmakers";
-import { labDate, labGameId, labDay, labLeg } from "../lib/lab";
+import {
+  labDate,
+  labGameId,
+  labDay,
+  labLeg,
+  labQuoteCurrent,
+} from "../lib/lab";
 import { useParlay } from "./parlay-builder";
 import {
   loadTrendOptions,
@@ -85,12 +91,32 @@ export default function LabResearchBrowser({
     loadTrendOptions(controller.signal)
       .then((data) => {
         if (controller.signal.aborted) return;
+        const incoming = new Map(data.contracts.map((c) => [c.id, c]));
+        const same = (report: TrendReport) => {
+          const c = incoming.get(report.contract.id);
+          return (
+            c &&
+            c.price === report.contract.price &&
+            c.observed_at === report.contract.observed_at &&
+            c.quote_status === report.contract.quote_status
+          );
+        };
+        reportCache.current = Object.fromEntries(
+          Object.entries(reportCache.current).filter(([, r]) => same(r)),
+        );
+        setReports((old) =>
+          Object.fromEntries(Object.entries(old).filter(([, r]) => same(r))),
+        );
         setContracts(data.contracts);
         const requested = data.contracts.find(
           (c) => c.bet_id === selectedBetId,
         );
         const first =
           requested ??
+          data.contracts.find(
+            (c) => c.sport_key === "basketball_nba" && labQuoteCurrent(c),
+          ) ??
+          data.contracts.find((c) => labQuoteCurrent(c)) ??
           data.contracts.find((c) => c.sport_key === "basketball_nba") ??
           data.contracts[0];
         if (first) {
@@ -118,6 +144,20 @@ export default function LabResearchBrowser({
     return () => controller.abort();
   }, [selectedBetId, retry]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!document.hidden) setRetry((n) => n + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+  const selectedQuote = contracts.find((c) => c.id === selected);
+  const selectedVersion = selectedQuote
+    ? JSON.stringify([
+        selectedQuote.price,
+        selectedQuote.observed_at,
+        selectedQuote.quote_status,
+      ])
+    : "";
   const viewFilters = useMemo(
     () => ({ ...filters, search }),
     [filters, search],
@@ -185,7 +225,7 @@ export default function LabResearchBrowser({
         if (!controller.signal.aborted) setBusy(false);
       });
     return () => controller.abort();
-  }, [selected, retry]);
+  }, [selected, retry, selectedVersion]);
   // Fetch cached summaries only for visible rows. No fan-out over the whole slate.
   const visibleIds = visible.map((c) => c.id).join(",");
   useEffect(() => {
@@ -639,7 +679,9 @@ export default function LabResearchBrowser({
                             />
                           ))}
                         </span>
-                        {propLabel(c)} · {c.away} @ {c.home}
+                        {propLabel(c)}
+                        {!labQuoteCurrent(c) && " · Saved"} · {c.away} @{" "}
+                        {c.home}
                       </small>
                     </span>
                     <span className="lc-line">
@@ -676,7 +718,7 @@ export default function LabResearchBrowser({
                   ? "The slate request failed. Use Reload slate above."
                   : contracts.length
                     ? "No players match. Reset filters or load missing history."
-                    : "No unexpired collected props are available. The Lab currently depends on saved odds; this does not mean there are no scheduled games or player statistics."}
+                    : "No research props have been saved yet. Once collected, props remain available here even when their odds expire."}
               </div>
             )}
           </div>
@@ -700,8 +742,8 @@ export default function LabResearchBrowser({
             )}
           </footer>
           <p className="lc-source-note">
-            Hit rates use loaded history, not win predictions. Missing history
-            is shown as —.
+            Saved lines remain available for research. Newer collected lines
+            update automatically. Missing game history is shown as —.
           </p>
         </aside>
         <div

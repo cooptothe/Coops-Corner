@@ -20,9 +20,18 @@ export function labDate(value: string, short = false): string {
   }).format(date);
 }
 
+export function labQuoteCurrent(
+  contract: TrendContract,
+  now = Date.now(),
+): boolean {
+  return (
+    (!contract.quote_status || contract.quote_status === "current") &&
+    (!contract.quote_expires_at || Date.parse(contract.quote_expires_at) > now)
+  );
+}
+
 export function labLeg(contract: TrendContract): ParlayLeg | null {
   if (
-    contract.commission === null ||
     !contract.event_id ||
     (["Yes", "No"].includes(contract.side) &&
       (contract.settlement_point !== null || contract.point !== "0.5")) ||
@@ -61,6 +70,7 @@ export function labLeg(contract: TrendContract): ParlayLeg | null {
         away: contract.away,
         home: contract.home,
         lab_contract_id: contract.id,
+        lab_saved_line: !labQuoteCurrent(contract),
       },
     },
     "prop",

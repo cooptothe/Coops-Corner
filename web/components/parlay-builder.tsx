@@ -15,7 +15,6 @@ import { american, date, fixed, mulDecimal } from "../../frontend/format.mjs";
 import { bookDisplayName, feedBooks } from "../lib/bookmakers";
 import { userStorage } from "../lib/user-storage";
 import {
-  combinedOdds,
   parlayKind,
   acceptedAmericanOdds,
   legKey,
@@ -25,7 +24,6 @@ import {
   type ParlayDraft,
   type ParlayLeg,
 } from "../lib/parlay";
-import { refreshParlay } from "../lib/parlay-refresh";
 import { addBets } from "../lib/tracker-api";
 import { notifyLogged } from "../lib/slip";
 import { BetLinkButton } from "./bet-link";
@@ -66,13 +64,9 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [checked, setChecked] = useState<number | null>(null);
-  const [missing, setMissing] = useState<string[]>([]);
-  const [changed, setChanged] = useState<string[]>([]);
   const [acceptedOdds, setAcceptedOdds] = useState("");
   const [placedAt, setPlacedAt] = useState("");
   const [confirmed, setConfirmed] = useState(false);
-  const [now, setNow] = useState(0);
   const [available, setAvailable] = useState<Record<string, ParlayLeg[]>>({});
   const draftRef = useRef(draft);
   const busyRef = useRef(busy);
@@ -147,24 +141,8 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (ready) userStorage.setItem(STORAGE, JSON.stringify(draft));
   }, [draft, ready]);
-  useEffect(() => {
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 15000);
-    return () => clearInterval(timer);
-  }, []);
   const register = useCallback((source: string, legs: ParlayLeg[]) => {
     setAvailable((current) => ({ ...current, [source]: legs }));
-    const selected = draftRef.current.legs.filter(
-      (leg) =>
-        leg.source === source ||
-        (source === "lab" && typeof leg.ref.lab_contract_id === "string"),
-    );
-    if (
-      selected.some(
-        (leg) => !legs.some((l) => l.key === leg.key && l.odds === leg.odds),
-      )
-    )
-      setChecked(null);
   }, []);
   const toggle = useCallback((leg: ParlayLeg) => {
     if (busyRef.current) return;
@@ -185,9 +163,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
     }
     setError("");
     setNotice("");
-    setChecked(null);
-    setMissing([]);
-    setChanged([]);
+
     setConfirmed(false);
     setOpen((wasOpen) =>
       window.matchMedia("(max-width:700px)").matches ? wasOpen : true,
@@ -212,14 +188,14 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
     }),
     [draft, toggle, register],
   );
-  const estimated = combinedOdds(draft.legs);
+  const estimated = (() => {
+    try {
+      return acceptedOdds.trim() ? acceptedAmericanOdds(acceptedOdds) : null;
+    } catch {
+      return null;
+    }
+  })();
   const handoff = parlayHandoff(draft.legs, state);
-  const validReview =
-    checked !== null &&
-    now - checked < 60000 &&
-    !missing.length &&
-    !changed.length;
-  const started = draft.legs.some((leg) => Date.parse(leg.startsAt) <= now);
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
     setError("");
@@ -233,30 +209,10 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
       setBusy(false);
     }
   };
-  const review = () =>
-    run(async () => {
-      const before = draftRef.current;
-      const result = await refreshParlay(before.legs);
-      if (JSON.stringify(before.legs) !== JSON.stringify(draftRef.current.legs))
-        throw new Error(
-          "The slip changed while checking. Review the current slip again.",
-        );
-      setDraft({ ...draftRef.current, legs: result.legs });
-      setMissing(result.missing);
-      setChanged(result.changed);
-      setChecked(Date.now());
-      setNotice(
-        result.missing.length
-          ? "Remove unavailable legs before continuing."
-          : result.changed.length
-            ? "Prices changed. Review the updated odds and accept them below."
-            : "All legs match the newest stored odds.",
-      );
-    });
   const log = () =>
     run(async () => {
-      if (!confirmed || !validReview || started)
-        throw new Error("Review the legs and confirm placement first.");
+      if (!confirmed)
+        throw new Error("Confirm that you placed this wager first.");
       if (
         !/^\d{1,9}(\.\d{1,2})?$/.test(draft.stake) ||
         Number(draft.stake) <= 0
@@ -299,7 +255,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
       setAcceptedOdds("");
       setPlacedAt("");
       setDraft(emptyDraft());
-      setChecked(null);
+
       setConfirmed(false);
       setOpen(false);
       setNotice("Parlay recorded in your tracker.");
@@ -380,7 +336,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
                     );
                     setPicker(false);
                     setOpen(true);
-                    setChecked(null);
+
                     setNotice("");
                     setError("");
                   }}
@@ -432,9 +388,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
                 )
                   return;
                 setDraft({ ...emptyDraft(), book: draft.book, active: true });
-                setChecked(null);
-                setMissing([]);
-                setChanged([]);
+
                 setNotice("");
                 setError("");
               }}
@@ -471,12 +425,6 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
                 >
                   ✕
                 </button>
-                {missing.includes(leg.key) && (
-                  <small role="alert">Unavailable—remove this leg</small>
-                )}
-                {changed.includes(leg.key) && (
-                  <small>Updated price—review required</small>
-                )}
                 <BetLinkButton
                   links={leg.links}
                   bookLabel={bookDisplayName(leg.book)}
@@ -497,10 +445,9 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
           </label>
           {draft.legs.length >= 2 && estimated !== null && (
             <p className="parlay-estimate">
-              Indicative odds before parlay fees{" "}
-              <strong>{american(estimated)}</strong>
+              Entered combined odds <strong>{american(estimated)}</strong>
               <br />
-              Indicative gross return{" "}
+              Potential gross return{" "}
               <strong>
                 $
                 {/^[\d]+(\.\d{1,2})?$/.test(draft.stake) &&
@@ -514,36 +461,19 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
             <p className="parlay-estimate">
               Combined odds and return: <strong>Get quote at sportsbook</strong>
               <br />
-              Same-game legs can be correlated. Individual prices cannot
-              determine the combined payout. Enter the accepted combined
-              American odds below after placement.
+              Enter your sportsbook's combined American odds below. Individual
+              leg prices are reference information only; no live quote review is
+              required to record your wager.
             </p>
           )}
-          <button
-            className="button secondary"
-            disabled={busy || draft.legs.length < 2}
-            onClick={review}
-          >
-            {busy ? "Checking…" : "Review current odds"}
-          </button>
-          {changed.length > 0 && !missing.length && (
-            <button
-              className="button secondary"
-              onClick={() => {
-                setChanged([]);
-                setChecked(Date.now());
-              }}
-            >
-              Accept updated prices
-            </button>
-          )}
+          {busy && <p role="status">Saving…</p>}
           {notice && <p role="status">{notice}</p>}
           {error && (
             <p role="alert" className="parlay-error">
               {error}
             </p>
           )}
-          {handoff.url && validReview && !started ? (
+          {handoff.url ? (
             <a
               className="button"
               href={handoff.url}
@@ -587,7 +517,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
           >
             Copy slip
           </button>
-          <details className="parlay-record">
+          <details className="parlay-record" open>
             <summary>Already placed? Track this parlay</summary>
             <label className="field">
               <span>ACCEPTED AMERICAN ODDS</span>
@@ -617,13 +547,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
             </label>
             <button
               className="button"
-              disabled={
-                busy ||
-                !confirmed ||
-                !validReview ||
-                started ||
-                draft.legs.length < 2
-              }
+              disabled={busy || !confirmed || draft.legs.length < 2}
               onClick={log}
             >
               Record placed parlay

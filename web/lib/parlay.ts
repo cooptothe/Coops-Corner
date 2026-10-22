@@ -90,15 +90,12 @@ export function builderLeg(bet: BuilderBet, source: "ev" | "prop"): ParlayLeg {
 export function selectionProblem(
   draft: ParlayDraft,
   leg: ParlayLeg,
-  now = Date.now(),
+  _now = Date.now(),
 ) {
   if (leg.book !== draft.book)
     return "Choose a bet from the selected sportsbook.";
-  if (
-    !Number.isFinite(Date.parse(leg.startsAt)) ||
-    Date.parse(leg.startsAt) <= now
-  )
-    return "This game has already started or has no valid start time.";
+  if (!Number.isFinite(Date.parse(leg.startsAt)))
+    return "This selection has no valid event date.";
   if (
     !/^\d+(\.\d{1,12})?$/.test(leg.odds) ||
     !(Number(leg.odds) > 1) ||

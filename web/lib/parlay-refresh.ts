@@ -1,4 +1,5 @@
-import { trendsRequest, type TrendContract } from "./trends-api";
+import { labQuoteCurrent } from "./lab";
+import { loadTrendOptions, type TrendContract } from "./trends-api";
 import { request, sharedPages } from "./api";
 import { reloadTools, loadProps } from "./refresh-api";
 import type { Capabilities, Quote } from "./contracts";
@@ -26,12 +27,7 @@ export async function refreshParlay(legs: ParlayLeg[]) {
   }
   const props = needProps ? ((await loadProps()).bets ?? []) : [];
   const lab = needLab
-    ? (
-        await trendsRequest<{ contracts: TrendContract[] }>(
-          "/options",
-          new AbortController().signal,
-        )
-      ).contracts
+    ? (await loadTrendOptions(new AbortController().signal)).contracts
     : [];
   const missing: string[] = [];
   const changed: string[] = [];
@@ -68,13 +64,16 @@ export async function refreshParlay(legs: ParlayLeg[]) {
     if (leg.ref.lab_contract_id) {
       const c = lab.find(
         (c) =>
+          labQuoteCurrent(c) &&
           c.id === leg.ref.lab_contract_id &&
           c.event_id === leg.eventId &&
           c.book === leg.book &&
           c.market_key === leg.ref.prop_market &&
           c.player === leg.ref.player &&
           c.side.toLowerCase() === leg.ref.side &&
-          Number(c.point) === Number(leg.ref.point),
+          (c.settlement_point === null
+            ? leg.ref.point == null
+            : Number(c.point) === Number(leg.ref.point)),
       );
       if (!c) {
         missing.push(leg.key);

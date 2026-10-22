@@ -61,3 +61,14 @@ test("Lab schedule dates use Central time across UTC midnight", async () => {
   assert.equal(labDay("2026-10-18T02:00:00Z"), "2026-10-17");
   assert.equal(labDay("invalid"), "");
 });
+
+test("saved Lab lines can be selected for manual parlay recording without a live quote", () => {
+  const saved = labLeg({
+    ...contract,
+    commission: null,
+    quote_status: "stale",
+  });
+  assert.ok(saved);
+  assert.equal(saved.ref.lab_saved_line, true);
+  assert.ok(labLeg({ ...contract, quote_status: "past_event" }));
+});

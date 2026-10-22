@@ -1,5 +1,5 @@
 import type { TrendContract } from "./trends-api";
-import { labGameId } from "./lab";
+import { labGameId, labQuoteCurrent } from "./lab";
 
 export const propLabel = (c: TrendContract) =>
   c.market_label ??
@@ -29,7 +29,21 @@ export function labPlayerRows(contracts: TrendContract[]): TrendContract[] {
     group.push(c);
     groups.set(key, group);
   }
-  return [...groups.values()].map((group) => {
+  return [...groups.values()].map((all) => {
+    const fresh = all.filter((c) => labQuoteCurrent(c));
+    const latest = new Map<string, number>();
+    for (const c of all)
+      latest.set(
+        c.book,
+        Math.max(latest.get(c.book) ?? 0, Date.parse(c.observed_at ?? "") || 0),
+      );
+    const group = fresh.length
+      ? fresh
+      : all.filter(
+          (c) =>
+            (Date.parse(c.observed_at ?? "") || 0) ===
+            (latest.get(c.book) ?? 0),
+        );
     const lines = new Map<string, Set<string>>();
     for (const c of group) {
       const books = lines.get(c.point) ?? new Set<string>();

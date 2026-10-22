@@ -87,8 +87,9 @@ test("mixed-source draft restores exactly and selection blocks incompatible legs
   assert.ok(selectionProblem(draft, { ...leg(2), book: "draftkings" }));
   assert.ok(selectionProblem(draft, leg(1)));
   assert.ok(selectionProblem(draft, { ...leg(2), matchup: leg(1).matchup }));
-  assert.ok(
+  assert.equal(
     selectionProblem(draft, { ...leg(2), startsAt: new Date(0).toISOString() }),
+    null,
   );
   assert.equal(selectionProblem(draft, leg(2, "prop")), null);
   assert.ok(selectionProblem(draft, { ...leg(2, "prop"), matchup: "A1 @ B1" }));

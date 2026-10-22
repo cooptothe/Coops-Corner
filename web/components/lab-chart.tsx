@@ -5,7 +5,7 @@ import {
   type HistorySplits,
   type HistoryWindow,
 } from "../lib/lab-history";
-import { labDate } from "../lib/lab";
+import { labDate, labQuoteCurrent } from "../lib/lab";
 import type { TrendContract, TrendReport } from "../lib/trends-api";
 import { Avatar } from "./media";
 import { american } from "../../frontend/format.mjs";
@@ -115,7 +115,10 @@ export function LabChart({
       0,
       ...related
         .filter(
-          (q) => q.side === quotedSide(choice) && q.price_kind !== "indicative",
+          (q) =>
+            q.side === quotedSide(choice) &&
+            q.price_kind !== "indicative" &&
+            labQuoteCurrent(q),
         )
         .map((q) => Number(q.price)),
     );
@@ -571,18 +574,25 @@ export function LabChart({
               {related.map((q) => (
                 <div
                   key={q.id}
-                  className={`lab-offer ${q.price_kind !== "indicative" && Number(q.price) === best(q.side) ? "best" : ""}`}
+                  className={`lab-offer ${labQuoteCurrent(q) && q.price_kind !== "indicative" && Number(q.price) === best(q.side) ? "best" : ""}`}
                 >
                   <div>
-                    <strong>{bookDisplayName(q.book)}</strong>
+                    <strong>
+                      {bookDisplayName(q.book)}
+                      {!labQuoteCurrent(q) && " · Saved line"}
+                    </strong>
                     <span>
+                      {q.observed_at && !labQuoteCurrent(q) && (
+                        <small>Last saved {labDate(q.observed_at)} · </small>
+                      )}
                       {q.side}{" "}
                       {["Over", "Under"].includes(q.side) ? q.point : ""} ·{" "}
                       {q.price_kind === "indicative"
                         ? "Indicative price; lineup payout"
                         : american(q.price)}
                     </span>
-                    {q.price_kind !== "indicative" &&
+                    {labQuoteCurrent(q) &&
+                      q.price_kind !== "indicative" &&
                       Number(q.price) === best(q.side) && (
                         <small>Best listed odds</small>
                       )}

@@ -18,6 +18,19 @@ class ParlayTracker(unittest.TestCase):
         self.db = TrackerStore(f'{temp.name}/tracker.sqlite3'); self.addCleanup(self.db.close)
         self.ledger = self.db.ledger(self.db.create_user('User', 'user', 'hash')['id'])
 
+    def test_manual_combined_odds_record_past_saved_legs_without_quote_checks(self):
+        item=parlay('manual-saved')
+        item['odds']='7.5'
+        for leg in item['legs']:
+            leg['starts_at']='2000-01-01T20:00:00Z'
+            leg['ref']['lab_saved_line']=True
+        saved=self.ledger.add_bets([item])[0]
+        self.assertEqual(saved['odds'],'7.5')
+        self.assertEqual(saved['stake_cents'],2500)
+        self.assertEqual(len(saved['legs']),2)
+        won=self.ledger.settle_bet(saved['id'],'won')
+        self.assertEqual(won['returned_cents'],18750)
+
     def test_parent_stake_and_payout_are_counted_once_and_idempotent(self):
         first = self.ledger.add_bets([parlay()])[0]
         second = self.ledger.add_bets([parlay()])[0]

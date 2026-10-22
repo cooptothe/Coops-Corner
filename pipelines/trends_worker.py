@@ -23,7 +23,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--limit',type=int,default=20,choices=range(1,41),metavar='1-40')
     args=parser.parse_args()
-    print(json.dumps(warm(Trends(),contracts().values(),args.limit)))
+    print(json.dumps(warm(Trends(),contracts(research=True,persist=True).values(),args.limit)))
 
 
 if __name__=='__main__':main()

@@ -131,8 +131,13 @@ export function filterLabBoard(
         currentRates(b, rates[b.id])?.windows?.[filters.window]?.hit_rate ?? -1;
       if (x !== y) return y - x;
     }
+    const left = Date.parse(a.starts_at ?? ""),
+      right = Date.parse(b.starts_at ?? "");
+    const leftPast = left <= Date.now(),
+      rightPast = right <= Date.now();
+    if (leftPast !== rightPast) return leftPast ? 1 : -1;
     return (
-      Date.parse(a.starts_at ?? "") - Date.parse(b.starts_at ?? "") ||
+      (leftPast ? right - left : left - right) ||
       a.player.localeCompare(b.player) ||
       a.id.localeCompare(b.id)
     );

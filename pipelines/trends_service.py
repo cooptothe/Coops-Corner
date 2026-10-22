@@ -250,15 +250,35 @@ class Trends:
             for model in result['projection'].get('models',[]):
                 model['ev'] = None
             result['flags'].append('Execution fees are unknown; return estimates are unavailable. Historical hit rates remain researchable.')
-        if (instant(contract['starts_at']) or 0)<=self.clock():
+        if (instant(contract['starts_at']) or 0)<=self.clock() and contract.get('quote_status')!='past_event':
             raise ResearchUnavailable('This event has started.')
         return result
 
 
-def contracts():
+_catalog_cache = {}
+_catalog_lock = threading.Lock()
+
+def contracts(*,research=False,persist=False):
+    if not research or not persist:return _contracts(research=research,persist=persist)
+    key=(os.environ.get('CORNER_TRENDS_DB',''),os.environ.get('CORNER_COLLECTION_DB',''),str(props_ingestion.STORE))
+    with _catalog_lock:
+        cached=_catalog_cache.get(key)
+        if cached and 0<=time.time()-cached[0]<5:return cached[1]
+        result=_contracts(research=True,persist=True)
+        _catalog_cache.clear()
+        _catalog_cache[key]=(time.time(),result)
+        return result
+
+def _contracts(*,research=False,persist=False):
     """Include retained one-sided props even when market-consensus EV is unavailable."""
     output, conflicts = {},set()
-    data = props_ingestion.prune(props_ingestion.load(),max_age=props_ingestion.MAX_AGE)
+    if research:
+        from corner.collection_readers import store_path
+        from pipelines.collection_publication import read_props
+        path=store_path()
+        data=read_props(path,research=True) if path else props_ingestion.load()
+    else:
+        data = props_ingestion.prune(props_ingestion.load(),max_age=props_ingestion.MAX_AGE)
     for eid,event in data['events'].items():
         for market,stored in event['markets'].items():
             for quote in stored['quotes']:
@@ -272,8 +292,9 @@ def contracts():
                 if point is None or price is None or price<=1 or quote.get('side') not in (0,1):
                     continue
                 observed = instant(quote.get('updated_at') or stored.get('captured_at'))
-                if observed is None or not -60 <= time.time()-observed <= props_ingestion.MAX_AGE:
+                if observed is None or time.time()-observed < -60:
                     continue
+                if not research and time.time()-observed > props_ingestion.MAX_AGE:continue
                 key = [eid,market,quote['player'],str(point),quote['side'],quote['book']]
                 ident = hashlib.sha256(json.dumps(key).encode()).hexdigest()
                 if ident in conflicts:
@@ -294,6 +315,17 @@ def contracts():
                 output[ident]['source_ids'] = quote.get('source_ids')
                 output[ident]['observed_at'] = quote.get('updated_at') or stored.get('captured_at')
                 output[ident]['links'] = quote.get('links')
+                if research:
+                    start=instant(event['commence_time'])
+                    captured=instant(stored.get('captured_at')) or observed
+                    expiry=min(observed+props_ingestion.MAX_AGE,captured+props_ingestion.MAX_AGE,start or 0)
+                    status='past_event' if start is not None and start<=time.time() else 'current' if expiry>time.time() and quote.get('_research_active',True) else 'stale'
+                    output[ident].update(quote_status=status,quote_expires_at=datetime.fromtimestamp(expiry,timezone.utc).isoformat())
+                    if status!='current':output[ident].update(commission=None,links=None)
+    if research and persist:
+        from corner.lab_catalog import remember
+        cache=Path(os.environ.get('CORNER_TRENDS_DB',str(ROOT/'retained/trends.sqlite3'))).with_name('lab-catalog.sqlite3')
+        return remember(output,cache,time.time())
     return output
 
 
@@ -309,9 +341,9 @@ def create_router(ctx,service=None):
             if not 0<=offset<=100000 or not 1<=limit<=1000:raise ValueError
         except ValueError:
             return JSONResponse({'error':'Invalid research page.'},status_code=422)
-        items = await run_in_threadpool(contracts)
+        items = await run_in_threadpool(contracts,research=True,persist=True)
         ordered=sorted(items.values(),key=lambda item:item['id'])
-        snapshot=hashlib.sha256(json.dumps([[item['id'],item['price'],item.get('observed_at'),item.get('starts_at')] for item in ordered],separators=(',',':')).encode()).hexdigest()
+        snapshot=hashlib.sha256(json.dumps([[item['id'],item['price'],item.get('observed_at'),item.get('starts_at'),item.get('quote_status')] for item in ordered],separators=(',',':')).encode()).hexdigest()
         next_offset=offset+limit if offset+limit<len(ordered) else None
         return JSONResponse({'contracts':ordered[offset:offset+limit],'supported_sports':list(LEAGUES),
                              'total':len(ordered),'offset':offset,'next_offset':next_offset,'snapshot_id':snapshot},headers={'Cache-Control':'no-store'})
@@ -324,7 +356,7 @@ def create_router(ctx,service=None):
         if warm not in ('0','1') or len(ids) > (5 if warm=='1' else 40) or any(not 1<=len(i)<=128 for i in ids):
             return JSONResponse({'error':'Invalid research board request.'},status_code=422)
         def scan():
-            items = contracts()
+            items = contracts(research=True,persist=True)
             result=[]
             for ident in ids:
                 item=items.get(ident)
@@ -352,13 +384,13 @@ def create_router(ctx,service=None):
         _,denied = ctx.require(request,write=False)
         if denied:return denied
         ident = request.query_params.get('id','')
-        items = await run_in_threadpool(contracts)
+        items = await run_in_threadpool(contracts,research=True,persist=True)
         if ident not in items:
             return JSONResponse({'error':'This quote expired or is no longer available.'},status_code=404)
         try:
             result = await run_in_threadpool(service.research,items[ident])
-            latest = (await run_in_threadpool(contracts)).get(ident)
-            if latest is None or latest['price']!=items[ident]['price'] or latest.get('observed_at')!=items[ident].get('observed_at'):
+            latest = (await run_in_threadpool(contracts,research=True,persist=True)).get(ident)
+            if latest is None or latest['price']!=items[ident]['price'] or latest.get('observed_at')!=items[ident].get('observed_at') or latest.get('quote_status')!=items[ident].get('quote_status'):
                 return JSONResponse({'error':'This quote changed while research loaded. Select it again to review the current price.'},status_code=409,headers={'Cache-Control':'no-store'})
             return JSONResponse(result,headers={'Cache-Control':'no-store'})
         except ResearchUnavailable as error:

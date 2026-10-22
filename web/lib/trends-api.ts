@@ -2,6 +2,8 @@ import { notifyUnauthorized } from "./auth-api";
 import type { QuoteLinks } from "./bet-links";
 
 export interface TrendContract {
+  quote_status?: "current" | "stale" | "past_event";
+  quote_expires_at?: string;
   settlement_point?: string | null;
   projection_plan?: { method: string; requires: string[] };
   event_id?: string;

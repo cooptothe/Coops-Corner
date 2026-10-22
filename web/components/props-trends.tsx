@@ -3,7 +3,7 @@ import { memo } from "react";
 import LabResearchBrowser from "./lab-research-browser";
 import { LabInsight } from "./lab-insight";
 import { LabChart } from "./lab-chart";
-import { labDate, labLeg } from "../lib/lab";
+import { labDate, labLeg, labQuoteCurrent } from "../lib/lab";
 import { useParlay } from "./parlay-builder";
 import { PROP_BOOKS } from "../lib/bookmakers";
 import { BetLinkButton } from "./bet-link";
@@ -30,7 +30,7 @@ function AddToParlay({ contract }: { contract: TrendContract }) {
     <button
       type="button"
       className="button secondary"
-      disabled={wrongBook || Date.parse(leg.startsAt) <= Date.now()}
+      disabled={wrongBook}
       onClick={() =>
         parlay.draft.active ? parlay.toggle(leg) : parlay.start()
       }
@@ -59,7 +59,10 @@ function TrendResultsView({
     <div className="trend-results">
       <header className="lc-selected-offer">
         <p>
-          Selected offer · {bookName(report.contract.book)}{" "}
+          {labQuoteCurrent(report.contract)
+            ? "Selected offer"
+            : "Saved research line — not current odds"}{" "}
+          · {bookName(report.contract.book)}{" "}
           {report.contract.price_kind === "indicative"
             ? "Indicative price; check lineup payout"
             : american(report.contract.price)}{" "}
@@ -74,13 +77,15 @@ function TrendResultsView({
             current price at the book.
           </p>
         )}
-        {report.contract.links && report.contract.starts_at && (
-          <BetLinkButton
-            links={report.contract.links}
-            bookLabel={bookName(report.contract.book)}
-            startsAt={report.contract.starts_at}
-          />
-        )}
+        {labQuoteCurrent(report.contract) &&
+          report.contract.links &&
+          report.contract.starts_at && (
+            <BetLinkButton
+              links={report.contract.links}
+              bookLabel={bookName(report.contract.book)}
+              startsAt={report.contract.starts_at}
+            />
+          )}
         <AddToParlay contract={report.contract} />
       </header>
       <LabChart

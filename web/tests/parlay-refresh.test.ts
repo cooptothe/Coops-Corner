@@ -49,14 +49,24 @@ test("Lab review checks retained one-sided quotes, changes and withdrawals", asy
     },
   ];
   globalThis.fetch = async (input) => {
-    assert.equal(String(input), "/api/refresh/v1/props/trends/options");
-    return Response.json({ contracts });
+    assert.ok(
+      String(input).startsWith("/api/refresh/v1/props/trends/options?"),
+    );
+    return Response.json({
+      contracts,
+      snapshot_id: "test",
+      total: contracts.length,
+      offset: 0,
+      next_offset: null,
+    });
   };
   try {
     const result = await refreshParlay([leg]);
     assert.deepEqual(result.changed, ["prop"]);
     assert.deepEqual(result.missing, []);
     assert.equal(result.legs[0].odds, "2.3");
+    contracts = [{ ...(contracts[0] as object), quote_status: "stale" }];
+    assert.deepEqual((await refreshParlay([leg])).missing, ["prop"]);
     contracts = [];
     assert.deepEqual((await refreshParlay([leg])).missing, ["prop"]);
   } finally {

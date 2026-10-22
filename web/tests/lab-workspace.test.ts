@@ -71,3 +71,25 @@ test("board preserves book votes before selecting the primary line", () => {
   const rows = labPlayerRows(labBoardBase(offers, DEFAULT_LAB_FILTERS, true));
   assert.equal(rows[0].point, "21.5");
 });
+
+test("new current lines replace stale research defaults", () => {
+  const stale = {
+    ...quote("old", "a", "20.5"),
+    quote_status: "stale" as const,
+    observed_at: "2026-01-01T00:00:00Z",
+  };
+  const fresh = {
+    ...quote("new", "b", "22.5"),
+    quote_status: "current" as const,
+  };
+  assert.equal(
+    labPlayerRows([stale, { ...stale, id: "old2", book: "c" }, fresh])[0].id,
+    "new",
+  );
+  const saved = {
+    ...quote("saved", "a", "23.5"),
+    quote_status: "stale" as const,
+    observed_at: "2026-01-02T00:00:00Z",
+  };
+  assert.equal(labPlayerRows([stale, saved])[0].id, "saved");
+});
