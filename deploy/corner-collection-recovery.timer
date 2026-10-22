@@ -1,0 +1,10 @@
+[Unit]
+Description=Check paused Corner collection every two minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitInactiveSec=2min
+Unit=corner-collection-recovery.service
+
+[Install]
+WantedBy=timers.target

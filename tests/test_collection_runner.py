@@ -151,3 +151,36 @@ class RunnerTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class PublicationResilienceTests(unittest.TestCase):
+    setUp = RunnerTests.setUp
+    tearDown = RunnerTests.tearDown
+    discover = RunnerTests.discover
+    transport = RunnerTests.transport
+    runner = RunnerTests.runner
+    def test_bad_capture_is_retained_without_blocking_good_capture(self):
+        from corner.featured_markets import FeaturedMarketError
+        r=self.runner()
+        r.tick()
+        count=self.g.db.execute('SELECT count(*) FROM publication_outbox').fetchone()[0]
+        self.assertGreater(count,1)
+        calls=[]
+        def publish(token,record):
+            calls.append(token)
+            if len(calls)==1: raise FeaturedMarketError('invalid provider quote')
+        r.publisher=publish
+        self.assertEqual(r.tick()['state'],'publication_quarantined')
+        self.assertEqual(self.g.db.execute('SELECT count(*) FROM publication_failures WHERE quarantined=1').fetchone()[0],1)
+        self.g.release(r.owner)
+        r = self.runner(publisher=publish)
+        r.tick()
+        self.assertEqual(len(calls),2)
+        self.assertEqual(self.g.db.execute('SELECT count(*) FROM publication_outbox WHERE published_at IS NULL').fetchone()[0],count-1)
+    def test_database_failure_backoff_buys_nothing(self):
+        r=self.runner()
+        r.tick()
+        self.calls.clear()
+        r.publisher=lambda *args: (_ for _ in ()).throw(RuntimeError('database unavailable'))
+        self.assertEqual(r.tick()['state'],'publication_failed')
+        self.assertEqual(r.tick()['state'],'publication_backoff')
+        self.assertEqual(self.calls,[])

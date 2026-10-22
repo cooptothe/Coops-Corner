@@ -1,0 +1,10 @@
+[Unit]
+Description=Bounded recovery of one uncertain Corner collection request
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/srv/corner/app
+ExecStart=/bin/bash /srv/corner/app/deploy/collection-watchdog.sh
+TimeoutStartSec=180

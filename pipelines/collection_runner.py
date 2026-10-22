@@ -13,6 +13,7 @@ import time
 
 from corner.collection_policy import aware, open_now, parse, plan
 from corner.credit_governor import Governor, Refused
+from corner.featured_markets import FeaturedMarketError
 from pipelines.collection_worker import fixture_transport
 
 
@@ -32,6 +33,9 @@ class Runner:
         self.max_jobs = max_jobs
         self.should_stop = should_stop or (lambda: False)
         self.g.db.executescript('''
+          CREATE TABLE IF NOT EXISTS publication_failures (
+            token TEXT PRIMARY KEY, failures INTEGER NOT NULL, retry_at REAL NOT NULL,
+            quarantined INTEGER NOT NULL DEFAULT 0, error_type TEXT, sqlstate TEXT);
           CREATE TABLE IF NOT EXISTS runner_inventory (
             id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT, captured REAL,
             retry_at REAL NOT NULL DEFAULT 0, failures INTEGER NOT NULL DEFAULT 0,
@@ -58,11 +62,15 @@ class Runner:
         # Publication retries buy no odds. A failing writer stops new purchases.
         published = 0
         if self.publisher:
+            row = None
             try:
                 # One outbox item per tick bounds writer work and refreshes clocks.
                 row = self.g.db.execute('SELECT token,payload FROM publication_outbox '
-                                        'WHERE published_at IS NULL ORDER BY rowid LIMIT 1').fetchone()
+                                        'WHERE published_at IS NULL AND token NOT IN (SELECT token FROM publication_failures WHERE quarantined=1) ORDER BY rowid LIMIT 1').fetchone()
                 if row:
+                    failure = self.g.db.execute('SELECT retry_at FROM publication_failures WHERE token=?', (row['token'],)).fetchone()
+                    if failure and failure[0] > self.now().timestamp():
+                        return {'state': 'publication_backoff', 'executed': 0}
                     self.g._fence(self.g.db, self.owner, self.now().timestamp())
                     self.publisher(row['token'], json.loads(row['payload']))
                     with self.g.transaction() as db:
@@ -70,9 +78,33 @@ class Runner:
                         db.execute('UPDATE publication_outbox SET published_at=? WHERE token=?',
                                    (self.now().timestamp(), row['token']))
                     published = 1
-                if self.g.db.execute('SELECT 1 FROM publication_outbox WHERE published_at IS NULL').fetchone():
+                if self.g.db.execute('SELECT 1 FROM publication_outbox WHERE published_at IS NULL AND token NOT IN (SELECT token FROM publication_failures WHERE quarantined=1)').fetchone():
                     return {'state': 'publication_pending', 'executed': 0, 'published': published}
             except Exception as error:
+                # Only a definitive provider-boundary rejection is isolated.
+                # Database/configuration failures still block purchases.
+                if row is None:
+                    return {'state': 'publication_failed', 'executed': 0,
+                            'error_type': type(error).__name__, 'sqlstate': getattr(error,'pgcode',None)}
+                quarantined = isinstance(error, FeaturedMarketError)
+                with self.g.transaction() as db:
+                    self.g._fence(db, self.owner, self.now().timestamp())
+                    prior = db.execute('SELECT failures FROM publication_failures WHERE token=?', (row['token'],)).fetchone()
+                    failures = (prior[0] if prior else 0) + 1
+                    db.execute('INSERT OR REPLACE INTO publication_failures VALUES(?,?,?,?,?,?)',
+                               (row['token'], failures, self.now().timestamp()+min(300, 5*2**min(failures-1,6)),
+                                int(quarantined), type(error).__name__, getattr(error,'pgcode',None)))
+                    if quarantined:
+                        record = json.loads(row['payload'])
+                        # Do not serve the rejected capture from SQLite either.
+                        job = record['job']
+                        for book in job['books']:
+                            for market in job['markets']:
+                                db.execute('UPDATE snapshots SET expires_at=0 WHERE captured_at=? AND kind=? AND sport=? AND book=? AND market=?',
+                                           (parse(record['captured_at']).timestamp(), job['kind'], job['sport'], book, market))
+                if quarantined:
+                    return {'state': 'publication_quarantined', 'executed': 0,
+                            'error_type': type(error).__name__}
                 # Class and SQLSTATE are safe diagnostics; never log raw SQL,
                 # connection strings, response bodies or exception messages.
                 return {'state': 'publication_failed', 'executed': 0,
