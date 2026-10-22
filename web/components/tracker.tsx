@@ -50,7 +50,7 @@ import {
   PickMenu,
 } from "./tracker-parts";
 
-const DAY = 86400000;
+import { PERFORMANCE_WINDOWS, performanceBounds } from "../lib/tracker-windows";
 type TrackerSettings = {
   tab: string;
   windowDays: number;
@@ -284,7 +284,9 @@ export default function Tracker() {
     apply: (s) => {
       setTab(choice(s.tab, ["bets", "bankroll"] as const, "bets"));
       setWindowDays(
-        s.windowDays === 7 || s.windowDays === 30 ? s.windowDays : null,
+        PERFORMANCE_WINDOWS.some((w) => w.value === s.windowDays)
+          ? s.windowDays || null
+          : null,
       );
       dispatch({
         type: "SET_FILTER",
@@ -311,7 +313,7 @@ export default function Tracker() {
   );
   const total = useMemo(() => totals(balances), [balances]);
   const kpi = useMemo(
-    () => kpis(filtered, windowDays == null ? null : now - windowDays * DAY),
+    () => kpis(filtered, ...performanceBounds(windowDays, now)),
     // `now` moves once a minute, which is fine granularity for a day-sized window.
     [filtered, windowDays, now],
   );
@@ -436,9 +438,11 @@ export default function Tracker() {
                   setWindowDays(e.target.value ? Number(e.target.value) : null)
                 }
               >
-                <option value="7">Last 7 days</option>
-                <option value="30">Last 30 days</option>
-                <option value="">All time</option>
+                {PERFORMANCE_WINDOWS.map(({ value, label }) => (
+                  <option key={value} value={value || ""}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <button

@@ -25,8 +25,9 @@ import {
 import { LineChart } from "./tracker-chart";
 import { when } from "./tracker-parts";
 
+import { PERFORMANCE_WINDOWS, performanceBounds } from "../lib/tracker-windows";
+
 const money = (cents: number) => usd(dollars(cents));
-const DAY = 86400000;
 
 const KIND_LABEL: Record<string, string> = {
   DEPOSIT: "Deposit",
@@ -223,11 +224,9 @@ export function BankrollTab({
       b.status !== "void",
   );
   const now = Date.now();
-  const windows: [string, ReturnType<typeof kpis>][] = [
-    ["7 days", kpis(bets, now - 7 * DAY)],
-    ["30 days", kpis(bets, now - 30 * DAY)],
-    ["All time", kpis(bets)],
-  ];
+  const windows: [string, ReturnType<typeof kpis>][] = PERFORMANCE_WINDOWS.map(
+    ({ value, label }) => [label, kpis(bets, ...performanceBounds(value, now))],
+  );
   const vault = rows.find((r) => r.book === VAULT);
   const negative = rows.some((r) => r.liquid < 0);
   return (

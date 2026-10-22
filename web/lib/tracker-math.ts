@@ -349,9 +349,14 @@ function settledMs(b: TrackerBet) {
   return new Date(b.settled_at ?? b.placed_at).getTime();
 }
 
-export function kpis(bets: TrackerBet[], sinceMs: number | null = null): Kpis {
+export function kpis(
+  bets: TrackerBet[],
+  sinceMs: number | null = null,
+  untilMs: number | null = null,
+): Kpis {
   const inWindow = (b: TrackerBet) =>
-    sinceMs == null || settledMs(b) >= sinceMs;
+    (sinceMs == null || settledMs(b) >= sinceMs) &&
+    (untilMs == null || settledMs(b) < untilMs);
   const settled = bets
     .filter((b) => isSettled(b) && inWindow(b))
     .sort((a, b) => settledMs(a) - settledMs(b));
