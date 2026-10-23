@@ -59,3 +59,35 @@ test("removing a setting only removes the signed-in account's copy", () => {
   setStorageOwner("ann");
   assert.equal(userStorage.getItem("a"), "1");
 });
+
+test("live and filter UI preferences survive a return visit without leaking between pages or accounts", async () => {
+  const { readUiBoolean, saveUiBoolean } =
+    await import("../lib/ui-preferences");
+  setStorageOwner("wonya");
+  saveUiBoolean("live-mode.positive_ev", true);
+  saveUiBoolean("filters./positive_ev.live", false);
+  assert.equal(readUiBoolean("live-mode.positive_ev", false), true);
+  assert.equal(readUiBoolean("live-mode.arbitrage", false), false);
+  assert.equal(readUiBoolean("filters./positive_ev.live", true), false);
+  assert.equal(readUiBoolean("filters./positive_ev.pregame", true), true);
+  setStorageOwner("another");
+  assert.equal(readUiBoolean("live-mode.positive_ev", false), false);
+  setStorageOwner("wonya");
+  assert.equal(readUiBoolean("live-mode.positive_ev", false), true);
+});
+
+test("unavailable or corrupt preference storage does not break live controls", async () => {
+  const { readUiBoolean, saveUiBoolean } =
+    await import("../lib/ui-preferences");
+  setStorageOwner("wonya");
+  userStorage.setItem("corner.ui.bad", "invalid");
+  assert.equal(readUiBoolean("bad", true), true);
+  memory.setItem = () => {
+    throw new Error("storage denied");
+  };
+  assert.doesNotThrow(() => saveUiBoolean("live-mode.positive_ev", true));
+  memory.getItem = () => {
+    throw new Error("storage denied");
+  };
+  assert.equal(readUiBoolean("bad", false), false);
+});

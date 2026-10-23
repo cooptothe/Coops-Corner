@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  EMPTY_LIVE_FEED,
   gameState,
   matchesLiveState,
   liveRows,
@@ -144,4 +145,13 @@ test("Pause requires fresh reported game stoppage, not absent sportsbook lines",
   assert.equal(matchesLiveState(paused, "playing", now), false);
   assert.equal(matchesLiveState(paused, "paused", 1021), false);
   assert.equal(gameState(feed.events[1], now), "unknown");
+});
+
+test("an empty live shell provides feed controls with no manufactured games or bets", () => {
+  const product = liveProduct(EMPTY_LIVE_FEED, "", 0);
+  assert.deepEqual(product.rows, []);
+  assert.deepEqual(product.data.games, []);
+  assert.deepEqual(product.data.quotes, []);
+  assert.ok(product.data.caps.books.length);
+  assert.ok(product.data.caps.tools.includes("positive_ev"));
 });

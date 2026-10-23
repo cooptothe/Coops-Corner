@@ -1,4 +1,5 @@
 "use client";
+import { useUiBoolean } from "./use-ui-boolean";
 import { Icon } from "./icon";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -136,7 +137,9 @@ export default function Workspace({ view }: { view: View }) {
         ?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [view]);
   const { user } = useAuth();
-  const [liveMode, setLiveMode] = useState(false);
+  const livePreference = useUiBoolean(`live-mode.${view}`, false);
+  const liveMode = livePreference.value;
+  const setLiveMode = livePreference.setValue;
   const supportsLive =
     view === "positive_ev" || view === "arbitrage" || view === "middle";
   const showingLive = supportsLive && liveMode;
@@ -194,7 +197,7 @@ export default function Workspace({ view }: { view: View }) {
     return () => clearTimeout(timer);
   }, [user?.role, updating, scheduledTick, showingLive]);
   useEffect(() => {
-    if (showingLive) {
+    if ((supportsLive && !livePreference.ready) || showingLive) {
       setUpdating(false);
       return;
     }
@@ -260,7 +263,15 @@ export default function Workspace({ view }: { view: View }) {
     })();
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reload, light, scheduledTick, showingLive, user?.id]);
+  }, [
+    reload,
+    light,
+    scheduledTick,
+    showingLive,
+    user?.id,
+    livePreference.ready,
+    view,
+  ]);
   useEffect(() => {
     if (!data || view === "promo" || isEv(view)) return;
     const controller = new AbortController();

@@ -763,7 +763,10 @@ export default function ArbFeed({
           </label>
           <span className="arb-status" role="status">
             <i className="arb-pulse" aria-hidden="true" />
-            Connected · prices as of {date(data.meta.captured_at)}
+            Connected · prices as of{" "}
+            {data.meta.captured_at === "1970-01-01T00:00:00Z"
+              ? "—"
+              : date(data.meta.captured_at)}
           </span>
         </FeedFilters>
         <div className="arb-body">

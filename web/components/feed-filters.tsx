@@ -1,5 +1,8 @@
 "use client";
-import { useEffect, useState, type ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { LiveBetLinks } from "./bet-link";
+import { useUiBoolean } from "./use-ui-boolean";
 
 export function FeedFilters({
   children,
@@ -8,20 +11,22 @@ export function FeedFilters({
   children: ReactNode;
   active: boolean;
 }) {
-  const [open, setOpen] = useState(true);
-  useEffect(() => {
-    const media = matchMedia("(max-width: 700px)");
-    const update = () => setOpen(!media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
+  const path = usePathname();
+  const live = useContext(LiveBetLinks);
+  const panel = useUiBoolean(
+    `filters.${path}.${live ? "live" : "pregame"}`,
+    () => !matchMedia("(max-width: 700px)").matches,
+  );
+  const open = panel.value;
   return (
     <aside className="feed-filter-shell" aria-label="Feed filters">
       <details
         className="feed-filter-panel"
         open={open}
-        onToggle={(event) => setOpen(event.currentTarget.open)}
+        onToggle={(event) => {
+          const next = event.currentTarget.open;
+          if (panel.ready && next !== open) panel.setValue(next);
+        }}
       >
         <summary>
           <span>

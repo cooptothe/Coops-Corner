@@ -718,7 +718,10 @@ export default function EvFeed({
         <div className="ev-main">
           <div className="ev-count">
             <strong>{visible.length}</strong> of {all.length} bets · prices as
-            of {date(data.meta.captured_at)}
+            of{" "}
+            {data.meta.captured_at === "1970-01-01T00:00:00Z"
+              ? "—"
+              : date(data.meta.captured_at)}
             <FeedChangeNote change={change} />
             <label className="ev-sort">
               Sort by{" "}

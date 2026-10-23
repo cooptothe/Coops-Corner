@@ -209,3 +209,13 @@ export function liveProduct(feed: LiveFeed, status: string, elapsed: number) {
   };
   return { data: { caps, games, quotes: [...quotes.values()], meta }, rows };
 }
+
+// An empty data shell keeps controls mounted before the first response; it contains no odds.
+export const EMPTY_LIVE_FEED: LiveFeed = {
+  format: "corner.live_odds/1",
+  as_of: "1970-01-01T00:00:00Z",
+  enabled: false,
+  state: "loading",
+  monthly_subcap: 500000,
+  events: [],
+};

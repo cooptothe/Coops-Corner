@@ -705,7 +705,10 @@ export default function MiddleFeed({
           </label>
           <span className="arb-status" role="status">
             <i className="arb-pulse" aria-hidden="true" />
-            Prices as of {date(data.meta.captured_at)}
+            Prices as of{" "}
+            {data.meta.captured_at === "1970-01-01T00:00:00Z"
+              ? "—"
+              : date(data.meta.captured_at)}
           </span>
         </FeedFilters>
         <div className="mid-metrics" aria-label="Middle summary">

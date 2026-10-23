@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useUiBoolean } from "./use-ui-boolean";
 import { Icon } from "./icon";
 import { LiveBetLinks } from "./bet-link";
 import { useAuth } from "./auth-provider";
@@ -16,6 +17,7 @@ const MiddleFeed = dynamic(() => import("./middle-feed"), {
   loading: () => <Loading text="Opening live middles…" />,
 });
 import {
+  EMPTY_LIVE_FEED,
   gameState,
   matchesLiveState,
   liveFresh,
@@ -26,6 +28,7 @@ import {
 import "../app/live-feed.css";
 export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
   const { user } = useAuth();
+  const gamePanel = useUiBoolean(`live-game-status.${kind}`, true);
   const premium = user?.username.toLowerCase() === "wonya";
   const [feed, setFeed] = useState<Feed | null>(null),
     [error, setError] = useState("");
@@ -55,8 +58,10 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
           },
         );
         const body = await response.json();
-        if (!response.ok)
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) setFeed(null);
           throw new Error(body.error || "Live feed unavailable.");
+        }
         if (body.format !== "corner.live_odds/1" || !Array.isArray(body.events))
           throw new Error("Unsupported live response.");
         if (alive) {
@@ -68,7 +73,6 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
       } catch (e) {
         if (alive) {
           setError(e instanceof Error ? e.message : "Live feed unavailable.");
-          setFeed(null);
         }
       } finally {
         clearTimeout(timeout);
@@ -106,7 +110,7 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
     feed?.events.map((e) => `${e.id}:${gameState(e, serverNow)}`).join("|") ??
     "";
   const product = useMemo(
-    () => (feed ? liveProduct(feed, status, clock - received) : null),
+    () => liveProduct(feed ?? EMPTY_LIVE_FEED, status, clock - received),
     [feed, status, expired, statusExpiry],
   );
   const events =
@@ -153,7 +157,15 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
                 ? "Live collection is not enabled yet."
                 : `${events.length} games · ${feed.state.replaceAll("_", " ")} · collection every 60 seconds`)}
         </p>
-        <details className="live-explainer" open>
+        <details
+          className="live-explainer"
+          open={gamePanel.value}
+          onToggle={(event) => {
+            const next = event.currentTarget.open;
+            if (gamePanel.ready && next !== gamePanel.value)
+              gamePanel.setValue(next);
+          }}
+        >
           <summary>Game status ({events.length})</summary>
           <ul className="live-game-statuses">
             {events.map((e) => (
@@ -189,19 +201,18 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
             ))}
           </ul>
         </details>
-        {product &&
-          (kind === "ev" ? (
-            <EvFeed
-              data={product.data}
-              liveRows={product.rows}
-              liveMethod={feed?.devig_method ?? "current"}
-              onLiveMethod={setMethod}
-            />
-          ) : kind === "arbitrage" ? (
-            <ArbFeed data={product.data} liveRows={product.rows} />
-          ) : (
-            <MiddleFeed data={product.data} liveRows={product.rows} />
-          ))}
+        {kind === "ev" ? (
+          <EvFeed
+            data={product.data}
+            liveRows={product.rows}
+            liveMethod={feed?.devig_method ?? "current"}
+            onLiveMethod={setMethod}
+          />
+        ) : kind === "arbitrage" ? (
+          <ArbFeed data={product.data} liveRows={product.rows} />
+        ) : (
+          <MiddleFeed data={product.data} liveRows={product.rows} />
+        )}
       </section>
     </LiveBetLinks.Provider>
   );
