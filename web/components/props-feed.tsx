@@ -16,6 +16,7 @@ import { FeedFilters } from "./feed-filters";
 import { EvFilterLimits } from "./ev-filter-limits";
 import { LIMIT_PATTERN, matchesEvLimits } from "../lib/ev-filters";
 import { passesPropEdge } from "../lib/prop-edge";
+import { passesPropReferences } from "../lib/prop-references";
 import { savedTimeFilter } from "../lib/feed-time";
 import { feedBooks, PROP_BOOKS } from "../lib/bookmakers";
 import { FeedTimeFilter, useFeedTimeFilter } from "./feed-time-filter";
@@ -445,6 +446,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
   const all = useMemo(
     () =>
       (pricedSnapshot === pricingSelection ? (status?.bets ?? []) : [])
+        .filter(passesPropReferences)
         .map((bet) => toVm(bet, devigMethod))
         .filter((bet): bet is Vm => bet !== null)
         .sort(SORTS.ev),
@@ -665,6 +667,8 @@ export default function PropsFeed({ reload }: { reload: number }) {
           )}
           <p>
             Requires two other cash-book references on the exact selection.
+            The feed only shows bets with FanDuel or Pinnacle among those
+            references; either one is sufficient.
             Caesars and Fanatics replace the former DFS sources. Fees still
             apply. Integer lines are conditional on no push.
           </p>
