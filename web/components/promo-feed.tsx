@@ -32,7 +32,7 @@ import {
 } from "../lib/promo-math";
 import { quoteRef, type NewBet } from "../lib/slip";
 import type { RefValue } from "../lib/tracker-api";
-import { Age, Menu, shortBook } from "./arb-feed";
+import { Age, Menu, shortBook } from "./feed-controls";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";
 import { FeedChangeNote, useFeedChanges } from "./feed-updates";
 import { LegLinks } from "./bet-link";

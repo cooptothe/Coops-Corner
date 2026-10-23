@@ -13,6 +13,7 @@ from pathlib import Path
 import threading
 import time
 
+from api.compression import MarketCompression
 from fastapi import FastAPI, Request
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
@@ -284,6 +285,7 @@ def run_props_refresh(sport, markets, max_events, capture=props.capture):
 
 def create_app():
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(MarketCompression)
     ctx = accounts.AuthContext()
     app.include_router(media_service.create_router(guard=lambda request: ctx.require(request, write=False)[1]))
     app.include_router(accounts.create_router(ctx))
@@ -311,7 +313,7 @@ def create_app():
     @app.get('/api/refresh/v1/props/status')
     async def props_state(request: Request):
         _, denied = ctx.require(request, write=False)
-        return denied or reply(200, props_status())
+        return denied or reply(200, await run_in_threadpool(props_status))
 
     @app.get('/api/refresh/v1/props')
     async def props_bets(request: Request):
@@ -328,8 +330,8 @@ def create_app():
         def read_bets():
             options = {}
             if margin is not None: options['one_sided_margin'] = margin
-            return props.bets(**options)
-        return reply(200, {'bets': await run_in_threadpool(read_bets), **props_status()})
+            return {'bets': props.bets(**options), **props_status()}
+        return reply(200, await run_in_threadpool(read_bets))
 
     @app.post('/api/refresh/v1/props')
     async def props_refresh(request: Request):

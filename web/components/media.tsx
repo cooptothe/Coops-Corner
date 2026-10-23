@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
   hue,
   initials,
@@ -13,7 +13,10 @@ import {
 
 function useMedia(kind: MediaKind, sport: string, name: string) {
   const url = useSyncExternalStore(
-    subscribeMedia,
+    useCallback(
+      (notify: () => void) => subscribeMedia(kind, sport, name, notify),
+      [kind, sport, name],
+    ),
     () => readMedia(kind, sport, name),
     () => undefined,
   );

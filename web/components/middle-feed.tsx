@@ -29,7 +29,7 @@ import type {
   Quote,
   ToolRow,
 } from "../lib/contracts";
-import { Age, CopyButton, Menu, shortBook } from "./arb-feed";
+import { Age, CopyButton, Menu, shortBook } from "./feed-controls";
 import { quoteRef, type NewBet } from "../lib/slip";
 import type { RefValue } from "../lib/tracker-api";
 import { LogBetButton, SlipLog, SlipToggle, useSlip } from "./bet-slip";

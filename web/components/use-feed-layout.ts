@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { feedLayout } from "../lib/feed-layout";
+import { feedOffsets, feedWindow } from "../lib/feed-layout";
 export function useFeedLayout(
   items: readonly { id: string }[],
   compact: boolean,
@@ -76,16 +76,12 @@ export function useFeedLayout(
       mutations.disconnect();
     };
   }, [compact, viewport, ids]);
+  const offsets = useMemo(
+    () => feedOffsets(ids, compact ? sizes.current : new Map(), estimate),
+    [ids, compact, estimate, revision],
+  );
   return useMemo(
-    () =>
-      feedLayout(
-        ids,
-        compact ? sizes.current : new Map(),
-        estimate,
-        scroll,
-        height,
-        overscan,
-      ),
-    [ids, compact, estimate, scroll, height, overscan, revision],
+    () => feedWindow(offsets, scroll, height, overscan),
+    [offsets, scroll, height, overscan],
   );
 }

@@ -23,7 +23,7 @@ function pump() {
   }
 }
 const attempts = new Map<string, number>();
-const listeners = new Set<() => void>();
+const listeners = new Map<string, Set<() => void>>();
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 
 const BATCH = 40;
@@ -33,11 +33,20 @@ const RETRY_MS = 15000;
 
 const keyOf = (kind: MediaKind, sport: string, name: string) =>
   `${kind}|${sport}|${name}`;
-const notify = () => listeners.forEach((l) => l());
-
-export const subscribeMedia = (listener: () => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+export const subscribeMedia = (
+  kind: MediaKind,
+  sport: string,
+  name: string,
+  listener: () => void,
+) => {
+  const key = keyOf(kind, sport, name);
+  let set = listeners.get(key);
+  if (!set) listeners.set(key, (set = new Set()));
+  set.add(listener);
+  return () => {
+    set.delete(listener);
+    if (!set.size) listeners.delete(key);
+  };
 };
 
 // undefined = not resolved yet, null = resolved with no image.
@@ -55,6 +64,7 @@ function settle(
   retry: Set<string>,
 ) {
   const again: string[] = [];
+  const completed: string[] = [];
   for (const name of names) {
     const key = keyOf(kind, sport, name);
     if (retry.has(name) && (attempts.get(key) ?? 0) < MAX_ATTEMPTS) {
@@ -62,6 +72,7 @@ function settle(
       again.push(name);
     } else {
       cache.set(key, results[name] ?? null);
+      completed.push(key);
       pending.delete(key);
     }
   }
@@ -73,7 +84,8 @@ function settle(
       }
       schedule();
     }, RETRY_MS);
-  notify();
+  for (const key of completed)
+    listeners.get(key)?.forEach((notify) => notify());
 }
 
 async function send(kind: MediaKind, sport: string, names: string[]) {

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { requestMedia, readMedia } from "../lib/media";
+import { requestMedia, readMedia, subscribeMedia } from "../lib/media";
 const until = async (check: () => boolean) => {
   const end = Date.now() + 1500;
   while (!check()) {
@@ -53,6 +53,45 @@ test("media lookups deduplicate pending avatars and leave network capacity for f
     );
   } finally {
     while (pending.length) pending.shift()!();
+    globalThis.fetch = old;
+  }
+});
+
+test("media completion only notifies matching avatars and unsubscribes cleanly", async () => {
+  const old = globalThis.fetch;
+  let matching = 0,
+    unrelated = 0;
+  const off = subscribeMedia(
+    "player",
+    "selective-test",
+    "First",
+    () => matching++,
+  );
+  const offOther = subscribeMedia(
+    "player",
+    "selective-test",
+    "Second",
+    () => unrelated++,
+  );
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({ results: { First: "/first.png" }, retry: [] }),
+    );
+  try {
+    requestMedia("player", "selective-test", "First");
+    await until(() => matching === 1);
+    assert.equal(unrelated, 0);
+    off();
+    offOther();
+    requestMedia("player", "selective-test", "Second");
+    await until(
+      () => readMedia("player", "selective-test", "Second") !== undefined,
+    );
+    assert.equal(matching, 1);
+    assert.equal(unrelated, 0);
+  } finally {
+    off();
+    offOther();
     globalThis.fetch = old;
   }
 });

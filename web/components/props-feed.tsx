@@ -6,7 +6,7 @@ import { fairOddsRange } from "../lib/fair-odds-filter";
 import { savedWinChance, passesWinChance } from "../lib/reference-filters";
 import { QuoteAge } from "./quote-age";
 import { ParlayToolbar, useParlay } from "./parlay-builder";
-import { Menu } from "./arb-feed";
+import { Menu } from "./feed-controls";
 import { builderLeg } from "../lib/parlay";
 import {
   restoredFetchMarkets,
@@ -52,7 +52,7 @@ import {
   legacySizing,
   type KellyVm,
   type SizingSettings,
-} from "./ev-feed";
+} from "./kelly-widget";
 import { BetLinkButton } from "./bet-link";
 import { PlacedChip, PlacedProvider } from "./placed";
 import { SettingsBar, useToolSettings } from "./tool-settings";

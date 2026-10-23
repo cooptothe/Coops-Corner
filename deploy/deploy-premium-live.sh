@@ -11,7 +11,7 @@ cd /srv/corner/app
   tests.test_collection_recovery tests.test_collection_health \
   tests.test_collection_maintenance tests.test_scheduled_only \
   tests.test_product_api tests.test_prop_decimal_output tests.test_devig_methods \
-  tests.test_performance_paths
+  tests.test_performance_paths tests.test_market_compression
 .venv-api/bin/python -c 'import httpx; from pipelines.live_odds_client import client'
 (cd web && pnpm test)
 
@@ -76,7 +76,7 @@ printf '[Service]\nReadWritePaths=/srv/corner/config/live-queue\n' |
 sudo install -o root -g root -m 644 \
   deploy/corner-live-odds.service deploy/corner-live-odds.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl restart corner-staging-api
+sudo systemctl restart corner-staging-accounts corner-staging-api
 
 api_ready=0
 for attempt in $(seq 1 30); do

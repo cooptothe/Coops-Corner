@@ -14,6 +14,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 
+from api.compression import MarketCompression
 from api.catalog import FixtureCatalog, APIProblem, paginate
 from api.models import (Envelope, Page, Game, Quote, ToolRow, ToolKind, GameQuery, QuoteQuery, BulkQuoteQuery, ToolQuery,
                         PromoRequest, PromoResponse, ErrorEnvelope, ErrorDetail, Capabilities, Health)
@@ -156,6 +157,7 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
     api = FastAPI(title='The Corner â€” Fixture Product API', version='1.0.0', redirect_slashes=False,
                   description='Synthetic local development API. No live odds, DB access, production authorization or bet execution.',
                   responses={code: {'model': ErrorEnvelope} for code in (400, 404, 409, 413, 415, 422, 500)})
+    api.add_middleware(MarketCompression)
     api.state.catalog = catalog
     api.add_middleware(RequestBoundary, catalog=catalog)
     if session_check is not None:

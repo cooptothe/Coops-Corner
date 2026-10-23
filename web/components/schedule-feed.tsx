@@ -22,7 +22,7 @@ import {
   type LineMarket,
 } from "../lib/schedule";
 import { ScheduleQuote } from "./schedule-quote";
-import { Menu, shortBook } from "./arb-feed";
+import { Menu, shortBook } from "./feed-controls";
 import { SettingsBar, useToolSettings } from "./tool-settings";
 import { Avatar } from "./media";
 import { Countdown } from "./countdown";
