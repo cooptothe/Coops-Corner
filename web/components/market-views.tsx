@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import { useEffect, useRef } from "react";
 import {
   MARKETS,
@@ -226,7 +227,7 @@ export function Cards({
                     onClick={() => onDetail(row)}
                     aria-label={`View calculation for ${legs.map((l) => selection(quotes.get(l.quote_id))).join(" / ")}`}
                   >
-                    Payoffs ↗
+                    Payoffs <Icon name="external" />
                   </button>
                 </td>
               </tr>
@@ -343,7 +344,9 @@ export function OddsMatrix({
                           aria-label={`Use ${b.name} ${selection(q)} ${american(q.decimal_odds)} in promo`}
                         >
                           <strong>{american(q.decimal_odds)}</strong>
-                          <small>Use in promo ↗</small>
+                          <small>
+                            Use in promo <Icon name="external" />
+                          </small>
                         </button>
                       )}
                     </td>

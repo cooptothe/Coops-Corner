@@ -341,10 +341,8 @@ export function BankrollTab({
       >
         <h3>Expected value vs. realized profit</h3>
         {evBets.length < 2 ? (
-          <p className="trk-empty">
-            Log bets from the +EV and Player props tools (they carry their edge)
-            and settle them. Over a few hundred bets, realized profit should
-            track expected value.
+          <p className="trk-muted">
+            Log two bets with an estimated edge to compare results.
           </p>
         ) : (
           <>

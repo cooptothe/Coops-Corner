@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import { selectPropDevig } from "../lib/devig-selection";
 import { DevigSelector, type DevigResult } from "./devig-comparison";
 import { fairOddsRange } from "../lib/fair-odds-filter";
@@ -628,36 +629,14 @@ export default function PropsFeed({ reload }: { reload: number }) {
     <PlacedProvider slip={slip}>
       <section className="ev-layout props-layout" aria-label="Player props">
         <details className="feed-guide">
-          <summary>One-sided props pricing</summary>
-          <p>
-            Anytime touchdown (ATD) and anytime goalscorer (ATG) props can be
-            priced when two other reference books quote both Yes and No for that
-            exact player. The target only needs the offered side; it does not
-            need its own opposite quote. A Yes-only list does not reveal the
-            margin: several players can score in the same game. Otherwise,
-            one-sided props are priced automatically when two other reference
-            books have enough complete prices in this event and prop market to
-            estimate their margins. Each book needs three other players. Results
-            are labeled as modeled; EV uses the larger observed margin as a
-            sensitivity check. This is not a calibrated win rate or a confidence
-            bound. Select No limit for market width when the opposite price is
-            unavailable.
-          </p>
-          <p>
-            When paired prices and observed margin samples are unavailable,
-            automatic mode uses a provisional 10% overround assumption with a
-            20% stress scenario. The displayed EV uses the more conservative
-            scenario after supported fees. Rows are marked Modeled and appear
-            only for a positive estimated edge that meets your minimum EV. These
-            percentages are policy assumptions, not fitted margins or guaranteed
-            profit.
-          </p>
+          <summary>Advanced pricing</summary>
+
           <label className="field">
             <span>OPTIONAL MARGIN OVERRIDE (%)</span>
             <input
               inputMode="decimal"
               value={oneSidedMargin}
-              placeholder="Auto: paired, observed, then 10% / 20% stress"
+              placeholder="Automatic"
               maxLength={5}
               onChange={(e) => setOneSidedMargin(e.target.value.trim())}
             />
@@ -665,21 +644,6 @@ export default function PropsFeed({ reload }: { reload: number }) {
           {oneSidedMargin && !validOneSidedMargin && (
             <p role="alert">Enter a margin from 0 to 50 percent.</p>
           )}
-          <p>
-            Requires two other cash-book references on the exact selection.
-            The feed only shows bets with FanDuel or Pinnacle among those
-            references; either one is sufficient.
-            Caesars and Fanatics replace the former DFS sources. Fees still
-            apply. Integer lines are conditional on no push.
-          </p>
-          <p>
-            All supported books may contribute matching reference prices. Their
-            influence depends on the sport and market: NBA props emphasize
-            FanDuel; markets with limited evidence use balanced, conservative
-            priors. These are provisional policy weights, not measured accuracy
-            rankings. Each row shows the weights actually used; the offered
-            sportsbook never prices its own bet.
-          </p>
         </details>
         <FeedFilters active={!settings.atDefaults}>
           <SettingsBar controls={settings} />
@@ -703,11 +667,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
               if (maxEv && Number(value) > Number(maxEv)) setMaxEv(value);
             }}
           />
-          <p className="trk-muted">
-            Win chance is an estimate; higher chance does not mean higher EV.
-            Whole-number lines are conditional on no push unless a settlement
-            model is supplied.
-          </p>
+
           <EvFilterLimits
             maxEv={maxEv}
             maxWidth={maxWidth}
@@ -1038,7 +998,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                             className="parlay-check"
                             aria-label="Added to parlay"
                           >
-                            ✓
+                            <Icon name="check" />
                           </span>
                         )}
                       <span className="ev-badge">{percent(v.ev, true)}</span>
@@ -1103,11 +1063,7 @@ export default function PropsFeed({ reload }: { reload: number }) {
                           <summary>One-sided sensitivity</summary>
                           <small>
                             EV range {percent(v.allocationSensitivity.ev_min)}{" "}
-                            to {percent(v.allocationSensitivity.ev_max)} under
-                            the stated margin ceilings and nonnegative vig
-                            assumptions. This is not a confidence interval. The
-                            headline estimate assumes proportional margin
-                            allocation.
+                            to {percent(v.allocationSensitivity.ev_max)}
                           </small>
                         </details>
                       )}

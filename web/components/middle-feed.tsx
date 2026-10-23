@@ -1,4 +1,6 @@
 "use client";
+import { useFeedLayout } from "./use-feed-layout";
+import { Icon } from "./icon";
 import { Countdown } from "./countdown";
 export { Countdown } from "./countdown";
 import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
@@ -71,7 +73,7 @@ interface Vm {
   observedAt: string;
 }
 
-const ROW_HEIGHT = { wide: 116, compact: 376 };
+const ROW_HEIGHT = { wide: 116, compact: 236 };
 const OVERSCAN = 6;
 const SETTINGS_KEY = "corner.middle-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
@@ -200,6 +202,7 @@ const Row = memo(
     return (
       <div
         role="row"
+        data-row-id={vm.id}
         tabIndex={0}
         aria-selected={selected}
         className={`ev-row mid-row ${selected ? "selected" : ""}`}
@@ -326,7 +329,7 @@ function Calculator({
       aria-label="Middle calculator"
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
-        ✕
+        <Icon name="close" />
       </button>
       <h3>Middle calculator</h3>
       {!vm ? (
@@ -613,10 +616,14 @@ export default function MiddleFeed({
   }, []);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
   const viewHeight = 680;
-  const first = Math.max(0, Math.floor(scroll / height) - OVERSCAN);
-  const last = Math.min(
-    visible.length,
-    Math.ceil((scroll + viewHeight) / height) + OVERSCAN,
+  const { first, last, offsets, total } = useFeedLayout(
+    visible,
+    compact,
+    viewport,
+    height,
+    scroll,
+    viewHeight,
+    OVERSCAN,
   );
   const select = useCallback((vm: Vm) => setSelected(vm), []);
 
@@ -743,31 +750,26 @@ export default function MiddleFeed({
               {visible.length === 0 ? (
                 <div className="empty-state">
                   <h3>No middles match</h3>
-                  <p>
-                    Raise the max miss cost, re-enable books, leagues or
-                    markets, or wait for the next scheduled capture. A middle
-                    needs two books quoting different lines on the same game.
-                  </p>
                 </div>
               ) : (
                 <div
                   ref={viewport}
                   className="ev-viewport"
                   style={{
-                    height: Math.min(viewHeight, visible.length * height),
+                    height: Math.min(viewHeight, total),
                   }}
                   onScroll={onScroll}
                 >
                   <div
                     className="ev-spacer"
                     role="rowgroup"
-                    style={{ height: visible.length * height }}
+                    style={{ height: total }}
                   >
                     {visible.slice(first, last).map((vm, i) => (
                       <Row
                         key={vm.id}
                         vm={vm}
-                        top={(first + i) * height}
+                        top={offsets[first + i]}
                         selected={vm.id === selected?.id}
                         onSelect={select}
                       />

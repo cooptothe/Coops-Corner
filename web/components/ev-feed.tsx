@@ -1,4 +1,6 @@
 "use client";
+import { useFeedLayout } from "./use-feed-layout";
+import { Icon } from "./icon";
 import { DevigSelector } from "./devig-comparison";
 import { fairOddsRange } from "../lib/fair-odds-filter";
 import { savedWinChance, passesWinChance } from "../lib/reference-filters";
@@ -113,7 +115,7 @@ export interface KellyVm {
 }
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 
-const ROW_HEIGHT = { wide: 88, compact: 244 };
+const ROW_HEIGHT = { wide: 88, compact: 184 };
 const OVERSCAN = 6;
 const SHARP_BOOKS = new Set([
   "pinnacle",
@@ -299,6 +301,7 @@ const Row = memo(
     return (
       <div
         role="row"
+        data-row-id={vm.id}
         tabIndex={0}
         aria-selected={parlaySelected ?? selected}
         className={`ev-row ev-tall ${selected ? "selected" : ""} ${parlaySelected ? "parlay-selected" : ""}`}
@@ -314,7 +317,7 @@ const Row = memo(
         <div role="cell" className="ev-cell ev-edge">
           {parlaySelected && (
             <span className="parlay-check" aria-label="Added to parlay">
-              ✓
+              <Icon name="check" />
             </span>
           )}
           <span
@@ -454,7 +457,7 @@ export function KellyWidget({
       aria-label="Kelly calculator"
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
-        ✕
+        <Icon name="close" />
       </button>
       <h3>Kelly calculator</h3>
       {!vm ? (
@@ -829,10 +832,14 @@ export default function EvFeed({
   }, []);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
   const viewHeight = 680;
-  const first = Math.max(0, Math.floor(scroll / height) - OVERSCAN);
-  const last = Math.min(
-    visible.length,
-    Math.ceil((scroll + viewHeight) / height) + OVERSCAN,
+  const { first, last, offsets, total } = useFeedLayout(
+    visible,
+    compact,
+    viewport,
+    height,
+    scroll,
+    viewHeight,
+    OVERSCAN,
   );
   const select = useCallback(
     (id: string) => {
@@ -883,11 +890,7 @@ export default function EvFeed({
               if (maxEv && Number(value) > Number(maxEv)) setMaxEv(value);
             }}
           />
-          <p className="trk-muted">
-            Win chance is an estimate; higher chance does not mean higher EV.
-            Whole-number lines are conditional on no push unless a settlement
-            model is supplied.
-          </p>
+
           <EvFilterLimits
             maxEv={maxEv}
             maxWidth={maxWidth}
@@ -986,11 +989,7 @@ export default function EvFeed({
                     ? "No bets match your filters"
                     : "No EV bets available yet"}
                 </h3>
-                <p>
-                  Adjust the EV or market-width limits, re-enable books, or wait
-                  for the next scheduled capture. Bets need at least two sharp
-                  books pricing the same line.
-                </p>
+
                 {!settings.atDefaults && (
                   <button
                     className="button secondary"
@@ -1006,20 +1005,20 @@ export default function EvFeed({
                 ref={viewport}
                 className="ev-viewport"
                 style={{
-                  height: Math.min(viewHeight, visible.length * height),
+                  height: Math.min(viewHeight, total),
                 }}
                 onScroll={onScroll}
               >
                 <div
                   className="ev-spacer"
                   role="rowgroup"
-                  style={{ height: visible.length * height }}
+                  style={{ height: total }}
                 >
                   {visible.slice(first, last).map((vm, i) => (
                     <Row
                       key={vm.id}
                       vm={vm}
-                      top={(first + i) * height}
+                      top={offsets[first + i]}
                       height={height}
                       selected={vm.id === selected}
                       parlaySelected={

@@ -168,7 +168,7 @@ export function LogBetButton({
         {state === "pending"
           ? "Recording…"
           : state === "done"
-            ? "Logged ✓"
+            ? "Logged"
             : state === "error"
               ? "Try again"
               : placed

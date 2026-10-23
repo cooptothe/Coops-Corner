@@ -38,6 +38,11 @@ export interface LiveBook {
   }[];
 }
 export interface LiveEvent {
+  game_status?: "in_play" | "paused" | "finished" | "not_started" | "unknown";
+  game_status_detail?: string;
+  game_status_source?: "espn" | null;
+  game_status_updated_at?: string | null;
+  game_status_expires_at?: number;
   commence_time?: string;
   tool_rows?: ToolRow[];
   quotes?: Quote[];
@@ -67,6 +72,26 @@ export interface LiveRow {
   event: LiveEvent;
   candidate: LiveCandidate | null;
 }
+export function gameState(event: LiveEvent, now = Date.now() / 1000): string {
+  return event.game_status_source === "espn" &&
+    (event.game_status_expires_at ?? 0) > now
+    ? (event.game_status ?? "unknown")
+    : "unknown";
+}
+export function matchesLiveState(
+  event: LiveEvent,
+  status: string,
+  now = Date.now() / 1000,
+): boolean {
+  return (
+    !status ||
+    (status === "playing"
+      ? gameState(event, now) === "in_play"
+      : status === "paused"
+        ? gameState(event, now) === "paused"
+        : event.status === status)
+  );
+}
 export function liveRows(
   feed: LiveFeed,
   kind: LiveKind,
@@ -76,8 +101,7 @@ export function liveRows(
 ): LiveRow[] {
   return feed.events
     .filter(
-      (e) =>
-        (!sport || e.sport_key === sport) && (!status || e.status === status),
+      (e) => (!sport || e.sport_key === sport) && matchesLiveState(e, status),
     )
     .flatMap<LiveRow>((event) => {
       const candidates = event.opportunities.filter(
@@ -144,7 +168,9 @@ export function liveFresh(
 // The standard feed renderers consume the same contract in both modes.
 // Only fresh live candidates are supplied; never fall back to pregame odds.
 export function liveProduct(feed: LiveFeed, status: string, elapsed: number) {
-  const events = feed.events.filter((e) => !status || e.status === status);
+  const events = feed.events.filter((e) =>
+    matchesLiveState(e, status, Date.parse(feed.as_of) / 1000 + elapsed / 1000),
+  );
   const quotes = new Map<string, Quote>();
   const rows: ToolRow[] = [];
   const games: Game[] = events.map((e) => {

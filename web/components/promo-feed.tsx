@@ -1,4 +1,6 @@
 "use client";
+import { useFeedLayout } from "./use-feed-layout";
+import { Icon } from "./icon";
 import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
 import { FeedFilters } from "./feed-filters";
 import { useDialogFocus } from "./use-dialog-focus";
@@ -74,7 +76,7 @@ const SORT_LABELS: [SortKey, string][] = [
 ];
 const startMs = (v: Vm) =>
   v.startsAt ? new Date(v.startsAt).getTime() : Infinity;
-const ROW_HEIGHT = { wide: 132, compact: 360 };
+const ROW_HEIGHT = { wide: 132, compact: 240 };
 const OVERSCAN = 6;
 const VIEW_HEIGHT = 680;
 const SETTINGS_KEY = "corner.promo-settings";
@@ -237,7 +239,7 @@ function Warnings({
           className="promo-warn"
           title="Part of the stake or the winnings is past the boost limits, so the boost is smaller than its percentage."
         >
-          ⚠ Boost limit reached
+          Boost limit reached
         </span>
       )}
       {over && (
@@ -245,7 +247,7 @@ function Warnings({
           className="promo-warn"
           title={`The ${money(hedge)} hedge is above your ${money(limit)} limit; books may not accept it.`}
         >
-          ⚠ Over hedge limit
+          Over hedge limit
         </span>
       )}
       {wide && (
@@ -253,7 +255,7 @@ function Warnings({
           className="promo-warn"
           title="The two sides are priced far apart, so the hedge is expensive."
         >
-          ⚠ Wide market · {widthCents}¢
+          Wide market · {widthCents}¢
         </span>
       )}
     </span>
@@ -307,6 +309,7 @@ const Row = memo(
     return (
       <div
         role="row"
+        data-row-id={vm.id}
         tabIndex={0}
         aria-selected={selected}
         className={`ev-row promo-row ${selected ? "selected" : ""}`}
@@ -637,7 +640,7 @@ function Calculator({
       aria-label="Promo calculator"
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
-        ✕
+        <Icon name="close" />
       </button>
       <h3>Promo calculator</h3>
       {!vm ? (
@@ -710,11 +713,6 @@ function Calculator({
                 aria-invalid={!PCT.test(refund)}
                 onChange={(e) => setRefund(e.target.value.trim())}
               />
-              <small className="kelly-note">
-                If the cash bet loses, you get its stake back as a bonus bet.
-                This is the share of that refund you expect to turn into cash
-                once you convert it (about 60–80%).
-              </small>
             </label>
           )}
           {type === "boost" && (
@@ -1197,10 +1195,14 @@ export default function PromoFeed({ data }: { data: Data }) {
     );
   }, []);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
-  const first = Math.max(0, Math.floor(scroll / height) - OVERSCAN);
-  const last = Math.min(
-    visible.length,
-    Math.ceil((scroll + VIEW_HEIGHT) / height) + OVERSCAN,
+  const { first, last, offsets, total } = useFeedLayout(
+    visible,
+    compact,
+    viewport,
+    height,
+    scroll,
+    VIEW_HEIGHT,
+    OVERSCAN,
   );
   const select = useCallback((vm: Vm) => setSelected(vm), []);
 
@@ -1494,14 +1496,14 @@ export default function PromoFeed({ data }: { data: Data }) {
                   ref={viewport}
                   className="ev-viewport"
                   style={{
-                    height: Math.min(VIEW_HEIGHT, visible.length * height),
+                    height: Math.min(VIEW_HEIGHT, total),
                   }}
                   onScroll={onScroll}
                 >
                   <div
                     className="ev-spacer"
                     role="rowgroup"
-                    style={{ height: visible.length * height }}
+                    style={{ height: total }}
                   >
                     {visible.slice(first, last).map((vm, i) => (
                       <Row
@@ -1512,7 +1514,7 @@ export default function PromoFeed({ data }: { data: Data }) {
                         refund={refundRate}
                         boost={boost}
                         limit={limit}
-                        top={(first + i) * height}
+                        top={offsets[first + i]}
                         selected={vm.id === selected?.id}
                         onSelect={select}
                       />

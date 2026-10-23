@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useRef } from "react";
-import Link from "next/link";
+import { NavigationLinks } from "./navigation-links";
 
 export function PersonalNav({
   current,
 }: {
-  current: "tracker" | "account" | "lab";
+  current: "tracker" | "account" | "lab" | "help";
 }) {
   const nav = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -16,27 +16,7 @@ export function PersonalNav({
   }, [current]);
   return (
     <nav ref={nav} className="personal-nav" aria-label="Workspace">
-      <Link href="/games">Schedule</Link>
-      <Link href="/positive_ev">Positive EV</Link>
-      <Link href="/props">Player props</Link>
-      <Link href="/lab" aria-current={current === "lab" ? "page" : undefined}>
-        The Lab
-      </Link>
-      <Link href="/arbitrage">Arbitrage</Link>
-      <Link href="/middle">Middles</Link>
-      <Link href="/promo">Promo converter</Link>
-      <Link
-        href="/tracker"
-        aria-current={current === "tracker" ? "page" : undefined}
-      >
-        Tracker &amp; bankroll
-      </Link>
-      <Link
-        href="/account"
-        aria-current={current === "account" ? "page" : undefined}
-      >
-        Account
-      </Link>
+      <NavigationLinks current={current} />
     </nav>
   );
 }

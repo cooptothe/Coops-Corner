@@ -183,6 +183,95 @@ export function readDraft(value: unknown): ParlayDraft | null {
   return validated;
 }
 
+const PARLAY_DOMAINS: Record<string, readonly string[]> = {
+  fanduel: ["fanduel.com"],
+  draftkings: ["draftkings.com"],
+  betmgm: ["betmgm.com"],
+  betrivers: ["betrivers.com"],
+  espnbet: ["espnbet.com", "thescore.bet"],
+  novig: ["novig.com"],
+  prophetx: ["prophetx.co"],
+  kalshi: ["kalshi.com"],
+  pinnacle: ["pinnacle.com"],
+  betfair_ex_uk: ["betfair.com"],
+  betopenly: ["betopenly.com"],
+  polymarket_us: ["polymarket.us"],
+  williamhill_us: ["caesars.com", "williamhill.com"],
+  fanatics: ["sportsbook.fanatics.com"],
+  betonlineag: ["betonline.ag"],
+  bovada: ["bovada.lv"],
+};
+function parlayBookUrl(raw: string, book: string): URL | null {
+  const safe = safeUrl(raw);
+  if (!safe) return null;
+  const url = new URL(safe);
+  return PARLAY_DOMAINS[book]?.some(
+    (domain) => url.hostname === domain || url.hostname.endsWith("." + domain),
+  )
+    ? url
+    : null;
+}
+function multiBookHandoff(
+  legs: ParlayLeg[],
+  state: string,
+): { url: string | null; reason: string | null } {
+  const book = legs[0].book;
+  let origin = "";
+  const tokens: string[] = [];
+  for (const leg of legs) {
+    const resolved = resolveLink(leg.links, { state });
+    const url = resolved.url ? parlayBookUrl(resolved.url, book) : null;
+    if (!url || (origin && url.origin !== origin))
+      return { url: null, reason: "Open the individual selections." };
+    origin = url.origin;
+    const values = url.searchParams.getAll(
+      book === "draftkings" ? "outcomes" : "options",
+    );
+    const token = values[0];
+    if (
+      values.length !== 1 ||
+      !token ||
+      (book === "draftkings"
+        ? !/^[A-Za-z0-9_.#-]{1,250}$/.test(token)
+        : !/^\d+-\d+-\d+$/.test(token))
+    )
+      return {
+        url: null,
+        reason: "Selection IDs unavailable. Use the leg links.",
+      };
+    tokens.push(token);
+  }
+  if (new Set(tokens).size !== tokens.length)
+    return { url: null, reason: "Duplicate selections." };
+  const url = new URL(book === "draftkings" ? "/" : "/en/sports", origin);
+  url.searchParams.set(
+    book === "draftkings" ? "outcomes" : "options",
+    tokens.join(book === "draftkings" ? " " : ","),
+  );
+  const checked = parlayBookUrl(url.toString(), book);
+  return {
+    url: checked?.toString() ?? null,
+    reason: checked ? null : "Use the leg links.",
+  };
+}
+export const supportsCombinedSlip = (book: string) =>
+  ["fanduel", "draftkings", "betmgm"].includes(book);
+export function parlayDestination(
+  legs: ParlayLeg[],
+  state = "",
+): { url: string | null; combined: boolean } {
+  const combined = parlayHandoff(legs, state);
+  if (combined.url) return { url: combined.url, combined: true };
+  if (!legs.length || new Set(legs.map((l) => l.book)).size !== 1)
+    return { url: null, combined: false };
+  for (const leg of legs) {
+    const resolved = resolveLink(leg.links, { state });
+    const url = resolved.url ? parlayBookUrl(resolved.url, leg.book) : null;
+    if (url) return { url: url.toString(), combined: false };
+  }
+  return { url: null, combined: false };
+}
+
 // FanDuel's indexed market/selection format. No IDs or hostnames are invented.
 // Every leg must have a provider-supplied FanDuel selection link, and the output is
 // round-tripped below to verify that all pairs survived the complete-slip encoding.
@@ -195,17 +284,18 @@ export function parlayHandoff(
     return { url: null, reason: "All legs must use the same sportsbook." };
   if (legs.some((l) => Date.parse(l.startsAt) <= Date.now()))
     return { url: null, reason: "Remove any games that have started." };
+  if (legs[0].book === "draftkings") return multiBookHandoff(legs, state);
+  if (legs[0].book === "betmgm" && !hasSameGameLegs(legs))
+    return multiBookHandoff(legs, state);
   if (hasSameGameLegs(legs))
     return {
       url: null,
-      reason:
-        "Build these selections in the sportsbook’s same-game parlay builder and use its combined quote. Copy the slip or open the individual selections below.",
+      reason: "Use the sportsbook’s same-game builder and combined quote.",
     };
   if (legs[0].book !== "fanduel")
     return {
       url: null,
-      reason:
-        "Full-slip links are not available for this book yet. Copy the slip and use the individual leg links.",
+      reason: "Use the sportsbook and individual leg links.",
     };
   let base: URL | null = null;
   const pairs: [string, string][] = [];

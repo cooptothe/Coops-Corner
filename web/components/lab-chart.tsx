@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   labHistory,
@@ -751,7 +752,7 @@ export function LabChart({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Injuries &amp; availability ↗
+            Injuries &amp; availability <Icon name="external" />
           </a>
           {report.workload_change != null && (
             <p>

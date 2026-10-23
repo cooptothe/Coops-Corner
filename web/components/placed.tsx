@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 import {
@@ -59,7 +60,7 @@ export function PlacedBadge({ state }: { state: PlacedState }) {
           : "You have an open bet on this market. Check your tracker before betting again."
       }
     >
-      <span aria-hidden="true">✓</span> {label(state)}
+      <Icon name="check" /> {label(state)}
     </span>
   );
 }

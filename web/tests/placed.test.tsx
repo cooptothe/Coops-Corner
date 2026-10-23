@@ -97,7 +97,8 @@ const render = (slip: TrackerBet[], ref: object, bookLabel: string) =>
 test("a placed bet shows a badge with its stake and a warning note", () => {
   const html = render([bet({})], quoteRef(quote), "FanDuel");
   assert.match(html, /placed-badge/);
-  assert.match(html, /✓<\/span> Placed</);
+  assert.match(html, /<svg[^>]*aria-hidden="true"/);
+  assert.match(html, /Placed<\/span>/);
   assert.doesNotMatch(html, /\$/);
   assert.match(html, /Already placed/);
 });

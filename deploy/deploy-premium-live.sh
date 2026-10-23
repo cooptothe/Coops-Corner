@@ -6,7 +6,7 @@ cd /srv/corner/app
 
 # Tests precede any web stop. Existing site stays available if these fail.
 .venv-api/bin/python -m unittest \
-  tests.test_live_odds tests.test_live_products tests.test_collection_adapters \
+  tests.test_live_odds tests.test_live_products tests.test_live_game_status tests.test_collection_adapters \
   tests.test_collection_runner tests.test_collection_live \
   tests.test_collection_recovery tests.test_collection_health \
   tests.test_collection_maintenance tests.test_scheduled_only \
@@ -89,7 +89,17 @@ done
 # Same key, same worker, same main pool and protected reserve. Never reset ledger.
 bash deploy/repair-collection.sh
 sudo systemctl enable --now corner-collection-recovery.timer corner-live-odds.timer
-sudo systemctl start corner-live-odds.service
+live_queued=0
+for attempt in 1 2 3; do
+  if sudo systemctl start corner-live-odds.service; then live_queued=1; break; fi
+  echo "Live scheduler not ready; bounded local queue retry $attempt/3."
+  sleep 2
+done
+[ "$live_queued" -eq 1 ] || {
+  sudo journalctl -u corner-live-odds.service -n 12 --no-pager
+  echo 'Live queue failed; pregame collection remains running. No ledger reset performed.'
+  exit 1
+}
 
 curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 \
   https://coopscorner.tech/login >/dev/null

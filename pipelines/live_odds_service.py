@@ -26,6 +26,11 @@ class LiveGame(BaseModel):
     commence_time: str
     is_live_inferred: bool
     game_stoppage_confirmed: bool
+    game_status: Literal['in_play','paused','finished','not_started','unknown'] = 'unknown'
+    game_status_detail: str = 'Game status unavailable'
+    game_status_source: Literal['espn'] | None = None
+    game_status_updated_at: str | None = None
+    game_status_expires_at: float = 0
     is_suspended: bool | None
     status: Literal['active','no_active_lines','unknown']
     reason: str
@@ -67,6 +72,8 @@ def create_router(ctx: AuthContext, *, path: Path | None = None) -> APIRouter:
             return reply(403,{'error':'Live tools are a Premium feature.','code':'premium_required'})
         try:
             data = await run_in_threadpool(live_odds.cached_feed,path,devig_method)
+            from pipelines.live_game_status import enrich
+            data = enrich(data)
             return reply(200,LiveStatusFeed.model_validate(data).model_dump(mode='json'))
         except Exception:
             return reply(503,{'error':'Live status is temporarily unavailable.','code':'live_unavailable'})

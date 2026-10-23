@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import { useEffect, useState, useRef, type FormEvent } from "react";
 import {
   invitationToken,
@@ -174,7 +175,9 @@ export default function InvitationPage() {
           {!opened && (
             <button className="family-primary" disabled={busy} onClick={open}>
               {busy ? "Checking your invitation…" : "Open your invitation"}{" "}
-              <span aria-hidden="true">↗</span>
+              <span aria-hidden="true">
+                <Icon name="external" />
+              </span>
             </button>
           )}
           <small>
@@ -361,7 +364,7 @@ export default function InvitationPage() {
                         className="family-primary"
                         href={`/login#invite=${token}`}
                       >
-                        Create your account ↗
+                        Create your account <Icon name="external" />
                       </a>
                     </p>
                   )}

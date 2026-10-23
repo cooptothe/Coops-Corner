@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import { useDialogFocus } from "./use-dialog-focus";
 import { ParlayLegList } from "./parlay-tracker";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
@@ -150,8 +151,8 @@ function Bar({ progress }: { progress: NonNullable<LiveView["progress"]> }) {
       </div>
       <span className="trk-mono">
         {fmt(value)} / {fmt(line)}
-        {state === "cleared" && " ✓"}
-        {state === "busted" && " ✕"}
+        {state === "cleared" && <Icon name="check" />}
+        {state === "busted" && <Icon name="close" />}
       </span>
     </div>
   );
@@ -456,7 +457,7 @@ export function BetDrawer({
       aria-label="Bet details"
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
-        ✕
+        <Icon name="close" />
       </button>
       <h3>Bet details</h3>
       {!bet ? (
@@ -830,7 +831,7 @@ export function LogDrawer({
       aria-label="Log a bet"
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
-        ✕
+        <Icon name="close" />
       </button>
       <h3>Log a bet</h3>
       <small className="kelly-note">

@@ -111,3 +111,57 @@
     grid-column: 2;
   }
 }
+
+.live-game-detail {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.live-game-detail strong {
+  font-weight: 500;
+}
+.live-game-indicator {
+  display: inline-flex;
+  align-items: center;
+}
+@media (max-width: 480px) {
+  .live-game-detail {
+    grid-column: 2;
+  }
+}
+
+.live-status-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+@media (max-width: 700px) {
+  .live-status-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .live-status-tabs button {
+    min-width: 0;
+    padding: 8px 6px;
+    font-size: 12px;
+    gap: 5px;
+  }
+  .live-game-statuses {
+    max-height: 300px;
+  }
+}
+
+.live-status-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+}
+.live-status-tabs button {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  padding: 0;
+  flex: 0 0 44px;
+}

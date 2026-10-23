@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  gameState,
+  matchesLiveState,
   liveRows,
   liveProduct,
   liveRange,
@@ -120,4 +122,26 @@ test("live product keeps standard feed contracts and expires rows without invent
   assert.equal(product.data.caps.books.length, 16);
   assert.equal(liveProduct(enriched, "active", 5000).rows.length, 0);
   assert.equal(liveProduct(enriched, "no_active_lines", 0).rows.length, 0);
+});
+
+test("Pause requires fresh reported game stoppage, not absent sportsbook lines", () => {
+  const now = 1000;
+  const playing = {
+    ...feed.events[1],
+    game_status: "in_play" as const,
+    game_status_source: "espn" as const,
+    game_status_expires_at: 1020,
+  };
+  const paused = {
+    ...feed.events[0],
+    game_status: "paused" as const,
+    game_status_source: "espn" as const,
+    game_status_expires_at: 1020,
+  };
+  assert.equal(matchesLiveState(playing, "paused", now), false);
+  assert.equal(matchesLiveState(playing, "playing", now), true);
+  assert.equal(matchesLiveState(paused, "paused", now), true);
+  assert.equal(matchesLiveState(paused, "playing", now), false);
+  assert.equal(matchesLiveState(paused, "paused", 1021), false);
+  assert.equal(gameState(feed.events[1], now), "unknown");
 });

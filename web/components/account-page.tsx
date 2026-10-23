@@ -81,11 +81,7 @@ export default function AccountPage() {
       <BetaMembership />
       <section className="trk-card account-card" aria-labelledby="state-title">
         <h3 id="state-title">Betting state</h3>
-        <p className="trk-muted">
-          Some sportsbooks, such as BetMGM and BetRivers, have a separate site
-          for each state. Choose yours so “Bet on” links open the right one. It
-          is saved to your account.
-        </p>
+        <p className="trk-muted">Choose your state for sportsbook links.</p>
         <StatePicker />
       </section>
       <section
@@ -175,28 +171,9 @@ export default function AccountPage() {
           </button>
         </form>
       </section>
-      <section
-        className="trk-card account-card"
-        aria-labelledby="install-title"
-      >
-        <h3 id="install-title">Add The Corner to your home screen</h3>
-        <p className="trk-muted">
-          Open The Corner in your phone browser, then:
-        </p>
-        <ul>
-          <li>
-            iPhone or iPad: in Safari, tap Share, then Add to Home Screen.
-          </li>
-          <li>
-            Android: in Chrome, open the menu, then Install app or Add to Home
-            screen.
-          </li>
-        </ul>
-        <p className="trk-muted">
-          Sign in as usual. An internet connection is required for current odds
-          and your account.
-        </p>
-      </section>
+      <Link className="tool-help" href="/help#install">
+        Mobile setup &amp; troubleshooting
+      </Link>
     </main>
   );
 }

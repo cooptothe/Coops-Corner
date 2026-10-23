@@ -30,10 +30,6 @@ export function DevigSelector({
           </option>
         ))}
       </select>
-      <small>
-        Changes estimates and EV filters; reference books stay fixed.
-        Unavailable methods are excluded.
-      </small>
     </label>
   );
 }

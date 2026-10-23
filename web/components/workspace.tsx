@@ -1,4 +1,6 @@
 "use client";
+import { Icon } from "./icon";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -26,7 +28,7 @@ import type {
   Meta,
   Page,
 } from "../lib/contracts";
-import { VIEWS } from "../lib/contracts";
+import { NavigationLinks } from "./navigation-links";
 import { UserMenu, useAuth } from "./auth-provider";
 import { Cards, Details, OddsMatrix } from "./market-views";
 const PromoFeed = dynamic(() => import("./promo-feed"), {
@@ -68,13 +70,13 @@ const DESCRIPTIONS: Record<View, string> = {
   promo:
     "Compare bonus offers, calculate a hedge, and see the cash you could receive.",
 };
-const ICONS: Record<View, string> = {
-  positive_ev: "↗",
-  arbitrage: "⇄",
-  middle: "⋈",
-  props: "♟",
-  games: "▦",
-  promo: "◇",
+const ICONS: Record<View, ReactNode> = {
+  positive_ev: <Icon name="trend" />,
+  arbitrage: <Icon name="exchange" />,
+  middle: <Icon name="middle" />,
+  props: <Icon name="player" />,
+  games: <Icon name="calendar" />,
+  promo: <Icon name="promo" />,
 };
 type Data = { caps: Capabilities; games: Game[]; quotes: Quote[]; meta: Meta };
 type Filters = {
@@ -348,29 +350,8 @@ export default function Workspace({ view }: { view: View }) {
           <span className="workspace-dot" />
           {showingLive ? "LIVE · PREMIUM" : "PREGAME WORKSPACE"}
         </div>
-        <nav ref={navigation}>
-          <p className="nav-label">FIND AN EDGE</p>
-          {VIEWS.map((v, i) => (
-            <span key={v}>
-              {i === 4 && (
-                <p className="nav-label second">EXPLORE &amp; CALCULATE</p>
-              )}
-              <Link
-                href={`/${v}`}
-                className={view === v ? "active" : ""}
-                aria-current={view === v ? "page" : undefined}
-              >
-                <span className="nav-icon">{ICONS[v]}</span>
-                {TITLES[v]}
-              </Link>
-            </span>
-          ))}
-          <Link href="/lab">
-            <span className="nav-icon">⌁</span>The Lab
-          </Link>
-          <Link href="/tracker">
-            <span className="nav-icon">◎</span>Tracker &amp; bankroll
-          </Link>
+        <nav ref={navigation} aria-label="Workspace">
+          <NavigationLinks current={view} />
         </nav>
         <div className="sidebar-foot">
           <span className={`status-dot ${data ? "connected" : ""}`} />
@@ -393,7 +374,6 @@ export default function Workspace({ view }: { view: View }) {
                 : "Fixture environment"}{" "}
             · No live execution
           </small>
-          <Link href="/account">Account &amp; preferences →</Link>
         </div>
       </aside>
       <div className="workspace">
@@ -404,7 +384,7 @@ export default function Workspace({ view }: { view: View }) {
           </span>
           <div className="top-actions">
             {data?.meta.data_mode === "database" && (
-              <span className="fixture-badge">◇ Stored pre-game odds</span>
+              <span className="fixture-badge">Stored pre-game odds</span>
             )}
             {updating && data && (
               <span className="feed-change" role="status">

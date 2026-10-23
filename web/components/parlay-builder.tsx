@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import {
   createContext,
   useCallback,
@@ -19,6 +20,8 @@ import {
   acceptedAmericanOdds,
   legKey,
   parlayHandoff,
+  parlayDestination,
+  supportsCombinedSlip,
   readDraft,
   selectionProblem,
   type ParlayDraft,
@@ -196,6 +199,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
     }
   })();
   const handoff = parlayHandoff(draft.legs, state);
+  const destination = parlayDestination(draft.legs, state);
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
     setError("");
@@ -276,7 +280,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
             aria-label="Dismiss confirmation"
             onClick={() => setNotice("")}
           >
-            ✕
+            <Icon name="close" />
           </button>
         </div>
       )}
@@ -312,7 +316,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
               aria-label="Close sportsbook picker"
               onClick={() => setPicker(false)}
             >
-              ✕
+              <Icon name="close" />
             </button>
             <div className="parlay-books">
               {books.map((book) => (
@@ -349,7 +353,9 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
                         .filter((leg) => leg.book === book.id).length
                     }{" "}
                     available ·{" "}
-                    {book.id === "fanduel" ? "Full-slip link" : "Copy slip"}
+                    {supportsCombinedSlip(book.id)
+                      ? "Combined-slip support"
+                      : "Book & leg links"}
                   </small>
                 </button>
               ))}
@@ -364,7 +370,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
             aria-label="Close parlay panel"
             onClick={() => setOpen(false)}
           >
-            ✕
+            <Icon name="close" />
           </button>
           <h2>{bookDisplayName(draft.book)} parlay</h2>
           {!!draft.legs.length && (
@@ -423,7 +429,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
                   aria-label={`Remove ${leg.selection}`}
                   onClick={() => toggle(leg)}
                 >
-                  ✕
+                  <Icon name="close" />
                 </button>
                 <BetLinkButton
                   links={leg.links}
@@ -473,19 +479,20 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
               {error}
             </p>
           )}
-          {handoff.url ? (
+          {destination.url ? (
             <a
               className="button"
-              href={handoff.url}
+              href={destination.url}
               target="_blank"
               rel="noopener noreferrer"
               referrerPolicy="no-referrer"
             >
-              Open parlay on {bookDisplayName(draft.book)} ↗
+              {destination.combined ? "Open slip on" : "Open"}{" "}
+              {bookDisplayName(draft.book)} <Icon name="external" />
             </a>
           ) : (
             <button className="button" disabled>
-              Open parlay on {bookDisplayName(draft.book)}
+              Sportsbook link unavailable
             </button>
           )}
           {draft.legs.length >= 2 && handoff.reason && (

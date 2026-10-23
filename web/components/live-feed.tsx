@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { Icon } from "./icon";
 import { LiveBetLinks } from "./bet-link";
 import { useAuth } from "./auth-provider";
 import dynamic from "next/dynamic";
@@ -15,6 +16,8 @@ const MiddleFeed = dynamic(() => import("./middle-feed"), {
   loading: () => <Loading text="Opening live middles…" />,
 });
 import {
+  gameState,
+  matchesLiveState,
   liveFresh,
   liveProduct,
   type LiveFeed as Feed,
@@ -96,12 +99,18 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
           .map((c) => c.row_id),
       )
       .join("|") ?? "";
+  const serverNow = feed
+    ? Date.parse(feed.as_of) / 1000 + (clock - received) / 1000
+    : 0;
+  const statusExpiry =
+    feed?.events.map((e) => `${e.id}:${gameState(e, serverNow)}`).join("|") ??
+    "";
   const product = useMemo(
     () => (feed ? liveProduct(feed, status, clock - received) : null),
-    [feed, status, expired],
+    [feed, status, expired, statusExpiry],
   );
   const events =
-    feed?.events.filter((e) => !status || e.status === status) ?? [];
+    feed?.events.filter((e) => matchesLiveState(e, status, serverNow)) ?? [];
   if (!premium)
     return (
       <section className="live-premium-gate">
@@ -115,24 +124,24 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
   return (
     <LiveBetLinks.Provider value={true}>
       <section className="live-feed" aria-label="Premium live main lines">
-        <div
-          className="live-status-tabs"
-          role="group"
-          aria-label="Line availability"
-        >
+        <div className="live-status-tabs" role="group" aria-label="Game state">
           {[
             ["", "All games"],
-            ["active", "▶ Lines open"],
-            ["no_active_lines", "Ⅱ No active lines"],
+            ["playing", "Play"],
+            ["paused", "Pause"],
           ].map(([value, label]) => (
             <button
               key={value}
               type="button"
               className={status === value ? "button" : "button secondary"}
               aria-pressed={status === value}
+              aria-label={label}
+              title={label}
               onClick={() => setStatus(value)}
             >
-              {label}
+              {value === "playing" && <Icon name="play" />}
+              {value === "paused" && <Icon name="pause" />}
+              {!value && <Icon name="grid" />}
             </button>
           ))}
         </div>
@@ -144,33 +153,38 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
                 ? "Live collection is not enabled yet."
                 : `${events.length} games · ${feed.state.replaceAll("_", " ")} · collection every 60 seconds`)}
         </p>
-        <details className="live-explainer">
-          <summary>Live game availability ({events.length})</summary>
-          <p>
-            ▶ Lines open · Ⅱ No active lines. These signals describe bookmaker
-            availability, not confirmed game stoppages. Quotes expire after 90
-            seconds. Prices and settlement rules can change before acceptance.
-          </p>
+        <details className="live-explainer" open>
+          <summary>Game status ({events.length})</summary>
           <ul className="live-game-statuses">
             {events.map((e) => (
               <li key={`${e.sport_key}:${e.id}`}>
-                <span>
-                  {e.status === "active"
-                    ? "▶"
-                    : e.status === "no_active_lines"
-                      ? "Ⅱ"
-                      : "—"}
+                <span className="live-game-indicator" aria-hidden="true">
+                  {gameState(e, serverNow) === "paused" ? (
+                    <Icon name="pause" />
+                  ) : gameState(e, serverNow) === "in_play" ? (
+                    <Icon name="play" />
+                  ) : (
+                    <Icon name="clock" />
+                  )}
                 </span>
                 <span>
                   {e.away_team} at {e.home_team}
                 </span>
-                <small>
-                  {e.status === "active"
-                    ? "Lines open"
-                    : e.status === "no_active_lines"
-                      ? "No active lines"
-                      : "Awaiting fresh odds"}
-                </small>
+                <div className="live-game-detail">
+                  <strong>
+                    {gameState(e, serverNow) === "unknown"
+                      ? "Game status unavailable"
+                      : e.game_status_detail}
+                  </strong>
+                  <small>
+                    {gameState(e, serverNow) !== "unknown" ? "ESPN · " : ""}
+                    {e.status === "active"
+                      ? "Odds available"
+                      : e.status === "no_active_lines"
+                        ? "No sportsbook lines"
+                        : "Awaiting fresh odds"}
+                  </small>
+                </div>
               </li>
             ))}
           </ul>

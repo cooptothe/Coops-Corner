@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import { createContext, useContext, useMemo } from "react";
 import {
   STATES,
@@ -77,7 +78,7 @@ export function BetLinkButton({
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        ↗
+        <Icon name="external" />
       </a>
     );
   }
@@ -129,7 +130,10 @@ export function BetLinkButton({
         rel="noopener noreferrer"
         referrerPolicy="no-referrer"
       >
-        {linkLabel(resolved.kind, bookLabel)} <span aria-hidden="true">↗</span>
+        {linkLabel(resolved.kind, bookLabel)}{" "}
+        <span aria-hidden="true">
+          <Icon name="external" />
+        </span>
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
       <small className="kelly-note">

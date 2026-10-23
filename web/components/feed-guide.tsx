@@ -1,62 +1,9 @@
+import Link from "next/link";
 import type { View } from "../lib/contracts";
-
-const GUIDES: Record<View, [string, string]> = {
-  positive_ev: [
-    "Find and review an EV bet",
-    "Fair prices use all eligible matching books with sport and market weights, excluding the target itself. These weights are policy priors, not proven predictive accuracy. Narrow the feed by event time, EV range, odds, and sportsbook. Select a bet to review its reference prices and size a stake. Open its sportsbook link to review the available price; log it only after placing it yourself.",
-  ],
-  props: [
-    "Find a player prop",
-    "Choose a sport and player market. Estimates remove margin from complete two-sided reference prices. EV includes modeled fees. App default uses the lower of power and proportional estimates; the devig dropdown selects a different margin model. Method comparisons show sensitivity, not a confidence interval. One-sided props can use automatically estimated margins from complete prices at two other reference books in the same event and prop market; these results are labeled as modeled. The target can be one-sided. All supported books can supply references, weighted by sport and market policy; the target is excluded and at least two other eligible books are required. DFS sources remain excluded. Check the final price and payout at the book. Filtering never triggers a provider request.",
-  ],
-  arbitrage: [
-    "Compare both sides",
-    "Select an opportunity to see both legs, required stakes, and modeled profit after supported straight-bet commissions. Quotes with unresolved fees do not create opportunities. Confirm final prices, fees and settlement at each book before placing either leg.",
-  ],
-  middle: [
-    "Understand the middle",
-    "Select a pair of lines to see the double-win window and what happens outside it. The calculator shows the cost when the middle misses; it does not predict how often the middle will land.",
-  ],
-  games: [
-    "Explore upcoming games",
-    "Choose a league or search for a team. Compare the available moneyline, spread, and total, then open the sportsbook link for that exact selection. Event times use your device's local time; Today uses Central time.",
-  ],
-  promo: [
-    "Convert a sportsbook offer",
-    "Choose the offer type and enter its terms. Compare hedge options and inspect the calculator's payout in each outcome. Token face value and withdrawable cash are shown separately.",
-  ],
-};
-
 export function FeedGuide({ view }: { view: View }) {
-  const [title, description] = GUIDES[view];
   return (
-    <details className="feed-guide">
-      <summary>How to use this view</summary>
-      <div>
-        <strong>{title}</strong>
-        <p>{description}</p>
-        <p>
-          Scheduled collection requests all 16 configured books. Main lines
-          accelerate through 15, 10, 5, 3 and 2-minute bands as kickoff
-          approaches. Props use 10 minutes at 12-24 hours, 5 minutes at 6-12
-          hours, 3 minutes at 4-6 hours, 2 minutes at 2-4 hours and one minute
-          in the final two hours. Alternates begin two hours before start,
-          accelerating through 10, 5, 2 and one-minute bands. Exchanges follow
-          the same bands; there are no sub-minute requests. NCAA props are not
-          collected. Availability varies by book and market. Quotes remain
-          eligible for up to 30 minutes of actual source age. Older prices are
-          marked for verification; a displayed edge does not confirm that the
-          sportsbook still offers it. Withdrawals, started games and reader
-          failures can remove a result sooner. Confirm every price at the
-          sportsbook before placing a bet.
-        </p>
-        <p className="exposure-legend">
-          <span className="exposure-dot related" /> Yellow: an open bet on the
-          same player, team, or event in another market.{" "}
-          <span className="exposure-dot same-market" /> Red: an open bet on this
-          market, including another line or sportsbook.
-        </p>
-      </div>
-    </details>
+    <Link className="tool-help" href={`/help#${view}`}>
+      Help &amp; guide
+    </Link>
   );
 }

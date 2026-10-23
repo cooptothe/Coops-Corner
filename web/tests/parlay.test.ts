@@ -8,6 +8,7 @@ import {
   readDraft,
   selectionProblem,
   parlayHandoff,
+  parlayDestination,
   type ParlayLeg,
   type ParlayDraft,
 } from "../lib/parlay";
@@ -147,4 +148,110 @@ test("manual parlay tracking accepts American odds and preserves decimal storage
   assert.equal(acceptedAmericanOdds("+100"), "2");
   for (const value of ["4.25", "99", "-99", "", "NaN", "1e3", "+100.5"])
     assert.throws(() => acceptedAmericanOdds(value));
+});
+
+test("DraftKings combines native outcome tokens without inventing IDs", () => {
+  const legs = [1, 2].map((i) => ({
+    ...leg(i),
+    book: "draftkings",
+    sourceIds: null,
+    links: {
+      outcome: `https://sportsbook.draftkings.com/event/${i}?outcomes=0ML123${i}_1`,
+    },
+  }));
+  const result = parlayHandoff(legs);
+  assert.ok(result.url);
+  assert.equal(
+    new URL(result.url!).searchParams.get("outcomes"),
+    "0ML1231_1 0ML1232_1",
+  );
+  assert.equal(
+    parlayHandoff([
+      legs[0],
+      {
+        ...legs[1],
+        links: { outcome: "https://evil.example/?outcomes=0ML12_1" },
+      },
+    ]).url,
+    null,
+  );
+  assert.equal(
+    parlayHandoff([
+      legs[0],
+      {
+        ...legs[1],
+        links: { event: "https://sportsbook.draftkings.com/event/2" },
+      },
+    ]).url,
+    null,
+  );
+});
+test("BetMGM combines documented native option triplets and refuses mismatched states", () => {
+  const legs = [1, 2].map((i) => ({
+    ...leg(i),
+    book: "betmgm",
+    sourceIds: null,
+    links: {
+      outcome: `https://sports.{state}.betmgm.com/en/sports?options=${i}-200-300`,
+    },
+  }));
+  assert.equal(parlayHandoff(legs).url, null);
+  const result = parlayHandoff(legs, "nj");
+  assert.ok(result.url);
+  assert.equal(
+    new URL(result.url!).searchParams.get("options"),
+    "1-200-300,2-200-300",
+  );
+  assert.equal(
+    parlayHandoff(
+      [
+        legs[0],
+        {
+          ...legs[1],
+          links: {
+            outcome: "https://sports.pa.betmgm.com/en/sports?options=2-200-300",
+          },
+        },
+      ],
+      "nj",
+    ).url,
+    null,
+  );
+});
+test("every book has a validated provider-link handoff without claiming a combined slip", () => {
+  const domains = {
+    fanduel: "fanduel.com",
+    draftkings: "draftkings.com",
+    betmgm: "betmgm.com",
+    betrivers: "betrivers.com",
+    espnbet: "thescore.bet",
+    novig: "novig.com",
+    prophetx: "prophetx.co",
+    kalshi: "kalshi.com",
+    pinnacle: "pinnacle.com",
+    betfair_ex_uk: "betfair.com",
+    betopenly: "betopenly.com",
+    polymarket_us: "polymarket.us",
+    williamhill_us: "caesars.com",
+    fanatics: "sportsbook.fanatics.com",
+    betonlineag: "betonline.ag",
+    bovada: "bovada.lv",
+  };
+  for (const [book, domain] of Object.entries(domains)) {
+    const legs = [1, 2].map((i) => ({
+      ...leg(i),
+      book,
+      sourceIds: null,
+      links: { event: `https://${domain}/event/${i}` },
+    }));
+    const result = parlayDestination(legs);
+    assert.ok(result.url, book);
+    assert.equal(result.combined, false);
+    assert.equal(
+      parlayDestination(
+        legs.map((l) => ({ ...l, links: { event: "https://evil.example/" } })),
+      ).url,
+      null,
+    );
+  }
 });

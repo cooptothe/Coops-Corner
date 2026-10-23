@@ -1,4 +1,6 @@
 "use client";
+import { useFeedLayout } from "./use-feed-layout";
+import { Icon } from "./icon";
 import { QuoteAge } from "./quote-age";
 import { PlacedProvider, PlacedBadge, PlacedNote, usePlaced } from "./placed";
 import { FeedFilters } from "./feed-filters";
@@ -94,7 +96,7 @@ const SORTS: Record<SortKey, (a: Vm, b: Vm) => number> = {
   time: (a, b) => startMs(a) - startMs(b),
   scanned: (a, b) => b.observedAt.localeCompare(a.observedAt),
 };
-const ROW_HEIGHT = { wide: 88, compact: 400 };
+const ROW_HEIGHT = { wide: 88, compact: 220 };
 const OVERSCAN = 6;
 const SETTINGS_KEY = "corner.arb-settings";
 const STAKE_PATTERN = /^\d{1,9}(\.\d{1,2})?$/;
@@ -200,6 +202,7 @@ const Row = memo(
     return (
       <div
         role="row"
+        data-row-id={vm.id}
         tabIndex={0}
         aria-selected={selected}
         className={`ev-row ${selected ? "selected" : ""}`}
@@ -367,7 +370,7 @@ function Calculator({
       aria-label="Arbitrage calculator"
     >
       <button className="kelly-close" onClick={onClose} aria-label="Close">
-        ✕
+        <Icon name="close" />
       </button>
       <h3>Arbitrage calculator</h3>
       {!vm ? (
@@ -793,10 +796,14 @@ export default function ArbFeed({
   }, []);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
   const viewHeight = 680;
-  const first = Math.max(0, Math.floor(scroll / height) - OVERSCAN);
-  const last = Math.min(
-    visible.length,
-    Math.ceil((scroll + viewHeight) / height) + OVERSCAN,
+  const { first, last, offsets, total } = useFeedLayout(
+    visible,
+    compact,
+    viewport,
+    height,
+    scroll,
+    viewHeight,
+    OVERSCAN,
   );
   const select = useCallback((vm: Vm) => setSelected(vm), []);
 
@@ -909,20 +916,20 @@ export default function ArbFeed({
                   ref={viewport}
                   className="ev-viewport"
                   style={{
-                    height: Math.min(viewHeight, visible.length * height),
+                    height: Math.min(viewHeight, total),
                   }}
                   onScroll={onScroll}
                 >
                   <div
                     className="ev-spacer"
                     role="rowgroup"
-                    style={{ height: visible.length * height }}
+                    style={{ height: total }}
                   >
                     {visible.slice(first, last).map((vm, i) => (
                       <Row
                         key={vm.id}
                         vm={vm}
-                        top={(first + i) * height}
+                        top={offsets[first + i]}
                         selected={vm.id === selected?.id}
                         onSelect={select}
                       />

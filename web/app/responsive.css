@@ -305,3 +305,242 @@
   color: var(--muted);
   font-size: 12px;
 }
+
+.personal-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.personal-nav .nav-icon {
+  display: inline-flex;
+}
+
+.tool-help {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.help-page {
+  min-width: 0;
+}
+.help-search {
+  max-width: 560px;
+  margin: 20px 0;
+}
+.help-search input {
+  width: 100%;
+  min-width: 0;
+}
+.help-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 20px 0;
+}
+.help-topics a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.help-sections {
+  display: grid;
+  gap: 16px;
+}
+.help-sections section {
+  scroll-margin-top: 24px;
+  min-width: 0;
+  padding: 20px;
+  overflow-wrap: anywhere;
+}
+.help-sections h2 {
+  font-size: 20px;
+}
+.help-sections p {
+  line-height: 1.7;
+  color: var(--muted);
+}
+.help-sections summary {
+  min-height: 44px;
+  cursor: pointer;
+}
+@media (max-width: 700px) {
+  .help-search input {
+    font-size: 16px;
+  }
+  .help-sections section {
+    padding: 16px;
+  }
+}
+
+/* Measured cards grow for long names instead of clipping or reserving large blank tracks. */
+@media (max-width: 1100px) {
+  .ev-layout .ev-row,
+  .arb-grid .ev-row,
+  .arb-grid .ev-row.mid-row {
+    height: auto !important;
+    min-height: 0;
+    padding: 10px;
+    gap: 7px 10px;
+    align-content: start;
+    box-sizing: border-box;
+  }
+  .ev-row .ev-cell {
+    min-width: 0;
+  }
+  .ev-row .ev-event,
+  .ev-row .ev-market {
+    line-height: 1.35;
+  }
+  .ev-row .ev-event :is(strong, small),
+  .ev-row .ev-market :is(strong, small),
+  .props-row .ev-event :is(strong, small),
+  .props-row .player-text strong {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+  .ev-sharp {
+    line-height: 1.35;
+  }
+  .arb-grid .arb-legs {
+    gap: 5px;
+  }
+  .arb-grid .arb-leg {
+    padding: 6px 8px;
+    gap: 3px 8px;
+  }
+  .arb-grid .arb-side {
+    line-height: 1.35;
+  }
+  .props-layout .props-row {
+    padding: 10px;
+    gap: 8px;
+  }
+}
+@media (max-width: 1380px) {
+  .promo-grid .ev-row {
+    height: auto;
+    min-height: 0;
+    padding: 10px;
+    gap: 7px;
+    align-content: start;
+  }
+}
+@media (max-width: 700px) {
+  .ev-row .ev-event,
+  .ev-row .ev-market .player-text strong,
+  .props-row .ev-event,
+  .props-row .player-text strong {
+    font-size: 13px;
+  }
+  .ev-row .ev-cell small,
+  .props-row .ev-cell small {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .ev-row .ev-action,
+  .props-row .ev-action {
+    padding: 7px 9px;
+  }
+  .ev-row .ev-sharp,
+  .props-row .ev-sharp {
+    gap: 3px;
+  }
+  .ev-row .arb-book,
+  .ev-row .arb-side {
+    font-size: 12px;
+  }
+  .props-row .player-line {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 700px) {
+  .props-layout .props-grid .props-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .props-layout .props-row .ev-edge {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .props-layout .props-row .ev-event {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .props-layout .props-row .ev-market {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .props-layout .props-row .ev-soft {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .props-layout .props-row .ev-sharp {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+  .props-layout .props-row .ev-time {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+  .props-row .player-text {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 7px;
+    align-items: center;
+  }
+  .props-row .player-text > small {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .props-row .player-text > strong {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .props-row .player-text > .trend-row-button {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+  .ev-layout .ev-row .ev-action,
+  .props-layout .props-row .ev-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 44px;
+  }
+  .props-row .ev-soft .ev-action {
+    width: 100%;
+  }
+}
+@media (min-width: 701px) {
+  .sidebar {
+    max-height: 100dvh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 1100px) {
+  .ev-event .matchup-team {
+    min-width: 0;
+    align-items: flex-start;
+  }
+  .ev-event .matchup-name {
+    min-width: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 700px) {
+  .ev-layout .ev-row .ev-action,
+  .props-layout .props-row .ev-action {
+    flex-direction: row;
+  }
+}

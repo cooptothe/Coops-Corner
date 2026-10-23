@@ -572,11 +572,7 @@ export default function Tracker() {
               {view.bets.length === 0 ? (
                 <div className="empty-state">
                   <h3>No bets yet</h3>
-                  <p>
-                    Use Record bet in any tool to record a play with its odds,
-                    edge and teams, or log one by hand. Deposits on the Bankroll
-                    tab let Kelly size bets against your real balances.
-                  </p>
+
                   <button
                     className="button"
                     onClick={() => setPanel({ kind: "log" })}

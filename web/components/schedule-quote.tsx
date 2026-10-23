@@ -1,4 +1,5 @@
 "use client";
+import { Icon } from "./icon";
 import { american, point as signed } from "../../frontend/format.mjs";
 import { linkBlock, linkLabel, resolveLink } from "../lib/bet-links";
 import type { BestPrice, LineMarket } from "../lib/schedule";
@@ -60,7 +61,7 @@ export function ScheduleQuote({
       >
         {content}
         <span className="sched-link-arrow" aria-hidden="true">
-          ↗
+          <Icon name="external" />
         </span>
       </a>
     );
