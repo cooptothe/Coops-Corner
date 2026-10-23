@@ -142,7 +142,7 @@ def feed(path: Path, now: datetime | None = None, devig_method: str = 'current')
                               'active_markets':[m['key'] for m in active],
                               'markets':[{'key':m['key'],'last_update':m['last_update'],'outcomes':[{'name':o['name'],'price':o['price'],**({'point':o['point']} if 'point' in o else {})} for o in m['outcomes']]} for m in active], 'capture_fresh':bool(fresh),
                               'status':'active' if active else 'no_active_lines' if fresh else 'unknown'})
-                if active: selected.append({'key':book_key, 'markets':active})
+                if active: selected.append({'key':book_key, 'link':book.get('link'), 'markets':active})
         count = sum(b['active_market_count'] for b in books)
         suspended: bool | None = False if count else True if all_fresh else None
         candidates = []

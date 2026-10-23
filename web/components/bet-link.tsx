@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import {
   STATES,
   hasLinks,
@@ -9,6 +9,8 @@ import {
   type QuoteLinks,
 } from "../lib/bet-links";
 import { useBettingPrefs } from "./betting-prefs";
+
+export const LiveBetLinks = createContext(false);
 
 export function StatePicker({ book }: { book?: string }) {
   const { state, setState } = useBettingPrefs();
@@ -57,7 +59,8 @@ export function BetLinkButton({
     () => resolveLink(links, { state, stake }),
     [links, state, stake],
   );
-  const block = linkBlock(startsAt, unavailable);
+  const live = useContext(LiveBetLinks);
+  const block = linkBlock(live ? null : startsAt, unavailable);
 
   if (compact) {
     if (block || !resolved.url || !resolved.kind) return null;

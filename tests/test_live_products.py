@@ -39,6 +39,26 @@ class LiveProducts(unittest.TestCase):
             MiddleRow.model_validate(c['tool_row'])
             self.assertTrue(c['tool_row']['calculation']['payoff']['states'])
             self.assertEqual({q['point'] for q in c['quotes']},{'200.5','204.5'})
+    def test_provider_links_survive_and_untrusted_domains_are_rejected(self):
+        books=self.books()
+        for b in books:
+            b['link']='https://evil.example/event'
+            for m in b['markets']:
+                m['link']='https://evil.example/market'
+                for o in m['outcomes']:o['link']='https://evil.example/bet'
+        target=books[-1]
+        target['link']='https://sportsbook.draftkings.com/event/123'
+        target['markets'][0]['link']='https://sportsbook.draftkings.com/market/456'
+        target['markets'][0]['outcomes'][0]['link']='https://sportsbook.draftkings.com/bet/789'
+        quotes={q['id']:q for c in opportunities(event(books)) for q in c['quotes']}
+        self.assertTrue(quotes)
+        for q in quotes.values():
+            if q['sportsbook_id']=='draftkings':
+                self.assertEqual(q['links']['event'],target['link'])
+                self.assertEqual(q['links']['market'],target['markets'][0]['link'])
+            else:self.assertIsNone(q['links'])
+        self.assertTrue(any(q['links'] and q['links'].get('outcome') for q in quotes.values()))
+
     def test_selected_devig_is_applied_before_positive_edge_filter(self):
         for method in ('current','multiplicative','additive','power','shin','worst_case'):
             for c in opportunities(event(self.books()),method):

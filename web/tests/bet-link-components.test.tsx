@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { BetLinkButton, LegLinks } from "../components/bet-link";
+import { BetLinkButton, LegLinks, LiveBetLinks } from "../components/bet-link";
 import { StoreContext } from "../components/settings-provider";
 import { SettingsStore } from "../lib/settings-store";
 
@@ -121,4 +121,47 @@ test("calculator legs share one state selector", () => {
   assert.equal((html.match(/<select/g) ?? []).length, 1);
   assert.match(html, /Choose your state for BetMGM/);
   assert.match(html, /Bet on FanDuel/);
+});
+
+test("live links remain available after kickoff, including calculator legs and compact rows", () => {
+  for (const compact of [true, false]) {
+    const html = render(
+      <LiveBetLinks.Provider value={true}>
+        <BetLinkButton
+          links={fanduel}
+          bookLabel="FanDuel"
+          startsAt={past}
+          compact={compact}
+        />
+      </LiveBetLinks.Provider>,
+    );
+    assert.match(html, /href=/);
+    assert.doesNotMatch(html, /game started/);
+  }
+  const legs = render(
+    <LiveBetLinks.Provider value={true}>
+      <LegLinks
+        startsAt={past}
+        legs={[{ links: fanduel, bookLabel: "FanDuel", label: "Home" }]}
+      />
+    </LiveBetLinks.Provider>,
+  );
+  assert.match(legs, /href=/);
+  const gone = render(
+    <LiveBetLinks.Provider value={true}>
+      <BetLinkButton
+        links={fanduel}
+        bookLabel="FanDuel"
+        startsAt={past}
+        unavailable
+      />
+    </LiveBetLinks.Provider>,
+  );
+  assert.doesNotMatch(gone, /href=/);
+  const missing = render(
+    <LiveBetLinks.Provider value={true}>
+      <BetLinkButton links={null} bookLabel="FanDuel" startsAt={past} />
+    </LiveBetLinks.Provider>,
+  );
+  assert.match(missing, /No FanDuel link/);
 });

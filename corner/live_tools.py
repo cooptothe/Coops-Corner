@@ -14,6 +14,7 @@ from typing import Any
 from corner.featured_tools import MatchedMarket, Offer, calculate_back_cover, ToolInputError
 from corner.featured_ev import calculate_featured_ev
 from corner.featured_middles import LineBet, calculate_middle, _full_win_window
+from corner.links import clean_links
 from corner.pricing import fee_policy
 from corner.reference_policy import sufficient_references
 from corner.collection_policy import parse
@@ -38,6 +39,7 @@ def _analyze(encoded: str, devig_method: str) -> list[dict[str, Any]]:
                 # Quarter-line split settlements require more than two winner states.
                 if D(line)*2 != (D(line)*2).to_integral_value(): continue
             groups.setdefault((key,line),[]).append((book['key'],market))
+    book_links = {b['key']:b.get('link') for b in event['bookmakers']}
     result: list[dict[str,Any]] = []
     quotes: dict[str,dict[str,Any]] = {}
     def attach(candidate, calculation, offers, capital, minimum=None, ev_ratio=None):
@@ -85,7 +87,7 @@ def _analyze(encoded: str, devig_method: str) -> list[dict[str, Any]]:
                     'commission_rate':str(rate) if rate is not None else None,
                     'fee_status':'known' if rate is not None else 'unknown',
                     'evidence_kind':'retained_provider_quote','current_availability':'unverified',
-                    'observed_at':market['last_update'],'provider_updated_at':market['last_update'],'links':None}
+                    'observed_at':market['last_update'],'provider_updated_at':market['last_update'],'links':clean_links(book, book_links.get(book), market.get('link'), outcome.get('link'))}
                 if rate is not None:
                     offer = Offer(quote,contract,key,outcome['name'],book,D(str(outcome['price'])),rate)
                     executable.append(offer)

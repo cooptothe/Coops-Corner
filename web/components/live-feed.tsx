@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { LiveBetLinks } from "./bet-link";
 import { useAuth } from "./auth-provider";
 import dynamic from "next/dynamic";
 import { Loading } from "./feedback";
@@ -112,80 +113,82 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
       </section>
     );
   return (
-    <section className="live-feed" aria-label="Premium live main lines">
-      <div
-        className="live-status-tabs"
-        role="group"
-        aria-label="Line availability"
-      >
-        {[
-          ["", "All games"],
-          ["active", "▶ Lines open"],
-          ["no_active_lines", "Ⅱ No active lines"],
-        ].map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            className={status === value ? "button" : "button secondary"}
-            aria-pressed={status === value}
-            onClick={() => setStatus(value)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <p className="live-summary" role="status">
-        {error ||
-          (!feed
-            ? "Loading live odds…"
-            : !feed.enabled
-              ? "Live collection is not enabled yet."
-              : `${events.length} games · ${feed.state.replaceAll("_", " ")} · collection every 60 seconds`)}
-      </p>
-      <details className="live-explainer">
-        <summary>Live game availability ({events.length})</summary>
-        <p>
-          ▶ Lines open · Ⅱ No active lines. These signals describe bookmaker
-          availability, not confirmed game stoppages. Quotes expire after 90
-          seconds. Prices and settlement rules can change before acceptance.
-        </p>
-        <ul className="live-game-statuses">
-          {events.map((e) => (
-            <li key={`${e.sport_key}:${e.id}`}>
-              <span>
-                {e.status === "active"
-                  ? "▶"
-                  : e.status === "no_active_lines"
-                    ? "Ⅱ"
-                    : "—"}
-              </span>
-              <span>
-                {e.away_team} at {e.home_team}
-              </span>
-              <small>
-                {e.status === "active"
-                  ? "Lines open"
-                  : e.status === "no_active_lines"
-                    ? "No active lines"
-                    : "Awaiting fresh odds"}
-              </small>
-            </li>
+    <LiveBetLinks.Provider value={true}>
+      <section className="live-feed" aria-label="Premium live main lines">
+        <div
+          className="live-status-tabs"
+          role="group"
+          aria-label="Line availability"
+        >
+          {[
+            ["", "All games"],
+            ["active", "▶ Lines open"],
+            ["no_active_lines", "Ⅱ No active lines"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={status === value ? "button" : "button secondary"}
+              aria-pressed={status === value}
+              onClick={() => setStatus(value)}
+            >
+              {label}
+            </button>
           ))}
-        </ul>
-      </details>
-      {product &&
-        (kind === "ev" ? (
-          <EvFeed
-            data={product.data}
-            liveRows={product.rows}
-            liveMethod={feed?.devig_method ?? "current"}
-            onLiveMethod={setMethod}
-          />
-        ) : kind === "arbitrage" ? (
-          <ArbFeed data={product.data} liveRows={product.rows} />
-        ) : (
-          <MiddleFeed data={product.data} liveRows={product.rows} />
-        ))}
-    </section>
+        </div>
+        <p className="live-summary" role="status">
+          {error ||
+            (!feed
+              ? "Loading live odds…"
+              : !feed.enabled
+                ? "Live collection is not enabled yet."
+                : `${events.length} games · ${feed.state.replaceAll("_", " ")} · collection every 60 seconds`)}
+        </p>
+        <details className="live-explainer">
+          <summary>Live game availability ({events.length})</summary>
+          <p>
+            ▶ Lines open · Ⅱ No active lines. These signals describe bookmaker
+            availability, not confirmed game stoppages. Quotes expire after 90
+            seconds. Prices and settlement rules can change before acceptance.
+          </p>
+          <ul className="live-game-statuses">
+            {events.map((e) => (
+              <li key={`${e.sport_key}:${e.id}`}>
+                <span>
+                  {e.status === "active"
+                    ? "▶"
+                    : e.status === "no_active_lines"
+                      ? "Ⅱ"
+                      : "—"}
+                </span>
+                <span>
+                  {e.away_team} at {e.home_team}
+                </span>
+                <small>
+                  {e.status === "active"
+                    ? "Lines open"
+                    : e.status === "no_active_lines"
+                      ? "No active lines"
+                      : "Awaiting fresh odds"}
+                </small>
+              </li>
+            ))}
+          </ul>
+        </details>
+        {product &&
+          (kind === "ev" ? (
+            <EvFeed
+              data={product.data}
+              liveRows={product.rows}
+              liveMethod={feed?.devig_method ?? "current"}
+              onLiveMethod={setMethod}
+            />
+          ) : kind === "arbitrage" ? (
+            <ArbFeed data={product.data} liveRows={product.rows} />
+          ) : (
+            <MiddleFeed data={product.data} liveRows={product.rows} />
+          ))}
+      </section>
+    </LiveBetLinks.Provider>
   );
 }
