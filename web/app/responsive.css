@@ -544,3 +544,39 @@
     flex-direction: row;
   }
 }
+
+/* Keep sportsbook odds and the external-link tap target in separate mobile columns. */
+@media (max-width: 700px) {
+  .ev-layout .ev-row .ev-action,
+  .props-layout .props-row .ev-action {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 0 8px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0 9px;
+    box-sizing: border-box;
+  }
+  .ev-layout .ev-row .ev-action:has(.bet-link-compact),
+  .props-layout .props-row .ev-action:has(.bet-link-compact) {
+    grid-template-columns: minmax(0, 1fr) max-content 44px;
+    padding-right: 0;
+  }
+  .ev-action > span {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .ev-action > b {
+    white-space: nowrap;
+  }
+  .ev-action > .bet-link-compact {
+    position: static;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    align-self: center;
+    box-sizing: border-box;
+  }
+}
