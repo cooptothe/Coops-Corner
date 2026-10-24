@@ -38,6 +38,8 @@ class LiveGovernor(Governor):
           CREATE TABLE IF NOT EXISTS collection_quarantine(
             job_key TEXT PRIMARY KEY REFERENCES jobs(key), token TEXT NOT NULL,
             created REAL NOT NULL, code TEXT NOT NULL, detail TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS collection_retry_cooldowns(
+            job_key TEXT PRIMARY KEY REFERENCES jobs(key), retry_after REAL NOT NULL);
           CREATE TABLE IF NOT EXISTS quota_bindings(
             cycle_id TEXT PRIMARY KEY REFERENCES cycles(id), key_hash TEXT NOT NULL,
             used INTEGER NOT NULL, checked REAL NOT NULL,
@@ -55,11 +57,15 @@ class LiveGovernor(Governor):
         ''')
 
     def ready(self, job, now):
+        if self.db.execute('SELECT 1 FROM collection_retry_cooldowns WHERE job_key=? AND retry_after>?',(job.key,now.timestamp())).fetchone():
+            return False
         if self.db.execute('SELECT 1 FROM collection_quarantine WHERE job_key=?', (job.key,)).fetchone():
             return False
         return super().ready(job, now)
 
     def claim(self, job, owner, now):
+        if self.db.execute('SELECT 1 FROM collection_retry_cooldowns WHERE job_key=? AND retry_after>?',(job.key,now.timestamp())).fetchone():
+            raise Refused('Recovered transport scope is cooling down')
         if self.db.execute('SELECT 1 FROM collection_quarantine WHERE job_key=?', (job.key,)).fetchone():
             raise Refused('Scope quarantined; review before any new purchase')
         return super().claim(job, owner, now)

@@ -20,3 +20,19 @@ Old captures are never republished or marked fresh. Normal scheduled requests
 collect fresh odds after restart. Other quarantines remain blocked for review.
 
 Public documentation: https://the-odds-api.com/liveapi/guides/v4/#parameters-2
+
+
+## Reconciled zero-charge transport failures
+
+Offline recovery now replaces permanent blocks for audited zero-charge unknown
+requests with a 5-minute cooldown from recovery time. Repeated failures of the
+same scope increase this cooldown up to one hour. Existing old blocks may
+already have completed their cooldown. Normal job cadence and all quota gates
+still apply; missed ticks are never replayed.
+
+Release requires a settled zero-cost attempt in the current cycle, its matching
+reconciliation audit, fresh offline quota reconciliation, and no saved HTTP
+response or settlement-phase failure. Original quarantines are archived in
+`transport_quarantine_archive`. Nonzero costs and malformed captured responses
+remain quarantined. Zero-charge reconciliation does not assert a response was
+valid: no old quote is published; a future scheduled purchase gets new data.

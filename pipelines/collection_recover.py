@@ -65,6 +65,8 @@ def reconcile_known_failure(g, now, quota, *, accept_single_delta=False):
     g.reconcile(now, quota['provider_used'], quota['provider_remaining'], json.loads(binding['offsets']),
                 settlements, inventory_settlements, 'Stopped-worker recovery; exclusive-key fresh total confirms all settled costs and at most one uncertain request')
     g.resume(now, 'Resume healthy scopes only; quarantine remains enforced')
+    from corner.collection_retry import release_zero_charge_recoveries
+    release_zero_charge_recoveries(g,now)
     return {**settlements, **inventory_settlements}
 
 
@@ -116,6 +118,7 @@ def main():
             write_private(RETAINED/'activation'/'approval.json',approval)
             print(json.dumps({'result':'recovery_prepared','provider_used':quota['provider_used'],
                               'settled_requests':len(settlements),'recovered_charge':sum(settlements.values()),
+                              'zero_charge_scopes_released':len(json.loads(g.db.execute("SELECT detail FROM quota_audit WHERE action='zero-charge-retry-review' ORDER BY id DESC LIMIT 1").fetchone()[0])['released']),
                               'quarantined_scopes':g.db.execute('SELECT count(*) FROM collection_quarantine').fetchone()[0],
                               'paid_odds_calls':0,'worker_started':False}))
         return 0
