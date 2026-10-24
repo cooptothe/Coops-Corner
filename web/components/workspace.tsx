@@ -17,7 +17,8 @@ import {
   decimalInput,
   shiftDecimal,
 } from "../../frontend/format.mjs";
-import { ApiError, allPages, request, sharedPages } from "../lib/api";
+import { ApiError, request, sharedPages } from "../lib/api";
+import { loadSnapshotQuotes } from "../lib/snapshot-quotes";
 import { subscribeOddsUpdated } from "../lib/odds-updates";
 import { reloadToolsOnce } from "../lib/refresh-api";
 import type {
@@ -101,28 +102,6 @@ const ROW_LISTS: Partial<Record<View, string>> = {
   arbitrage: "tools/arbitrage",
   middle: "tools/middle",
 };
-// Every quote of the snapshot in a few large pages. An older tools API without that route is read game by game.
-async function loadQuotes(snapshot: string, signal: AbortSignal) {
-  try {
-    return await sharedPages<Quote>("quotes", snapshot, signal, {
-      limit: 1000,
-      maxOffset: 100000,
-    });
-  } catch (error) {
-    if (!(error instanceof ApiError) || error.status !== 404) throw error;
-    const games = await sharedPages<Game>("games", snapshot, signal);
-    const boards = await Promise.all(
-      games.map((g) =>
-        allPages<Quote>(
-          `games/${encodeURIComponent(g.id)}/odds`,
-          snapshot,
-          signal,
-        ),
-      ),
-    );
-    return boards.flat();
-  }
-}
 const errorText = (error: unknown) =>
   error instanceof Error
     ? error.message
@@ -242,7 +221,7 @@ export default function Workspace({ view }: { view: View }) {
           );
         const [games, quotes] = await Promise.all([
           sharedPages<Game>("games", snapshot, controller.signal),
-          loadQuotes(snapshot, controller.signal),
+          loadSnapshotQuotes(snapshot, controller.signal, caps.data.books),
         ]);
         // Keep the order the quotes always had: by game, in the games' own order.
         const rank = new Map(games.map((g, i) => [g.id, i]));
