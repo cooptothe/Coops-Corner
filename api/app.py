@@ -16,7 +16,7 @@ from starlette.staticfiles import StaticFiles
 
 from api.compression import MarketCompression
 from api.catalog import FixtureCatalog, APIProblem, paginate
-from api.models import (Envelope, Page, Game, Quote, ToolRow, ToolKind, GameQuery, QuoteQuery, BulkQuoteQuery, ToolQuery,
+from api.models import (Envelope, Page, Game, Quote, ToolRow, ToolKind, GameQuery, QuoteQuery, BulkQuoteQuery, ToolQuery, ToolPage,
                         PromoRequest, PromoResponse, ErrorEnvelope, ErrorDetail, Capabilities, Health)
 from corner.featured_markets import SUPPORTED_MARKETS
 from corner.featured_tools import ToolInputError
@@ -26,7 +26,10 @@ DEFAULT_ORIGINS = ('http://localhost:5173', 'http://127.0.0.1:5173', 'http://loc
 
 
 def error_response(catalog, status, code, message, fields=()):
-    result = ErrorEnvelope(meta=catalog.meta(), error=ErrorDetail(code=code, message=message, fields=list(fields)))
+    # Error/auth responses run on the ASGI loop. Use already-built metadata;
+    # never trigger a large quote-catalog rebuild just to reject a request.
+    source = getattr(catalog, '_inner', None) or catalog
+    result = ErrorEnvelope(meta=source.meta(), error=ErrorDetail(code=code, message=message, fields=list(fields)))
     return JSONResponse(result.model_dump(mode='json'), status_code=status, headers={'Cache-Control': 'no-store'})
 
 
@@ -228,27 +231,31 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
         quotes = [q for q in catalog.quotes_by_game.get(game_id, ())
                   if (query.market_key is None or query.market_key == q.market_key)
                   and (query.sportsbook_id is None or query.sportsbook_id == q.sportsbook_id)
-                  and (query.contract_id is None or query.contract_id == q.contract_id)]
+                  and (query.contract_id is None or query.contract_id == q.contract_id)
+                    and (not query.main_lines_only or q.market_key in ('h2h','spreads','totals'))]
         return result(paginate(quotes, query, ('decimal_odds',)))
 
     @api.get('/api/v1/quotes', response_model=Envelope[Page[Quote]], tags=['games'])
     def all_quotes(query: Annotated[BulkQuoteQuery, Query()]):
-        catalog.verify_snapshot(query.snapshot_id)
+        current = catalog._current() if hasattr(catalog, '_current') else catalog
+        current.verify_snapshot(query.snapshot_id)
 
         def matching():
-            return [q for q in catalog.quotes
+            return [q for q in (current.quotes_by_game.get(query.game_id, ()) if query.game_id else current.quotes)
                     if (query.market_key is None or query.market_key == q.market_key)
                     and (query.sportsbook_id is None or query.sportsbook_id == q.sportsbook_id)
-                    and (query.contract_id is None or query.contract_id == q.contract_id)]
+                    and (query.contract_id is None or query.contract_id == q.contract_id)
+                    and (not query.main_lines_only or q.market_key in ('h2h','spreads','totals'))]
 
-        which = ('quotes', query.market_key, query.sportsbook_id, query.contract_id)
-        return result(paginate(matching, query, ('decimal_odds',), memo=catalog.memo, memo_key=which))
+        which = ('quotes', query.market_key, query.sportsbook_id, query.contract_id, query.main_lines_only, query.game_id)
+        return {'meta':current.meta(),'data':paginate(matching, query, ('decimal_odds',), memo=current.memo, memo_key=which)}
 
-    @api.get('/api/v1/tools/{kind}', response_model=Envelope[Page[ToolRow]], tags=['tools'])
+    @api.get('/api/v1/tools/{kind}', response_model=Envelope[ToolPage], tags=['tools'])
     def tools(kind: ToolKind, query: Annotated[ToolQuery, Query()]):
-        catalog.verify_snapshot(query.snapshot_id)
+        current = catalog._current() if hasattr(catalog, '_current') else catalog
+        current.verify_snapshot(query.snapshot_id)
         if query.game_id is not None:
-            catalog.game(query.game_id)
+            current.game(query.game_id)
         if kind != 'positive_ev' and query.devig_method != 'current':
             raise APIProblem(422, 'inapplicable_filter', 'devig_method applies only to positive_ev.')
         if kind != 'positive_ev' and query.minimum_ev_ratio != '0':
@@ -263,10 +270,10 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
         if query.sort == 'minimum_profit' and kind == 'positive_ev':
             raise APIProblem(422, 'inapplicable_sort', 'positive_ev has no minimum_profit projection.')
         def matching():
-            source = catalog.ev_rows(query.devig_method) if kind == 'positive_ev' else catalog.rows
+            source = current.ev_rows(query.devig_method) if kind == 'positive_ev' else current.rows
             rows = [row for row in source if row.kind == kind
                     and (query.game_id is None or query.game_id == row.game_id)
-                    and (query.sport_key is None or query.sport_key == catalog.game_map[row.game_id].sport_key)
+                    and (query.sport_key is None or query.sport_key == current.game_map[row.game_id].sport_key)
                     and (query.market_key is None or query.market_key == row.market_key)
                     and (query.sportsbook_id is None or query.sportsbook_id in row.sportsbook_ids)]
             if kind == 'positive_ev':
@@ -277,8 +284,12 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
 
         # The filter, its ordering and the page are separate steps: paging through one feed sorts it once.
         which = (kind, query.game_id, query.sport_key, query.market_key, query.sportsbook_id, query.minimum_ev_ratio, query.maximum_loss_ratio, query.devig_method)
-        return result(paginate(matching, query, ('conditional_ev_ratio', 'minimum_profit', 'capital_required'),
-                               memo=catalog.memo, memo_key=which))
+        page = paginate(matching, query, ('conditional_ev_ratio', 'minimum_profit', 'capital_required'),
+                        memo=current.memo, memo_key=which)
+        if query.include_quotes:
+            ids = {quote_id for row in page['items'] for quote_id in row.quote_ids}
+            page['quotes'] = [current.quote_map[quote_id] for quote_id in sorted(ids)]
+        return {'meta':current.meta(),'data':page}
 
     @api.post('/api/v1/calculators/promo', response_model=Envelope[PromoResponse], tags=['calculators'])
     def promo(command: PromoRequest):

@@ -9,10 +9,17 @@ export async function loadSnapshotQuotes(
   snapshot: string,
   signal: AbortSignal,
   books?: Book[],
+  mainLinesOnly = false,
 ): Promise<Quote[]> {
+  const query: Record<string, string> = mainLinesOnly
+    ? { main_lines_only: "true" }
+    : {};
   let legacy = false;
   try {
-    return await sharedPages<Quote>("quotes", snapshot, signal, BULK);
+    return await sharedPages<Quote>("quotes", snapshot, signal, {
+      ...BULK,
+      params: query,
+    });
   } catch (error) {
     if (!(error instanceof ApiError)) throw error;
     if (error.status === 404) legacy = true;
@@ -28,7 +35,7 @@ export async function loadSnapshotQuotes(
         `games/${encodeURIComponent(game.id)}/odds`,
         snapshot,
         signal,
-        { params: book ? { sportsbook_id: book } : undefined },
+        { params: { ...query, ...(book ? { sportsbook_id: book } : {}) } },
       );
       for (const quote of board) items.push(quote);
     }
@@ -51,7 +58,7 @@ export async function loadSnapshotQuotes(
     try {
       part = await sharedPages<Quote>("quotes", snapshot, signal, {
         ...BULK,
-        params: { sportsbook_id: book },
+        params: { ...query, sportsbook_id: book },
       });
     } catch (error) {
       if (!(error instanceof ApiError) || error.code !== "page_limit")
@@ -67,4 +74,21 @@ export async function loadSnapshotQuotes(
     for (const quote of part) items.push(quote);
   }
   return items;
+}
+
+// Parlay review needs only its selected games, not every quote in the workspace.
+export async function loadGameQuotes(
+  snapshot: string,
+  signal: AbortSignal,
+  gameIds: string[],
+): Promise<Quote[]> {
+  const quotes: Quote[] = [];
+  for (const id of new Set(gameIds)) {
+    const board = await sharedPages<Quote>("quotes", snapshot, signal, {
+      ...BULK,
+      params: { game_id: id },
+    });
+    for (const quote of board) quotes.push(quote);
+  }
+  return quotes;
 }

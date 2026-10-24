@@ -1,7 +1,7 @@
 import { labQuoteCurrent } from "./lab";
 import { loadTrendOptions, type TrendContract } from "./trends-api";
 import { request } from "./api";
-import { loadSnapshotQuotes } from "./snapshot-quotes";
+import { loadGameQuotes } from "./snapshot-quotes";
 import { reloadTools, loadProps } from "./refresh-api";
 import type { Capabilities, Quote } from "./contracts";
 import type { ParlayLeg } from "./parlay";
@@ -19,10 +19,10 @@ export async function refreshParlay(legs: ParlayLeg[]) {
   if (needMain) {
     await reloadTools();
     const caps = await request<Capabilities>("capabilities");
-    quotes = await loadSnapshotQuotes(
+    quotes = await loadGameQuotes(
       caps.meta.snapshot_id,
       new AbortController().signal,
-      caps.data.books,
+      legs.filter((leg) => leg.source === "ev").map((leg) => leg.eventId),
     );
   }
   const props = needProps ? ((await loadProps()).bets ?? []) : [];

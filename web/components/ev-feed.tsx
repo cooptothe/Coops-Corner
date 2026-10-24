@@ -52,7 +52,7 @@ import {
 import type { QuoteLinks } from "../lib/bet-links";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
-import { sharedPages } from "../lib/api";
+import { loadToolSnapshot } from "../lib/tool-snapshot";
 import type {
   Capabilities,
   Game,
@@ -353,6 +353,7 @@ export default function EvFeed({
     liveRows !== undefined,
   );
   const [rows, setRows] = useState<EvRow[] | null>(null);
+  const [loadedQuotes, setLoadedQuotes] = useState<Quote[] | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [offBooks, setOffBooks] = useState<Set<string>>(new Set());
@@ -452,15 +453,13 @@ export default function EvFeed({
     }
     const controller = new AbortController();
     setError("");
-    sharedPages<ToolRow>(
-      "tools/positive_ev",
-      data.meta.snapshot_id,
-      controller.signal,
-      {
-        params: devigMethod === "current" ? {} : { devig_method: devigMethod },
-      },
-    )
-      .then((items) => {
+    loadToolSnapshot("positive_ev", data.meta.snapshot_id, controller.signal, {
+      params: devigMethod === "current" ? {} : { devig_method: devigMethod },
+    })
+      .then((bundle) => {
+        if (controller.signal.aborted) return;
+        setLoadedQuotes(bundle.quotes);
+        const items = bundle.rows;
         if (!controller.signal.aborted) {
           setRows(items.filter((r): r is EvRow => r.kind === "positive_ev"));
           setPricedSnapshot(pricingSelection);
@@ -475,11 +474,15 @@ export default function EvFeed({
 
   const maps = useMemo(
     () => ({
-      quotes: new Map(data.quotes.map((q) => [q.id, q])),
+      quotes: new Map(
+        (liveRows !== undefined ? data.quotes : (loadedQuotes ?? [])).map(
+          (q) => [q.id, q],
+        ),
+      ),
       games: new Map(data.games.map((g) => [g.id, g])),
       books: new Map(feedBooks(data.caps.books).map((b) => [b.id, b.name])),
     }),
-    [data],
+    [data, loadedQuotes, liveRows],
   );
   const all = useMemo(
     () =>

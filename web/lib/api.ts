@@ -115,6 +115,7 @@ interface PageOptions {
   params?: Record<string, string>;
   limit?: number;
   maxOffset?: number;
+  onPage?: (page: Page<unknown>) => void;
 }
 
 async function inParallel<I, O>(
@@ -171,6 +172,7 @@ export async function allPages<T>(
       data.items.length > limit
     )
       throw new ApiError("Invalid page.", "invalid_response");
+    options.onPage?.(data);
     return data;
   };
   const first = await get(0);

@@ -21,7 +21,7 @@ import {
 } from "../../frontend/format.mjs";
 import { choice, list, sorted, text } from "../lib/settings-fields";
 import { userStorage } from "../lib/user-storage";
-import { sharedPages } from "../lib/api";
+import { loadToolSnapshot } from "../lib/tool-snapshot";
 import type {
   Capabilities,
   Game,
@@ -449,6 +449,7 @@ export default function MiddleFeed({
     liveRows !== undefined,
   );
   const [rows, setRows] = useState<MidRow[] | null>(null);
+  const [loadedQuotes, setLoadedQuotes] = useState<Quote[] | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [offBooks, setOffBooks] = useState<Set<string>>(new Set());
@@ -503,12 +504,11 @@ export default function MiddleFeed({
     }
     const controller = new AbortController();
     setError("");
-    sharedPages<ToolRow>(
-      "tools/middle",
-      data.meta.snapshot_id,
-      controller.signal,
-    )
-      .then((items) => {
+    loadToolSnapshot("middle", data.meta.snapshot_id, controller.signal)
+      .then((bundle) => {
+        if (controller.signal.aborted) return;
+        setLoadedQuotes(bundle.quotes);
+        const items = bundle.rows;
         if (!controller.signal.aborted)
           setRows(items.filter((r): r is MidRow => r.kind === "middle"));
       })
@@ -521,11 +521,15 @@ export default function MiddleFeed({
 
   const maps = useMemo(
     () => ({
-      quotes: new Map(data.quotes.map((q) => [q.id, q])),
+      quotes: new Map(
+        (liveRows !== undefined ? data.quotes : (loadedQuotes ?? [])).map(
+          (q) => [q.id, q],
+        ),
+      ),
       games: new Map(data.games.map((g) => [g.id, g])),
       books: new Map(feedBooks(data.caps.books).map((b) => [b.id, b.name])),
     }),
-    [data],
+    [data, loadedQuotes, liveRows],
   );
   const all = useMemo(
     () =>

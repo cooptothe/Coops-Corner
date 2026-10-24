@@ -133,6 +133,10 @@ class MiddleRow(RowBase):
 ToolRow = Annotated[EVRow | CoverRow | MiddleRow, Field(discriminator='kind')]
 
 
+class ToolPage(Page[ToolRow]):
+    quotes: list[Quote] = Field(default_factory=list)
+
+
 class PageQuery(Model):
     offset: int = Field(default=0, ge=0, le=10000)
     limit: int = Field(default=25, ge=1, le=100)
@@ -148,6 +152,7 @@ class GameQuery(PageQuery):
 
 
 class QuoteQuery(PageQuery):
+    main_lines_only: bool = False
     market_key: MarketKey | None = None
     sportsbook_id: Identifier | None = None
     contract_id: Identifier | None = None
@@ -156,12 +161,14 @@ class QuoteQuery(PageQuery):
 
 
 class BulkQuoteQuery(QuoteQuery):
-    """Every quote of a snapshot in a few large pages, instead of one request per game."""
+    """Bounded quote pages, optionally scoped to one game."""
+    game_id: Identifier | None = None
     offset: int = Field(default=0, ge=0, le=100000)
     limit: int = Field(default=500, ge=1, le=1000)
 
 
 class ToolQuery(PageQuery):
+    include_quotes: bool = False
     devig_method: Literal['current', 'multiplicative', 'additive', 'power', 'shin', 'worst_case'] = 'current'
     # Same bounded bulk paging as quotes; alternate-line result sets exceed 10k.
     offset: int = Field(default=0, ge=0, le=100000)

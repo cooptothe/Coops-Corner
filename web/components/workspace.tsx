@@ -19,6 +19,7 @@ import {
 } from "../../frontend/format.mjs";
 import { ApiError, request, sharedPages } from "../lib/api";
 import { loadSnapshotQuotes } from "../lib/snapshot-quotes";
+import { loadToolSnapshot } from "../lib/tool-snapshot";
 import { subscribeOddsUpdated } from "../lib/odds-updates";
 import { reloadToolsOnce } from "../lib/refresh-api";
 import type {
@@ -197,12 +198,12 @@ export default function Workspace({ view }: { view: View }) {
         });
         if (
           loadedSnapshot.current ===
-          `${user?.id}|${light}|${caps.meta.snapshot_id}`
+          `${user?.id}|${view}|${light}|${caps.meta.snapshot_id}`
         )
           return;
         if (light) {
           if (!controller.signal.aborted) {
-            loadedSnapshot.current = `${user?.id}|${light}|${caps.meta.snapshot_id}`;
+            loadedSnapshot.current = `${user?.id}|${view}|${light}|${caps.meta.snapshot_id}`;
             setData({
               caps: caps.data,
               games: [],
@@ -216,12 +217,21 @@ export default function Workspace({ view }: { view: View }) {
         // The feed's own rows are the slowest part after the quotes; start them now instead of when the feed mounts.
         const rows = ROW_LISTS[view];
         if (rows)
-          sharedPages<ToolRow>(rows, snapshot, controller.signal).catch(
-            () => undefined,
-          );
+          loadToolSnapshot(
+            view as "positive_ev" | "arbitrage" | "middle",
+            snapshot,
+            controller.signal,
+          ).catch(() => undefined);
         const [games, quotes] = await Promise.all([
           sharedPages<Game>("games", snapshot, controller.signal),
-          loadSnapshotQuotes(snapshot, controller.signal, caps.data.books),
+          rows
+            ? Promise.resolve([] as Quote[])
+            : loadSnapshotQuotes(
+                snapshot,
+                controller.signal,
+                caps.data.books,
+                view === "games",
+              ),
         ]);
         // Keep the order the quotes always had: by game, in the games' own order.
         const rank = new Map(games.map((g, i) => [g.id, i]));
@@ -231,7 +241,7 @@ export default function Workspace({ view }: { view: View }) {
             (rank.get(b.game_id) ?? games.length),
         );
         if (!controller.signal.aborted) {
-          loadedSnapshot.current = `${user?.id}|${light}|${snapshot}`;
+          loadedSnapshot.current = `${user?.id}|${view}|${light}|${snapshot}`;
           setData({ caps: caps.data, games, quotes, meta: caps.meta });
         }
       } catch (error) {

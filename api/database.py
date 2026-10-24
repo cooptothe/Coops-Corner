@@ -289,6 +289,11 @@ class LiveCatalog:
     but the very first build must succeed.
     """
 
+    # Static deployment metadata must not enter the rebuilding proxy. ASGI
+    # response headers read this on the event loop, outside worker threads.
+    data_mode = 'database'
+
+
     def __init__(self, connect, *, ttl_seconds=None, max_age_seconds=None, references=None, targets=None, clock=None):
         self._connect = connect
         self._ttl = ttl_seconds if ttl_seconds is not None else 15
