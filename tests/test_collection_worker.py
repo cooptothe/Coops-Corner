@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from corner.collection_policy import (plan, parse, open_now, interval, STANDARD, EXCHANGE,
-                                      PROP_STANDARD, SPORTS, Job, POOLS)
+                                      PROP_STANDARD, PROP_EXCHANGE, SPORTS, Job, POOLS)
 from corner.credit_governor import Governor, Refused
 from pipelines.collection_worker import tick,fixture_transport
 
@@ -38,7 +38,7 @@ class Policy(unittest.TestCase):
         self.assertEqual(set(sports),set(SPORTS))
         self.assertFalse(set(STANDARD)&set(EXCHANGE))
         self.assertEqual(len(STANDARD+EXCHANGE),16)
-        self.assertEqual(len(PROP_STANDARD+EXCHANGE),16)
+        self.assertEqual(len(PROP_STANDARD+PROP_EXCHANGE),15)
         self.assertIn('betonlineag',STANDARD)
         self.assertIn('betonlineag',PROP_STANDARD)
 

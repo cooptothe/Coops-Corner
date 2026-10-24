@@ -43,8 +43,20 @@
     "Main bound uses fastest band all 16 hours; actual countdown bands are slower.",
     "Props simulated on a 30-second grid, both book groups, all configured keys returned.",
     "Saved schedule can omit events; actual pools and global reserve remain hard limits.",
-    "No NCAA props. No automatic next-cycle activation."
+    "No NCAA props. No automatic next-cycle activation.",
+    "Props now request 15 books in 10+5 groups, still two billing blocks; no guaranteed saving.",
+    "Live is inside the 7.9M main allocation, not an additional allowance. Main/additional/live cannot all spend their independent ceilings simultaneously.",
+    "The planning total uses the shared main pool cap once, including live. Independent alternate allowance can be throttled by that pool.",
+    "No cadence increase is funded by this single-book removal. Actual returned-market charges can be lower; measure the ledger before reallocating."
   ],
-  "planning_total": 13414812,
-  "remaining_under_planning_envelope": 1585188
+  "planning_total": 13414836,
+  "remaining_under_planning_envelope": 1585164,
+  "requested_main_books": 16,
+  "requested_props_books": 15,
+  "props_exchange_books": 5,
+  "guaranteed_credit_savings_from_betfair_props_removal": 0,
+  "main_live_additional_shared_pool_cap": 7900000,
+  "live_subcap_within_main": 500000,
+  "additional_capacity_if_main_fastest_ceiling_and_full_live_subcap": 315200,
+  "updated_at": "2026-10-24"
 }

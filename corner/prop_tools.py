@@ -10,7 +10,7 @@ from hashlib import sha256
 
 from corner.prop_markets import market_meta
 from corner.pricing import DFS, fee_policy
-from corner.book_policy import supported_book
+from corner.book_policy import supported_book, props_book_eligible
 
 
 def best_middles(bets, refund_possible):
@@ -69,7 +69,7 @@ def merge_props(raw, *, now, data=None):
             if meta is None:
                 continue
             for q in stored['quotes']:
-                if q['book'] in DFS or not supported_book(q['book']):
+                if q['book'] in DFS or not props_book_eligible(q['book']):
                     continue
                 policy = fee_policy(q['book'])
                 if policy.commission is None:

@@ -16,8 +16,8 @@ class PolicyMarginProps(unittest.TestCase):
     def test_default_feed_fallback_prices_yes_only_with_stress_and_disclosure(self):
         with patch.object(props_ingestion,'load',return_value={}),patch.object(props_ingestion,'prune',return_value={'events':self.data()}):
             row=next(b for b in props_ingestion.bets() if b['book']=='draftkings')
-        # FD q=.25 weight5; Pinnacle q=.20 weight2. Central /1.1; EV /1.2.
-        q=(D('.25')*5+D('.20')*2)/7
+        # Reviewed NFL profile: FD and Pinnacle have equal weights. Central /1.1; stress /1.2.
+        q=(D('.25')+D('.20'))/2
         self.assertAlmostEqual(float(row['fair_probability']),float(q/D('1.1')),places=5)
         self.assertAlmostEqual(float(row['ev']),float(q/D('1.2')*6-1),places=5)
         self.assertEqual(row['assumed_margin'],'0.10');self.assertEqual(row['stress_margin'],'0.20')
@@ -30,9 +30,9 @@ class PolicyMarginProps(unittest.TestCase):
 
     def test_paired_and_observed_evidence_take_precedence(self):
         paired=scorer_cases.ScorerPairs().event('player_anytime_td','americanfootball_nfl')
-        self.assertEqual(build_bets(paired),build_bets(paired,fallback_margin='.10'))
+        self.assertEqual(self.target(paired),self.target(paired,fallback_margin='.10'))
         data=fixture()
-        self.assertEqual(build_bets(data),build_bets(data,fallback_margin='.10'))
+        self.assertEqual(self.target(data),self.target(data,fallback_margin='.10'))
 
     def test_manual_assumption_remains_request_scoped(self):
         row=self.target(self.data(),fallback_margin='.10',one_sided_margin='.15')

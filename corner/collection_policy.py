@@ -15,6 +15,7 @@ STANDARD = LEGACY_STANDARD + ('fanatics',)
 # Separate acquisition groups, each within the provider's ten-book billing block.
 LEGACY_EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket')
 EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket_us')
+PROP_EXCHANGE = tuple(book for book in EXCHANGE if not book.startswith('betfair_ex_'))
 ALL_BOOKS = STANDARD + EXCHANGE
 ALL_BOOKS_PROFILE = 'all-books-pregame-v1'
 CADENCE_VERSION = 'all-books-countdown-60s-floor-v1'
@@ -120,7 +121,7 @@ class Job:
             raise ValueError('Unsupported job scope')
         if self.kind == 'props' and self.sport in NO_SCHEDULED_PROPS:
             raise ValueError('NCAA player props are excluded from scheduled collection')
-        allowed = EXCHANGE if self.group == 'exchange' else PROP_STANDARD if self.kind == 'props' else STANDARD
+        allowed = (PROP_EXCHANGE if self.kind == 'props' else EXCHANGE) if self.group == 'exchange' else PROP_STANDARD if self.kind == 'props' else STANDARD
         if self.group not in ('standard','exchange') or self.books != allowed:
             raise ValueError('Book groups must match the reviewed catalog')
         keys = tuple(m.key for m in FAMILIES.get(family(self.sport), ())) if self.kind == 'props' else ADDITIONAL_MARKETS if self.kind == 'additional' else ('h2h','spreads','totals')
@@ -167,7 +168,7 @@ def plan(now, active_keys, events, *, additional=False):
         if sport in NO_SCHEDULED_PROPS or not family(sport):
             continue
         keys=tuple(m.key for m in FAMILIES[family(sport)])
-        for group,books in (('standard',PROP_STANDARD),('exchange',EXCHANGE)):
+        for group,books in (('standard',PROP_STANDARD),('exchange',PROP_EXCHANGE)):
             jobs.append(Job('props',sport,group,books,keys,event['id'],event['commence_time']))
     return jobs
 

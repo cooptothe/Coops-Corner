@@ -1,0 +1,23 @@
+{
+  "scope": "Owner dashboard supplied October 24, 2026; exact screenshot time not supplied",
+  "monthly_credits": 15000000,
+  "used_at_dashboard_snapshot": 459541,
+  "remaining_at_dashboard_snapshot": 14540459,
+  "protected_reserve": 1500000,
+  "usable_above_reserve_at_dashboard_snapshot": 13040459,
+  "quota_reset_utc": "2026-11-01T00:00:00Z",
+  "next_invoice_date": "2026-11-20",
+  "guaranteed_savings_from_betfair_props_removal": 0,
+  "intervals_changed": false,
+  "next_full_month_saved_schedule_planning": {
+    "credits": 13414836,
+    "remaining": 1585164,
+    "scope": "Full November 2026 UTC; saved public schedule, not live provider coverage",
+    "main_live_additional_pool": 7900000,
+    "props": 4914836,
+    "metadata": 500000,
+    "lab_history": 100000
+  },
+  "forecast_limit": "This snapshot is not a burn rate. Run collection_book_coverage against the VPS ledger for a rolling 24-hour scenario. Full-month saved schedule may omit events; pool/reserve guards remain authoritative.",
+  "provider_calls": 0
+}

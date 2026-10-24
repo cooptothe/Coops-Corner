@@ -18,8 +18,8 @@ from pipelines.odds_ingestion import BASE, PARAMS, fetch
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / 'retained' / 'props' / 'latest.json'
 # Keep props acquisition independent of main/alternate bookmaker expansion.
-from corner.collection_policy import PROP_STANDARD, EXCHANGE
-BOOKS = ','.join(PROP_STANDARD + EXCHANGE)
+from corner.collection_policy import PROP_STANDARD, PROP_EXCHANGE
+BOOKS = ','.join(PROP_STANDARD + PROP_EXCHANGE)
 BOOKMAKER_REGIONS = 2
 # Prop prices move fast, so a fetch older than this stops counting (the main tools use two hours).
 MAX_AGE = int(os.environ.get('CORNER_PROPS_MAX_AGE_SECONDS', '1800'))

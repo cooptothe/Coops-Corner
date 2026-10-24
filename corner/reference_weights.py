@@ -8,10 +8,10 @@ from decimal import Decimal
 from functools import lru_cache
 from collections import Counter
 from corner.reference_policy import reference_source
-from corner.book_policy import supported_book
+from corner.book_policy import supported_book, props_book_eligible
 from corner.pricing import SPORTSBOOKS
 
-WEIGHT_VERSION = 'researched-policy-priors/6-all-books-2026-10-21'
+WEIGHT_VERSION = 'researched-policy-priors/7-props-no-betfair-2026-10-24'
 EXCHANGES = frozenset({'betfair_ex_uk','betfair_ex_eu','betfair_ex_au'})
 OTHER_EXCHANGES = frozenset({'prophetx','kalshi','betopenly','polymarket','polymarket_us','novig'})
 REFERENCE_BOOKS = SPORTSBOOKS | EXCHANGES | OTHER_EXCHANGES
@@ -40,7 +40,7 @@ MAIN_KEYS = frozenset({'h2h','spreads','totals','h2h_lay','spreads_lay','totals_
 
 @lru_cache(maxsize=8192)
 def reference_weight(book, sport_key='', *, player_props=False, market_key=''):
-    if not supported_book(book):return Decimal(0)
+    if not supported_book(book) or player_props and not props_book_eligible(book):return Decimal(0)
     if not sport_key:return Decimal(1)  # Legacy pure-calculator fixtures.
     family=sport_key.split('_',1)[0]
     if player_props:
@@ -62,7 +62,7 @@ def reference_weight(book, sport_key='', *, player_props=False, market_key=''):
 
 
 def normalized_reference_weights(books, sport_key='', *, player_props=False, market_key=''):
-    books=tuple(dict.fromkeys(b for b in books if supported_book(b)))
+    books=tuple(dict.fromkeys(b for b in books if supported_book(b) and (not player_props or props_book_eligible(b))))
     counts=Counter(reference_source(b) for b in books)
     weights={b:reference_weight(b,sport_key,player_props=player_props,market_key=market_key)/counts[reference_source(b)] for b in books}
     total=sum(weights.values(),Decimal(0))

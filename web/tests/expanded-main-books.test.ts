@@ -9,7 +9,7 @@ test("new main books are selectable and props references retain their billing ti
     assert.ok(feedBooks([]).some((b) => b.id === id));
   }
   assert.equal(MAIN_BOOKS.length, 16);
-  assert.equal(PROP_BOOKS.length, 16);
+  assert.equal(PROP_BOOKS.length, 15);
   assert.ok(PROP_BOOKS.some((b) => b.id === "williamhill_us"));
   assert.ok(
     ["betonlineag", "bovada"].every((id) =>

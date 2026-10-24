@@ -9,7 +9,7 @@ import os
 
 from corner.links import clean_links
 from corner.native_ids import native_ids
-from corner.book_policy import supported_book, supported_books
+from corner.book_policy import supported_book, supported_books, props_book_eligible
 from corner.reference_policy import sufficient_references
 from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
 from corner.market_width import widest_market_width
@@ -21,7 +21,7 @@ from corner.devig_methods import comparisons
 # All supported books are eligible; the names remain compatibility exports.
 # Eligibility is checked per quote, never restricted by a legacy env list.
 from corner.reference_weights import REFERENCE_BOOKS
-SHARP_BOOKS = frozenset(REFERENCE_BOOKS)
+SHARP_BOOKS = frozenset(b for b in REFERENCE_BOOKS if props_book_eligible(b))
 PROP_EXTRA_SHARPS = frozenset()
 PROP_SHARP_BOOKS = SHARP_BOOKS
 MIN_SHARPS = 2
@@ -221,7 +221,7 @@ def normalize_event(event, market_key, meta, book_filter=None):
     """
     quotes = []
     for book in event.get('bookmakers', []):
-        if not supported_book(book['key']):
+        if not props_book_eligible(book['key']):
             continue
         if book_filter and book['key'] not in book_filter:
             continue
@@ -273,7 +273,7 @@ def _reference_pair(book, pair):
 def _sharp_side_probability(prices, side, exclude=None, sport_key='', *, include_dfs=False, market_key=''):
     """Weighted power no-vig estimate from complete binary reference populations."""
     used = sorted(b for b, p in prices.items() if b != exclude
-                  and (reference_eligible(b) or include_dfs and b in DFS) and set(p) == {0, 1})
+                  and ((props_book_eligible(b) and reference_eligible(b)) or include_dfs and b in DFS) and set(p) == {0, 1})
     valid = []
     for book in used:
         try:
@@ -360,7 +360,7 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
             sibling = ev['markets'].get(sibling_key, {}).get('quotes', [])
             combined = list(stored['quotes']) + [q for q in sibling if q['book'] not in DFS and identity(q) not in target_cells]
             for q in combined:
-                if not supported_book(q['book']):
+                if not props_book_eligible(q['book']):
                     continue
                 try:
                     price = Decimal(q['price'])
@@ -395,7 +395,7 @@ def build_bets(events, *, one_sided_margin=None, fallback_margin=None, include_d
                         margin_evidence = {}
                         fallback_books = []
                         if win is None:
-                            used = sorted(b for b, p in prices.items() if b != book and (reference_eligible(b) or dfs_allowed and b in DFS) and side in p)
+                            used = sorted(b for b, p in prices.items() if b != book and ((props_book_eligible(b) and reference_eligible(b)) or dfs_allowed and b in DFS) and side in p)
                             estimates = {}
                             for reference in used:
                                 pair = prices[reference]

@@ -10,16 +10,18 @@ export const MAIN_BOOKS = [
   { id: "prophetx", name: "ProphetX" },
   { id: "kalshi", name: "Kalshi" },
   { id: "betopenly", name: "BetOpenly" },
-  { id: "polymarket_us", name: "Polymarket" },
+  { id: "polymarket_us", name: "Polymarket US" },
   { id: "betonlineag", name: "BetOnline" },
   { id: "williamhill_us", name: "Caesars" },
   { id: "bovada", name: "Bovada" },
   { id: "fanatics", name: "Fanatics" },
 ];
-export const PROP_BOOKS = [...MAIN_BOOKS];
+export const PROP_BOOKS = MAIN_BOOKS.filter(
+  (book) => !book.id.startsWith("betfair_ex_"),
+);
 
 export function bookDisplayName(id: string, fallback = id) {
-  return PROP_BOOKS.find((book) => book.id === id)?.name ?? fallback;
+  return MAIN_BOOKS.find((book) => book.id === id)?.name ?? fallback;
 }
 
 // Keep configured sources selectable before their first usable capture.
@@ -32,6 +34,7 @@ export function feedBooks(
   );
   for (const book of captured.filter(
     (book) =>
+      (!props || !book.id.startsWith("betfair_ex_")) &&
       ![
         "betonline",
         "prizepicks",

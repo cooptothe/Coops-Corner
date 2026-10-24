@@ -21,7 +21,7 @@ class ExpandedMainTests(unittest.TestCase):
         self.assertEqual(len(STANDARD),10)
         self.assertEqual(len(PROP_STANDARD),10)
         self.assertEqual(len(set(PARAMS['bookmakers'].split(','))),16)
-        self.assertEqual(len(set(BOOKS.split(','))),16)
+        self.assertEqual(len(set(BOOKS.split(','))),15)
         for book in ('betonlineag','williamhill_us','bovada'):
             self.assertIn(book,STANDARD)
             self.assertIn(book,PARAMS['bookmakers'].split(','))

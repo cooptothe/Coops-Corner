@@ -5,7 +5,7 @@ from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
 
-from corner.collection_policy import (ALL_BOOKS, STANDARD, PROP_STANDARD, EXCHANGE,
+from corner.collection_policy import (ALL_BOOKS, STANDARD, PROP_STANDARD, PROP_EXCHANGE, EXCHANGE,
     LEGACY_STANDARD, Job, plan, interval, POOLS, TOTAL, PROTECTED, ALL_BOOKS_PROFILE, CADENCE_VERSION)
 from corner.credit_governor import Governor, Refused
 from pipelines.collection_provider import Provider
@@ -24,12 +24,12 @@ class AllBookCollection(unittest.TestCase):
         self.assertEqual(set(ALL_BOOKS),expected)
         self.assertEqual(len(ALL_BOOKS),16)
         self.assertEqual(set(PARAMS['bookmakers'].split(',')),expected)
-        self.assertEqual(set(BOOKS.split(',')),expected)
+        self.assertEqual(set(BOOKS.split(',')),expected-{'betfair_ex_uk'})
         jobs=plan(NOW,['basketball_nba'],[event()],additional=True)
         for kind in ('main','additional','props'):
             scopes=[j for j in jobs if j.kind==kind]
             self.assertEqual(len(scopes),2)
-            self.assertEqual({b for j in scopes for b in j.books},expected)
+            self.assertEqual({b for j in scopes for b in j.books},expected-{'betfair_ex_uk'} if kind=='props' else expected)
             self.assertTrue(all(j.cost==len(j.markets) for j in scopes))
 
     def test_all_countdown_boundaries_and_no_subminute_exchange_polling(self):
@@ -80,10 +80,12 @@ class AllBookCollection(unittest.TestCase):
     def test_saved_forecast_preserves_pool_caps_and_reserve(self):
         forecast=json.loads((Path(__file__).resolve().parents[1]/'corner/ALL_BOOKS_FORECAST.json').read_text())
         self.assertLessEqual(forecast['props_total'],POOLS['props'])
-        self.assertEqual(forecast['planning_total'],forecast['main_82_key_two_group_120s_ceiling']+
-            forecast['additional_ceiling']+forecast['props_total']+600000)
+        self.assertEqual(forecast['planning_total'],forecast['main_live_additional_shared_pool_cap']+forecast['props_total']+600000)
         self.assertLessEqual(forecast['planning_total'],TOTAL-PROTECTED)
         self.assertEqual(sum(POOLS.values()),TOTAL-PROTECTED)
+        self.assertEqual(forecast['live_subcap_within_main'],500000)
+        self.assertEqual(forecast['guaranteed_credit_savings_from_betfair_props_removal'],0)
+        self.assertEqual(forecast['requested_props_books'],15)
 
 
 class AllBookActivation(ActivationTests):

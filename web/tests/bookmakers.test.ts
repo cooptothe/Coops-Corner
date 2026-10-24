@@ -12,7 +12,7 @@ test("canonical capitalization wins over raw provider IDs", () => {
   );
   for (const [id, name] of [
     ["betopenly", "BetOpenly"],
-    ["polymarket_us", "Polymarket"],
+    ["polymarket_us", "Polymarket US"],
     ["williamhill_us", "Caesars"],
     ["fanatics", "Fanatics"],
   ])
@@ -54,4 +54,20 @@ test("withdrawn DFS sources cannot reappear from retained captures", () => {
   ).map((b) => b.id);
   for (const id of ["prizepicks", "underdog", "pick6", "dabble_us_dfs"])
     assert.ok(!ids.includes(id));
+});
+
+test("Betfair is excluded only from props, including captured overrides", () => {
+  const captured = [{ id: "betfair_ex_uk", name: "Betfair Exchange" }];
+  assert.ok(feedBooks(captured).some((b) => b.id === "betfair_ex_uk"));
+  assert.ok(
+    !feedBooks(captured, true).some((b) => b.id.startsWith("betfair_ex_")),
+  );
+  for (const id of [
+    "novig",
+    "prophetx",
+    "kalshi",
+    "betopenly",
+    "polymarket_us",
+  ])
+    assert.ok(feedBooks([], true).some((b) => b.id === id));
 });
