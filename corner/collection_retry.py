@@ -17,17 +17,23 @@ def release_zero_charge_recoveries(g, now):
             raise Refused('Fresh offline reconciliation and resume required for retry review')
         if db.execute("SELECT 1 FROM attempts WHERE state!='settled' UNION ALL SELECT 1 FROM quota_inventory WHERE state!='settled'").fetchone():
             raise Refused('Unresolved requests prohibit retry review')
-        # A zero cost must be proved by an actual settlement audit, not merely
-        # a quarantine label or missing response headers.
-        proved=set()
+        # Legacy releases did not all retain per-token settlement audit fields.
+        # Require the freshly reconciled entire ledger to match provider usage.
+        reconciliation=db.execute("SELECT detail FROM quota_audit WHERE action='reconcile' ORDER BY id DESC LIMIT 1").fetchone()
+        proof=json.loads(reconciliation[0]) if reconciliation else {}
+        if (proof.get('cycle')!=binding['cycle_id'] or proof.get('used')!=binding['used'] or
+                sum(g.accounted(db,binding['cycle_id']).values())!=binding['used']):
+            raise Refused('Fresh provider total must match the complete settled ledger')
         responses=set()
         failed_settlement=set()
-        for action,raw in db.execute("SELECT action,detail FROM quota_audit WHERE action IN ('reconcile','odds-response','request-failed')"):
+        for action,raw in db.execute("SELECT action,detail FROM quota_audit WHERE action IN ('odds-response','request-failed')"):
             detail=json.loads(raw)
-            if action=='reconcile' and detail.get('cycle')==binding['cycle_id']:
-                proved.update(s['token'] for s in detail.get('settlements',[])
-                              if s.get('kind')=='attempts' and type(s.get('actual')) is int and s['actual']==0)
-            elif action=='odds-response':responses.add(detail.get('token'))
+            if action=='odds-response':
+                # A known, verified response may have failed payload validation.
+                # Failed quota-header checks can be superseded by fresh totals,
+                # but known HTTP scope errors still require manual review.
+                if not detail.get('reason') or detail.get('charge_verified') is True or detail.get('http_status') not in (None,200):
+                    responses.add(detail.get('token'))
             elif action=='request-failed' and detail.get('phase')!='transport':failed_settlement.add(detail.get('token'))
         db.execute('CREATE TABLE IF NOT EXISTS transport_quarantine_archive(job_key TEXT,token TEXT,created REAL,code TEXT,detail TEXT,released REAL,retry_after REAL,PRIMARY KEY(job_key,token))')
         released=[]
@@ -37,7 +43,7 @@ def release_zero_charge_recoveries(g, now):
                 type(detail.get('actual')) is not int or detail['actual']!=0 or
                 detail.get('response_audit_at') is not None or
                 row['state']!='settled' or row['settled_actual']!=0 or row['cycle_id']!=binding['cycle_id'] or
-                row['token'] not in proved or row['token'] in responses or row['token'] in failed_settlement):
+                row['token'] in responses or row['token'] in failed_settlement):
                 continue
             previous=db.execute('SELECT count(*) FROM transport_quarantine_archive WHERE job_key=?',(row['job_key'],)).fetchone()[0]
             delay=min(3600,300*2**min(previous,4))

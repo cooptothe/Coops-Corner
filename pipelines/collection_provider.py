@@ -11,7 +11,7 @@ import time
 import requests
 
 from corner.collection_policy import SPORTS, aware, open_now, parse, supported
-from corner.credit_governor import Refused
+from corner.credit_governor import Refused, RequestNotSent
 
 BASE='https://api.the-odds-api.com/v4/sports'
 EARLIEST=parse('2026-10-19T00:00:00-05:00')
@@ -55,9 +55,11 @@ class Provider:
             from pipelines.live_odds_client import fetch, client
             if not getattr(self,'_live_client',None): self._live_client=client()
             self._next_request_at=start+0.1
+            self._network_started = True
             return fetch(self._live_client,path,params,self.key)
         self._next_request_at = start + 0.1
         try:
+            self._network_started = True
             with self.session.get(BASE+path,params={**params,'apiKey':self.key},
                                   timeout=(5,20),allow_redirects=False,stream=True,
                                   verify=True) as response:
@@ -80,6 +82,16 @@ class Provider:
             raise RuntimeError('Provider response failed validation; no automatic retry.') from None
 
     def odds(self,governor,job,token,owner):
+        self._network_started = False
+        previously_dispatched = governor.db.execute('SELECT 1 FROM dispatches WHERE token=?',(token,)).fetchone() is not None
+        try:
+            return self._odds_once(governor,job,token,owner)
+        except Refused:
+            if not self._network_started and not previously_dispatched:
+                raise RequestNotSent('Local preflight refused; no provider request sent') from None
+            raise
+
+    def _odds_once(self,governor,job,token,owner):
         job.validate();now=self.gate()
         if not SAFE.fullmatch(job.sport) or job.event_id and not SAFE.fullmatch(job.event_id):
             raise Refused('Invalid provider path identity')

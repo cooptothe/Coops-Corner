@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 import sqlite3
 
-from corner.collection_policy import EXCHANGE, Job
+from corner.collection_policy import EXCHANGE, SPORTS, Job
 from corner.collection_quota import LiveGovernor
 from corner.credit_governor import Governor, Refused
 from corner.featured_markets import normalize_featured_payload
@@ -51,6 +51,27 @@ def eligible(db, row):
         return False
 
 
+def describe(db,row):
+    detail=json.loads(row['detail'])
+    result={'kind':detail.get('kind'),'sport':detail.get('sport'),'code':row['code'],
+            'settled_charge':detail.get('actual')}
+    sports=set(SPORTS)
+    sports.update(r[0] for r in db.execute('SELECT DISTINCT sport FROM live_captures'))
+    for sport in sports:
+        for kind in ('main','live'):
+            for group in ('standard','exchange'):
+                if Job(kind,sport,group,(),()).key==row['job_key']:
+                    result.update(kind=kind,sport=sport,group=group)
+    audits=[(r[0],json.loads(r[1])) for r in db.execute("SELECT action,detail FROM quota_audit WHERE action IN ('request-failed','odds-response') AND json_extract(detail,'$.token')=?",(row['token'],))]
+    for action,item in audits:
+        if action=='request-failed':
+            result.update(phase=item.get('phase'),error_type=item.get('error_type'))
+            if not result['kind']:result.update(kind=item.get('kind'),sport=item.get('sport'))
+        else:
+            result.update(http_status=item.get('http_status'),charge_verified=item.get('charge_verified'),quota_check_failed=bool(item.get('reason')))
+    return result
+
+
 def repair(path, *, apply=False, now=None):
     now = now or datetime.now(timezone.utc)
     path = Path(path).resolve(strict=True)
@@ -86,9 +107,7 @@ def repair(path, *, apply=False, now=None):
         return {'result':'exchange_repair_applied' if apply else 'exchange_repair_preview',
                 'provider_calls':0,'eligible_scopes':len(candidates),'released_scopes':released,
                 'quarantines_by_code':dict(Counter(r['code'] for r in rows)),
-                'remaining_scopes':[{'kind':json.loads(r['detail']).get('kind'),
-                    'sport':json.loads(r['detail']).get('sport'),'code':r['code']}
-                    for r in rows if not apply or r not in candidates]}
+                'remaining_scopes':[describe(db,r) for r in rows if not apply or r not in candidates]}
 
 
 def main():

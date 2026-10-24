@@ -30,9 +30,17 @@ same scope increase this cooldown up to one hour. Existing old blocks may
 already have completed their cooldown. Normal job cadence and all quota gates
 still apply; missed ticks are never replayed.
 
-Release requires a settled zero-cost attempt in the current cycle, its matching
-reconciliation audit, fresh offline quota reconciliation, and no saved HTTP
-response or settlement-phase failure. Original quarantines are archived in
+Release requires a settled zero-cost attempt in the current cycle, fresh offline quota reconciliation matching the entire settled ledger, and no
+verified response, known HTTP scope error or settlement-phase failure. Historical
+per-token audit fields may be absent. Unverified quota-header checks are superseded
+by the fresh provider total. Original quarantines are archived in
 `transport_quarantine_archive`. Nonzero costs and malformed captured responses
 remain quarantined. Zero-charge reconciliation does not assert a response was
 valid: no old quote is published; a future scheduled purchase gets new data.
+
+
+Local transport gate refusals are now distinguished from network uncertainty.
+The provider emits `RequestNotSent` only before the HTTP boundary; the runner
+settles these attempts at zero and applies a five-minute scope cooldown without
+pausing other jobs. Once HTTP begins, failures retain the existing unknown-charge
+reconciliation path. Generic exceptions are never treated as proof of no charge.

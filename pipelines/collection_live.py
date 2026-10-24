@@ -11,7 +11,7 @@ import psycopg2
 from corner.collection_activation import activation, STATE, RETAINED
 from corner.collection_policy import parse, ALL_BOOKS_PROFILE
 from corner.collection_quota import LiveGovernor, key_identity
-from corner.credit_governor import Refused
+from corner.credit_governor import Refused, RequestNotSent
 from corner.collection_maintenance import maintenance_lock, MaintenanceBusy
 from pipelines.collection_provider import Provider
 from pipelines.collection_publication import MainPublisher
@@ -76,8 +76,13 @@ class LiveProvider(Provider):
         return inventory
 
     def odds(self, governor, job, token, owner):
-        if activation(self.clock()).get('profile') == 'standard-pregame-v1' and job.group != 'standard':
-            raise Refused('Standard activation cannot dispatch fast-book jobs')
+        try:
+            if activation(self.clock()).get('profile') == 'standard-pregame-v1' and job.group != 'standard':
+                raise Refused('Standard activation cannot dispatch fast-book jobs')
+        except Refused:
+            if governor.db.execute('SELECT 1 FROM dispatches WHERE token=?',(token,)).fetchone():
+                raise
+            raise RequestNotSent('Activation preflight refused before HTTP') from None
         return super().odds(governor, job, token, owner)
 
     def _get(self, path, params):

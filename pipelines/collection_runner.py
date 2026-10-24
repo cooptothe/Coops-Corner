@@ -12,7 +12,7 @@ import secrets
 import time
 
 from corner.collection_policy import aware, open_now, parse, plan
-from corner.credit_governor import Governor, Refused
+from corner.credit_governor import Governor, Refused, RequestNotSent
 from corner.featured_markets import FeaturedMarketError
 from pipelines.collection_worker import fixture_transport
 
@@ -182,6 +182,11 @@ class Runner:
                     break
             except Exception as error:
                 try:
+                    if phase == 'transport' and isinstance(error, RequestNotSent):
+                        self.g.cancel_not_sent(job,token,self.owner,self.now())
+                        executed += 1
+                        print(json.dumps({'state':'request_not_sent','kind':job.kind,'sport':job.sport}),flush=True)
+                        continue
                     self.g.unknown(token, self.owner, self.now())
                     self.pause('Uncertain collection request; operator review required')
                     detail = {'phase': phase, 'error_type': type(error).__name__,

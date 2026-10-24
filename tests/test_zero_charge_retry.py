@@ -59,7 +59,7 @@ class ZeroChargeRetry(unittest.TestCase):
     def test_missing_reconciliation_proof_cannot_release(self):
         _,later=self.legacy()
         self.g.db.execute("DELETE FROM quota_audit WHERE action='reconcile'")
-        self.assertEqual(release_zero_charge_recoveries(self.g,later),[])
+        with self.assertRaises(Refused):release_zero_charge_recoveries(self.g,later)
 
     def test_saved_response_or_settlement_failure_stays_blocked(self):
         for action,detail in [('odds-response',{'http_status':200}),('request-failed',{'phase':'settlement_and_snapshot'})]:
@@ -71,6 +71,20 @@ class ZeroChargeRetry(unittest.TestCase):
                     self.g._audit(db,later,action,'fixture',{'token':token,**detail})
                 reconcile_known_failure(self.g,later,{'provider_used':0,'provider_remaining':15000000},accept_single_delta=True)
                 self.assertEqual(self.g.db.execute('SELECT count(*) FROM collection_quarantine').fetchone()[0],1)
+
+    def test_legacy_missing_per_token_fields_uses_reconciled_total(self):
+        _,later=self.legacy()
+        row=self.g.db.execute("SELECT id,detail FROM quota_audit WHERE action='reconcile'").fetchone()
+        detail=json.loads(row['detail']);detail['settlements']=[]
+        self.g.db.execute('UPDATE quota_audit SET detail=? WHERE id=?',(json.dumps(detail),row['id']))
+        self.assertEqual(len(release_zero_charge_recoveries(self.g,later)),1)
+
+    def test_unverified_quota_header_failure_can_retry_after_fresh_reconciliation(self):
+        token,later=self.legacy()
+        with self.g.transaction() as db:
+            self.g._audit(db,later,'odds-response','fixture',{'token':token,'reason':'Missing or invalid provider quota header','charge_verified':False,'http_status':200})
+        reconcile_known_failure(self.g,later,{'provider_used':0,'provider_remaining':15000000},accept_single_delta=True)
+        self.assertEqual(self.g.db.execute('SELECT count(*) FROM collection_quarantine').fetchone()[0],0)
 
     def test_active_worker_refused(self):
         _,later=self.legacy()

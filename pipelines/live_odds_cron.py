@@ -6,13 +6,17 @@ def main() -> int:
     cfg = config()
     if not cfg:
         print('Premium live scheduling disabled.'); return 0
+    status = None
     try:
         with httpx.Client(trust_env=False,timeout=10,follow_redirects=False) as client:
             response = client.post('http://127.0.0.1:8765/api/v1/cron/refresh-live-odds',
                 headers={'Authorization':'Bearer '+cfg['cron_token']},json={})
-        if response.status_code != 202: raise ValueError()
+        status = response.status_code
+        if status != 202: raise ValueError()
         print('Premium live refresh queued; provider calls: 0.'); return 0
-    except Exception:
-        print('Premium live scheduler could not queue refresh.'); return 1
+    except Exception as error:
+        # Local status/class only; never log authorization, config or bodies.
+        print('Premium live scheduler could not queue refresh. '
+              + 'error_type=' + type(error).__name__ + ' http_status=' + str(status)); return 1
 
 if __name__ == '__main__': raise SystemExit(main())

@@ -18,6 +18,10 @@ class Refused(ValueError):
     pass
 
 
+class RequestNotSent(Refused):
+    """Trusted transport proof: a local gate refused before HTTP began."""
+
+
 class Governor:
     def __init__(self,path):
         self.path=Path(path)
@@ -214,6 +218,18 @@ class Governor:
                                               'simulation':attempt['cycle_id'].startswith('simulation-') or 'simulation' in self.path.name.lower()},separators=(',',':'))))
             db.execute("UPDATE jobs SET state='idle',last_error='' WHERE key=?",(job.key,))
             return 'published'
+
+    def cancel_not_sent(self,job,token,owner,now):
+        """Settle a trusted pre-HTTP cancellation, never a network exception."""
+        with self.transaction() as db:
+            self._fence(db,owner,now.timestamp())
+            row=db.execute("SELECT token FROM attempts WHERE token=? AND job_key=? AND owner=? AND state='inflight'",(token,job.key,owner)).fetchone()
+            if not row: raise Refused('No matching inflight cancellation')
+            db.execute("UPDATE attempts SET state='settled',actual=0,finished=? WHERE token=?",(now.timestamp(),token))
+            db.execute("UPDATE jobs SET state='idle',last_error='preflight_not_sent' WHERE key=?",(job.key,))
+            if hasattr(self,'_audit'):
+                db.execute('INSERT INTO collection_retry_cooldowns VALUES(?,?) ON CONFLICT(job_key) DO UPDATE SET retry_after=max(retry_after,excluded.retry_after)',(job.key,now.timestamp()+300))
+                self._audit(db,now,'request-not-sent','Trusted local transport gate refused before HTTP',{'token':token,'job_key':job.key,'kind':job.kind,'sport':job.sport,'actual':0})
 
     def unknown(self,token,owner,now):
         with self.transaction() as db:

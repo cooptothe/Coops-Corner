@@ -11,7 +11,7 @@ cd /srv/corner/app
   tests.test_collection_recovery tests.test_collection_health \
   tests.test_collection_maintenance tests.test_scheduled_only \
   tests.test_product_api tests.test_prop_decimal_output tests.test_devig_methods \
-  tests.test_performance_paths tests.test_market_compression tests.test_prop_exchange_policy tests.test_all_book_collection tests.test_exchange_companions tests.test_zero_charge_retry
+  tests.test_performance_paths tests.test_market_compression tests.test_prop_exchange_policy tests.test_all_book_collection tests.test_exchange_companions tests.test_zero_charge_retry tests.test_preflight_cancellation
 .venv-api/bin/python -c 'import httpx; from pipelines.live_odds_client import client'
 (cd web && pnpm test)
 
