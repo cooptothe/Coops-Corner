@@ -34,7 +34,7 @@ Release requires a settled zero-cost attempt in the current cycle, fresh offline
 verified response, known HTTP scope error or settlement-phase failure. Historical
 per-token audit fields may be absent. Unverified quota-header checks are superseded
 by the fresh provider total. Original quarantines are archived in
-`transport_quarantine_archive`. Nonzero costs and malformed captured responses
+`transport_quarantine_archive`. Nonzero costs without transient HTTP evidence, and malformed success payloads,
 remain quarantined. Zero-charge reconciliation does not assert a response was
 valid: no old quote is published; a future scheduled purchase gets new data.
 
@@ -44,3 +44,18 @@ The provider emits `RequestNotSent` only before the HTTP boundary; the runner
 settles these attempts at zero and applies a five-minute scope cooldown without
 pausing other jobs. Once HTTP begins, failures retain the existing unknown-charge
 reconciliation path. Generic exceptions are never treated as proof of no charge.
+
+
+## Transient HTTP errors (429 / 5xx)
+
+Reconciled 408, 425, 429, 500, 502, 503 and 504 responses are retryable after
+the same bounded cooldown. They are not malformed quote payloads or invalid
+market requests. A nonzero charge is never refunded: the settled attempt and
+the provider total must match the entire ledger before a legacy quarantine is
+archived. The next attempt is a new scheduled, budget-checked request.
+
+With verified quota headers, a transient HTTP response now settles its actual
+charge and schedules a scoped cooldown without pausing healthy jobs. Missing
+or inconsistent quota headers still require offline reconciliation before a
+retry. Known scope errors, malformed success payloads, over-reservation charges
+and unknown transport costs remain protected. No immediate network retries.

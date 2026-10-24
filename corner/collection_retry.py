@@ -1,6 +1,7 @@
-"""Bounded rescheduling after an audited, zero-charge transport recovery."""
+"""Bounded retries after fully reconciled transport or transient HTTP failures."""
 import json
 from corner.credit_governor import Refused
+from corner.collection_policy import TRANSIENT_HTTP_STATUSES
 
 
 def release_zero_charge_recoveries(g, now):
@@ -25,6 +26,7 @@ def release_zero_charge_recoveries(g, now):
                 sum(g.accounted(db,binding['cycle_id']).values())!=binding['used']):
             raise Refused('Fresh provider total must match the complete settled ledger')
         responses=set()
+        transient=set()
         failed_settlement=set()
         for action,raw in db.execute("SELECT action,detail FROM quota_audit WHERE action IN ('odds-response','request-failed')"):
             detail=json.loads(raw)
@@ -32,18 +34,28 @@ def release_zero_charge_recoveries(g, now):
                 # A known, verified response may have failed payload validation.
                 # Failed quota-header checks can be superseded by fresh totals,
                 # but known HTTP scope errors still require manual review.
+                if detail.get('http_status') in TRANSIENT_HTTP_STATUSES:
+                    transient.add(detail.get('token'))
+                    continue
                 if not detail.get('reason') or detail.get('charge_verified') is True or detail.get('http_status') not in (None,200):
                     responses.add(detail.get('token'))
             elif action=='request-failed' and detail.get('phase')!='transport':failed_settlement.add(detail.get('token'))
         db.execute('CREATE TABLE IF NOT EXISTS transport_quarantine_archive(job_key TEXT,token TEXT,created REAL,code TEXT,detail TEXT,released REAL,retry_after REAL,PRIMARY KEY(job_key,token))')
         released=[]
-        for row in db.execute("SELECT q.*,a.state,a.actual AS settled_actual,a.cycle_id FROM collection_quarantine q JOIN attempts a ON a.token=q.token AND a.job_key=q.job_key WHERE q.code='recovered_snapshot_failure'").fetchall():
+        for row in db.execute("SELECT q.*,a.state,a.actual AS settled_actual,a.reserved,a.cycle_id FROM collection_quarantine q JOIN attempts a ON a.token=q.token AND a.job_key=q.job_key WHERE q.code='recovered_snapshot_failure'").fetchall():
             detail=json.loads(row['detail'])
-            if (detail.get('basis')!='operator_accepted_provider_total_delta' or
-                type(detail.get('actual')) is not int or detail['actual']!=0 or
-                detail.get('response_audit_at') is not None or
-                row['state']!='settled' or row['settled_actual']!=0 or row['cycle_id']!=binding['cycle_id'] or
-                row['token'] in responses or row['token'] in failed_settlement):
+            is_transient=row['token'] in transient
+            basis=detail.get('basis')
+            if (type(detail.get('actual')) is not int or
+                row['state']!='settled' or row['settled_actual']!=detail['actual'] or
+                not 0<=row['settled_actual']<=row['reserved'] or row['cycle_id']!=binding['cycle_id']):
+                continue
+            if is_transient:
+                if basis not in ('operator_accepted_provider_total_delta','saved_verified_response'):
+                    continue
+            elif (basis!='operator_accepted_provider_total_delta' or detail['actual']!=0 or
+                  detail.get('response_audit_at') is not None or row['token'] in responses or
+                  row['token'] in failed_settlement):
                 continue
             previous=db.execute('SELECT count(*) FROM transport_quarantine_archive WHERE job_key=?',(row['job_key'],)).fetchone()[0]
             delay=min(3600,300*2**min(previous,4))
@@ -53,6 +65,6 @@ def release_zero_charge_recoveries(g, now):
             db.execute('INSERT INTO collection_retry_cooldowns VALUES(?,?) ON CONFLICT(job_key) DO UPDATE SET retry_after=max(retry_after,excluded.retry_after)',(row['job_key'],retry_after))
             db.execute('DELETE FROM collection_quarantine WHERE job_key=? AND token=?',(row['job_key'],row['token']))
             db.execute("UPDATE jobs SET state='idle',last_error='',next_due=max(next_due,?) WHERE key=?",(retry_after,row['job_key']))
-            released.append({'job_key':row['job_key'],'token':row['token'],'retry_after':retry_after})
-        g._audit(db,now,'zero-charge-retry-review','Settled zero-charge transport recoveries; archived evidence and bounded cooldown',{'released':released})
+            released.append({'job_key':row['job_key'],'token':row['token'],'retry_after':retry_after,'actual':row['settled_actual'],'transient_http':is_transient})
+        g._audit(db,now,'reconciled-retry-review','Settled transport/transient HTTP recoveries; charges preserved, archived evidence and bounded cooldown',{'released':released})
     return released

@@ -29,6 +29,7 @@ BUDGET_VERSION = 'pregame-lab-history-100k-v1'
 POOLS = {'main':7_900_000, 'props':5_000_000, 'metadata':500_000, 'history':100_000}
 TOTAL = 15_000_000
 PROTECTED = 1_500_000
+TRANSIENT_HTTP_STATUSES = frozenset({408, 425, 429, 500, 502, 503, 504})
 # NCAA keeps main/additional markets; no scheduled college player-prop purchases.
 NO_SCHEDULED_PROPS = frozenset({'americanfootball_ncaaf', 'basketball_ncaab', 'basketball_wncaab'})
 

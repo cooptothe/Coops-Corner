@@ -116,9 +116,12 @@ def main():
                                 pending=['Live added-book coverage and throughput confirmation', 'Account-specific exchange fee context where applicable'])
             step = 'renew_root_approval_candidate'
             write_private(RETAINED/'activation'/'approval.json',approval)
+            retry_review=json.loads(g.db.execute("SELECT detail FROM quota_audit WHERE action='reconciled-retry-review' ORDER BY id DESC LIMIT 1").fetchone()[0])['released']
             print(json.dumps({'result':'recovery_prepared','provider_used':quota['provider_used'],
                               'settled_requests':len(settlements),'recovered_charge':sum(settlements.values()),
-                              'zero_charge_scopes_released':len(json.loads(g.db.execute("SELECT detail FROM quota_audit WHERE action='zero-charge-retry-review' ORDER BY id DESC LIMIT 1").fetchone()[0])['released']),
+                              'retry_scopes_released':len(retry_review),
+                              'zero_charge_scopes_released':sum(r['actual']==0 for r in retry_review),
+                              'preserved_charges_on_released_scopes':sum(r['actual'] for r in retry_review),
                               'quarantined_scopes':g.db.execute('SELECT count(*) FROM collection_quarantine').fetchone()[0],
                               'paid_odds_calls':0,'worker_started':False}))
         return 0

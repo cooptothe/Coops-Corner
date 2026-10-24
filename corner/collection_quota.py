@@ -5,7 +5,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 
-from corner.collection_policy import POOLS, TOTAL, PROTECTED, BUDGET_VERSION, aware
+from corner.collection_policy import POOLS, TOTAL, PROTECTED, BUDGET_VERSION, aware, TRANSIENT_HTTP_STATUSES
 from corner.credit_governor import Governor, Refused
 
 
@@ -238,6 +238,18 @@ class LiveGovernor(Governor):
             return 'quarantined'
 
         reservation = self.db.execute('SELECT reserved FROM attempts WHERE token=?', (token,)).fetchone()[0]
+        if not reason and actual <= reservation and status in TRANSIENT_HTTP_STATUSES:
+            # Verified response costs are settled before any future retry. No
+            # immediate network replay and no global pause for a scoped 5xx/429.
+            with self.transaction() as db:
+                self._fence(db,owner,now.timestamp())
+                prior=db.execute("SELECT count(*) FROM quota_audit WHERE action='provider-transient' AND at>? AND json_extract(detail,'$.job_key')=?",(now.timestamp()-3600,job.key)).fetchone()[0]
+                retry_after=now.timestamp()+min(3600,300*2**min(prior,4))
+                db.execute("UPDATE attempts SET state='settled',actual=?,finished=? WHERE token=? AND state='inflight'",(actual,now.timestamp(),token))
+                db.execute("UPDATE jobs SET state='idle',last_error='transient_http',next_due=max(next_due,?) WHERE key=?",(retry_after,job.key))
+                db.execute('INSERT INTO collection_retry_cooldowns VALUES(?,?) ON CONFLICT(job_key) DO UPDATE SET retry_after=max(retry_after,excluded.retry_after)',(job.key,retry_after))
+                self._audit(db,now,'provider-transient','Verified provider charge retained; retry after scoped cooldown',{'token':token,'job_key':job.key,'http_status':status,'actual':actual,'retry_after':retry_after})
+            return 'retry_scheduled'
         if not reason and actual <= reservation and status in (400, 404, 422):
             return rejected('provider_scope_rejected')
         try:

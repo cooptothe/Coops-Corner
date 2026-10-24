@@ -174,7 +174,7 @@ class Runner:
                     raise ValueError('Invalid receipt clock')
                 phase = 'settlement_and_snapshot'
                 result = self.g.finish(job, token, self.owner, current, headers, payload, status)
-                if result == 'quarantined':
+                if result in ('quarantined','retry_scheduled'):
                     executed += 1
                     continue
                 if result != 'published':

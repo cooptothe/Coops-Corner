@@ -21,11 +21,14 @@ def status(path=STATE, now=None):
         'monthly_subcap':live_odds.MONTHLY_CAP,'daily_subcap':live_odds.DAILY_CAP,
         'provider_calls_by_check':0,'captures':[]}
     inventory={}
+    cooldowns={}
     if path.is_file():
         with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=3)) as db:
             if db.execute("SELECT 1 FROM sqlite_master WHERE name='runner_inventory'").fetchone():
                 row=db.execute('SELECT payload FROM runner_inventory WHERE id=1').fetchone()
                 if row and row[0]:inventory=json.loads(row[0])
+            if db.execute("SELECT 1 FROM sqlite_master WHERE name='collection_retry_cooldowns'").fetchone():
+                cooldowns=dict(db.execute('SELECT job_key,retry_after FROM collection_retry_cooldowns WHERE retry_after>?',(now.timestamp(),)))
             exists=db.execute("SELECT 1 FROM sqlite_master WHERE name='live_captures'").fetchone()
             if exists:
                 result['captures']=[{'sport':s,'group':g,'age_seconds':round(now.timestamp()-at,1),
@@ -34,7 +37,7 @@ def status(path=STATE, now=None):
     planned=live_odds.jobs(now,inventory)
     fresh={(c['sport'],c['group']) for c in result['captures'] if 0<=c['age_seconds']<=90}
     result['expected_live_groups']=len(planned)
-    result['missing_or_stale_groups']=[{'sport':j.sport,'group':j.group} for j in planned if (j.sport,j.group) not in fresh]
+    result['missing_or_stale_groups']=[{'sport':j.sport,'group':j.group,**({'cooldown_until_utc':datetime.fromtimestamp(cooldowns[j.key],timezone.utc).isoformat()} if j.key in cooldowns else {})} for j in planned if (j.sport,j.group) not in fresh]
     result['collection_verified']=bool(planned and not result['missing_or_stale_groups'] and result['state']=='ready')
     return result
 

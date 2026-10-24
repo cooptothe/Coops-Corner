@@ -3,7 +3,7 @@
 set -euo pipefail
 umask 077
 cd /srv/corner/app
-.venv-api/bin/python -m unittest   tests.test_zero_charge_retry tests.test_preflight_cancellation tests.test_exchange_companions tests.test_collection_live   tests.test_collection_runner tests.test_collection_recovery   tests.test_all_book_collection tests.test_prop_exchange_policy
+.venv-api/bin/python -m unittest   tests.test_zero_charge_retry tests.test_preflight_cancellation tests.test_transient_http_retry tests.test_exchange_companions tests.test_collection_live   tests.test_collection_runner tests.test_collection_recovery   tests.test_all_book_collection tests.test_prop_exchange_policy
 
 sudo systemctl stop corner-collection-recovery.timer
 sudo systemctl stop corner-live-odds.timer corner-live-odds.service
