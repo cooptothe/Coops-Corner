@@ -113,6 +113,13 @@ class Job:
         return 'main' if self.kind in ('additional','live') else self.kind
 
     @property
+    def response_markets(self):
+        # v4 automatically returns lay quotes with an exchange h2h request.
+        # This expands accepted response scope, never requested/billed markets.
+        return self.markets + (('h2h_lay',) if self.kind == 'main' and
+                              self.group == 'exchange' and 'h2h' in self.markets else ())
+
+    @property
     def cost(self):
         return len(self.markets) * ((len(self.books)+9)//10)
 

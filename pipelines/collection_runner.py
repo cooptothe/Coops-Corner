@@ -99,8 +99,9 @@ class Runner:
                         record = json.loads(row['payload'])
                         # Do not serve the rejected capture from SQLite either.
                         job = record['job']
+                        markets = tuple(job['markets']) + (('h2h_lay',) if job['kind'] == 'main' and job['group'] == 'exchange' else ())
                         for book in job['books']:
-                            for market in job['markets']:
+                            for market in markets:
                                 db.execute('UPDATE snapshots SET expires_at=0 WHERE captured_at=? AND kind=? AND sport=? AND book=? AND market=?',
                                            (parse(record['captured_at']).timestamp(), job['kind'], job['sport'], book, market))
                 if quarantined:

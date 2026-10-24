@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
-# Run manually as corneradmin. No purchases, reset, refund or quarantine clearing.
+# Run manually as corneradmin. No purchases, reset, or refund.
 set -euo pipefail
 umask 077
+exchange_fix=0
+if [ "${1:-}" = --exchange-lay-fix ] && [ "$#" -eq 1 ]; then
+  exchange_fix=1
+elif [ "$#" -ne 0 ]; then
+  echo "Usage: bash deploy/repair-collection.sh [--exchange-lay-fix]"; exit 1
+fi
 cd /srv/corner/app
 exec 9>/srv/corner/config/collection-repair.lock
 flock -n 9 || { echo "Another repair is running."; exit 1; }
@@ -23,6 +29,9 @@ PY
 # credentials, expired cycles, pool overruns and protected-reserve violations.
 # Owner confirmed this key is used exclusively by this collector.
 .venv-api/bin/python -m pipelines.collection_recover --accept-single-request-quota-delta
+if [ "$exchange_fix" -eq 1 ]; then
+  .venv-api/bin/python -m pipelines.collection_exchange_repair --apply
+fi
 sudo install -o root -g root -m 644 /srv/corner/collection/activation/approval.json /etc/corner/collection-activation.json
 sudo systemctl start corner-collection.service
 sleep 8

@@ -223,7 +223,7 @@ class LiveGovernor(Governor):
                 if job.kind == 'live':
                     db.execute('UPDATE live_captures SET captured=0 WHERE sport=? AND book_group=?',(job.sport,job.group))
                 for book in job.books:
-                    for market in job.markets:
+                    for market in job.response_markets:
                         db.execute('UPDATE snapshots SET expires_at=min(expires_at,?) WHERE kind=? AND sport=? AND book=? AND market=?' +
                                    (' AND event_id=?' if job.event_id else ''),
                                    (now.timestamp(),job.kind,job.sport,book,market) + ((job.event_id,) if job.event_id else ()))

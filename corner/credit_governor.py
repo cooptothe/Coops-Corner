@@ -228,6 +228,7 @@ class Governor:
             from corner.live_odds import store
             return store(db,job,payload,now)
         if not isinstance(payload,list): raise ValueError('Expected event list')
+        markets = job.response_markets
         rows=[];nowstamp=now.timestamp()
         for event in payload:
             if event.get('sport_key')!=job.sport or not isinstance(event.get('id'),str): raise ValueError('Mismatched event')
@@ -237,7 +238,7 @@ class Governor:
             for book in event.get('bookmakers',[]):
                 if book['key'] not in job.books: raise ValueError('Unexpected bookmaker')
                 for market in book.get('markets',[]):
-                    if market['key'] not in job.markets: raise ValueError('Unexpected market')
+                    if market['key'] not in markets: raise ValueError('Unexpected market')
                     source=parse(market.get('last_update') or book['last_update'])
                     if source.timestamp()>nowstamp+5: raise ValueError('Future provider timestamp')
                     # Actionable snapshots always expire at strict source-band limits,
@@ -247,7 +248,7 @@ class Governor:
                     rows.append((job.kind,job.sport,event['id'],book['key'],market['key'],start.timestamp(),source.timestamp(),nowstamp,expiry,json.dumps({'event':{k:v for k,v in event.items() if k!='bookmakers'},'book':{k:v for k,v in book.items() if k!='markets'},'market':market},separators=(',',':'))))
         # Exact request scope only. Never delete another book group/event/market.
         for book in job.books:
-            for market in job.markets:
+            for market in markets:
                 # A missing scope is a withdrawal, not permission to reuse its old close.
                 previous = db.execute('SELECT * FROM snapshots WHERE kind=? AND sport=? AND book=? AND market=?', (job.kind,job.sport,book,market)).fetchall()
                 present = {(r[2],r[3],r[4]) for r in rows}
