@@ -11,12 +11,17 @@ from corner.reference_policy import reference_source
 from corner.book_policy import supported_book, props_book_eligible
 from corner.pricing import SPORTSBOOKS
 
-WEIGHT_VERSION = 'researched-policy-priors/7-props-no-betfair-2026-10-24'
+WEIGHT_VERSION = 'configured-policy-priors/8-ev-anchors-2026-10-25'
 EXCHANGES = frozenset({'betfair_ex_uk','betfair_ex_eu','betfair_ex_au'})
 OTHER_EXCHANGES = frozenset({'prophetx','kalshi','betopenly','polymarket','polymarket_us','novig'})
 REFERENCE_BOOKS = SPORTSBOOKS | EXCHANGES | OTHER_EXCHANGES
 
-# Main-market reputation priors retained where research supports an anchor.
+# Owner-configured top tier for non-prop Positive EV, including alternate lines.
+# This is a product policy ratio, not a claim of measured forecasting accuracy.
+EV_ANCHORS = frozenset({'pinnacle','kalshi','novig'})
+EV_ANCHOR_WEIGHT = Decimal('4')
+
+# Other market reputation priors retained where research supports an anchor.
 # Numbers are our policy ratios, not measured prediction accuracy.
 MAIN_PROFILES = {
  'soccer': {'pinnacle':'4','betfair_exchange':'3'},
@@ -49,6 +54,7 @@ def reference_weight(book, sport_key='', *, player_props=False, market_key=''):
         # not inherit an invented extra sharpness multiplier.
         profile=PROP_PROFILES.get(sport_key,{})
         return Decimal(profile.get(book,'0.5' if profile else '1'))
+    if book in EV_ANCHORS:return EV_ANCHOR_WEIGHT
     if sport_key=='basketball_wnba' or 'challenger' in sport_key:
         return Decimal('0.5' if book in OTHER_EXCHANGES else '1')
     key='betfair_exchange' if book in EXCHANGES else book

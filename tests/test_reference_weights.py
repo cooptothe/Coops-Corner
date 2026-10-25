@@ -10,7 +10,7 @@ class Weights(unittest.TestCase):
         self.assertGreater(reference_weight('pinnacle', 'icehockey_nhl'), reference_weight('betfair_ex_uk', 'icehockey_nhl'))
         self.assertGreater(reference_weight('pinnacle', 'mma_mixed_martial_arts'), reference_weight('betfair_ex_uk', 'mma_mixed_martial_arts'))
         self.assertGreater(reference_weight('betfair_ex_uk', 'soccer_epl'), reference_weight('prophetx', 'soccer_epl'))
-        self.assertEqual(reference_weight('pinnacle', 'basketball_wnba'), reference_weight('betfair_ex_uk', 'basketball_wnba'))
+        self.assertGreater(reference_weight('pinnacle', 'basketball_wnba'), reference_weight('betfair_ex_uk', 'basketball_wnba'))
         for sport in ('basketball_nba', 'baseball_mlb'):
             self.assertGreater(reference_weight('fanduel', sport, player_props=True), reference_weight('pinnacle', sport, player_props=True))
 
@@ -53,3 +53,26 @@ class Weights(unittest.TestCase):
             self.assertIsNotNone(fair)
             self.assertEqual(set(used),{'betonlineag','bovada'})
             self.assertEqual(set(pm._fair_first_side(prices,exclude='bovada',sport_key=sport)[1]),{'betonlineag','draftkings'})
+
+
+class ConfiguredEVAnchors(unittest.TestCase):
+    def test_three_equal_top_tier_anchors_cover_core_and_alternate_lines(self):
+        from corner.reference_weights import REFERENCE_BOOKS
+        for sport in ('basketball_nba','basketball_wnba','americanfootball_nfl','soccer_epl','icehockey_nhl','baseball_mlb','tennis_atp_challenger','mma_mixed_martial_arts'):
+            for market in ('h2h','spreads','totals','alternate_spreads','alternate_totals','team_totals','btts','draw_no_bet'):
+                anchors={book:reference_weight(book,sport,market_key=market) for book in ('pinnacle','kalshi','novig')}
+                self.assertEqual(set(anchors.values()),{D(4)})
+                for book in REFERENCE_BOOKS-set(anchors):
+                    self.assertLess(reference_weight(book,sport,market_key=market),D(4),(sport,market,book))
+
+    def test_props_profiles_do_not_inherit_non_prop_anchors(self):
+        self.assertEqual(reference_weight('kalshi','basketball_nba',player_props=True),D('.5'))
+        self.assertEqual(reference_weight('novig','basketball_nba',player_props=True),D('.5'))
+        self.assertEqual(reference_weight('pinnacle','basketball_nba',player_props=True),D(1))
+        self.assertEqual(reference_weight('fanduel','basketball_nba',player_props=True),D(4))
+
+    def test_missing_anchors_are_not_invented_and_available_references_normalize(self):
+        weights=normalized_reference_weights(['kalshi','novig','draftkings'],'basketball_nba',market_key='alternate_spreads')
+        self.assertEqual(set(weights),{'kalshi','novig','draftkings'})
+        self.assertEqual(weights['kalshi'],weights['novig'])
+        self.assertEqual(weights['kalshi']/weights['draftkings'],D(4))
