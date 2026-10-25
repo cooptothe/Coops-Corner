@@ -143,12 +143,25 @@ class Runner:
         if self.now().timestamp() - row['captured'] > 600:
             return {'state': 'inventory_expired', 'executed': 0}
         inventory = json.loads(row['payload'])
+        if self.live_jobs and hasattr(self.g,'configure_live_pacing'):
+            self.g.configure_live_pacing(inventory,self.owner,self.now())
         jobs = sorted((job for job in plan(self.now(), inventory['active_sport_keys'], inventory['events'], additional=self.additional) if self.job_filter(job)), key=lambda j: j.key)
         if self.live_jobs:
             jobs += [job for job in self.live_jobs(self.now(),inventory) if self.job_filter(job)]
             jobs.sort(key=lambda j:j.key)
         # Persist a round-robin cursor so a restart cannot starve later events.
         jobs = [j for j in jobs if j.key > row['cursor']] + [j for j in jobs if j.key <= row['cursor']]
+        # Give overdue live scopes a bounded share of each tick, while retaining
+        # round-robin service for pregame/props and persistent dispatch floors.
+        live_due=[]
+        for job in jobs:
+            if job.kind=='live' and self.g.ready(job,self.now()):
+                previous=self.g.db.execute('SELECT last_started FROM jobs WHERE key=?',(job.key,)).fetchone()
+                overdue=(self.now().timestamp()-(previous[0] if previous else 0))/self.g.period(job,self.now())
+                live_due.append((overdue,job))
+        priority=[j for _,j in sorted(live_due,key=lambda item:(-item[0],item[1].key))[:max(1,self.max_jobs//2)]]
+        keys={j.key for j in priority}
+        jobs=priority+[j for j in jobs if j.key not in keys]
         executed = 0
         for job in jobs:
             now = self.now()

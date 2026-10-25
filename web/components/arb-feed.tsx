@@ -417,7 +417,7 @@ function Calculator({
               >
                 {vm.legs.map((l, i) => (
                   <option key={l.quoteId} value={i}>
-                    {l.label} · {l.bookLabel}
+                    {l.label} Â· {l.bookLabel}
                   </option>
                 ))}
               </select>
@@ -429,14 +429,14 @@ function Calculator({
             <>
               <div className="arb-stake">
                 <span>
-                  Back · {vm.legs[0].bookLabel} {vm.legs[0].label}
+                  Back Â· {vm.legs[0].bookLabel} {vm.legs[0].label}
                 </span>
                 <output>{usd(lay.back.toFixed(2))}</output>
                 <CopyButton value={lay.back.toFixed(2)} label="back" />
               </div>
               <div className="arb-stake">
                 <span>
-                  Lay · {vm.legs[1].bookLabel} {vm.legs[1].label}
+                  Lay Â· {vm.legs[1].bookLabel} {vm.legs[1].label}
                 </span>
                 <output>{usd(lay.layStake.toFixed(2))}</output>
                 <CopyButton value={lay.layStake.toFixed(2)} label="lay" />
@@ -459,7 +459,7 @@ function Calculator({
               {sizing.stakes.map((s, i) => (
                 <div className="arb-stake" key={vm.legs[i].quoteId}>
                   <span>
-                    Leg {String.fromCharCode(65 + i)} · {vm.legs[i].bookLabel}{" "}
+                    Leg {String.fromCharCode(65 + i)} Â· {vm.legs[i].bookLabel}{" "}
                     {vm.legs[i].label} @ {vm.legs[i].odds}
                   </span>
                   <output>{usd(s.toFixed(2))}</output>
@@ -544,6 +544,7 @@ export default function ArbFeed({
   );
   const [rows, setRows] = useState<ArbRow[] | null>(null);
   const [loadedQuotes, setLoadedQuotes] = useState<Quote[] | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [offBooks, setOffBooks] = useState<Set<string>>(new Set());
@@ -586,23 +587,31 @@ export default function ArbFeed({
   });
   useEffect(() => {
     if (liveRows !== undefined) {
+      setLoadingMore(false);
       setError("");
       setRows(liveRows.filter((r): r is ArbRow => r.kind === "arbitrage"));
       return;
     }
     const controller = new AbortController();
     setError("");
-    loadToolSnapshot("arbitrage", data.meta.snapshot_id, controller.signal)
-      .then((bundle) => {
-        if (controller.signal.aborted) return;
-        setLoadedQuotes(bundle.quotes);
-        const items = bundle.rows;
-        if (!controller.signal.aborted)
-          setRows(items.filter((r): r is ArbRow => r.kind === "arbitrage"));
-      })
+    const accept = (bundle: { rows: ToolRow[]; quotes: Quote[] }) => {
+      if (controller.signal.aborted) return;
+      setLoadedQuotes(bundle.quotes);
+      const items = bundle.rows;
+      if (!controller.signal.aborted)
+        setRows(items.filter((r): r is ArbRow => r.kind === "arbitrage"));
+    };
+    setLoadingMore(true);
+    loadToolSnapshot("arbitrage", data.meta.snapshot_id, controller.signal, {
+      onFirstPage: accept,
+    })
+      .then(accept)
       .catch((e) => {
         if (!controller.signal.aborted)
           setError(e instanceof Error ? e.message : "Request failed.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingMore(false);
       });
     return () => controller.abort();
   }, [data, retry, liveRows]);
@@ -710,7 +719,7 @@ export default function ArbFeed({
 
   if (error)
     return <ErrorCard message={error} retry={() => setRetry((n) => n + 1)} />;
-  if (!rows) return <Loading text="Scanning for arbitrage…" />;
+  if (!rows) return <Loading text="Scanning for arbitrageâ€¦" />;
 
   return (
     <PlacedProvider slip={slip}>
@@ -733,7 +742,7 @@ export default function ArbFeed({
             setOff={setOffSports}
           />
           <label className="field arb-min">
-            <span>MIN. PROFIT · {minProfit || "0"}%</span>
+            <span>MIN. PROFIT Â· {minProfit || "0"}%</span>
             <span className="arb-min-inputs">
               <input
                 type="range"
@@ -767,20 +776,25 @@ export default function ArbFeed({
           </label>
           <span className="arb-status" role="status">
             <i className="arb-pulse" aria-hidden="true" />
-            Connected · prices as of{" "}
+            Connected Â· prices as of{" "}
             {data.meta.captured_at === "1970-01-01T00:00:00Z"
-              ? "—"
+              ? "â€”"
               : date(data.meta.captured_at)}
           </span>
         </FeedFilters>
         <div className="arb-body">
           <div className="ev-main">
             <div className="ev-count">
+              {loadingMore && (
+                <span role="status" className="feed-progress">
+                  Loading moreâ€¦{" "}
+                </span>
+              )}
               <SlipToggle
                 count={slip.length}
                 onClick={() => setSlipOpen((o) => !o)}
               />
-              <strong>{visible.length}</strong> of {all.length} opportunities ·
+              <strong>{visible.length}</strong> of {all.length} opportunities Â·
               best first
               <FeedChangeNote change={change} />
             </div>

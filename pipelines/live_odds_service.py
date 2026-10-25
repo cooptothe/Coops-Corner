@@ -49,7 +49,9 @@ class LiveStatusFeed(BaseModel):
     state: str
     events: list[LiveGame]
     source: Literal['the-odds-api']
-    refresh_seconds: Literal[60]
+    refresh_seconds: int = Field(ge=10)
+    collection_intervals_seconds: dict[str,int] | None = None
+    live_pacing: dict[str,Any] | None = None
     freshness_seconds: Literal[90]
     monthly_subcap: int
     daily_subcap: int

@@ -115,6 +115,14 @@ def feed(path: Path, now: datetime | None = None, devig_method: str = 'current')
         inventory_row = db.execute('SELECT payload,captured FROM runner_inventory WHERE id=1').fetchone() if db.execute("SELECT 1 FROM sqlite_master WHERE name='runner_inventory'").fetchone() else None
         inventory = json.loads(inventory_row[0]) if inventory_row and inventory_row[0] and now.timestamp()-inventory_row[1] < 600 else {}
         paused = db.execute('SELECT paused FROM controls WHERE id=1').fetchone()[0]
+        if db.execute("SELECT 1 FROM sqlite_master WHERE name='live_pacing_state'").fetchone():
+            pace=db.execute('SELECT payload FROM live_pacing_state WHERE id=1').fetchone()
+            if pace:
+                pacing=json.loads(pace[0])
+                if 0<=now.timestamp()-pacing.get('checked_at',0)<=60:
+                    base['collection_intervals_seconds']=pacing['interval_seconds']
+                    base['live_pacing']=pacing
+                    base['refresh_seconds']=min(pacing['interval_seconds'].values())
         cycle = db.execute('SELECT id FROM cycles WHERE starts<=? AND ends>?', (now.timestamp(),now.timestamp())).fetchone()
         if cycle:
             base['live_daily_credits_accounted'] = db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0) FROM attempts a JOIN live_attempts l ON l.token=a.token WHERE a.cycle_id=? AND l.day=?',(cycle[0],now.astimezone(CENTRAL).date().isoformat())).fetchone()[0]
@@ -160,19 +168,26 @@ def feed(path: Path, now: datetime | None = None, devig_method: str = 'current')
             'opportunities':[{**{k:v for k,v in c.items() if k not in ('tool_row','quotes')},'row_id':c['tool_row']['id']} for c in candidates]})
     base['state'] = 'paused' if paused else 'after_hours' if not open_now(now) else 'ready' if base['events'] else 'no_live_events'
     if not paused and open_now(now) and (base.get('live_credits_accounted',0)+3>MONTHLY_CAP or base.get('live_daily_credits_accounted',0)+3>DAILY_CAP): base['state']='live_budget_limit'
+    if base['state']=='ready' and base.get('live_pacing',{}).get('remaining_today_paced',3)<3:
+        base['state']='live_budget_pacing'
     return base
 
 _cache_lock = threading.Lock()
-_cache: tuple[str, float, dict[str, Any]] | None = None
+_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+
 
 def cached_feed(path: Path, devig_method: str = 'current') -> dict[str, Any]:
-    """Bound expensive analysis to one build per two seconds across API threads."""
+    """One analysis per two seconds per method; six bounded cache entries."""
     global _cache
     key = str(path.resolve())+'|'+devig_method
     with _cache_lock:
         now = time.monotonic()
-        if _cache and _cache[0] == key and now-_cache[1] < 2:
-            return _cache[2]
-        result = feed(path,devig_method=devig_method)
-        _cache = (key,time.monotonic(),result)
+        hit = _cache.get(key) if isinstance(_cache,dict) else None
+        if hit and now-hit[0]<2:return hit[1]
+        result=feed(path,devig_method=devig_method)
+        if not isinstance(_cache,dict):_cache={}
+        _cache[key]=(time.monotonic(),result)
+        while len(_cache)>6:
+            oldest=min(_cache,key=lambda k:_cache[k][0])
+            del _cache[oldest]
         return result

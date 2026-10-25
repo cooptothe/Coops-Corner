@@ -40,6 +40,7 @@ class LiveGovernor(Governor):
             created REAL NOT NULL, code TEXT NOT NULL, detail TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS collection_retry_cooldowns(
             job_key TEXT PRIMARY KEY REFERENCES jobs(key), retry_after REAL NOT NULL);
+          CREATE TABLE IF NOT EXISTS live_pacing_state(id INTEGER PRIMARY KEY CHECK(id=1),payload TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS quota_bindings(
             cycle_id TEXT PRIMARY KEY REFERENCES cycles(id), key_hash TEXT NOT NULL,
             used INTEGER NOT NULL, checked REAL NOT NULL,
@@ -56,7 +57,35 @@ class LiveGovernor(Governor):
             evidence TEXT NOT NULL, detail TEXT NOT NULL);
         ''')
 
+    def configure_live_pacing(self,inventory,owner,now):
+        from corner.live_pacing import plan
+        from corner.live_odds import MONTHLY_CAP,DAILY_CAP
+        from corner.collection_policy import CENTRAL
+        prior=self.db.execute('SELECT payload FROM live_pacing_state WHERE id=1').fetchone()
+        if prior and 0<=now.timestamp()-json.loads(prior[0])['checked_at']<15:
+            self._live_pacing=json.loads(prior[0]);return
+        binding=self._binding(self.db,now)
+        end=self.db.execute('SELECT ends FROM cycles WHERE id=?',(binding['cycle_id'],)).fetchone()[0]
+        from datetime import datetime,timezone
+        day=now.astimezone(CENTRAL).date().isoformat()
+        spent=self.db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0),coalesce(sum(CASE WHEN l.day=? THEN coalesce(a.actual,a.reserved) ELSE 0 END),0) FROM attempts a JOIN live_attempts l ON l.token=a.token WHERE a.cycle_id=?',(day,binding['cycle_id'])).fetchone()
+        amounts=self.accounted(self.db,binding['cycle_id'])
+        available=min(POOLS['main']-amounts.get('main',0),TOTAL-PROTECTED-sum(amounts.values()))
+        pacing=plan(now,datetime.fromtimestamp(end,timezone.utc),inventory,spent_month=spent[0],spent_today=spent[1],monthly_cap=MONTHLY_CAP,daily_cap=DAILY_CAP,available_main=available)
+        with self.transaction() as db:
+            self._fence(db,owner,now.timestamp())
+            db.execute('INSERT INTO live_pacing_state VALUES(1,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload',(json.dumps(pacing,separators=(',',':')),))
+        self._live_pacing=pacing
+
+    def period(self,job,now):
+        if job.kind=='live':
+            if getattr(self,'_live_pacing',None):return self._live_pacing['interval_seconds'][job.group]
+            return 60 # fail conservative until the worker computes its live budget plan
+        return super().period(job,now)
+
     def ready(self, job, now):
+        if job.kind=='live' and getattr(self,'_live_pacing',{}).get('remaining_today_paced',job.cost)<job.cost:
+            return False
         if self.db.execute('SELECT 1 FROM collection_retry_cooldowns WHERE job_key=? AND retry_after>?',(job.key,now.timestamp())).fetchone():
             return False
         if self.db.execute('SELECT 1 FROM collection_quarantine WHERE job_key=?', (job.key,)).fetchone():
@@ -64,6 +93,8 @@ class LiveGovernor(Governor):
         return super().ready(job, now)
 
     def claim(self, job, owner, now):
+        if job.kind=='live' and getattr(self,'_live_pacing',{}).get('remaining_today_paced',job.cost)<job.cost:
+            raise Refused('Live pacing allowance is exhausted; existing pool and reserve remain protected')
         if self.db.execute('SELECT 1 FROM collection_retry_cooldowns WHERE job_key=? AND retry_after>?',(job.key,now.timestamp())).fetchone():
             raise Refused('Recovered transport scope is cooling down')
         if self.db.execute('SELECT 1 FROM collection_quarantine WHERE job_key=?', (job.key,)).fetchone():

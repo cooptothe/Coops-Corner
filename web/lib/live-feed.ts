@@ -65,6 +65,7 @@ export interface LiveFeed {
   events: LiveEvent[];
   live_credits_accounted?: number;
   monthly_subcap: number;
+  collection_intervals_seconds?: { standard: number; exchange: number };
 }
 export interface LiveRow {
   market: LiveMarket;

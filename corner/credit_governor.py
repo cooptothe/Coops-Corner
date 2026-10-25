@@ -122,12 +122,15 @@ class Governor:
                 raise Refused('Unresolved request; lease must expire conservatively')
             db.execute('UPDATE lease SET until_at=0 WHERE id=1 AND owner=?',(owner,))
 
+    def period(self,job,now):
+        return interval(job.kind,job.group,now,parse(job.starts_at) if job.starts_at else None)
+
     def claim(self,job,owner,now):
         job.validate();now=aware(now);stamp=now.timestamp()
         if not open_now(now): raise Refused('After Hours: no collection')
         if job.starts_at and not now < parse(job.starts_at): raise Refused('Event started')
         if job.starts_at and parse(job.starts_at)>now+timedelta(hours=24): raise Refused('Event outside 24-hour horizon')
-        period=interval(job.kind,job.group,now,parse(job.starts_at) if job.starts_at else None)
+        period=self.period(job,now)
         with self.transaction() as db:
             self._fence(db,owner,stamp)
             pause=db.execute('SELECT paused FROM controls WHERE id=1').fetchone()[0]
@@ -174,14 +177,14 @@ class Governor:
         job.validate()
         now=aware(now)
         if not open_now(now) or job.starts_at and parse(job.starts_at)<=now: return False
-        period=interval(job.kind,job.group,now,parse(job.starts_at) if job.starts_at else None)
+        period=self.period(job,now)
         row=self.db.execute('SELECT * FROM jobs WHERE key=?',(job.key,)).fetchone()
         return not row or row['state']=='idle' and row['last_started']+period<=now.timestamp()
 
     def prepare_due(self,job,owner,now):
         """Adjust cadence band under the lease, preserving last-start floors."""
         job.validate();now=aware(now)
-        period=interval(job.kind,job.group,now,parse(job.starts_at) if job.starts_at else None)
+        period=self.period(job,now)
         with self.transaction() as db:
             self._fence(db,owner,now.timestamp())
             db.execute("UPDATE jobs SET next_due=last_started+? WHERE key=? AND state='idle'",(period,job.key))

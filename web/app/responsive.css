@@ -580,3 +580,28 @@
     box-sizing: border-box;
   }
 }
+
+/* Keep tracked-bet badges legible in narrow EV columns without vertical words. */
+.placed-label-compact {
+  display: none;
+}
+@media (max-width: 1100px) {
+  .ev-edge .placed-badge {
+    align-items: center;
+    padding: 3px 4px;
+    font-size: 9px;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+  .ev-edge .placed-badge svg {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+  }
+  .ev-edge .placed-badge .placed-label-full {
+    display: none;
+  }
+  .ev-edge .placed-badge .placed-label-compact {
+    display: inline;
+  }
+}

@@ -55,7 +55,7 @@ def supported(sport):
 def interval(kind, group, now, starts=None):
     """Budgeted countdown bands; exchanges never get a sub-minute exception."""
     remaining = (aware(starts)-aware(now)).total_seconds() if starts is not None else None
-    if kind == 'live': return 60
+    if kind == 'live': return 40 if group == 'standard' else 10
     if kind == 'main':
         if remaining is None or remaining <= 3600: return 120
         if remaining <= 7200: return 180

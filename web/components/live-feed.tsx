@@ -84,7 +84,7 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
       if (!document.hidden) void load();
     };
     document.addEventListener("visibilitychange", onVisible);
-    const timer = setInterval(() => void load(), 15000),
+    const timer = setInterval(() => void load(), 5000),
       tick = setInterval(() => setClock(Date.now()), 1000);
     return () => {
       alive = false;
@@ -155,7 +155,7 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
               ? "Loading live odds…"
               : !feed.enabled
                 ? "Live collection is not enabled yet."
-                : `${events.length} games · ${feed.state.replaceAll("_", " ")} · collection every 60 seconds`)}
+                : `${events.length} games · ${feed.state.replaceAll("_", " ")}${feed.collection_intervals_seconds ? ` · Books ${feed.collection_intervals_seconds.standard}s / exchanges ${feed.collection_intervals_seconds.exchange}s` : ""}`)}
         </p>
         <details
           className="live-explainer"

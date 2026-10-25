@@ -19,7 +19,9 @@ def status(path=STATE, now=None):
         'live_credits_accounted':data.get('live_credits_accounted',0),
         'daily_credits_accounted':data.get('live_daily_credits_accounted',0),
         'monthly_subcap':live_odds.MONTHLY_CAP,'daily_subcap':live_odds.DAILY_CAP,
-        'provider_calls_by_check':0,'captures':[]}
+        'provider_calls_by_check':0,'captures':[],
+        'collection_intervals_seconds':data.get('collection_intervals_seconds'),
+        'live_pacing':data.get('live_pacing')}
     inventory={}
     cooldowns={}
     if path.is_file():
@@ -52,7 +54,7 @@ def main():
             not result['expected_live_groups'] or time.monotonic()>=deadline):break
         time.sleep(min(3,max(0,deadline-time.monotonic())))
     print(json.dumps(result,indent=2))
-    if result['window_open'] and (not result['configured'] or not result['cron_marker_fresh'] or result['state'] in ('paused','live_budget_limit')):
+    if result['window_open'] and (not result['configured'] or not result['cron_marker_fresh'] or result['state'] in ('paused','live_budget_limit','live_budget_pacing')):
         print('Live scheduling is blocked: inspect configuration, cron freshness, collector state and budget caps.')
         return 1
     if result['expected_live_groups'] and not result['collection_verified']:

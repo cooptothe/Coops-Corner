@@ -74,16 +74,16 @@ class LiveData(unittest.TestCase):
         for job in planned:
             job.validate();self.assertEqual(job.pool,'main');self.assertEqual(job.cost,3)
             self.assertEqual(job.markets,('h2h','spreads','totals'))
-            self.assertEqual(interval('live',job.group,NOW),60)
-    def test_live_subcap_reservations_and_sixty_second_floor(self):
+            self.assertEqual(interval('live',job.group,NOW),40 if job.group=='standard' else 10)
+    def test_live_subcap_reservations_and_provider_standard_floor(self):
         self.assertEqual(sum(POOLS.values())+PROTECTED,TOTAL)
         job=Job('live','basketball_nba','standard',STANDARD,('h2h','spreads','totals'))
         self.g.acquire('worker',NOW)
         with patch('corner.live_odds.enabled',return_value=True),patch('corner.live_odds.MONTHLY_CAP',3):
             token=self.g.claim(job,'worker',NOW)
             self.g.finish(job,token,'worker',NOW,{'x-requests-last':'3','x-requests-remaining':'14999997'},[])
-            self.assertFalse(self.g.ready(job,NOW+timedelta(seconds=59)))
-            self.assertTrue(self.g.ready(job,NOW+timedelta(seconds=60)))
+            self.assertFalse(self.g.ready(job,NOW+timedelta(seconds=39)))
+            self.assertTrue(self.g.ready(job,NOW+timedelta(seconds=40)))
             self.g.prepare_due(job,'worker',NOW+timedelta(seconds=60))
             with self.assertRaisesRegex(Refused,'sub-limit'): self.g.claim(job,'worker',NOW+timedelta(seconds=60))
         self.assertEqual(self.g.db.execute('SELECT count(*) FROM snapshots').fetchone()[0],0)

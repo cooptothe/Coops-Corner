@@ -3,7 +3,7 @@
 set -euo pipefail
 umask 077
 cd /srv/corner/app
-.venv-api/bin/python -m unittest tests.test_feed_quote_bundles tests.test_product_api tests.test_database_catalog tests.test_performance_paths tests.test_live_products
+.venv-api/bin/python -m unittest tests.test_feed_quote_bundles tests.test_product_api tests.test_database_catalog tests.test_performance_paths tests.test_live_products tests.test_live_pacing tests.test_live_odds tests.test_collection_runner tests.test_collection_adapters
 (cd web && pnpm test)
 sudo systemctl stop corner-collection-recovery.timer corner-live-odds.timer corner-live-odds.service corner-collection.service
 # The new API is compatible with the previous frontend. Bring it up first.
@@ -65,6 +65,7 @@ if [ "$queued" -ne 1 ]; then
   exit 1
 fi
 git log -1 --oneline
-echo 'Feed-scoped quote loading and nonblocking API header metadata deployed. Reload the browser.'
+echo 'Progressive feed loading, shared snapshot calculations and budget-paced live collection deployed. Reload the browser.'
+.venv-api/bin/python -m pipelines.live_odds_status --wait-seconds 60
 
 sudo systemctl show corner-staging-api -p MemoryCurrent

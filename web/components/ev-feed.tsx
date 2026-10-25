@@ -354,6 +354,7 @@ export default function EvFeed({
   );
   const [rows, setRows] = useState<EvRow[] | null>(null);
   const [loadedQuotes, setLoadedQuotes] = useState<Quote[] | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [offBooks, setOffBooks] = useState<Set<string>>(new Set());
@@ -445,6 +446,7 @@ export default function EvFeed({
     if (liveRows !== undefined) {
       setError("");
       setRows(liveRows.filter((r): r is EvRow => r.kind === "positive_ev"));
+      setLoadingMore(false);
       onLiveMethod?.(devigMethod);
       setPricedSnapshot(
         liveMethod === devigMethod ? pricingSelection : undefined,
@@ -453,21 +455,27 @@ export default function EvFeed({
     }
     const controller = new AbortController();
     setError("");
+    const accept = (bundle: { rows: ToolRow[]; quotes: Quote[] }) => {
+      if (controller.signal.aborted) return;
+      setLoadedQuotes(bundle.quotes);
+      const items = bundle.rows;
+      if (!controller.signal.aborted) {
+        setRows(items.filter((r): r is EvRow => r.kind === "positive_ev"));
+        setPricedSnapshot(pricingSelection);
+      }
+    };
+    setLoadingMore(true);
     loadToolSnapshot("positive_ev", data.meta.snapshot_id, controller.signal, {
+      onFirstPage: accept,
       params: devigMethod === "current" ? {} : { devig_method: devigMethod },
     })
-      .then((bundle) => {
-        if (controller.signal.aborted) return;
-        setLoadedQuotes(bundle.quotes);
-        const items = bundle.rows;
-        if (!controller.signal.aborted) {
-          setRows(items.filter((r): r is EvRow => r.kind === "positive_ev"));
-          setPricedSnapshot(pricingSelection);
-        }
-      })
+      .then(accept)
       .catch((e) => {
         if (!controller.signal.aborted)
           setError(e instanceof Error ? e.message : "Request failed.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingMore(false);
       });
     return () => controller.abort();
   }, [data, retry, devigMethod, liveRows, liveMethod, onLiveMethod]);
@@ -720,6 +728,11 @@ export default function EvFeed({
         </FeedFilters>
         <div className="ev-main">
           <div className="ev-count">
+            {loadingMore && (
+              <span role="status" className="feed-progress">
+                Loading more…{" "}
+              </span>
+            )}
             <strong>{visible.length}</strong> of {all.length} bets · prices as
             of{" "}
             {data.meta.captured_at === "1970-01-01T00:00:00Z"

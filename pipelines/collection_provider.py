@@ -99,7 +99,7 @@ class Provider:
             raise Refused('Exchange acquisition requires explicit budgeted-profile approval')
         if self.budgeted_pregame:
             from corner.collection_policy import interval
-            if interval(job.kind, job.group, now, parse(job.starts_at) if job.starts_at else None) < 60:
+            if job.kind != 'live' and interval(job.kind, job.group, now, parse(job.starts_at) if job.starts_at else None) < 60:
                 raise Refused('Budgeted pregame cadence cannot be faster than 60 seconds')
         # Reservations are one dispatch only, not a reusable permit.
         with governor.transaction() as db:

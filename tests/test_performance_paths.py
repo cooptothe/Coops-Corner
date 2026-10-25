@@ -283,3 +283,24 @@ class PagingTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SnapshotConcurrencyTests(unittest.TestCase):
+    def test_concurrent_readers_build_once_and_nested_cache_is_reentrant(self):
+        from api.catalog import SnapshotMemo
+        from concurrent.futures import ThreadPoolExecutor
+        import threading
+        import time
+        memo=SnapshotMemo(); calls=[]; start=threading.Barrier(12)
+        def build():
+            calls.append(1);time.sleep(.01)
+            return memo.get_or_create('nested',lambda:('same snapshot',))
+        def read(_):
+            start.wait()
+            return memo.get_or_create('page',build)
+        with ThreadPoolExecutor(max_workers=12) as pool:
+            values=list(pool.map(read,range(12)))
+        self.assertEqual(len(calls),1)
+        self.assertTrue(all(value is values[0] for value in values))
+        for key in range(300):memo.get_or_create(key,lambda:key)
+        self.assertLessEqual(len(memo),256)

@@ -54,13 +54,24 @@ export function PlacedBadge({ state }: { state: PlacedState }) {
   return (
     <span
       className={`placed-badge ${state.related?.level === "entity" ? "related" : "same-market"} ${state.placed === state.legs ? "all" : "some"}`}
+      aria-label={label(state)}
       title={
         state.related?.level === "entity"
           ? `You have an open bet on this ${state.related.kind} in another market for this event.`
           : "You have an open bet on this market. Check your tracker before betting again."
       }
     >
-      <Icon name="check" /> {label(state)}
+      <Icon name="check" />
+      <span className="placed-label-full">{label(state)}</span>
+      <span className="placed-label-compact" aria-hidden="true">
+        {state.related
+          ? "Related"
+          : state.parlayLegs === state.legs
+            ? "Parlay"
+            : state.placed === state.legs
+              ? "Placed"
+              : `${state.placed}/${state.legs}`}
+      </span>
     </span>
   );
 }

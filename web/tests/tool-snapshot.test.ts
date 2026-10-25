@@ -143,3 +143,67 @@ test("snapshot changes while loading cannot produce a mixed feed", async () => {
     globalThis.fetch = old;
   }
 });
+
+test("first usable page renders before the slow final page and cancellation detaches its observer", async () => {
+  const old = globalThis.fetch;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let first!: () => void;
+  const seen = new Promise<void>((resolve) => {
+    first = resolve;
+  });
+  let notifications = 0;
+  globalThis.fetch = async (input) => {
+    const offset = Number(
+      new URL(String(input), "http://localhost").searchParams.get("offset"),
+    );
+    if (offset) await gate;
+    return reply("bundle:progress", {
+      items: Array.from({ length: offset ? 1 : 250 }, (_, i) => ({
+        id: `r${offset + i}`,
+        quote_ids: ["q"],
+      })),
+      quotes: [{ id: "q" }],
+      offset,
+      limit: 250,
+      total: 251,
+      next_offset: offset ? null : 250,
+    });
+  };
+  const controller = new AbortController();
+  try {
+    let finished = false;
+    const full = loadToolSnapshot(
+      "positive_ev",
+      "bundle:progress",
+      signal(),
+    ).then((bundle) => {
+      finished = true;
+      return bundle;
+    });
+    const cancelled = loadToolSnapshot(
+      "positive_ev",
+      "bundle:progress",
+      controller.signal,
+      {
+        onFirstPage(bundle) {
+          notifications++;
+          assert.equal(bundle.rows.length, 250);
+          first();
+        },
+      },
+    );
+    await seen;
+    assert.equal(finished, false);
+    controller.abort();
+    await assert.rejects(cancelled, { name: "AbortError" });
+    release();
+    assert.equal((await full).rows.length, 251);
+    assert.equal(notifications, 1);
+  } finally {
+    release();
+    globalThis.fetch = old;
+  }
+});

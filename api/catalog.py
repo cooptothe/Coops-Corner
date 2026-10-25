@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 import hashlib
 import json
+import threading
 from pathlib import Path
 
 from corner.featured_tools import MatchedMarket, Offer, ToolInputError, calculate_back_cover, calculate_back_lay
@@ -185,6 +186,22 @@ class APIProblem(Exception):
         self.status, self.code, self.message = status, code, message
 
 
+class SnapshotMemo(dict):
+    """Bounded single-flight calculations shared by concurrent snapshot readers."""
+    def __init__(self):
+        super().__init__()
+        self.lock=threading.RLock()
+
+    def get_or_create(self,key,build):
+        with self.lock:
+            found=self.get(key)
+            if found is not None:return found
+            found=build()
+            if len(self)>=256:self.clear()
+            self[key]=found
+            return found
+
+
 class FixtureCatalog:
     def __init__(self, path=FIXTURE, *, raw=None):
         if raw is None:
@@ -332,7 +349,7 @@ class FixtureCatalog:
         self.games = tuple(Game(**game, market_keys=sorted({q.market_key for q in by_game_quotes.get(game['id'], ())}),
                                quote_count=len(by_game_quotes.get(game['id'], ()))) for game in raw['games'])
         # Sorted and filtered result lists, valid for this immutable snapshot only: a rebuild replaces the whole catalog.
-        self.memo = {}
+        self.memo = SnapshotMemo()
         self.game_map = {game.id: game for game in self.games}
         # Snapshot covers data AND calculated output, so pagination clients notice
         # changed calculator output after a deploy even if fixture bytes are equal.
@@ -342,24 +359,25 @@ class FixtureCatalog:
         if method == 'current':
             return [row for row in self.rows if row.kind == 'positive_ev']
         cache_key = ('devig_rows', method)
-        if cache_key not in self.memo:
-            rows = []
-            for market, target, refs, books, sport in self._ev_inputs:
-                try:
-                    result = calculate_featured_ev(market, target, refs, required_reference_books=books,
-                                                  stake=D(100), sport_key=sport, devig_method=method)
-                except ToolInputError as error:
-                    if str(error) == 'devig method unavailable for reference population':
-                        continue
-                    raise
-                if result.conditional_ev_ratio_on_capital <= D('1e-20'):
+        return self.memo.get_or_create(cache_key,lambda:self._build_ev_rows(method))
+
+    def _build_ev_rows(self,method):
+        rows = []
+        for market, target, refs, books, sport in self._ev_inputs:
+            try:
+                result = calculate_featured_ev(market, target, refs, required_reference_books=books,
+                                              stake=D(100), sport_key=sport, devig_method=method)
+            except ToolInputError as error:
+                if str(error) == 'devig method unavailable for reference population':
                     continue
-                ids = [target.quote_id] + [o.quote_id for o in refs]
-                rows.append(EVRow(**self._row(self.game_for_contract[market.contract_id], market.contract_id,
-                    target.market_key, ids, 'positive_ev', result, result.capital_at_risk,
-                    ev=result.conditional_ev_ratio_on_capital), calculation=result))
-            self.memo[cache_key] = tuple(rows)
-        return self.memo[cache_key]
+                raise
+            if result.conditional_ev_ratio_on_capital <= D('1e-20'):
+                continue
+            ids = [target.quote_id] + [o.quote_id for o in refs]
+            rows.append(EVRow(**self._row(self.game_for_contract[market.contract_id], market.contract_id,
+                target.market_key, ids, 'positive_ev', result, result.capital_at_risk,
+                ev=result.conditional_ev_ratio_on_capital), calculation=result))
+        return tuple(rows)
 
     def _row(self, game_id, contract, key, ids, kind, result, capital, minimum=None, ev=None):
         return dict(id=f'{kind}:' + digest(result), game_id=game_id, contract_id=contract, market_key=key,
@@ -426,13 +444,16 @@ def paginate(items, query, numeric_fields=(), *, memo=None, memo_key=None):
         items = ordered(items, query, numeric_fields)
     else:
         key = (memo_key, query.sort, query.descending)
-        cached = memo.get(key)
-        if cached is None:
-            cached = ordered(items(), query, numeric_fields)
-            if len(memo) >= 256:
-                memo.clear()
-            memo[key] = cached
-        items = cached
+        if hasattr(memo,'get_or_create'):
+            items=memo.get_or_create(key,lambda:ordered(items(),query,numeric_fields))
+        else:
+            cached = memo.get(key)
+            if cached is None:
+                cached = ordered(items(), query, numeric_fields)
+                if len(memo) >= 256:
+                    memo.clear()
+                memo[key] = cached
+            items = cached
     end = query.offset + query.limit
     return dict(items=items[query.offset:end], total=len(items), offset=query.offset, limit=query.limit,
                 next_offset=end if end < len(items) else None)
