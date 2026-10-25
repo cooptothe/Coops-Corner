@@ -11,7 +11,7 @@ from corner.reference_policy import reference_source
 from corner.book_policy import supported_book, props_book_eligible
 from corner.pricing import SPORTSBOOKS
 
-WEIGHT_VERSION = 'configured-policy-priors/8-ev-anchors-2026-10-25'
+WEIGHT_VERSION = 'configured-policy-priors/9-prop-anchors-2026-10-25'
 EXCHANGES = frozenset({'betfair_ex_uk','betfair_ex_eu','betfair_ex_au'})
 OTHER_EXCHANGES = frozenset({'prophetx','kalshi','betopenly','polymarket','polymarket_us','novig'})
 REFERENCE_BOOKS = SPORTSBOOKS | EXCHANGES | OTHER_EXCHANGES
@@ -20,6 +20,8 @@ REFERENCE_BOOKS = SPORTSBOOKS | EXCHANGES | OTHER_EXCHANGES
 # This is a product policy ratio, not a claim of measured forecasting accuracy.
 EV_ANCHORS = frozenset({'pinnacle','kalshi','novig'})
 EV_ANCHOR_WEIGHT = Decimal('4')
+PROP_ANCHORS = frozenset({'novig','fanduel','pinnacle'})
+PROP_ANCHOR_WEIGHT = Decimal('4')
 
 # Other market reputation priors retained where research supports an anchor.
 # Numbers are our policy ratios, not measured prediction accuracy.
@@ -49,6 +51,7 @@ def reference_weight(book, sport_key='', *, player_props=False, market_key=''):
     if not sport_key:return Decimal(1)  # Legacy pure-calculator fixtures.
     family=sport_key.split('_',1)[0]
     if player_props:
+        if book in PROP_ANCHORS:return PROP_ANCHOR_WEIGHT
         if book in EXCHANGES or book in OTHER_EXCHANGES:return Decimal('0.5')
         # No verified stat-by-stat ranking: an ATD, ATG or alternate line does
         # not inherit an invented extra sharpness multiplier.

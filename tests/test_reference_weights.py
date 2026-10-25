@@ -12,7 +12,7 @@ class Weights(unittest.TestCase):
         self.assertGreater(reference_weight('betfair_ex_uk', 'soccer_epl'), reference_weight('prophetx', 'soccer_epl'))
         self.assertGreater(reference_weight('pinnacle', 'basketball_wnba'), reference_weight('betfair_ex_uk', 'basketball_wnba'))
         for sport in ('basketball_nba', 'baseball_mlb'):
-            self.assertGreater(reference_weight('fanduel', sport, player_props=True), reference_weight('pinnacle', sport, player_props=True))
+            self.assertEqual(reference_weight('fanduel', sport, player_props=True), reference_weight('pinnacle', sport, player_props=True))
 
     def test_main_ev_uses_weighted_devigged_probabilities(self):
         market = MatchedMarket('c', 'h2h', ('h', 'a'), False)
@@ -33,7 +33,7 @@ class Weights(unittest.TestCase):
         from corner.pricing import no_vig_pair
         a = no_vig_pair(D(2), D(3))[0][0]
         b = no_vig_pair(D(3), D(2))[0][0]
-        self.assertAlmostEqual(float(fair), float((a*4+b)/5))
+        self.assertAlmostEqual(float(fair), float((a+b)/2))
         self.assertEqual(set(pm._fair_first_side(prices, exclude='fanduel', sport_key='basketball_nba')[1]), {'pinnacle','draftkings'})
         self.assertEqual((None,[]),pm._fair_first_side({'fanduel':prices['fanduel'],'pinnacle':prices['pinnacle']},exclude='fanduel',sport_key='basketball_nba'))
         weights = normalized_reference_weights(['fanduel'], 'soccer_epl', player_props=True)
@@ -67,8 +67,8 @@ class ConfiguredEVAnchors(unittest.TestCase):
 
     def test_props_profiles_do_not_inherit_non_prop_anchors(self):
         self.assertEqual(reference_weight('kalshi','basketball_nba',player_props=True),D('.5'))
-        self.assertEqual(reference_weight('novig','basketball_nba',player_props=True),D('.5'))
-        self.assertEqual(reference_weight('pinnacle','basketball_nba',player_props=True),D(1))
+        self.assertEqual(reference_weight('novig','basketball_nba',player_props=True),D(4))
+        self.assertEqual(reference_weight('pinnacle','basketball_nba',player_props=True),D(4))
         self.assertEqual(reference_weight('fanduel','basketball_nba',player_props=True),D(4))
 
     def test_missing_anchors_are_not_invented_and_available_references_normalize(self):
@@ -76,3 +76,24 @@ class ConfiguredEVAnchors(unittest.TestCase):
         self.assertEqual(set(weights),{'kalshi','novig','draftkings'})
         self.assertEqual(weights['kalshi'],weights['novig'])
         self.assertEqual(weights['kalshi']/weights['draftkings'],D(4))
+
+
+class ConfiguredPropAnchors(unittest.TestCase):
+    def test_three_equal_top_prop_anchors_in_every_sport_and_alt_market(self):
+        from corner.reference_weights import REFERENCE_BOOKS
+        for sport in ('basketball_nba','basketball_wnba','americanfootball_nfl','baseball_mlb','icehockey_nhl','soccer_epl'):
+            for market in ('player_points','player_points_alternate','player_shots_on_goal','player_pass_yds'):
+                for book in ('novig','fanduel','pinnacle'):
+                    self.assertEqual(reference_weight(book,sport,player_props=True,market_key=market),D(4))
+                for book in REFERENCE_BOOKS-{'novig','fanduel','pinnacle'}:
+                    self.assertLess(reference_weight(book,sport,player_props=True,market_key=market),D(4))
+
+    def test_real_novig_reference_is_weighted_but_target_is_excluded(self):
+        prices={'novig':{0:D(2),1:D(3)},'betmgm':{0:D(3),1:D(2)},'draftkings':{0:D(2),1:D(2)}}
+        fair,used=pm._fair_first_side(prices,exclude='draftkings',sport_key='icehockey_nhl')
+        self.assertEqual(used,['betmgm','novig'])
+        from corner.pricing import no_vig_pair
+        a=no_vig_pair(D(2),D(3))[0][0]
+        b=no_vig_pair(D(3),D(2))[0][0]
+        self.assertAlmostEqual(float(fair),float((4*a+b)/5))
+        self.assertNotIn('novig',pm._fair_first_side(prices,exclude='novig',sport_key='icehockey_nhl')[1])

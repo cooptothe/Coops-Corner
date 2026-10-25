@@ -24,7 +24,7 @@ systemctl is-active corner-staging-accounts corner-staging-api corner-collection
 .venv-api/bin/python - <<'PY'
 import json
 from corner.reference_weights import reference_weight, WEIGHT_VERSION
-print(json.dumps({'reference_weight_version':WEIGHT_VERSION,'positive_ev_top_weights':{book:str(reference_weight(book,'basketball_nba',market_key='alternate_spreads')) for book in ('pinnacle','kalshi','novig')},'props_policy_unchanged':True,'budget_policy_unchanged':True}))
+print(json.dumps({'reference_weight_version':WEIGHT_VERSION,'positive_ev_top_weights':{book:str(reference_weight(book,'basketball_nba',market_key='alternate_spreads')) for book in ('pinnacle','kalshi','novig')},'props_anchor_weights':{book:str(reference_weight(book,'basketball_nba',player_props=True)) for book in ('novig','fanduel','pinnacle')},'budget_policy_unchanged':True}))
 PY
 git log -1 --oneline
 echo 'Positive EV anchors deployed. Reload the browser.'

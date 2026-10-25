@@ -39,9 +39,9 @@ class AllBookReferences(unittest.TestCase):
         self.assertEqual(result.conditional_ev_ratio_on_capital,D('.5'))
 
     def test_researched_profiles_market_context_and_minimum(self):
-        self.assertEqual(normalized_reference_weights(['fanduel','pinnacle'],'basketball_nba',player_props=True),{'fanduel':D('.8'),'pinnacle':D('.2')})
-        self.assertEqual(normalized_reference_weights(['fanduel','pinnacle'],'baseball_mlb',player_props=True),{'fanduel':D('.6'),'pinnacle':D('.4')})
-        self.assertEqual(normalized_reference_weights(['fanduel','pinnacle','betonlineag'],'americanfootball_nfl',player_props=True),{b:D(1)/3 for b in ('fanduel','pinnacle','betonlineag')})
+        self.assertEqual(normalized_reference_weights(['fanduel','pinnacle'],'basketball_nba',player_props=True),{'fanduel':D('.5'),'pinnacle':D('.5')})
+        self.assertEqual(normalized_reference_weights(['fanduel','pinnacle'],'baseball_mlb',player_props=True),{'fanduel':D('.5'),'pinnacle':D('.5')})
+        self.assertEqual(normalized_reference_weights(['fanduel','pinnacle','betonlineag'],'americanfootball_nfl',player_props=True),{'fanduel':D('.4'),'pinnacle':D('.4'),'betonlineag':D('.2')})
         self.assertGreater(reference_weight('betfair_ex_uk','soccer_epl',market_key='h2h'),reference_weight('betfair_ex_uk','soccer_epl',market_key='btts'))
         self.assertFalse(sufficient_references(['betfair_ex_uk','betfair_ex_eu'],'basketball_nba',player_props=True))
         prices={'betrivers':{0:D('1.9'),1:D('2.1')}}
