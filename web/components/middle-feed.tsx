@@ -110,9 +110,9 @@ const stateLabel = (id: string) =>
     ? "Push / refund"
     : id
         .replace("score:", "")
-        .replace("-inf:", "â‰¤ ")
+        .replace("-inf:", "≤ ")
         .replace(":+inf", " or more")
-        .replaceAll(":", "â€“");
+        .replaceAll(":", "–");
 
 function toVm(
   row: MidRow,
@@ -158,7 +158,7 @@ function toVm(
     best: Number(row.calculation.payoff.maximum_modeled_profit),
     worst: Number(row.minimum_profit),
     window: ranges
-      .map(([a, b]) => `${a ?? "âˆ’âˆž"}â€“${b ?? "âˆž"}`)
+      .map(([a, b]) => `${a ?? "−∞"}–${b ?? "∞"}`)
       .join(", "),
     width,
     states: row.calculation.payoff.states.map((s): [string, number] => [
@@ -226,11 +226,11 @@ const Row = memo(
         </div>
         <div role="cell" className="ev-cell ev-event">
           <span className="ev-league">
-            {vm.league} Â· {vm.market}
+            {vm.league} · {vm.market}
           </span>
           <Matchup text={vm.matchup} sportKey={vm.sportKey} />
           <small>
-            {vm.startsAt ? date(vm.startsAt) : ""} Â·{" "}
+            {vm.startsAt ? date(vm.startsAt) : ""} ·{" "}
             <Countdown value={vm.startsAt} />
           </small>
           <small className="mid-window">Win both if {vm.window}</small>
@@ -360,7 +360,7 @@ function Calculator({
           <div className="kelly-head">
             <Matchup text={vm.matchup} sportKey={vm.sportKey} size={22} />
             <span>
-              {vm.league} Â· {vm.market}
+              {vm.league} · {vm.market}
             </span>
             <span>Win both if the result lands in {vm.window}</span>
           </div>
@@ -381,7 +381,7 @@ function Calculator({
               {vm.legs.map((l, i) => (
                 <div className="arb-stake" key={l.quoteId}>
                   <span>
-                    Leg {String.fromCharCode(65 + i)} Â· {l.bookLabel} {l.label}{" "}
+                    Leg {String.fromCharCode(65 + i)} · {l.bookLabel} {l.label}{" "}
                     @ {l.odds}
                   </span>
                   <output>{money(scaled.stakes[i])}</output>
@@ -654,7 +654,7 @@ export default function MiddleFeed({
 
   if (error)
     return <ErrorCard message={error} retry={() => setRetry((n) => n + 1)} />;
-  if (!rows) return <Loading text="Scanning for middlesâ€¦" />;
+  if (!rows) return <Loading text="Scanning for middles…" />;
 
   return (
     <PlacedProvider slip={slip}>
@@ -722,7 +722,7 @@ export default function MiddleFeed({
             <i className="arb-pulse" aria-hidden="true" />
             Prices as of{" "}
             {data.meta.captured_at === "1970-01-01T00:00:00Z"
-              ? "â€”"
+              ? "—"
               : date(data.meta.captured_at)}
           </span>
         </FeedFilters>
@@ -733,12 +733,12 @@ export default function MiddleFeed({
           </div>
           <div>
             <span>AVG. WINDOW (PTS)</span>
-            <b>{avgWidth === null ? "â€”" : avgWidth.toFixed(1)}</b>
+            <b>{avgWidth === null ? "—" : avgWidth.toFixed(1)}</b>
           </div>
           <div>
             <span>BEST PAYOFF</span>
             <b className="arb-net">
-              {bestPayoff === null ? "â€”" : pct(bestPayoff)}
+              {bestPayoff === null ? "—" : pct(bestPayoff)}
             </b>
           </div>
         </div>
@@ -747,14 +747,14 @@ export default function MiddleFeed({
             <div className="ev-count">
               {loadingMore && (
                 <span role="status" className="feed-progress">
-                  Loading moreâ€¦{" "}
+                  Loading more…{" "}
                 </span>
               )}
               <SlipToggle
                 count={slip.length}
                 onClick={() => setSlipOpen((o) => !o)}
               />
-              <strong>{visible.length}</strong> of {all.length} middles Â· green
+              <strong>{visible.length}</strong> of {all.length} middles · green
               is the payoff in the window, red is what a miss costs
               <FeedChangeNote change={change} />
             </div>

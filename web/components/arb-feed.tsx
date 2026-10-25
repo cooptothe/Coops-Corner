@@ -417,7 +417,7 @@ function Calculator({
               >
                 {vm.legs.map((l, i) => (
                   <option key={l.quoteId} value={i}>
-                    {l.label} Â· {l.bookLabel}
+                    {l.label} · {l.bookLabel}
                   </option>
                 ))}
               </select>
@@ -429,14 +429,14 @@ function Calculator({
             <>
               <div className="arb-stake">
                 <span>
-                  Back Â· {vm.legs[0].bookLabel} {vm.legs[0].label}
+                  Back · {vm.legs[0].bookLabel} {vm.legs[0].label}
                 </span>
                 <output>{usd(lay.back.toFixed(2))}</output>
                 <CopyButton value={lay.back.toFixed(2)} label="back" />
               </div>
               <div className="arb-stake">
                 <span>
-                  Lay Â· {vm.legs[1].bookLabel} {vm.legs[1].label}
+                  Lay · {vm.legs[1].bookLabel} {vm.legs[1].label}
                 </span>
                 <output>{usd(lay.layStake.toFixed(2))}</output>
                 <CopyButton value={lay.layStake.toFixed(2)} label="lay" />
@@ -459,7 +459,7 @@ function Calculator({
               {sizing.stakes.map((s, i) => (
                 <div className="arb-stake" key={vm.legs[i].quoteId}>
                   <span>
-                    Leg {String.fromCharCode(65 + i)} Â· {vm.legs[i].bookLabel}{" "}
+                    Leg {String.fromCharCode(65 + i)} · {vm.legs[i].bookLabel}{" "}
                     {vm.legs[i].label} @ {vm.legs[i].odds}
                   </span>
                   <output>{usd(s.toFixed(2))}</output>
@@ -719,7 +719,7 @@ export default function ArbFeed({
 
   if (error)
     return <ErrorCard message={error} retry={() => setRetry((n) => n + 1)} />;
-  if (!rows) return <Loading text="Scanning for arbitrageâ€¦" />;
+  if (!rows) return <Loading text="Scanning for arbitrage…" />;
 
   return (
     <PlacedProvider slip={slip}>
@@ -742,7 +742,7 @@ export default function ArbFeed({
             setOff={setOffSports}
           />
           <label className="field arb-min">
-            <span>MIN. PROFIT Â· {minProfit || "0"}%</span>
+            <span>MIN. PROFIT · {minProfit || "0"}%</span>
             <span className="arb-min-inputs">
               <input
                 type="range"
@@ -776,9 +776,9 @@ export default function ArbFeed({
           </label>
           <span className="arb-status" role="status">
             <i className="arb-pulse" aria-hidden="true" />
-            Connected Â· prices as of{" "}
+            Connected · prices as of{" "}
             {data.meta.captured_at === "1970-01-01T00:00:00Z"
-              ? "â€”"
+              ? "—"
               : date(data.meta.captured_at)}
           </span>
         </FeedFilters>
@@ -787,14 +787,14 @@ export default function ArbFeed({
             <div className="ev-count">
               {loadingMore && (
                 <span role="status" className="feed-progress">
-                  Loading moreâ€¦{" "}
+                  Loading more…{" "}
                 </span>
               )}
               <SlipToggle
                 count={slip.length}
                 onClick={() => setSlipOpen((o) => !o)}
               />
-              <strong>{visible.length}</strong> of {all.length} opportunities Â·
+              <strong>{visible.length}</strong> of {all.length} opportunities ·
               best first
               <FeedChangeNote change={change} />
             </div>
