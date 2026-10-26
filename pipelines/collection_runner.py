@@ -69,9 +69,11 @@ class Runner:
                 row = self.g.db.execute('SELECT token,payload FROM publication_outbox '
                                         'WHERE published_at IS NULL AND token NOT IN (SELECT token FROM publication_failures WHERE quarantined=1) ORDER BY rowid LIMIT 1').fetchone()
                 if row:
-                    failure = self.g.db.execute('SELECT retry_at FROM publication_failures WHERE token=?', (row['token'],)).fetchone()
+                    failure = self.g.db.execute('SELECT retry_at,error_type,sqlstate FROM publication_failures WHERE token=?', (row['token'],)).fetchone()
                     if failure and failure[0] > self.now().timestamp():
-                        return {'state': 'publication_backoff', 'executed': 0}
+                        return {'state': 'publication_backoff', 'executed': 0,
+                                'error_type': failure[1], 'sqlstate': failure[2],
+                                'retry_after_seconds': max(0, round(failure[0]-self.now().timestamp()))}
                     self.g._fence(self.g.db, self.owner, self.now().timestamp())
                     self.publisher(row['token'], json.loads(row['payload']))
                     with self.g.transaction() as db:

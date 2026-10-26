@@ -226,7 +226,7 @@ class FeaturedStoreTests(unittest.TestCase):
             cur.execute('SELECT DISTINCT mt.code FROM corner.odds_observations o JOIN corner.outcomes x ON x.id=o.outcome_id '
                         'JOIN corner.markets m ON m.id=x.market_id JOIN corner.market_types mt ON mt.id=m.market_type_id '
                         'WHERE o.provider_payload_id=%s',(self.payload_id,))
-            self.assertEqual(set(MARKET_TYPES.values()),{row[0] for row in cur.fetchall()})
+            self.assertEqual({MARKET_TYPES[q.market_key] for q in self.snapshot.quotes},{row[0] for row in cur.fetchall()})
 
     def test_changed_replay_binding_conflicts(self):
         self.ingest()

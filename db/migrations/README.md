@@ -1,3 +1,11 @@
+After 015, apply `016_corner_competition_provider_aliases.sql` as the schema owner.
+ATP/WTA tournament keys rotate while canonical competitions represent tours.
+This replaces the one-key-per-competition index with a lookup index. The unique
+`(provider_id, external_id)` constraint remains; ingestion still validates the
+exact active key and canonical competition. No data is deleted or rebound.
+Stop collection before applying this migration. It uses bounded lock/statement
+timeouts and can be reapplied. Retained outbox captures retry without purchases.
+
 # The Corner migrations
 
 After 014, apply `015_corner_quote_links.sql`. It adds `corner.quote_links`, the latest
