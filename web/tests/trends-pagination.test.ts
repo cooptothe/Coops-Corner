@@ -48,3 +48,23 @@ test("Lab rejects changed snapshots, duplicate quotes and incomplete inventories
     });
   }
 });
+
+test("Lab renders first page before the inventory finishes and pins subsequent requests", async () => {
+  const original = globalThis.fetch;
+  const urls: string[] = [];
+  const updates: string[][] = [];
+  globalThis.fetch = async (input) => {
+    urls.push(String(input));
+    if (urls.length === 2) assert.deepEqual(updates, [["a"]]);
+    return new Response(JSON.stringify(urls.length === 1 ? first : second));
+  };
+  try {
+    await loadTrendOptions(new AbortController().signal, (items) =>
+      updates.push(items.map((x) => x.id)),
+    );
+    assert.match(urls[1], /snapshot=s/);
+    assert.deepEqual(updates, [["a"], ["a", "b"]]);
+  } finally {
+    globalThis.fetch = original;
+  }
+});

@@ -132,6 +132,7 @@ export async function trendsRequest<T>(
 
 export async function loadTrendOptions(
   signal: AbortSignal,
+  onPage?: (contracts: TrendContract[]) => void,
 ): Promise<{ contracts: TrendContract[] }> {
   const result: TrendContract[] = [];
   const seen = new Set<string>();
@@ -145,7 +146,10 @@ export async function loadTrendOptions(
       total: number;
       offset: number;
       next_offset: number | null;
-    }>(`/options?offset=${offset}&limit=1000`, signal);
+    }>(
+      `/options?offset=${offset}&limit=1000${snapshot ? `&snapshot=${encodeURIComponent(snapshot)}` : ""}`,
+      signal,
+    );
     if (signal.aborted)
       throw new DOMException("Request cancelled", "AbortError");
     if (
@@ -169,6 +173,7 @@ export async function loadTrendOptions(
       seen.add(item.id);
       result.push(item);
     }
+    onPage?.([...result]);
     if (data.next_offset === null) {
       if (result.length !== total)
         throw Error("Research coverage was incomplete.");

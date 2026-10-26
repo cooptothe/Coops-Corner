@@ -55,7 +55,7 @@ def stat_specs(sport, market):
 
 
 def read_stat(values, key):
-    if key=='threePointFieldGoalsMade':
+    if key=='threePointFieldGoalsMade' and key not in values:
         return number(str(values.get('threePointFieldGoalsMade-threePointFieldGoalsAttempted','')).split('-')[0])
     return tracker_live._read(values,key)
 
@@ -113,6 +113,7 @@ class Trends:
     def __init__(self, path=None, fetch=http_json, clock=time.time):
         self.path = Path(path) if path else Path(os.environ.get('CORNER_TRENDS_DB',str(ROOT/'retained/trends.sqlite3')))
         self.fetch, self.clock, self.lock = fetch,clock,threading.Lock()
+        self.retry_after = {}
 
     def _db(self):
         self.path.parent.mkdir(parents=True,exist_ok=True)
@@ -130,6 +131,10 @@ class Trends:
                 cached = json.loads(row[1]) if row else None
                 if row and 0<=now-row[0]<(120 if cached.get('_unavailable') else ttl):
                     return cached,row[0]
+                if row and not cached.get('_unavailable') and now < self.retry_after.get(key,0):
+                    return cached,row[0]
+                if cached_only and row and not cached.get('_unavailable'):
+                    return cached,row[0]
                 if cached_only:
                     raise ResearchUnavailable('Research has not been cached yet.')
                 db.execute('BEGIN IMMEDIATE')
@@ -137,6 +142,8 @@ class Trends:
                 count = db.execute('SELECT calls FROM budget WHERE hour=?',(hour,)).fetchone()
                 if count and count[0]>=240:
                     db.rollback()
+                    if row and not cached.get('_unavailable'):
+                        return cached,row[0]
                     raise ResearchUnavailable('Free research request limit reached. Please try again later.')
                 db.execute('INSERT INTO budget VALUES(?,1) ON CONFLICT(hour) DO UPDATE SET calls=calls+1',(hour,))
                 db.execute('DELETE FROM budget WHERE hour<?',(hour-24,))
@@ -146,6 +153,11 @@ class Trends:
                     if not isinstance(data,dict):
                         raise ValueError('Unexpected source schema')
                 except (UpstreamError,KeyError,ValueError,TypeError,AttributeError) as error:
+                    self.retry_after = {k:v for k,v in self.retry_after.items() if v>now}
+                    if len(self.retry_after)>=500:self.retry_after.clear()
+                    self.retry_after[key]=now+120
+                    if row and not cached.get('_unavailable'):
+                        return cached,row[0]
                     # Short negative cache prevents outage-driven request storms.
                     data = {'_unavailable':True}
                     db.execute('INSERT OR REPLACE INTO cache VALUES(?,?,?)',(key,now,json.dumps(data)))
@@ -332,6 +344,31 @@ def _contracts(*,research=False,persist=False):
 def create_router(ctx,service=None):
     router = APIRouter(prefix='/api/refresh/v1/props/trends')
     service = service or Trends()
+    snapshots = {}
+    snapshot_lock = threading.Lock()
+
+    def inventory_page(token):
+        # Pin paging to an immutable catalog, shared by concurrent readers.
+        with snapshot_lock:
+            now = time.monotonic()
+            for key, (created, _) in list(snapshots.items()):
+                if now-created > 300:
+                    del snapshots[key]
+            if token:
+                if token not in snapshots:
+                    return None
+                return token, snapshots[token][1]
+            if snapshots:
+                latest = next(reversed(snapshots))
+                if now-snapshots[latest][0] < 60:
+                    return latest, snapshots[latest][1]
+            items = contracts(research=True,persist=True)
+            ordered = sorted(items.values(), key=lambda item: (item.get('quote_status') != 'current', item.get('sport_key', ''), item.get('player', ''), item['id']))
+            snapshot = hashlib.sha256(json.dumps(ordered,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            snapshots[snapshot] = (now, ordered)
+            while len(snapshots)>3:
+                del snapshots[next(iter(snapshots))]
+            return snapshot, ordered
     @router.get('/options')
     async def options(request:Request):
         _,denied = ctx.require(request,write=False)
@@ -341,9 +378,10 @@ def create_router(ctx,service=None):
             if not 0<=offset<=100000 or not 1<=limit<=1000:raise ValueError
         except ValueError:
             return JSONResponse({'error':'Invalid research page.'},status_code=422)
-        items = await run_in_threadpool(contracts,research=True,persist=True)
-        ordered=sorted(items.values(),key=lambda item:item['id'])
-        snapshot=hashlib.sha256(json.dumps([[item['id'],item['price'],item.get('observed_at'),item.get('starts_at'),item.get('quote_status')] for item in ordered],separators=(',',':')).encode()).hexdigest()
+        page = await run_in_threadpool(inventory_page,request.query_params.get('snapshot'))
+        if page is None:
+            return JSONResponse({'error':'Research snapshot expired. Refresh the slate.'},status_code=409)
+        snapshot, ordered = page
         next_offset=offset+limit if offset+limit<len(ordered) else None
         return JSONResponse({'contracts':ordered[offset:offset+limit],'supported_sports':list(LEAGUES),
                              'total':len(ordered),'offset':offset,'next_offset':next_offset,'snapshot_id':snapshot},headers={'Cache-Control':'no-store'})
@@ -371,7 +409,7 @@ def create_router(ctx,service=None):
                              'season':summarize([g for g in season if g['season']==season_year],number(item['point']),{'Yes':'Over','No':'Under'}.get(item['side'],item['side']))}
                     result.append({'id':ident,'status':'available','price':item['price'],
                                    'observed_at':item.get('observed_at'),'windows':windows,
-                                   'recent_values':[g['value'] for g in sorted(report.get('history_games',report['games']),key=lambda g:instant(g['date']),reverse=True)[:5]][::-1]})
+                                   'recent_values':[g['value'] for g in sorted(report.get('history_games',report.get('games',[])),key=lambda g:instant(g['date']),reverse=True)[:5]][::-1]})
                 except (ResearchUnavailable,ValueError,KeyError,TypeError,sqlite3.Error):
                     result.append({'id':ident,'status':'history_unavailable','price':item['price'],
                                    'observed_at':item.get('observed_at')})

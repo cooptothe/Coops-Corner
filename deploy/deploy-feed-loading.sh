@@ -3,11 +3,11 @@
 set -euo pipefail
 umask 077
 cd /srv/corner/app
-.venv-api/bin/python -m unittest tests.test_feed_quote_bundles tests.test_product_api tests.test_database_catalog tests.test_performance_paths tests.test_live_products tests.test_live_pacing tests.test_live_odds tests.test_collection_runner tests.test_collection_adapters tests.test_reference_weights tests.test_all_book_references tests.test_novig_prop_reference
+.venv-api/bin/python -m unittest tests.test_lab_reliability tests.test_lab_research_board tests.test_lab_catalog tests.test_trends_service tests.test_feed_quote_bundles tests.test_product_api tests.test_database_catalog tests.test_performance_paths tests.test_live_products tests.test_live_pacing tests.test_live_odds tests.test_collection_runner tests.test_collection_adapters tests.test_reference_weights tests.test_all_book_references tests.test_novig_prop_reference
 (cd web && pnpm test)
 sudo systemctl stop corner-collection-recovery.timer corner-live-odds.timer corner-live-odds.service corner-collection.service
 # The new API is compatible with the previous frontend. Bring it up first.
-sudo systemctl restart corner-staging-api
+sudo systemctl restart corner-staging-accounts corner-staging-api
 api_ready=0
 for attempt in $(seq 1 90); do
   code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:8765/api/v1/health || true)"
@@ -70,3 +70,6 @@ echo 'Progressive feed loading, shared snapshot calculations and budget-paced li
 .venv-api/bin/python -m pipelines.live_odds_status --wait-seconds 60
 
 sudo systemctl show corner-staging-api -p MemoryCurrent
+
+# Verify Lab inventory without buying odds or fetching ESPN.
+.venv-api/bin/python -m pipelines.lab_status

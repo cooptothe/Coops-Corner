@@ -71,6 +71,8 @@ export default function LabResearchBrowser({
     "players",
   );
   const [showSlate, setShowSlate] = useState(false);
+  const inventoryReady = useRef(false);
+  const inventoryLoading = useRef(false);
   const listRef = useRef<HTMLDivElement>(null);
   const warmAbort = useRef<AbortController | null>(null);
   const reportCache = useRef<Record<string, TrendReport>>({});
@@ -86,9 +88,15 @@ export default function LabResearchBrowser({
   }, [contracts, register]);
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
+    inventoryLoading.current = true;
+    setLoading(!inventoryReady.current);
     setInventoryError("");
-    loadTrendOptions(controller.signal)
+    loadTrendOptions(controller.signal, (items) => {
+      if (!controller.signal.aborted && !inventoryReady.current) {
+        setContracts(items);
+        setLoading(false);
+      }
+    })
       .then((data) => {
         if (controller.signal.aborted) return;
         const incoming = new Map(data.contracts.map((c) => [c.id, c]));
@@ -104,10 +112,10 @@ export default function LabResearchBrowser({
         reportCache.current = Object.fromEntries(
           Object.entries(reportCache.current).filter(([, r]) => same(r)),
         );
-        setReports((old) =>
-          Object.fromEntries(Object.entries(old).filter(([, r]) => same(r))),
-        );
+        // Keep the visible history while its new quote is being refreshed.
+        // Cached request reuse is still invalidated above by the quote version.
         setContracts(data.contracts);
+        inventoryReady.current = true;
         const requested = data.contracts.find(
           (c) => c.bet_id === selectedBetId,
         );
@@ -122,8 +130,13 @@ export default function LabResearchBrowser({
         if (first) {
           setFilters((old) => ({
             ...old,
-            sport: old.sport || first.sport_key,
-            market: old.market || first.market_key,
+            sport: requested
+              ? requested.sport_key
+              : old.sport || first.sport_key,
+            market: requested
+              ? requested.market_key
+              : old.market || first.market_key,
+            ...(requested ? { game: "", team: "", date: "", search: "" } : {}),
           }));
           if (requested) {
             setSelected(requested.id);
@@ -139,14 +152,17 @@ export default function LabResearchBrowser({
         if (!controller.signal.aborted) setInventoryError(e.message);
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          inventoryLoading.current = false;
+        }
       });
     return () => controller.abort();
   }, [selectedBetId, retry]);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      if (!document.hidden) setRetry((n) => n + 1);
+      if (!document.hidden && !inventoryLoading.current) setRetry((n) => n + 1);
     }, 60000);
     return () => clearInterval(timer);
   }, []);
@@ -762,14 +778,15 @@ export default function LabResearchBrowser({
               </button>
             </div>
           )}
-          {busy && (
+          {busy && !report && (
             <div className="lc-detail-loading" role="status">
               <div className="lc-skeleton" />
               <p>Loading player history & matchup…</p>
               <div className="lc-skeleton lc-skeleton-chart" />
             </div>
           )}
-          {!busy && report && renderReport(report, contracts, pick)}
+          {busy && report && <p role="status">Updating saved history…</p>}
+          {report && renderReport(report, contracts, pick)}
           {!busy && !report && !error && (
             <div className="lc-detail-empty">
               <span>THE LAB</span>
