@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Quote } from "../lib/contracts";
-import { buildGameLines, dayHeading, dayKey, timeLabel } from "../lib/schedule";
+import type { Game, Quote } from "../lib/contracts";
+import {
+  buildGameLines,
+  scheduleFixtures,
+  dayHeading,
+  dayKey,
+  timeLabel,
+} from "../lib/schedule";
 
 let n = 0;
 function q(
@@ -143,4 +149,96 @@ test("expanded cash books can supply schedule best prices", () => {
     assert.equal(line.sides.home.bookId, book);
     assert.equal(line.sides.away.bookId, book);
   }
+});
+
+function game(id: string, change: Partial<Game> = {}): Game {
+  return {
+    id,
+    sport_key: "basketball_nba",
+    competition: "NBA",
+    name: "Minnesota Timberwolves at Cleveland Cavaliers",
+    starts_at: "2030-01-02T00:10:00Z",
+    scope: "full_game",
+    market_keys: ["h2h"],
+    quote_count: 2,
+    phase: "unknown",
+    ...change,
+  };
+}
+const board = (id: string) => [
+  q("novig", "h2h", id + ":h", "home", 1.9, null, id),
+  q("novig", "h2h", id + ":h", "away", 2.1, null, id),
+];
+
+test("Schedule removes the empty alias of an identically timed priced fixture in either order", () => {
+  const priced = game("priced"),
+    empty = game("empty");
+  const quotes = board(priced.id);
+  for (const games of [
+    [priced, empty],
+    [empty, priced],
+  ]) {
+    const result = scheduleFixtures(games, quotes);
+    assert.deepEqual(result, [priced]);
+    assert.equal(
+      buildGameLines(quotes, all).get(result[0].id)!.h2h!.sides.home.quoteId,
+      quotes[0].id,
+    );
+    assert.equal(quotes[0].game_id, "priced");
+  }
+});
+
+test("Schedule identity uses the exact instant, league, scope and ordered matchup", () => {
+  const priced = game("priced");
+  const alias = game("alias", {
+    name: " Minnesota  Timberwolves at Cleveland Cavaliers ",
+    starts_at: "2030-01-01T18:10:00-06:00",
+  });
+  const distinct = [
+    game("later", { starts_at: "2030-01-02T03:10:00Z" }),
+    game("other-sport", { sport_key: "basketball_wnba" }),
+    game("other-league", { competition: "NBA preseason" }),
+    game("other-scope", { scope: "competition" }),
+    game("reversed", { name: "Cleveland Cavaliers at Minnesota Timberwolves" }),
+  ];
+  assert.deepEqual(
+    scheduleFixtures([alias, priced, ...distinct], board("priced")),
+    [priced, ...distinct],
+  );
+});
+
+test("Schedule keeps unique empty games and does not combine distinct priced event IDs", () => {
+  const first = game("first"),
+    second = game("second"),
+    empty = game("empty", { name: "Another away at Another home" });
+  assert.deepEqual(
+    scheduleFixtures(
+      [first, second, empty],
+      [...board("first"), ...board("second")],
+    ),
+    [first, second, empty],
+  );
+  assert.deepEqual(scheduleFixtures([first, second], []), [first, second]);
+  assert.deepEqual(scheduleFixtures([first, first], board("first")), [first]);
+});
+
+test("Schedule does not hide games based on an incomplete board or an alternate/lay-only alias", () => {
+  const first = game("first"),
+    second = game("second");
+  const quotes = [
+    q("novig", "h2h", "first:h", "home", 2, null, "first"),
+    ...board("first").map((quote) => ({
+      ...quote,
+      market_key: "h2h_lay" as Quote["market_key"],
+    })),
+  ];
+  assert.deepEqual(scheduleFixtures([first, second], quotes), [first, second]);
+  const alt = board("second").map((quote) => ({
+    ...quote,
+    market_key: "alternate_spreads" as Quote["market_key"],
+  }));
+  assert.deepEqual(
+    scheduleFixtures([first, second], [...board("first"), ...alt]),
+    [first],
+  );
 });

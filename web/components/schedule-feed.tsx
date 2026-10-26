@@ -15,6 +15,7 @@ import { isIndividualSport, splitMatchup } from "../lib/media";
 import {
   REFERENCE_BOOKS,
   buildGameLines,
+  scheduleFixtures,
   dayHeading,
   dayKey,
   timeLabel,
@@ -183,7 +184,7 @@ export default function ScheduleFeed({ data }: { data: Data }) {
   // Pre-game only; events that have started are not schedule items.
   const upcoming = useMemo(() => {
     const now = Date.now();
-    return data.games
+    return scheduleFixtures(data.games, data.quotes)
       .filter((g) => new Date(g.starts_at).getTime() > now)
       .sort(
         (a, b) =>

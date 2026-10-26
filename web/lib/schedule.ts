@@ -1,5 +1,5 @@
 import type { QuoteLinks } from "./bet-links";
-import type { Quote } from "./contracts";
+import type { Game, Quote } from "./contracts";
 import { quoteRef } from "./slip";
 
 export type LineMarket = "spreads" | "totals" | "h2h";
@@ -184,4 +184,32 @@ export function dayHeading(key: string, now: number = Date.now()): string {
   if (key === today) return `Today · ${label}`;
   if (key === dayKey(now + 86400000)) return `Tomorrow · ${label}`;
   return label;
+}
+
+// Hide an unpriced alias only when the identical fixture has a usable main-line
+// board elsewhere. Never merge quote/contract IDs or infer identity from teams
+// alone: rematches, doubleheaders, other leagues and opposite roles stay separate.
+export function scheduleFixtures(games: Game[], quotes: Quote[]): Game[] {
+  const boards = buildGameLines(quotes, () => true);
+  const normalize = (value: string) =>
+    value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+  const key = (game: Game): string => {
+    const start = Date.parse(game.starts_at);
+    return !Number.isFinite(start) || !game.name.trim()
+      ? JSON.stringify(["id", game.id])
+      : JSON.stringify([
+          game.sport_key,
+          game.scope,
+          normalize(game.competition),
+          start,
+          normalize(game.name),
+        ]);
+  };
+  const priced = new Set(games.filter((game) => boards.has(game.id)).map(key));
+  const seen = new Set<string>();
+  return games.filter((game) => {
+    if (seen.has(game.id)) return false;
+    seen.add(game.id);
+    return boards.has(game.id) || !priced.has(key(game));
+  });
 }

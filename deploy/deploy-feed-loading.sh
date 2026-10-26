@@ -50,7 +50,8 @@ build_pending=0
 web_stopped=0
 
 
-bash deploy/repair-collection.sh
+# Apply the tournament alias repair too when upgrading from an earlier release.
+bash deploy/repair-competition-publication.sh
 sudo systemctl enable --now corner-collection-recovery.timer corner-live-odds.timer
 queued=0
 for attempt in 1 2 3; do
