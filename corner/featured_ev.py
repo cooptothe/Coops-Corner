@@ -10,9 +10,7 @@ from fractions import Fraction
 from functools import lru_cache
 from corner.devig_methods import comparisons, pooled_distributions, distributions
 from corner.reference_policy import sufficient_references
-from corner.reference_weights import reference_weight, WEIGHT_VERSION
-from corner.reference_policy import reference_source
-from collections import Counter
+from corner.reference_weights import normalized_reference_weights, WEIGHT_VERSION
 
 from corner.featured_tools import MatchedMarket, Offer, LAY_MARKETS, _require, _decimal_ratio, _decimal, _id
 
@@ -131,8 +129,7 @@ def _reference_consensus(market, offers, books, sport_key):
     Freshness and eligibility remain enforced by the catalog before calculation.
     """
     consensus = {s: Fraction(0) for s in market.selection_ids}
-    source_counts = Counter(reference_source(b) for b in books)
-    weights = {book: Fraction(reference_weight(book, sport_key, market_key=market.market_key))/source_counts[reference_source(book)] for book in books}
+    weights = {book: Fraction(weight) for book,weight in normalized_reference_weights(books,sport_key,market_key=market.market_key).items()}
     total_weight = sum(weights.values())
     references = []
     for book in sorted(books):

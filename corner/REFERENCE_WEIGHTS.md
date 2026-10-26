@@ -1,55 +1,27 @@
-# Reference weighting
+# Reference policy — October 26, 2026
 
-`reputation-priors/2` assigns relative influence to each complete, eligible book's
-proportional no-vig probabilities. These are explicit heuristic choices based on
-the supplied reference guide; they are not fitted accuracy scores or verified
-liquidity. We normalize over available references after excluding the target.
+Version: configured-policy-priors/10-exchange-matrix-2026-10-26.
 
-## Main lines
+Positive EV (main, alternate and live supported markets): Pinnacle 45%; Novig,
+ProphetX, Polymarket US and Kalshi 35% combined; BetOnline 10%; DraftKings and
+FanDuel 10% combined.
 
-| Sport family | Pinnacle | Betfair Exchange | Other configured exchanges |
-| --- | ---: | ---: | ---: |
-| Soccer | 4 | 3 | 0.5 |
-| Tennis | 4 | 3 | 0.5 |
-| Basketball | 4 | 1 | 0.5 |
-| MLB/baseball | 4 | 1 | 0.5 |
-| NFL/football | 4 | 1 | 0.5 |
-| NHL/hockey | 5 | 1 | 0.5 |
-| MMA/boxing | 3 | 1 | 0.5 |
+Props: FanDuel 35%; Novig 35%; ProphetX and Kalshi 15% combined; Pinnacle and
+DraftKings 15% combined. Whenever Novig is not an eligible reference (including
+when Novig is the target), use FanDuel 60%, Pinnacle/DraftKings 40% combined.
+ProphetX and Kalshi remain secondary in this fallback.
 
-WNBA and sport keys explicitly identifying challengers use equal weights because
-the guide does not establish a reliable dominant source there. Unlisted sources
-have weight 1 only if already explicitly eligible as references. This does not
-turn every recreational book into a reference. Generic calculator callers with
-no sport context retain equal weights.
+Divide each group among available independent sources. Omit absent groups and
+normalize the remaining primary mix. If other eligible books are present, reserve
+5% collectively for them and scale the primary mix to 95%. Secondary books share
+their pool using the existing lower sport/market priors. With no primary sources,
+normalize the available secondary priors; reference-count and feed display gates
+still apply. Betfair regional aliases share one source allocation. Betfair props
+and DFS remain excluded. Polymarket US uses polymarket_us.
 
-## Player props
+Each source is devigged before pooling. Target exclusion, exact contract matching,
+freshness, modeled fees and minimum independent references are unchanged.
+Available quotes do not prove exchange liquidity or betting volume. These are
+owner-configured policy weights, not empirically fitted accuracy scores.
 
-FanDuel: 5 for basketball, football, baseball and hockey; 4 for soccer; 2 otherwise.
-Pinnacle: 2. Betfair Exchange: 2 for soccer, 1 otherwise.
-PrizePicks and Underdog: 0.5. Other configured references, including Novig: 1.
-
-Existing reference-count rules, target exclusion, exact-line matching and full
-outcome requirements remain. Soccer main lines allow a single Pinnacle/Betfair
-reference; soccer props additionally allow a single FanDuel reference. One-sided
-prices are still not converted into no-vig probabilities.
-
-Main EV responses expose each normalized `weight` and `reference_weight_version`.
-Props expose `reference_weights` and the same version. The feed reference labels
-show rounded percentages; these can differ slightly from a summed 100%.
-
-## Source availability and scope
-
-BetOnline is withdrawn from requests, references, targets and filters.
-12 main-line and 14 props books remain within two ten-book billing groups:
-up to 6 credits per main league request, 2 per returned prop market/event.
-
-The Odds API's current public bookmaker list does not include Circa,
-Bookmaker/CRIS or SBOBET. They are not requested using invented keys. A supported
-provider integration is needed before they can participate.
-
-This is current-price EV weighting, not a change to closing-line evaluation.
-It does not promote exchanges based on unverified liquidity or time of day.
-The timing claims in the guide require a separate limits/depth and timing model;
-they are not silently inferred from bookmaker names. Vig removal remains
-proportional; the suggested power method is outside this weighting-only change.
+No collection cadence, provider request, or quota budget changes.
