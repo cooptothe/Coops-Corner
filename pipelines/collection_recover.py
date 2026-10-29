@@ -15,7 +15,54 @@ from pipelines import collection_onboarding as onboarding
 from pipelines.recovery_probe import write_private
 
 
+
+def repair_missing_settled_charge(g, now, quota, *, accept_single_delta=False):
+    """Restore one legacy NULL settlement using an exclusive-key verified total.
+
+    Preserve the reservation, request, payloads and previous NULL in the audit.
+    Never modify an already recorded charge or distribute unexplained drift.
+    """
+    with g.transaction() as db:
+        g._offline(db, now)
+        binding = g._binding(db, now)
+        rows = db.execute("SELECT * FROM attempts WHERE state='settled' AND actual IS NULL").fetchall()
+        if not rows:
+            return {}
+        if not accept_single_delta or len(rows) != 1:
+            raise Refused('One missing settled charge and exclusive-key acceptance required')
+        if db.execute("SELECT 1 FROM attempts WHERE state!='settled' UNION ALL SELECT 1 FROM quota_inventory WHERE state!='settled' OR actual IS NULL").fetchone():
+            raise Refused('All other requests must have verified settled costs')
+        row = rows[0]
+        used, remaining = quota['provider_used'], quota['provider_remaining']
+        from corner.collection_policy import TOTAL, PROTECTED, POOLS
+        if (type(used) is not int or type(remaining) is not int or used < binding['used']
+                or remaining <= PROTECTED or used < 0 or used+remaining != TOTAL):
+            raise Refused('Fresh forward quota and protected reserve required')
+        if row['cycle_id'] != binding['cycle_id'] or now.timestamp()-row['started'] < 125:
+            raise Refused('Missing settlement must be old and in the current cycle')
+        before = g.accounted(db, binding['cycle_id'])
+        actual = used - (sum(before.values()) - row['reserved'])
+        if not 0 <= actual <= row['reserved']:
+            raise Refused('Verified total does not identify a bounded missing settlement')
+        for raw, in db.execute("SELECT detail FROM quota_audit WHERE action='odds-response' AND json_extract(detail,'$.token')=?", (row['token'],)):
+            known = json.loads(raw).get('actual')
+            if known is not None and known != actual:
+                raise Refused('Saved response charge contradicts the proposed settlement')
+        after = dict(before)
+        after[row['pool']] += actual-row['reserved']
+        if sum(after.values()) != used or any(p not in POOLS or v>POOLS[p] for p,v in after.items()):
+            raise Refused('Restored settlement must match quota and every pool limit')
+        db.execute("UPDATE attempts SET actual=? WHERE token=? AND state='settled' AND actual IS NULL", (actual,row['token']))
+        g._audit(db,now,'settled-charge-restored','Exclusive-key fresh provider total identifies the sole missing settlement',
+                 {'token':row['token'],'cycle':row['cycle_id'],'pool':row['pool'],
+                  'previous_actual':None,'reserved':row['reserved'],'actual':actual,
+                  'provider_used':used,'accounted_before':sum(before.values()),
+                  'basis':'operator_accepted_provider_total_delta'})
+        return {row['token']:actual}
+
+
 def reconcile_known_failure(g, now, quota, *, accept_single_delta=False):
+    repaired = repair_missing_settled_charge(g,now,quota,accept_single_delta=accept_single_delta)
     binding = g._binding(g.db, now)
     unknown = g.db.execute("SELECT * FROM attempts WHERE state='unknown'").fetchall()
     inventory = g.db.execute("SELECT * FROM quota_inventory WHERE state!='settled'").fetchall()
@@ -67,7 +114,7 @@ def reconcile_known_failure(g, now, quota, *, accept_single_delta=False):
     g.resume(now, 'Resume healthy scopes only; quarantine remains enforced')
     from corner.collection_retry import release_zero_charge_recoveries
     release_zero_charge_recoveries(g,now)
-    return {**settlements, **inventory_settlements}
+    return {**repaired, **settlements, **inventory_settlements}
 
 
 def main():
