@@ -41,7 +41,7 @@ import {
   shiftDecimal,
 } from "../../frontend/format.mjs";
 import {
-  loadProps,
+  loadPropsFeed as loadProps,
   refreshProps,
   type PropBet,
   type PropsStatus,

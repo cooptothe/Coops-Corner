@@ -74,6 +74,13 @@ def reference_weight(book, sport_key='', *, player_props=False, market_key=''):
 
 
 def normalized_reference_weights(books, sport_key='', *, player_props=False, market_key=''):
+    # Book population and policy context are immutable mathematical inputs.
+    # Copy the cached mapping so callers cannot alter another calculation.
+    return dict(_normalized_reference_weights(tuple(books),sport_key,player_props,market_key))
+
+
+@lru_cache(maxsize=8192)
+def _normalized_reference_weights(books,sport_key,player_props,market_key):
     books=tuple(dict.fromkeys(b for b in books if supported_book(b) and (not player_props or props_book_eligible(b))))
     if not books:return {}
     counts=Counter(reference_source(b) for b in books)

@@ -98,3 +98,26 @@ a running API; use its default props timings online and --catalog only offline.
 Kernel OOM evidence and actual process RSS still need production verification;
 systemd MemoryCurrent includes more than the Python heap.
 83 relevant backend regressions pass for these changes.
+
+
+## Incremental props pricing follow-up
+
+VPS evidence: 37,298 / 37,329 calculated rows took 9.526 / 7.940 seconds.
+The changing whole-response key prevented reuse. The replacement caches pricing
+per event and standard/alternate market pair, preserving sibling reference and
+observed-margin dependencies. Mathematical inputs include sport/event metadata,
+all pair quotes, and the margin option. Capture timestamps, links and source IDs
+are hydrated from current targets separately; scope expiry and withdrawals still
+invalidate pricing because pruning precedes caching. Cached rows are limited to
+256 entries / 50,000 result rows, except a single oversized pair.
+
+The browser feed requests feed_only=1: it receives a compact superset of all rows
+with a required anchor that could be positive under any supported devig method.
+Default full reads remain unchanged for parlay reviews. This is not a relaxation
+of the positive-EV rule, reference policy or freshness limit. Reference weight
+normalization also has a bounded immutable-input memo with defensive copies.
+
+Local synthetic 40,000-quote benchmark before normalization memo: cold 5.618 s,
+fresh capture metadata with unchanged prices 0.665 s (50 cache hits). This is
+not a measured VPS page-load promise. Re-run pipelines.feed_profile on the VPS.
+261 frontend tests and the production build pass.

@@ -61,15 +61,15 @@ class PropsPricingCache(unittest.TestCase):
     def test_unchanged_inputs_reuse_but_changes_expiry_and_options_reprice(self):
         props._pricing_cache.clear()
         self.addCleanup(props._pricing_cache.clear)
-        data={'events':{'e':{'commence_time':(NOW+timedelta(hours=1)).isoformat(),'markets':{'p':{'captured_at':NOW.isoformat(),'quotes':[]}}}}}
-        with patch.object(props,'load',side_effect=lambda:copy.deepcopy(data)),patch.object(props,'build_bets',side_effect=lambda events,**kwargs:[{'ev':'1'}] if events else []) as build:
+        data={'events':{'e':{'commence_time':(NOW+timedelta(hours=1)).isoformat(),'markets':{'p':{'captured_at':NOW.isoformat(),'quotes':[{'book':'fanduel','player':'P','point':'1.5','side':0,'price':'2'}]}}}}}
+        with patch.object(props,'load',side_effect=lambda:copy.deepcopy(data)),patch.object(props,'build_bets',side_effect=lambda events,**kwargs:[{'id':'e:p:P:1.5:fanduel:0','market_key':'p','ev':'1'}] if events else []) as build:
             first=props.bets(NOW);first[0]['ev']='changed'
             self.assertEqual(props.bets(NOW)[0]['ev'],'1')
             self.assertEqual(build.call_count,1)
             props.bets(NOW,one_sided_margin='0.1')
             self.assertEqual(build.call_count,2)
-            data['events']['e']['markets']['p']['quotes'].append({'price':'2'})
+            data['events']['e']['markets']['p']['quotes'][0]['price']='3'
             props.bets(NOW)
             self.assertEqual(build.call_count,3)
             self.assertEqual(props.bets(NOW+timedelta(hours=2)),[])
-            self.assertEqual(build.call_count,4)
+            self.assertEqual(build.call_count,3)

@@ -325,11 +325,14 @@ def create_app():
             if 'reference_books' in request.query_params:
                 return reply(422, {'error': 'Reference books are fixed by the pricing policy.'})
             margin = one_sided_margin(request.query_params.get('one_sided_margin'))
+            feed_only=request.query_params.get('feed_only','0')
+            if feed_only not in ('0','1'):raise ValueError('Invalid props feed selection.')
         except ValueError as error:
             return reply(422, {'error': str(error)})
         def read_bets():
             options = {}
             if margin is not None: options['one_sided_margin'] = margin
+            if feed_only=='1':options['feed_only']=True
             return {'bets': props.bets(**options), **props_status()}
         return reply(200, await run_in_threadpool(read_bets))
 

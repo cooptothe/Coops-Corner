@@ -17,8 +17,8 @@ def main():
     from pipelines import props_ingestion as props
     for run in ('cold','warm'):
         started=time.perf_counter()
-        bets=props.bets()
-        print(json.dumps({'stage':'props_'+run,'seconds':round(time.perf_counter()-started,3),'bets':len(bets),'provider_calls':0}),flush=True)
+        bets=props.bets(feed_only=True)
+        print(json.dumps({'stage':'props_'+run,'seconds':round(time.perf_counter()-started,3),'bets':len(bets),'market_cache':dict(props._pricing_stats),'provider_calls':0}),flush=True)
     if args.catalog:
         # A duplicate production catalog can exhaust RAM beside the serving API.
         # Full catalog profiling is an offline operation on the VPS.

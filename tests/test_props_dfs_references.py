@@ -72,7 +72,10 @@ class DfsReferences(unittest.TestCase):
         self.assertNotIn('underdog',DEFAULT_REFERENCES)
     def test_production_props_disables_dfs(self):
         from pipelines import props_ingestion as p
-        with patch.object(p,'load',return_value={'events':{}}),patch.object(p,'build_bets',return_value=[]) as build:
+        p._pricing_cache.clear()
+        payload={'events':event({'prizepicks':{0:2,1:2},'fanduel':{0:2,1:2}})}
+        payload['events']['e']['markets']['player_threes']['captured_at']=p.datetime.now(p.timezone.utc).isoformat()
+        with patch.object(p,'load',return_value=payload),patch.object(p,'build_bets',return_value=[]) as build:
             p.bets()
         self.assertFalse(build.call_args.kwargs['include_dfs'])
     def test_requested_markets_are_recommended_and_soccer_keys_documented(self):

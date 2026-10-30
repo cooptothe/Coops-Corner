@@ -154,11 +154,13 @@ async function propsCall(
   body?: unknown,
   signal?: AbortSignal,
   oneSidedMargin?: string,
+  feedOnly = false,
 ): Promise<PropsStatus> {
-  const query =
-    oneSidedMargin === undefined
-      ? ""
-      : `?${new URLSearchParams({ one_sided_margin: oneSidedMargin })}`;
+  const params = new URLSearchParams();
+  if (oneSidedMargin !== undefined)
+    params.set("one_sided_margin", oneSidedMargin);
+  if (feedOnly) params.set("feed_only", "1");
+  const query = params.size ? `?${params}` : "";
   const response = await fetch(`/api/refresh/v1/props${query}`, {
     method,
     cache: "no-store",
@@ -184,6 +186,8 @@ async function propsCall(
 }
 export const loadProps = (signal?: AbortSignal, oneSidedMargin?: string) =>
   propsCall("GET", undefined, signal, oneSidedMargin);
+export const loadPropsFeed = (signal?: AbortSignal, oneSidedMargin?: string) =>
+  propsCall("GET", undefined, signal, oneSidedMargin, true);
 export const refreshProps = async (
   sport: string,
   markets: string[],

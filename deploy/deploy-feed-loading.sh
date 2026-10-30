@@ -3,7 +3,7 @@
 set -euo pipefail
 umask 077
 cd /srv/corner/app
-.venv-api/bin/python -m unittest tests.test_feed_speed tests.test_lab_reliability tests.test_lab_research_board tests.test_lab_catalog tests.test_trends_service tests.test_feed_quote_bundles tests.test_product_api tests.test_database_catalog tests.test_performance_paths tests.test_live_products tests.test_live_pacing tests.test_live_odds tests.test_collection_runner tests.test_collection_adapters tests.test_reference_weights tests.test_all_book_references tests.test_novig_prop_reference
+.venv-api/bin/python -m unittest tests.test_incremental_props tests.test_feed_speed tests.test_lab_reliability tests.test_lab_research_board tests.test_lab_catalog tests.test_trends_service tests.test_feed_quote_bundles tests.test_product_api tests.test_database_catalog tests.test_performance_paths tests.test_live_products tests.test_live_pacing tests.test_live_odds tests.test_collection_runner tests.test_collection_adapters tests.test_reference_weights tests.test_all_book_references tests.test_novig_prop_reference
 (cd web && pnpm test)
 sudo systemctl stop corner-collection-recovery.timer corner-live-odds.timer corner-live-odds.service corner-collection.service
 # One-time offline indexes; leave every retained record and charge intact.

@@ -5,6 +5,7 @@ Nothing runs on a timer and nothing retries. Normalized quotes are merged into
 retained/props/latest.json.
 """
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 import json
 import os
 from pathlib import Path
@@ -72,20 +73,53 @@ def prune(data, now=None, max_age=None):
 
 _pricing_cache = OrderedDict()
 _pricing_lock = threading.Lock()
+_pricing_stats = {'hits':0,'misses':0}
 
-def bets(now=None, *, one_sided_margin=None):
-    """Reuse pricing only for byte-identical fresh source inputs and options."""
+def feed_candidate(bet):
+    """A compact superset of every supported positive-EV devig selection."""
+    if not set(bet.get('sharps',())) & {'novig','fanduel','pinnacle'}:return False
+    return Decimal(bet['ev'])>0 or any(Decimal(row['ev'])>0 for row in bet.get('devig_comparisons',()))
+
+def bets(now=None, *, one_sided_margin=None, feed_only=False):
+    """Cache exact pricing inputs per standard/alternate market pair.
+
+    Scope pruning always runs first. Quote times, links and native IDs are
+    refreshed from the current target quote even when its math is unchanged.
+    """
     events = prune(load(), now, MAX_AGE)['events']
-    encoded = json.dumps(events, sort_keys=True, separators=(',',':')).encode()
-    key = (hashlib.sha256(encoded).digest(), str(one_sided_margin))
+    result=[]
     with _pricing_lock:
-        if key not in _pricing_cache:
-            _pricing_cache[key] = build_bets(events, one_sided_margin=one_sided_margin,
-                                            fallback_margin='0.10', include_dfs=False)
-            while len(_pricing_cache)>2:_pricing_cache.popitem(last=False)
-        _pricing_cache.move_to_end(key)
-        result = _pricing_cache[key]
-    return deepcopy(result)  # One caller cannot change another reader's prices.
+        for eid,event in events.items():
+            groups={}
+            targets={}
+            for market,stored in event['markets'].items():
+                groups.setdefault(market.removesuffix('_alternate'),{})[market]=stored
+                for quote in stored['quotes']:
+                    point=None if quote['point'] is None else format(Decimal(quote['point']).normalize(),'f')
+                    ident=f"{eid}:{market}:{quote['player']}:{point or ''}:{quote['book']}:{quote['side']}"
+                    targets[ident]=(quote,stored.get('captured_at'))
+            by_market={}
+            for pair in groups.values():
+                header={k:v for k,v in event.items() if k!='markets'}
+                semantic={m:[{k:q.get(k) for k in ('player','point','book','side','price')} for q in stored['quotes']] for m,stored in pair.items()}
+                encoded=json.dumps([eid,header,semantic],sort_keys=True,separators=(',',':')).encode()
+                key=(hashlib.sha256(encoded).digest(),str(one_sided_margin))
+                if key not in _pricing_cache:
+                    _pricing_stats['misses']+=1
+                    _pricing_cache[key]=build_bets({eid:{**header,'markets':pair}},one_sided_margin=one_sided_margin,fallback_margin='0.10',include_dfs=False)
+                    while len(_pricing_cache)>256 or (len(_pricing_cache)>1 and sum(len(v) for v in _pricing_cache.values())>50000):
+                        _pricing_cache.popitem(last=False)
+                else:_pricing_stats['hits']+=1
+                _pricing_cache.move_to_end(key)
+                for bet in _pricing_cache[key]:by_market.setdefault(bet.get('market_key',''),[]).append(bet)
+            for market in event['markets']:
+                for cached in by_market.get(market,[]):
+                    if feed_only and not feed_candidate(cached):continue
+                    bet=dict(cached)
+                    quote,captured=targets[bet['id']]
+                    bet.update(observed_at=quote.get('updated_at') or captured,links=quote.get('links'),source_ids=quote.get('source_ids'))
+                    result.append(bet)
+    return deepcopy(result)
 
 
 def last_captured():
