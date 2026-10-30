@@ -103,11 +103,12 @@ def bets(now=None, *, one_sided_margin=None, feed_only=False):
                 header={k:v for k,v in event.items() if k!='markets'}
                 semantic={m:[{k:q.get(k) for k in ('player','point','book','side','price')} for q in stored['quotes']] for m,stored in pair.items()}
                 encoded=json.dumps([eid,header,semantic],sort_keys=True,separators=(',',':')).encode()
-                key=(hashlib.sha256(encoded).digest(),str(one_sided_margin))
+                key=(hashlib.sha256(encoded).digest(),str(one_sided_margin),feed_only)
                 if key not in _pricing_cache:
                     _pricing_stats['misses']+=1
-                    _pricing_cache[key]=build_bets({eid:{**header,'markets':pair}},one_sided_margin=one_sided_margin,fallback_margin='0.10',include_dfs=False)
-                    while len(_pricing_cache)>256 or (len(_pricing_cache)>1 and sum(len(v) for v in _pricing_cache.values())>50000):
+                    computed=build_bets({eid:{**header,'markets':pair}},one_sided_margin=one_sided_margin,fallback_margin='0.10',include_dfs=False)
+                    _pricing_cache[key]=[bet for bet in computed if feed_candidate(bet)] if feed_only else computed
+                    while len(_pricing_cache)>4096 or (len(_pricing_cache)>1 and sum(len(v) for v in _pricing_cache.values())>50000):
                         _pricing_cache.popitem(last=False)
                 else:_pricing_stats['hits']+=1
                 _pricing_cache.move_to_end(key)

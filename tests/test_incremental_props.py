@@ -54,3 +54,17 @@ class IncrementalProps(unittest.TestCase):
         bet={'ev':'-0.1','sharps':['fanduel','pinnacle'],'devig_comparisons':None}
         self.assertFalse(props.feed_candidate(bet))
         self.assertTrue(props.feed_candidate({**bet,'ev':'0.01'}))
+
+    def test_four_hundred_feed_groups_do_not_evict_their_entire_working_set(self):
+        sample=deepcopy(self.data['events']['event-1'])
+        sample['markets']={'player_threes':sample['markets']['player_threes']}
+        payload={'events':{f'event-{i}':deepcopy(sample) for i in range(400)}}
+        def compute(events,**options):
+            eid=next(iter(events))
+            return [{'id':f'{eid}:player_threes:Player One:1.5:draftkings:0',
+                     'market_key':'player_threes','ev':'0.1','sharps':['fanduel','pinnacle'],
+                     'devig_comparisons':None}]
+        with patch.object(props,'load',side_effect=lambda:deepcopy(payload)),patch.object(props,'build_bets',side_effect=compute) as build:
+            self.assertEqual(len(props.bets(NOW,feed_only=True)),400)
+            self.assertEqual(len(props.bets(NOW,feed_only=True)),400)
+            self.assertEqual(build.call_count,400)

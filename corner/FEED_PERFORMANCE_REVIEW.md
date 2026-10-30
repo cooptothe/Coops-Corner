@@ -121,3 +121,19 @@ Local synthetic 40,000-quote benchmark before normalization memo: cold 5.618 s,
 fresh capture metadata with unchanged prices 0.665 s (50 cache hits). This is
 not a measured VPS page-load promise. Re-run pipelines.feed_profile on the VPS.
 261 frontend tests and the production build pass.
+
+
+## Working-set capacity correction
+
+Production profile showed 399 market-pair misses on both cold and warm reads.
+The 256-entry LRU thrashed under the sequential slate scan. Feed entries now
+store only compact candidates (including empty results), separate from full
+review entries, with capacity 4096 groups and the existing result-row budget.
+A 400-group regression verifies a second unchanged read performs no new pricing.
+55 backend regressions pass.
+
+The saved Lab database had a 109 MB rollback journal after the disk-full event;
+its ownership and directory permissions were correct. recover-lab-catalog.sh
+stops the owning service/warmer, preserves a database/sidecar copy, opens in rw
+mode for SQLite's own recovery and runs quick_check. It never deletes a journal
+by hand. An integrity failure stops the procedure and retains the recovery copy.
