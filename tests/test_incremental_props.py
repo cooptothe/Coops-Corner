@@ -49,3 +49,8 @@ class IncrementalProps(unittest.TestCase):
         self.assertTrue(props.feed_candidate(bet))
         self.assertFalse(props.feed_candidate({**bet,'sharps':['betmgm','bovada']}))
         self.assertFalse(props.feed_candidate({**bet,'devig_comparisons':[]}))
+
+    def test_null_comparisons_are_valid_for_one_sided_estimates(self):
+        bet={'ev':'-0.1','sharps':['fanduel','pinnacle'],'devig_comparisons':None}
+        self.assertFalse(props.feed_candidate(bet))
+        self.assertTrue(props.feed_candidate({**bet,'ev':'0.01'}))

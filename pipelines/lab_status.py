@@ -15,9 +15,13 @@ def main():
     path=Path(os.environ.get('CORNER_TRENDS_DB',str(root/'retained/trends.sqlite3'))).with_name('lab-catalog.sqlite3')
     count=0
     if path.is_file():
-        with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=3)) as db:
-            if db.execute("SELECT 1 FROM sqlite_master WHERE name='lab_catalog'").fetchone():
-                count=db.execute('SELECT count(*) FROM lab_catalog').fetchone()[0]
+        try:
+            with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=3)) as db:
+                if db.execute("SELECT 1 FROM sqlite_master WHERE name='lab_catalog'").fetchone():
+                    count=db.execute('SELECT count(*) FROM lab_catalog').fetchone()[0]
+        except sqlite3.Error as error:
+            print(json.dumps({'result':'saved_catalog_check_unavailable','error_type':type(error).__name__,'provider_calls':0}))
+            return
     print(json.dumps({'lab_quotes':count,'saved_catalog_only':True,
         'provider_calls':0,'result':'saved_catalog_present' if count else 'no_saved_lab_catalog'}))
 

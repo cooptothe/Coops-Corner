@@ -78,7 +78,7 @@ _pricing_stats = {'hits':0,'misses':0}
 def feed_candidate(bet):
     """A compact superset of every supported positive-EV devig selection."""
     if not set(bet.get('sharps',())) & {'novig','fanduel','pinnacle'}:return False
-    return Decimal(bet['ev'])>0 or any(Decimal(row['ev'])>0 for row in bet.get('devig_comparisons',()))
+    return Decimal(bet['ev'])>0 or any(Decimal(row['ev'])>0 for row in (bet.get('devig_comparisons') or ()))
 
 def bets(now=None, *, one_sided_margin=None, feed_only=False):
     """Cache exact pricing inputs per standard/alternate market pair.
