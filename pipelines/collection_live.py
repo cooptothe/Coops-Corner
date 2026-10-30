@@ -1,4 +1,5 @@
 """Disabled-by-default scheduled worker. All funded activation gates are mandatory."""
+from pathlib import Path
 import argparse
 from datetime import datetime, timezone
 import json
@@ -102,6 +103,25 @@ class LiveProvider(Provider):
         return status, data, headers
 
 
+def failure_detail(error):
+    """Emit code locations and a fixed classification, never exception text."""
+    import traceback
+    details = {'error_type':type(error).__name__,
+               'location':[{'file':Path(f.filename).name,'line':f.lineno,'function':f.name}
+                           for f in traceback.extract_tb(error.__traceback__)[-4:]]}
+    code = getattr(error,'pgcode',None)
+    if isinstance(code,str) and len(code)==5 and code.isalnum():
+        details['sqlstate']=code
+    if isinstance(error,Refused):
+        details['failure_code']={
+            'Worker lease lost':'lease_lost',
+            'Activation approval does not match deployed release':'release_approval_mismatch',
+            'No explicitly approved current billing period':'billing_cycle_approval_required',
+            'Another worker holds the lease':'another_worker',
+        }.get(str(error),'validation_refused')
+    return details
+
+
 def main():
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
@@ -109,6 +129,7 @@ def main():
     args = parser.parse_args()
     g = provider = runner = None
     entered_loop = False
+    phase = "startup"
     stop = [False]
     try:
         approval = activation(clock(), startup=True)
@@ -148,7 +169,9 @@ def main():
         signal.signal(signal.SIGINT, stopping)
         entered_loop = True
         while not stop[0]:
+            phase = "activation_check"
             activation(clock())
+            phase = "worker_tick"
             try:
                 with maintenance_lock(timeout=0, should_stop=lambda: stop[0]):
                     result = runner.tick()
@@ -161,9 +184,9 @@ def main():
                     break
                 time.sleep(.1)
         return 0
-    except Exception:
-        # No exception repr/traceback: DB and HTTP errors may expose credentials.
+    except Exception as error:
         print(json.dumps({'state': 'blocked', 'worker_entered_loop': entered_loop,
+                          'phase':phase, **failure_detail(error),
                           'action': 'Review activation gates and offline operator status'}), flush=True)
         return 1
     finally:

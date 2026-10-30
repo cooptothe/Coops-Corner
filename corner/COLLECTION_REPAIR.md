@@ -39,3 +39,18 @@ require operator review. The scripts stop rather than bypass these conditions.
 November quota rollover still requires explicit approval of the new cycle.
 Existing older resume-publication.sh replays all pending captures strictly;
 use repair-collection.sh for routine recovery instead.
+
+
+## Failed worker recovery
+
+The recovery timer also checks services in systemd's failed state. It leaves
+intentional inactive stops alone. A failed worker must pass the same approved
+Git commit, rate limit (three attempts/hour), exclusive-key fresh quota,
+ledger reconciliation and root approval renewal before restarting.
+An active healthy worker does not enter recovery. Publication failures remain
+visible and cannot be resolved by ignoring an outbox entry.
+
+Fatal worker output now includes phase, error type, SQLSTATE where applicable,
+and source file/line/function. It never prints raw exception text, SQL or HTTP
+credentials. A known lease loss has failure_code=lease_lost; other validation
+errors remain classified without exposing their messages.

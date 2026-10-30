@@ -2,10 +2,18 @@
 # Root systemd entry point. Never pulls code or changes approved release.
 set -euo pipefail
 cd /srv/corner/app
-systemctl is-active --quiet corner-collection.service || exit 0
+failed=0
+if ! systemctl is-active --quiet corner-collection.service; then
+  # An intentional stop stays stopped. Only a failed service is restartable.
+  systemctl is-failed --quiet corner-collection.service || exit 0
+  failed=1
+fi
 code=0
 runuser -u corneradmin -- .venv-api/bin/python -m pipelines.collection_health || code=$?
-[ "$code" -eq 10 ] || exit "$code"
+if [ "$code" -ne 10 ]; then
+  [ "$code" -eq 0 ] || exit "$code"
+  [ "$failed" -eq 1 ] || exit 0
+fi
 # Refuse unattended recovery across a code deployment; operator batch must approve it.
 runuser -u corneradmin -- .venv-api/bin/python -c 'import json,subprocess; from corner.collection_activation import APPROVAL; assert json.loads(APPROVAL.read_text())["release_commit"] == subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()'
 mkdir -p /var/lib/corner-collection-recovery
