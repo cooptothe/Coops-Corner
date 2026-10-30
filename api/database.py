@@ -236,6 +236,20 @@ def fingerprint(conn):
         return None
 
 
+def publication_revision(path):
+    """Tiny durable invalidation key; advances atomically with publication ACK."""
+    if path is None:return None
+    import sqlite3
+    from contextlib import closing
+    from pathlib import Path
+    try:
+        with closing(sqlite3.connect(Path(path).resolve().as_uri()+'?mode=ro',uri=True,timeout=2)) as db:
+            row=db.execute('SELECT revision FROM publication_revision WHERE id=1').fetchone()
+        return ('scheduled-publication',str(path),row[0]) if row else None
+    except (sqlite3.Error,OSError):
+        return None  # Older workers keep the original PostgreSQL fingerprint.
+
+
 def read_source(conn, *, now, max_age, cache=None):
     """The quote and participant rows. `cache` (a dict the caller keeps) holds the last read.
 
@@ -244,7 +258,8 @@ def read_source(conn, *, now, max_age, cache=None):
     """
     import psycopg2.extras
     oldest = now - max_age
-    mark = fingerprint(conn) if cache is not None else None
+    mark = publication_revision(scheduled_store_path()) if cache is not None else None
+    if mark is None and cache is not None:mark=fingerprint(conn)
     if mark is not None and cache.get('mark') == mark and time.monotonic() - cache['at'] < SOURCE_MAX_AGE_SECONDS:
         rows = [r for r in cache['rows'] if r['scheduled_start'] > now and r['observed_at'] >= oldest]
         return rows, cache['participants']

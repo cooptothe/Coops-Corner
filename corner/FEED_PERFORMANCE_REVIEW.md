@@ -54,3 +54,32 @@ Regression checks cover budget exhaustion, provider floors, cadence fences, live
 Browser checks use synthetic data and an isolated localhost preview. Reviewed mobile pages at 390px include EV, props, arbitrage, middles, schedule, promo, Lab, tracker, account and help. Feed/filter controls and compact props exposure badges were visually checked. Lab research data is unavailable in that minimal preview API; this is not evidence of a production Lab failure or proof of its historical-data coverage. Scrollable navigation is intentional. This is not an exhaustive device/accessibility certification.
 
 This update is ready for deployment validation, not a claim of proven mass-user capacity. Before a broad release, measure authenticated production cold/warm feed latency, p95 latency under realistic concurrent sessions, API/DB memory and CPU, quote ages by book/group, and collection errors through a full busy slate. Do not infer capacity from the login route being healthy. The deployment helper checks service readiness, builds with a previous-web rollback, renews existing collector authorization through the standard repair path and prints read-only live cadence/coverage evidence.
+
+
+## October 30: history-size bottlenecks
+
+- Props mounts independently of the main capabilities/catalog endpoint. An
+  unrelated main-catalog rebuild or error cannot block the props page.
+- Successful outbox acknowledgements atomically increment a one-row SQLite
+  publication revision. Scheduled main reads use it to invalidate their source
+  cache instead of counting the entire PostgreSQL observation history. Legacy
+  workers fall back to the prior fingerprint. Existing source-age cutoffs and
+  the forced source refresh limit still apply. Supported publication must use
+  the coordinated worker; manual database corrections require catalog reload.
+- Offline partial outbox and closing-line lookup indexes retain all records.
+  Install while collection is stopped with pipelines.feed_indexes. The first
+  index build can take several minutes on a 32 GB ledger. Do not interrupt it
+  merely because no intermediate progress appears.
+- Props pricing keeps two exact-input cache entries with a shared computation
+  lock. Every request first reloads and prunes current scopes, then hashes the
+  complete input and margin option. Changes, withdrawal and expiry invalidate
+  reuse; callers receive independent result copies.
+- Local synthetic benchmark: 80,000 outbox rows, one pending lookup median over
+  twelve calls, 89.2791 ms before index / 0.0554 ms after. This is one SQLite
+  query on the development host, not VPS throughput or end-to-end page latency.
+- Run pipelines.feed_profile --catalog after deployment for actual retained
+  props cold/warm and catalog cold/reload timings. It makes no provider calls.
+
+128 relevant backend checks, 260 frontend tests and the production build pass.
+Real concurrent-user load and VPS latency remain to be measured. Storage
+retention and guarded backups are still required to prevent disk exhaustion.

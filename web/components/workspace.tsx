@@ -177,6 +177,13 @@ export default function Workspace({ view }: { view: View }) {
     return () => clearTimeout(timer);
   }, [user?.role, updating, scheduledTick, showingLive]);
   useEffect(() => {
+    // Props owns its authenticated data endpoint; main catalog rebuilds must
+    // never delay or replace it with an unrelated catalog error.
+    if (light) {
+      setUpdating(false);
+      setBootError("");
+      return;
+    }
     if ((supportsLive && !livePreference.ready) || showingLive) {
       setUpdating(false);
       return;
@@ -356,22 +363,26 @@ export default function Workspace({ view }: { view: View }) {
         <div className="sidebar-foot">
           <span className={`status-dot ${data ? "connected" : ""}`} />
           <span>
-            {showingLive
-              ? "Premium live mode"
-              : data
-                ? data.meta.data_mode === "database"
-                  ? "Workspace connected"
-                  : "Demo data connected"
-                : bootError
-                  ? "Workspace temporarily unavailable"
-                  : "Connecting to your workspace"}
+            {light
+              ? "Player props workspace"
+              : showingLive
+                ? "Premium live mode"
+                : data
+                  ? data.meta.data_mode === "database"
+                    ? "Workspace connected"
+                    : "Demo data connected"
+                  : bootError
+                    ? "Workspace temporarily unavailable"
+                    : "Connecting to your workspace"}
           </span>
           <small>
-            {showingLive
-              ? "Live main-line snapshots"
-              : data?.meta.data_mode === "database"
-                ? "Retained pre-game quotes"
-                : "Fixture environment"}{" "}
+            {light
+              ? "Scheduled player props"
+              : showingLive
+                ? "Live main-line snapshots"
+                : data?.meta.data_mode === "database"
+                  ? "Retained pre-game quotes"
+                  : "Fixture environment"}{" "}
             · No live execution
           </small>
         </div>

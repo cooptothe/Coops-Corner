@@ -65,6 +65,15 @@ class Governor:
         CREATE TABLE IF NOT EXISTS publication_outbox (
           token TEXT PRIMARY KEY REFERENCES attempts(token), payload TEXT NOT NULL,
           published_at REAL);
+        CREATE TABLE IF NOT EXISTS publication_revision (
+          id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL);
+        INSERT OR IGNORE INTO publication_revision VALUES(1,0);
+        CREATE TRIGGER IF NOT EXISTS collection_publication_revision
+        AFTER UPDATE OF published_at ON publication_outbox
+        WHEN OLD.published_at IS NULL AND NEW.published_at IS NOT NULL
+        BEGIN
+          UPDATE publication_revision SET revision=revision+1 WHERE id=1;
+        END;
         CREATE TABLE IF NOT EXISTS live_captures(sport TEXT,book_group TEXT,captured REAL,payload TEXT,PRIMARY KEY(sport,book_group));
         CREATE TABLE IF NOT EXISTS live_attempts(token TEXT PRIMARY KEY REFERENCES attempts(token),day TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS additional_events(day TEXT NOT NULL, sport TEXT NOT NULL, event_id TEXT NOT NULL, PRIMARY KEY(day,sport,event_id));

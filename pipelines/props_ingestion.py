@@ -10,6 +10,10 @@ import os
 from pathlib import Path
 
 import requests
+from collections import OrderedDict
+from copy import deepcopy
+import hashlib
+import threading
 
 from config import ODDS_API_KEY
 from corner.prop_markets import build_bets, market_meta, normalize_event
@@ -66,12 +70,22 @@ def prune(data, now=None, max_age=None):
     return data
 
 
+_pricing_cache = OrderedDict()
+_pricing_lock = threading.Lock()
+
 def bets(now=None, *, one_sided_margin=None):
-    """Bets from fresh stored fetches only."""
-    # Explicit policy fallback, not a fitted book margin. Exact pairs and observed
-    # same-event margin evidence take precedence inside the pricing engine.
-    return build_bets(prune(load(), now, MAX_AGE)['events'], one_sided_margin=one_sided_margin,
-                      fallback_margin='0.10', include_dfs=False)
+    """Reuse pricing only for byte-identical fresh source inputs and options."""
+    events = prune(load(), now, MAX_AGE)['events']
+    encoded = json.dumps(events, sort_keys=True, separators=(',',':')).encode()
+    key = (hashlib.sha256(encoded).digest(), str(one_sided_margin))
+    with _pricing_lock:
+        if key not in _pricing_cache:
+            _pricing_cache[key] = build_bets(events, one_sided_margin=one_sided_margin,
+                                            fallback_margin='0.10', include_dfs=False)
+            while len(_pricing_cache)>2:_pricing_cache.popitem(last=False)
+        _pricing_cache.move_to_end(key)
+        result = _pricing_cache[key]
+    return deepcopy(result)  # One caller cannot change another reader's prices.
 
 
 def last_captured():
