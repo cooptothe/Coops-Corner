@@ -81,28 +81,33 @@ def read_props(path,now=None,*,research=False):
     if not path.exists():return {'events':{}}
     db=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=3)
     try:
+        def stream(sql,parameters):
+            from itertools import chain
+            cursor=db.execute(sql,parameters)
+            first=cursor.fetchone()
+            return chain((first,),cursor) if first is not None else None
         if research:
             newest=db.execute("SELECT max(starts_at) FROM snapshots WHERE kind='props'").fetchone()[0]
             floor=min(now.timestamp(),newest)-30*86400 if newest is not None else now.timestamp()
-            rows=db.execute("SELECT sport,event_id,captured_at,payload,expires_at FROM snapshots WHERE kind='props' AND starts_at>=? ORDER BY sport,event_id,market,book",(floor,)).fetchall()
+            rows=stream("SELECT sport,event_id,captured_at,payload,expires_at FROM snapshots WHERE kind='props' AND starts_at>=? ORDER BY sport,event_id,market,book",(floor,))
         else:
-            rows=db.execute("SELECT sport,event_id,captured_at,payload,expires_at FROM snapshots WHERE kind='props' AND expires_at>? AND starts_at>? ORDER BY sport,event_id,market,book",(now.timestamp(),now.timestamp())).fetchall()
+            rows=stream("SELECT sport,event_id,captured_at,payload,expires_at FROM snapshots WHERE kind='props' AND expires_at>? AND starts_at>? ORDER BY sport,event_id,market,book",(now.timestamp(),now.timestamp()))
         if research and not rows and db.execute("SELECT 1 FROM sqlite_master WHERE name='clv_scopes'").fetchone():
             newest=db.execute("SELECT max(starts_at) FROM clv_scopes WHERE kind='props'").fetchone()[0]
             if newest is not None:
                 floor=min(now.timestamp(),newest)-30*86400
                 # Bootstrap after scope withdrawal from the last retained nonempty
                 # capture. Archived records are research-only, never current offers.
-                rows=db.execute("""SELECT c.sport,c.event_id,c.captured_at,c.payload,min(c.expires_at,?)
+                rows=stream("""SELECT c.sport,c.event_id,c.captured_at,c.payload,min(c.expires_at,?)
                     FROM clv_scopes c WHERE c.kind='props' AND c.starts_at>=?
                     AND json_array_length(c.payload,'$.market.outcomes')>0
                     AND c.captured_at=(SELECT max(n.captured_at) FROM clv_scopes n
                         WHERE n.kind=c.kind AND n.sport=c.sport AND n.event_id=c.event_id
                         AND n.book=c.book AND n.market=c.market
                         AND json_array_length(n.payload,'$.market.outcomes')>0)
-                    ORDER BY c.sport,c.event_id,c.market,c.book""",(now.timestamp(),floor)).fetchall()
+                    ORDER BY c.sport,c.event_id,c.market,c.book""",(now.timestamp(),floor))
         data={'events':{}}
-        for sport,event_id,captured,payload,expires in rows:
+        for sport,event_id,captured,payload,expires in rows or ():
             if sport in NO_SCHEDULED_PROPS:
                 continue
             try:

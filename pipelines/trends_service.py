@@ -341,6 +341,17 @@ def _contracts(*,research=False,persist=False):
     return output
 
 
+def inventory_digest(ordered):
+    """Same canonical hash as the full JSON list, with one-record working space."""
+    digest=hashlib.sha256()
+    digest.update(b'[')
+    for index,item in enumerate(ordered):
+        if index:digest.update(b',')
+        digest.update(json.dumps(item,sort_keys=True,separators=(',',':')).encode())
+    digest.update(b']')
+    return digest.hexdigest()
+
+
 def create_router(ctx,service=None):
     router = APIRouter(prefix='/api/refresh/v1/props/trends')
     service = service or Trends()
@@ -364,7 +375,7 @@ def create_router(ctx,service=None):
                     return latest, snapshots[latest][1]
             items = contracts(research=True,persist=True)
             ordered = sorted(items.values(), key=lambda item: (item.get('quote_status') != 'current', item.get('sport_key', ''), item.get('player', ''), item['id']))
-            snapshot = hashlib.sha256(json.dumps(ordered,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            snapshot = inventory_digest(ordered)
             snapshots[snapshot] = (now, ordered)
             while len(snapshots)>3:
                 del snapshots[next(iter(snapshots))]

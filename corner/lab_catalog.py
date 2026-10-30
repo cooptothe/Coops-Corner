@@ -22,13 +22,15 @@ def remember(items, path, now):
         # A rolling recent-event slate, anchored to the last known event if
         # collection stops. No expiry wipe when the collector is offline.
         floor=min(now,newest)-MONTH
-        saved=[json.loads(row[0]) for row in db.execute('SELECT body FROM lab_catalog WHERE starts_at>=? ORDER BY starts_at DESC,id',(floor,))]
-    output={}
-    for old in saved:
-        current=items.get(old['id'])
-        if current and (instant(current.get('observed_at')) or 0)<(instant(old.get('observed_at')) or 0):current=None
-        item=dict(current or old)
-        if not current:
-            item.update(quote_status='past_event' if item['starts_at'] and instant(item['starts_at'])<=now else 'stale',commission=None,links=None)
-        output[item['id']]=item
-    return output
+        output={}
+        # Decode one stored line at a time instead of retaining a second full
+        # decoded catalog while constructing the output mapping.
+        for row in db.execute('SELECT body FROM lab_catalog WHERE starts_at>=? ORDER BY starts_at DESC,id',(floor,)):
+            old=json.loads(row[0])
+            current=items.get(old['id'])
+            if current and (instant(current.get('observed_at')) or 0)<(instant(old.get('observed_at')) or 0):current=None
+            item=dict(current or old)
+            if not current:
+                item.update(quote_status='past_event' if item['starts_at'] and instant(item['starts_at'])<=now else 'stale',commission=None,links=None)
+            output[item['id']]=item
+        return output

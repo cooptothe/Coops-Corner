@@ -74,4 +74,4 @@ echo 'Progressive feed loading, shared snapshot calculations and budget-paced li
 sudo systemctl show corner-staging-api -p MemoryCurrent
 
 # Verify Lab inventory without buying odds or fetching ESPN.
-.venv-api/bin/python -m pipelines.lab_status
+timeout 15s .venv-api/bin/python -m pipelines.lab_status || echo "Optional Lab count did not complete; feed services remain running."

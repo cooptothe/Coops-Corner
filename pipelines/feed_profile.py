@@ -20,6 +20,15 @@ def main():
         bets=props.bets()
         print(json.dumps({'stage':'props_'+run,'seconds':round(time.perf_counter()-started,3),'bets':len(bets),'provider_calls':0}),flush=True)
     if args.catalog:
+        # A duplicate production catalog can exhaust RAM beside the serving API.
+        # Full catalog profiling is an offline operation on the VPS.
+        if stage.exists() and os.name=='posix':
+            import subprocess
+            state=subprocess.run(['systemctl','is-active','--quiet','corner-staging-api'],timeout=5)
+            if state.returncode==0:
+                print(json.dumps({'stage':'catalog_skipped','reason':'API is running; avoid allocating a second production catalog'}),flush=True)
+                return
+            if state.returncode not in (3,4):raise SystemExit('Cannot establish API state for offline catalog profiling.')
         import psycopg2
         from config import DB_CONFIG
         from api.database import LiveCatalog

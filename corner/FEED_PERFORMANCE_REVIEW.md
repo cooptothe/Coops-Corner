@@ -83,3 +83,18 @@ This update is ready for deployment validation, not a claim of proven mass-user 
 128 relevant backend checks, 260 frontend tests and the production build pass.
 Real concurrent-user load and VPS latency remain to be measured. Storage
 retention and guarded backups are still required to prevent disk exhaustion.
+
+
+## Production memory follow-up
+
+The October 30 deployment completed and verified live collection, but its final
+optional Lab diagnostic was killed by the OS. That diagnostic unnecessarily
+rebuilt the entire retained research catalog. It now performs SQL-only saved
+row counts, with a bounded nonfatal deployment timeout. Saved research decoding
+and raw prop-scope decoding stream one row at a time. Snapshot hashing preserves
+the identical canonical digest while encoding only one record at a time.
+The full-catalog profiler refuses to allocate a second production catalog beside
+a running API; use its default props timings online and --catalog only offline.
+Kernel OOM evidence and actual process RSS still need production verification;
+systemd MemoryCurrent includes more than the Python heap.
+83 relevant backend regressions pass for these changes.
