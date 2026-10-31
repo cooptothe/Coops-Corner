@@ -10,7 +10,7 @@ Local manual fetching and the deployed manual-fetch denial remain unchanged.
 durable governor and MainPublisher. Inventory response costs are recorded before
 discovery continues. Odds publication follows successful quota reconciliation.
 All provider calls remain prohibited before October 19 Central and outside
-08:00–24:00 Central. Each request checks explicit activation approval, current
+06:00–22:00 Central. Each request checks explicit activation approval, current
 Git commit, reviewed book grouping, pause controls and a live worker lease.
 Shutdown intent prevents the next provider request after an in-progress call.
 

@@ -45,7 +45,7 @@ Pregame countdowns remain unchanged because this change has no measured new cred
 | 15–30m | 2m | 1m | 2m |
 | Final 15m | 2m | 1m | 1m |
 
-Collection still uses the existing 08:00–00:00 America/Chicago window. NCAA props remain excluded. Live remains main lines only and server-restricted to wonya. Source timestamps and 90-second live quote expiry remain unchanged; faster polling never re-dates an old quote.
+Collection still uses the existing 06:00–22:00 America/Chicago window. NCAA props remain excluded. Live remains main lines only and server-restricted to wonya. Source timestamps and 90-second live quote expiry remain unchanged; faster polling never re-dates an old quote.
 
 ## Validation and release limits
 

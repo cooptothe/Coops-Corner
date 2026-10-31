@@ -117,11 +117,11 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(self.calls, [])
 
     def test_clock_rechecked_between_requests(self):
-        self.now = parse('2026-10-20T04:59:59Z')
+        self.now = parse('2026-10-20T02:59:59Z')
         r = self.runner()
         def transport(*args):
             result = self.transport(*args)
-            self.now = parse('2026-10-20T05:00:00Z')
+            self.now = parse('2026-10-20T03:00:00Z')
             return (*result[:3], self.now)
         r.transport = transport
         r.tick()

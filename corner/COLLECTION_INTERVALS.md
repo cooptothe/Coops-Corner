@@ -1,6 +1,12 @@
 # All-book scheduled pregame collection
 
-Updated October 21, 2026. Collection window: 08:00 through midnight America/Chicago.
+Updated October 31, 2026. Collection window: 06:00 inclusive through 22:00 exclusive America/Chicago.
+
+The window remains 16 hours. Cadences, pool caps and protected reserve are unchanged.
+A 06:00–24:00 window would raise the conservative 30-day main ceiling from
+7,084,800 to 7,970,400 credits, exceeding the 7.9M main pool before live/additional
+allowances. The saved props schedule estimate below has not been recalculated
+for the shifted hours; durable pool caps remain authoritative.
 Scope is upcoming events in the next 24 hours. Game starts, source timestamps,
 withdrawals, minimum reference requirements and the 30-minute retention rule remain
 unchanged. Intervals are minimum due times, not end-to-end delivery guarantees.

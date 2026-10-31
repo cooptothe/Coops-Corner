@@ -18,8 +18,8 @@ Prepared October 16, 2026 against commit 2c0c6c7. No paid provider calls.
 
 ## Collection policy
 
-America/Chicago standard window: 08:00 inclusive to midnight exclusive. After
-Hours / After Market: midnight to 08:00, no new collection. UTC persistence and
+America/Chicago standard window: 06:00 inclusive to 22:00 exclusive. After
+Hours / After Market: 22:00 to 06:00, no new collection. UTC persistence and
 timezone-aware comparisons; DST transition tests included. No catch-up replay.
 
 Main lines: 60 seconds standard, 20 seconds proposed exchange group. Props:

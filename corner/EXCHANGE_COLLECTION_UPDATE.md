@@ -14,7 +14,7 @@ Removing Betfair changes props from 16 to 15 requested books: standard 10 plus e
 
 Full-November saved-schedule props scenario stays 4,914,836 credits. The shared main/additional/live pool is 7,900,000 including the 500,000 live subcap. Metadata 500,000; Lab history 100,000. Planning envelope 13,414,836; remaining 1,585,164. This is a planning envelope, not a prediction of current October closing usage. Independent main, alternate and live ceilings cannot all be added on top of the shared pool. The shared governor can throttle alternates when other main-pool work consumes the allocation. Hard maximum across all pools remains 13.5M, protecting 1.5M.
 
-No interval or pool increases were made. Main: >12h 15m; 6–12h 10m; 2–6h 5m; 1–2h 3m; final hour 2m. Props, including alternate props: >12h 10m; 6–12h 5m; 4–6h 3m; 2–4h 2m; final 2h 1m. Additional markets: final 2h only, 1–2h 10m; 30–60m 5m; 15–30m 2m; final 15m 1m. Live main lines: 1m. Acquisition window remains 08:00–24:00 America/Chicago. No NCAA player props.
+No interval or pool increases were made. Main: >12h 15m; 6–12h 10m; 2–6h 5m; 1–2h 3m; final hour 2m. Props, including alternate props: >12h 10m; 6–12h 5m; 4–6h 3m; 2–4h 2m; final 2h 1m. Additional markets: final 2h only, 1–2h 10m; 30–60m 5m; 15–30m 2m; final 15m 1m. Live main lines: 1m. Acquisition window remains 06:00–22:00 America/Chicago. No NCAA player props.
 
 ## Read-only operational check
 

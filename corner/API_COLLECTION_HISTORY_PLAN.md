@@ -68,7 +68,7 @@ Never reset existing accounting to adopt a policy change.
 
 ## 3. 16-hour pregame schedule
 
-All paid dispatch remains 08:00–24:00 Central; no started-event pregame jobs,
+All paid dispatch remains 06:00–22:00 Central; no started-event pregame jobs,
 no overnight calls and no replay of missed live ticks when the window opens.
 
 | Scope / time to start | Standard books | Approved exchange sources |

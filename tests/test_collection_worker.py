@@ -46,9 +46,11 @@ class Policy(unittest.TestCase):
         for day in ('2026-10-16','2026-11-01','2027-03-14'):
             import pytz
             zone=pytz.timezone('America/Chicago')
-            self.assertFalse(open_now(zone.localize(datetime.fromisoformat(day+'T07:59:59'))))
-            self.assertTrue(open_now(zone.localize(datetime.fromisoformat(day+'T08:00:00'))))
-            self.assertTrue(open_now(zone.localize(datetime.fromisoformat(day+'T23:59:59'))))
+            self.assertFalse(open_now(zone.localize(datetime.fromisoformat(day+'T05:59:59'))))
+            self.assertTrue(open_now(zone.localize(datetime.fromisoformat(day+'T06:00:00'))))
+            self.assertTrue(open_now(zone.localize(datetime.fromisoformat(day+'T21:59:59'))))
+            self.assertFalse(open_now(zone.localize(datetime.fromisoformat(day+'T22:00:00'))))
+            self.assertFalse(open_now(zone.localize(datetime.fromisoformat(day+'T23:59:59'))))
             self.assertFalse(open_now(zone.localize(datetime.fromisoformat(day+'T00:00:00'))))
         with self.assertRaises(ValueError): open_now(datetime(2026,10,16))
 

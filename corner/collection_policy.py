@@ -45,7 +45,7 @@ def parse(value):
 
 
 def open_now(now):
-    return aware(now).astimezone(CENTRAL).hour >= 8
+    return 6 <= aware(now).astimezone(CENTRAL).hour < 22
 
 
 def supported(sport):

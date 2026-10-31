@@ -15,7 +15,7 @@ the free league-events endpoint, then reserves exactly three credits for one
 standard bookmaker group with h2h, spreads and totals. The standard group has
 six bookmakers, within the provider's one-per-ten-bookmaker billing group.
 The paid league request covers only the next 24 hours during the existing
-08:00-midnight Central collection window. No scheduled cadence is enabled.
+06:00–22:00 Central collection window. No scheduled cadence is enabled.
 
 The singleton commissioning record and attempt are committed before dispatch.
 Dispatch is committed before HTTP; default transport has no retries, redirects

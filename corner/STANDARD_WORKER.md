@@ -16,7 +16,7 @@ Only configured active leagues with an upcoming event in the next 24 hours
 receive standard main-market jobs. Main prices use the existing 60-second floor;
 props use the existing hourly/15-minute/5-minute/60-second bands. Additional
 markets retain their final-30-minute window, 50-event/day and 30k-credit/day caps.
-All calls remain within 08:00-midnight America/Chicago. Main and props share
+All calls remain within 06:00–22:00 America/Chicago. Main and props share
 durable existing monthly pools; the separate 1.5M reserve is protected. No claim
 of full-slate throughput or complete exchange coverage is made at launch.
 
