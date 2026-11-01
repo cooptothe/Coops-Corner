@@ -18,17 +18,17 @@ EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket_
 PROP_EXCHANGE = tuple(book for book in EXCHANGE if not book.startswith('betfair_ex_'))
 ALL_BOOKS = STANDARD + EXCHANGE
 ALL_BOOKS_PROFILE = 'all-books-pregame-v1'
-CADENCE_VERSION = 'all-books-countdown-60s-floor-v1'
+CADENCE_VERSION = 'november-budgeted-countdown-v2'
 PROP_STANDARD = BASE_STANDARD + ('williamhill_us','fanatics','betonlineag','bovada')
 SPORTS = ('americanfootball_nfl','americanfootball_ncaaf','basketball_nba','basketball_ncaab',
           'baseball_mlb','icehockey_nhl','soccer_usa_mls','soccer_epl','soccer_spain_la_liga',
           'soccer_germany_bundesliga','soccer_italy_serie_a','soccer_france_ligue_one',
           'soccer_uefa_champs_league','basketball_wnba','basketball_wncaab',
           'tennis_atp','tennis_wta','mma_mixed_martial_arts')
-BUDGET_VERSION = 'pregame-lab-history-100k-v1'
-POOLS = {'main':7_900_000, 'props':5_000_000, 'metadata':500_000, 'history':100_000}
+BUDGET_VERSION = 'full-quota-main-props-live-v2'
+POOLS = {'main':7_500_000, 'props':7_400_000, 'metadata':100_000, 'history':0}
 TOTAL = 15_000_000
-PROTECTED = 1_500_000
+PROTECTED = 0
 TRANSIENT_HTTP_STATUSES = frozenset({408, 425, 429, 500, 502, 503, 504})
 # NCAA keeps main/additional markets; no scheduled college player-prop purchases.
 NO_SCHEDULED_PROPS = frozenset({'americanfootball_ncaaf', 'basketball_ncaab', 'basketball_wncaab'})
@@ -52,45 +52,41 @@ def supported(sport):
     return sport in SPORTS or sport.startswith(('tennis_atp_','tennis_wta_'))
 
 
+# Upper seconds until start, then minimum seconds between requests.
+COUNTDOWN_BANDS = {
+    'main': ((7200, 60), (10800, 90), (14400, 120), (21600, 180), (28800, 300), (43200, 600), (86400, 900)),
+    'props': ((10800, 60), (14400, 90), (21600, 120), (28800, 180), (43200, 240), (86400, 300)),
+    'additional': ((600, 60), (1200, 90), (1800, 120), (2700, 180), (3600, 240), (5400, 480), (7200, 600)),
+}
+# Upper bound includes a possible immediate poll at every band transition.
+ADDITIONAL_POLLS_PER_GROUP = sum(
+    math.ceil((upper-(COUNTDOWN_BANDS['additional'][i-1][0] if i else 0))/period)+1
+    for i,(upper,period) in enumerate(COUNTDOWN_BANDS['additional']))
+
+
 def interval(kind, group, now, starts=None):
-    """Budgeted countdown bands; exchanges never get a sub-minute exception."""
+    """Provider-aligned bands; unknown main starts use a quiet 15-minute board poll."""
     remaining = (aware(starts)-aware(now)).total_seconds() if starts is not None else None
     if kind == 'live': return 40 if group == 'standard' else 10
-    if kind == 'main':
-        if remaining is None or remaining <= 3600: return 120
-        if remaining <= 7200: return 180
-        if remaining <= 21600: return 300
-        if remaining <= 43200: return 600
-        return 900
-    if kind == 'additional':
-        if remaining is None or remaining <= 900: return 60
-        if remaining <= 1800: return 120
-        if remaining <= 3600: return 300
-        return 600
-    if remaining is None or remaining <= 0:
+    if remaining is None:
+        if kind == 'main': return 900
+        if kind == 'additional': return 60
         raise ValueError('Upcoming event start required')
-    if remaining <= 7200: return 60
-    if remaining <= 14400: return 120
-    if remaining <= 21600: return 180
-    if remaining <= 43200: return 300
-    return 600
+    if kind == 'props' and remaining <= 0:
+        raise ValueError('Upcoming event start required')
+    bands = COUNTDOWN_BANDS[kind]
+    return next((period for upper,period in bands if remaining <= upper), bands[-1][1])
 
 
 def additional_limits(cycle_start, cycle_end):
-    """Keep daily alternate spend inside main allocation after an 82-key ceiling.
+    """Daily alternate subcap; main/live/alternate share the hard main pool.
 
-    82 is a conservative planning assumption, not provider coverage or a sport
-    cap. Durable monthly pool and global reserve checks remain authoritative.
-    Only the existing cycle dates are read; no policy or accounting migration.
+    No assumed sport-key count can override the global or per-pool reservation
+    checks. Faster countdown bands reserve transition overhead per admission.
     """
-    days = max(1, math.ceil((aware(cycle_end)-aware(cycle_start)).total_seconds()/86400))
-    # Two groups at two minutes: same maximum credit rate as one at one minute.
-    main_ceiling = 82 * 16 * 30 * 3 * 2 * days
-    # UTC quota cycles touch an extra Central calendar date at both edges.
-    # Budget that partial date too; a busy short day can still hit its cap.
-    daily_credits = min(30000, max(0, (POOLS['main']-main_ceiling)//(days+1)))
-    # Two groups: at most 36 polls each across the four alternate countdown bands.
-    events = min(75, daily_credits // (72 * len(ADDITIONAL_MARKETS)))
+    daily_credits = 30000
+    # Keep every admitted game inside the daily credit ceiling at all new bands.
+    events = min(75, daily_credits // (2 * ADDITIONAL_POLLS_PER_GROUP * len(ADDITIONAL_MARKETS)))
     return events, daily_credits
 
 

@@ -1,0 +1,205 @@
+{
+  "counts_through_nov20": {
+    "nfl": 43,
+    "nba": 147,
+    "nhl": 132,
+    "mls": 21,
+    "epl": 12,
+    "laliga": 16,
+    "bundesliga": 12,
+    "seriea": 17,
+    "ligue1": 15,
+    "ucl": 18,
+    "ncaaf": 109,
+    "ncaab": 1131,
+    "wncaab": 1104
+  },
+  "unconfirmed_start_times": {
+    "laliga": 10,
+    "ncaaf": 85,
+    "ncaab": 37,
+    "wncaab": 51
+  },
+  "costs": {
+    "existing": {
+      "full_month": {
+        "props": 5172876,
+        "main": 1083390
+      },
+      "through_nov20": {
+        "props": 3287800,
+        "main": 737820
+      },
+      "props_by_league": {
+        "nfl": 807600,
+        "nba": 2150944,
+        "nhl": 1297580,
+        "mls": 101680,
+        "epl": 119392,
+        "laliga": 144080,
+        "bundesliga": 111888,
+        "seriea": 138768,
+        "ligue1": 134672,
+        "ucl": 166272
+      }
+    },
+    "proposed": {
+      "full_month": {
+        "props": 7112092,
+        "main": 769812
+      },
+      "through_nov20": {
+        "props": 4517548,
+        "main": 492708
+      },
+      "props_by_league": {
+        "nfl": 1125160,
+        "nba": 2923520,
+        "nhl": 1768820,
+        "mls": 139488,
+        "epl": 170336,
+        "laliga": 204928,
+        "bundesliga": 157872,
+        "seriea": 195072,
+        "ligue1": 189840,
+        "ucl": 237056
+      }
+    }
+  },
+  "bands": {
+    "main": [
+      [
+        7200,
+        60
+      ],
+      [
+        10800,
+        90
+      ],
+      [
+        14400,
+        120
+      ],
+      [
+        21600,
+        180
+      ],
+      [
+        28800,
+        300
+      ],
+      [
+        43200,
+        600
+      ],
+      [
+        86400,
+        900
+      ]
+    ],
+    "props": [
+      [
+        10800,
+        60
+      ],
+      [
+        14400,
+        90
+      ],
+      [
+        21600,
+        120
+      ],
+      [
+        28800,
+        180
+      ],
+      [
+        43200,
+        240
+      ],
+      [
+        86400,
+        300
+      ]
+    ],
+    "additional": [
+      [
+        600,
+        60
+      ],
+      [
+        1200,
+        90
+      ],
+      [
+        1800,
+        120
+      ],
+      [
+        2700,
+        180
+      ],
+      [
+        3600,
+        240
+      ],
+      [
+        5400,
+        480
+      ],
+      [
+        7200,
+        600
+      ]
+    ]
+  },
+  "checked_date": "2026-11-01",
+  "schedule_source": "Free ESPN daily scoreboard endpoints; 465 successful daily queries for 15 leagues, November 1 through December 1 inclusive",
+  "source_template": "https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard?dates=YYYYMMDD&limit=1000",
+  "source_events_sha256": "783cddd8a6eec26aac55c2be2b021c30fd2c6c42b01d95135165ef3ab36fc01f",
+  "provider_calls": 0,
+  "latest_reported_provider_used": 71807,
+  "latest_quota_check_utc": "2026-11-01T17:20:42.966804+00:00",
+  "collection_window": "06:00\u201322:00 America/Chicago",
+  "assumptions": [
+    "All configured props market keys and both billing groups returned on every simulated call; 30-second dispatch grid.",
+    "Every non-tennis configured league remains active all month, including idle days. Unknown main start uses 15 minutes.",
+    "Main model excludes expanded ATP/WTA keys. Extra-key stress allowance assumes 16 additional keys at 60 seconds for all 16 open hours, every day.",
+    "TBD start times remain provisional. New events, provider gaps, reschedules, retries and changing active keys can alter usage.",
+    "Full-month projections include modeled November 1 charges; reported usage is added again conservatively rather than claiming an exact remaining forecast.",
+    "Owner explicitly authorized releasing the 1.5M holdback; all 15M credits available, global hard ceiling enforced.",
+    "No claim of an exact zero ending balance: usable market coverage and provider update floors limit productive calls.",
+    "Full-month scenario reserves 3M for live; November 1\u201320 assumes its 100k/day paced share of that cap. Busy-day ceiling is 150k.",
+    "Props forecast is 7.112M, under the new 7.4M cap; changed events or returned-market costs can change actual spend."
+  ],
+  "full_month_planning_envelope": {
+    "modeled_main": 769812,
+    "extra_16_key_fastest_main_allowance": 2764800,
+    "props": 7112092,
+    "additional_cap_allowance": 930000,
+    "live_subcap": 3000000,
+    "metadata_and_history_allowance": 100000,
+    "reported_spend_added_conservatively": 71807
+  },
+  "full_month_planning_total": 14748511,
+  "full_month_remaining_scenario": 251489,
+  "through_nov20_planning_envelope": {
+    "modeled_main": 492708,
+    "extra_16_key_fastest_main_allowance": 1843200,
+    "props": 4517548,
+    "additional_cap_allowance": 630000,
+    "live_daily_cap_allowance": 2000000,
+    "metadata_and_history_allowance": 100000,
+    "reported_spend_added_conservatively": 71807
+  },
+  "through_nov20_planning_total": 9655263,
+  "through_nov20_remaining_scenario": 5344737,
+  "approved_pools": {
+    "main": 7500000,
+    "props": 7400000,
+    "metadata": 100000,
+    "history": 0
+  },
+  "protected_reserve": 0
+}

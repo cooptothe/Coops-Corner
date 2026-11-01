@@ -1,118 +1,85 @@
-# All-book scheduled pregame collection
+# Full-quota collection intervals
 
-Updated October 31, 2026. Collection window: 06:00 inclusive through 22:00 exclusive America/Chicago.
+Updated November 1, 2026. Window: **06:00–22:00 America/Chicago**.
+All 15M credits are authorized for useful collection. The owner explicitly
+removed the previous 1.5M protected holdback; unused credits do not accumulate.
+The hard 15M ceiling, actual-charge accounting and request reservations remain.
 
-The window remains 16 hours. Cadences, pool caps and protected reserve are unchanged.
-A 06:00–24:00 window would raise the conservative 30-day main ceiling from
-7,084,800 to 7,970,400 credits, exceeding the 7.9M main pool before live/additional
-allowances. The saved props schedule estimate below has not been recalculated
-for the shifted hours; durable pool caps remain authoritative.
-Scope is upcoming events in the next 24 hours. Game starts, source timestamps,
-withdrawals, minimum reference requirements and the 30-minute retention rule remain
-unchanged. Intervals are minimum due times, not end-to-end delivery guarantees.
-
-## Requested books
-
-All three acquisition kinds request the same sixteen books, split into two groups:
-
-- Standard (ten): DraftKings, FanDuel, theScore Bet (`espnbet`), BetMGM, BetRivers,
-  Pinnacle, BetOnline (`betonlineag`), Caesars (`williamhill_us`), Bovada, Fanatics.
-- Exchange (six): Novig, Betfair Exchange (`betfair_ex_uk`), ProphetX, Kalshi,
-  BetOpenly, Polymarket (`polymarket_us`). The owner-confirmed US venue is preserved.
-
-The provider bills up to ten explicit bookmaker IDs as one region equivalent.
-Each group therefore reserves one credit per requested market; together they are
-two blocks. Returned x-requests headers settle actual usage. Empty/unavailable
-markets need not incur the maximum reservation. Unsupported markets cannot be
-manufactured. DFS remains excluded.
-
-## Countdown intervals
-
-Standard and exchange groups use identical bands. No sub-minute exchange polling.
-
-| Time until start | Main lines | Player props |
+| Time before start | Main lines | Player props |
 |---|---:|---:|
-| More than 12 hours, up to 24 hours | 15 minutes | 10 minutes |
-| More than 6 hours, up to 12 hours | 10 minutes | 5 minutes |
-| More than 4 hours, up to 6 hours | 5 minutes | 3 minutes |
-| More than 2 hours, up to 4 hours | 5 minutes | 2 minutes |
-| More than 1 hour, up to 2 hours | 3 minutes | 60 seconds |
-| Final hour | 2 minutes | 60 seconds |
+| 12–24 hours | 15 min | 5 min |
+| 8–12 hours | 10 min | 4 min |
+| 6–8 hours | 5 min | 3 min |
+| 4–6 hours | 3 min | 2 min |
+| 3–4 hours | 2 min | 90 sec |
+| 2–3 hours | 90 sec | 60 sec |
+| Final 2 hours | 60 sec | 60 sec |
 
-Main-line requests contain the league's upcoming board; their band follows the
-soonest known upcoming start in that league. An unknown start uses two minutes.
+At an exact boundary the faster band applies. Main league boards use the
+nearest upcoming start; no known start within 24 hours uses a 15-minute board
+poll. All 16 books remain configured, props exclude Betfair and NCAA sports.
 
-| Time until start | Additional / alternate markets |
+| Time before start | Additional/alternate markets |
 |---|---:|
-| More than 2 hours | Not collected |
-| More than 60 minutes, up to 120 minutes | 10 minutes |
-| More than 30 minutes, up to 60 minutes | 5 minutes |
-| More than 15 minutes, up to 30 minutes | 2 minutes |
-| Final 15 minutes | 60 seconds |
+| More than 2 hours | Not requested |
+| 90–120 minutes | 10 min |
+| 60–90 minutes | 8 min |
+| 45–60 minutes | 4 min |
+| 30–45 minutes | 3 min |
+| 20–30 minutes | 2 min |
+| 10–20 minutes | 90 sec |
+| Final 10 minutes | 60 sec |
 
-Main and additional captures feed EV, arbitrage, middles, schedule and promo tools
-from the same store. Props also feed their supported downstream tools. No separate
-purchase per screen. No NCAA football or basketball player props. Fee-dependent
-venues remain excluded as execution targets until the required fee context is
-known; valid matching raw prices can still inform references. Collection does not
-mean every venue has an executable positive edge or adequate available liquidity.
+Live pacing targets provider floors of **40 seconds standard / 10 seconds
+exchange**, within an increased 3M monthly and 150k daily subcap. Its normal
+monthly pacing allowance starts near 100k/day; observed demand adjusts intervals.
+These credits are part of main's pool. Planning ends at 22:00, avoiding budgeting
+for closed hours. Busy slates and depleted allowances can require slower intervals.
 
-## Budget
+## Allocations and forecast
 
-Existing allocations are unchanged: main/additional 7.9M, props 5M, metadata 500k,
-Lab history 100k. Protected reserve 1.5M. Historical acquisition is not activated.
-
-Full November UTC planning on the saved public schedule:
-
-| Component | Credits |
+| Pool | Credits |
 |---|---:|
-| Main: 82 keys, both groups, fastest two-minute band for all 16 hours | 7,084,800 |
-| Additional: 26,296 daily cap across 31 possible Central dates | 815,176 |
-| Props: actual configured market counts, both groups, countdown bands | 4,914,836 |
-| Metadata | 500,000 |
-| Lab history allowance | 100,000 |
-| Total planning envelope | 13,414,812 |
-| Remaining under that envelope | 1,585,188 |
+| Main/live/alternates combined | 7,500,000 |
+| Player props | 7,400,000 |
+| Metadata/reconciliation allowance | 100,000 |
+| Historical acquisition | 0 |
+| Protected holdback | 0 |
+| Total | 15,000,000 |
 
-This is a saved-schedule estimate plus conservative main/additional bounds, not a
-live quota balance or guaranteed bill. Main's actual countdown bands are slower
-than its planning ceiling. Missing or changed events, start times, availability,
-provider charges and workload change actual consumption. The saved props workload
-is below its 5M pool by 85,164 credits; extra activity can exhaust that pool. Hard
-pool limits and the global reserve then refuse further purchases rather than
-spending the reserve. We do not buy extra data just to spend down to 1.5M.
+Metadata remains a small accounting allowance for discovery; free discovery
+requests normally settle at zero. Historical acquisition remains disabled.
+Moving these allocations never changes prior charges, offsets or cycle dates.
+The stopped-worker upgrade explicitly verifies current usage before replacing
+only the current cycle's policy record and auditing the allocation change.
 
-Additional acquisition remains capped at 73 events/day and 26,296 credits/day in a
-30-day cycle; 50 events/day and 18,095 credits/day in a 31-day cycle. Both groups
-share those caps. At most 36 polls/group/event are allowed for planning (normally
-35 from the countdown bands), five market keys, 360 credits/event total. Caps are
-durable across restarts and preserve prior admitted events and uncertain charges.
+Alternate daily credit cap: 30k, at most 66 new games/day using a conservative
+45 polls per group per game including transition overhead. Existing admissions
+are preserved. The shared main pool always overrides this subcap.
 
-Machine-readable breakdown and saved event-source hash: ALL_BOOKS_FORECAST.json.
-The older CADENCE_FORECAST.json describes the prior nine/ten-book policy only.
+465 free ESPN daily scoreboard queries succeeded for November 1–December 1.
+Through November 20: 147 NBA, 132 NHL, 43 NFL games, soccer and NCAA boards.
+No NCAA props. Expanded tennis match slates are not completely known this far
+ahead; scenario reserves room for 16 additional keys at one-minute polling for
+all 16 open hours daily. Some college/soccer start times remain provisional.
 
-## Deployment and approval
+Full-month model: props 7,112,092 credits; known non-tennis main boards 769,812.
+Including extra-key allowance, full live/alternate allowances, metadata and
+reported 71,807 credits added again conservatively, the planning scenario is
+14,748,511 credits, leaving about 251k. Through November 20 the scenario is about
+9.66M credits, leaving about 5.34M for the remainder of November.
 
-The `all-books-pregame-v1` profile explicitly binds the sixteen IDs and the
-`all-books-countdown-60s-floor-v1` cadence. It does not claim measured 20-second
-classification or full-slate throughput. Prior protected activation checks remain.
-Use `CORNER_ENABLE_ALL_BOOKS=1 bash deploy/update-expanded-books.sh` after stopping
-the collector and pulling. This prepares renewed root approval using the existing
-bound quota cycle. Later recoveries preserve the all-book profile.
+This is not a guaranteed spend or a promised ending balance. Actual returned
+market counts, outages, reschedules, new events and liquidity affect consumption.
+Polling faster than the provider updates solely to reach zero would waste quota.
+Intervals are due times, not guaranteed network or publication delivery times.
+Source timestamps and existing quote-expiry rules remain unchanged.
 
-No cycle reset, refund, quarantine clearing, writer privilege expansion, paid
-validation request or automatic next-cycle binding. October approval still ends
-November 1 UTC; November requires its own explicit fresh quota binding/approval.
-Previously purchased six/nine-book captures replay with their original manifests.
-Polymarket international legacy captures are not relabeled as US captures.
+Quota resets December 1 UTC, independently of the November 20 invoice.
+Sources/inputs: `forecasts/november-2026-events.json` and
+`forecasts/november-2026-cadence.json`. Reproduce the old/new schedule simulation
+offline with `python -m pipelines.collection_cadence_forecast`.
 
-## Provider sources
-
-- Billing and parameters: https://the-odds-api.com/liveapi/guides/v4/
-- Book IDs: https://the-odds-api.com/sports-odds-data/bookmaker-apis.html
-- Update floors: https://the-odds-api.com/sports-odds-data/update-intervals.html
-
-Provider pregame books refresh around 60 seconds, exchanges around 20 seconds.
-Our exchange floor is deliberately 60 seconds or slower. Serial request spacing
-remains 100ms, with no retry of an uncertain paid request. `includeBetLimits=true`
-requests available limits/open BetOpenly offers; liquidity is not matched volume.
+Provider limits: https://the-odds-api.com/sports-odds-data/update-intervals.html
+Billing docs: https://the-odds-api.com/liveapi/guides/v4/
+Reset FAQ: https://the-odds-api.com/manage/faqs.html

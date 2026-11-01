@@ -40,7 +40,7 @@ class PacingTests(unittest.TestCase):
         self.assertLessEqual(pacing([event('basketball_nba',NOW)],available_main=300)['remaining_today_paced'],300)
 
     def test_main_and_prop_intervals_are_unchanged(self):
-        self.assertEqual(interval('main','standard',NOW,NOW+timedelta(hours=1)),120)
+        self.assertEqual(interval('main','standard',NOW,NOW+timedelta(hours=1)),60)
         self.assertEqual(interval('props','exchange',NOW,NOW+timedelta(hours=1)),60)
 
 class LiveLedgerPacing(unittest.TestCase):

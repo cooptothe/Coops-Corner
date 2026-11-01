@@ -7,9 +7,9 @@ from tests.test_collection_adapters import event, NOW
 
 class RevisedScheduleTests(unittest.TestCase):
     def test_exact_bands(self):
-        for seconds, expected in [(1,60),(7200,60),(7201,120),(14400,120),(14401,180),(21600,180),(21601,300),(43201,600)]:
+        for seconds, expected in [(1,60),(7200,60),(7201,60),(14400,90),(14401,120),(21600,120),(21601,180),(43201,300)]:
             self.assertEqual(interval('props','standard',NOW,NOW+timedelta(seconds=seconds)),expected)
-        self.assertEqual(interval('main','standard',NOW),120)
+        self.assertEqual(interval('main','standard',NOW),900)
         self.assertEqual(interval('additional','standard',NOW),60)
         for kind in ('main','additional','props'):
             for group in ('standard','exchange'):
@@ -17,7 +17,7 @@ class RevisedScheduleTests(unittest.TestCase):
 
 
     def test_main_bands_follow_soonest_upcoming_game(self):
-        for seconds, expected in [(3600,120),(3601,180),(7200,180),(7201,300),(21600,300),(21601,600),(43201,900)]:
+        for seconds, expected in [(3600,60),(3601,60),(7200,60),(7201,90),(21600,180),(21601,300),(43201,900)]:
             e={**event(),'commence_time':(NOW+timedelta(seconds=seconds)).isoformat()}
             job=plan(NOW,['basketball_nba'],[e])[0]
             from corner.collection_policy import parse

@@ -55,11 +55,11 @@ class Policy(unittest.TestCase):
         with self.assertRaises(ValueError): open_now(datetime(2026,10,16))
 
     def test_props_bands_and_main_floor(self):
-        for seconds, expected in [(900,60),(7200,60),(7201,120),(14400,120),(14401,180),(21600,180),(21601,300),(43200,300),(43201,600)]:
+        for seconds, expected in [(900,60),(7200,60),(7201,60),(14400,90),(14401,120),(21600,120),(21601,180),(43200,240),(43201,300)]:
             for group in ('standard','exchange'):
                 self.assertEqual(interval('props',group,NOW,NOW+timedelta(seconds=seconds)),expected)
-        self.assertEqual(interval('main','standard',NOW),120)
-        self.assertEqual(interval('main','exchange',NOW),120)
+        self.assertEqual(interval('main','standard',NOW),900)
+        self.assertEqual(interval('main','exchange',NOW),900)
 
 
     def test_all_families_no_event_cap_and_no_started_events(self):
@@ -172,10 +172,10 @@ class Ledger(unittest.TestCase):
 
     def test_no_replay_after_skipped_ticks_and_source_floors_persist(self):
         self.complete(self.main)
-        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=119)))
-        self.assertTrue(self.g.ready(self.main,NOW+timedelta(seconds=120)))
+        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=59)))
+        self.assertTrue(self.g.ready(self.main,NOW+timedelta(seconds=60)))
         self.g.close();self.g=Governor(self.path)
-        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=119)))
+        self.assertFalse(self.g.ready(self.main,NOW+timedelta(seconds=59)))
 
     def test_closed_window_and_expired_cycle_never_reserve(self):
         closed=parse('2026-10-17T06:00:00Z')

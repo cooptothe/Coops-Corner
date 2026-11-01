@@ -19,7 +19,7 @@ class Setup(unittest.TestCase):
             path=Path(directory)/'collection-live.sqlite3'
             result=initialize(path,KEY,quota(),NOW,'a'*40)
             self.assertTrue(result['paused']);self.assertEqual(sum(result['pools'].values())+result['protected_reserve'],TOTAL)
-            self.assertEqual(result['pools']['history'],100000);self.assertEqual(result['pools']['main'],7900000)
+            self.assertEqual(result['pools']['history'],0);self.assertEqual(result['pools']['main'],7500000)
             self.assertNotIn(KEY,json.dumps(result));self.assertEqual(result['next_quota_reset_utc'],'2026-11-01T00:00:00+00:00')
             with self.assertRaises(SetupError):initialize(path,KEY,quota(),NOW,'a'*40)
             g=LiveGovernor(path)

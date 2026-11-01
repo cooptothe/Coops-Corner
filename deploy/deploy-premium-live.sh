@@ -37,7 +37,7 @@ body={'enabled':True,'premium_username':'wonya',
       'cron_token':old_token if isinstance(old_token,str) and len(old_token)>=40 else secrets.token_urlsafe(48)}
 MainPublisher._atomic(CONFIG,(json.dumps(body)+'\n').encode())
 os.chmod(CONFIG,0o600)
-print('wonya-only Premium configured. Live uses existing main pool: 500,000/month and 20,000/day maximum. No provider calls made by configuration.')
+print('wonya-only Premium configured. Live uses existing main pool: 3,000,000/month and 150,000/day maximum. No provider calls made by configuration.')
 PY
 
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"

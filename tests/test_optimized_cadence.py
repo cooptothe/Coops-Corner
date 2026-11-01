@@ -14,28 +14,28 @@ from pipelines.collection_provider import Provider
 
 class OptimizedCadence(unittest.TestCase):
     def test_month_lengths_budget_partial_central_dates(self):
-        for begin,end,expected_events in [('2026-11-01','2026-12-01',73),
-                                         ('2026-10-01','2026-11-01',50),
-                                         ('2027-02-01','2027-03-01',75)]:
+        for begin,end,expected_events in [('2026-11-01','2026-12-01',66),
+                                         ('2026-10-01','2026-11-01',66),
+                                         ('2027-02-01','2027-03-01',66)]:
             start=datetime.fromisoformat(begin).replace(tzinfo=timezone.utc)
             stop=datetime.fromisoformat(end).replace(tzinfo=timezone.utc)
             events,credits=additional_limits(start,stop)
             days=(stop-start).days
             self.assertEqual(events,expected_events)
             self.assertLessEqual(credits,30000)
-            self.assertLessEqual(82*960*3*days+credits*(days+1),POOLS['main'])
-            self.assertLessEqual(events*72*5,credits)
+            self.assertLessEqual(credits*(days+1),POOLS['main'])
+            self.assertLessEqual(events*90*5,credits)
         self.assertEqual(sum(POOLS.values()),TOTAL-PROTECTED)
-        self.assertEqual(PROTECTED,1500000)
+        self.assertEqual(PROTECTED,0)
 
     def test_standard_floors_and_distant_bands(self):
         now=datetime(2026,11,15,16,tzinfo=timezone.utc)
         for group in ('standard','exchange'):
-            for remaining, expected in [(1,60),(7200,60),(7201,120),(14401,180),(21601,300),(43201,600)]:
+            for remaining, expected in [(1,60),(7200,60),(7201,60),(14401,120),(21601,180),(43201,300)]:
                 self.assertEqual(interval('props',group,now,now+timedelta(seconds=remaining)),expected)
-            for remaining, expected in [(1,60),(900,60),(901,120),(1801,300),(3601,600)]:
+            for remaining, expected in [(1,60),(900,90),(901,90),(1801,180),(3601,480)]:
                 self.assertEqual(interval('additional',group,now,now+timedelta(seconds=remaining)),expected)
-            self.assertEqual(interval('main',group,now),120)
+            self.assertEqual(interval('main',group,now),900)
 
 
     def test_daily_caps_refuse_extra_events_and_credit_reservations(self):

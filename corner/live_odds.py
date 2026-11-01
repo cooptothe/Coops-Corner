@@ -14,8 +14,8 @@ from corner.collection_policy import CENTRAL, STANDARD, EXCHANGE, Job, aware, op
 
 CONFIG = Path('/srv/corner/config/live-odds.json')
 REQUEST = Path('/srv/corner/config/live-queue/request.json')
-MONTHLY_CAP = 500_000  # Sub-limit WITHIN the existing main pool; never additional credits.
-DAILY_CAP = 20_000
+MONTHLY_CAP = 3_000_000  # Sub-limit WITHIN the existing main pool; never additional credits.
+DAILY_CAP = 150_000
 FRESH_SECONDS = 90
 MARKETS = ('h2h', 'spreads', 'totals')
 

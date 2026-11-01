@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 from types import SimpleNamespace
 
-from corner.collection_policy import parse, plan, TOTAL, PROTECTED
+from corner.collection_policy import parse, plan, TOTAL, PROTECTED, POOLS
 from corner.collection_quota import LiveGovernor, key_identity, quota_headers
 from corner.credit_governor import Refused
 from pipelines.collection_live import LiveProvider
@@ -57,7 +57,7 @@ class LiveTests(unittest.TestCase):
                 quota_headers(value)
 
     def test_preexisting_usage_debits_pool_before_claim(self):
-        self.bind(7899999, {'main': 7899999, 'props': 0, 'metadata': 0, 'history': 0})
+        self.bind(POOLS['main']-1, {'main': POOLS['main']-1, 'props': 0, 'metadata': 0, 'history': 0})
         self.acquire()
         with self.assertRaisesRegex(Refused, 'Pool limit'):
             self.claim()

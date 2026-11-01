@@ -10,7 +10,7 @@ FLOORS = {'standard':40,'exchange':10}
 def plan(now, cycle_end, inventory, *, spent_month, spent_today, monthly_cap, daily_cap, available_main):
     now=aware(now);cycle_end=aware(cycle_end)
     local=now.astimezone(CENTRAL)
-    close=CENTRAL.localize(local.replace(tzinfo=None,hour=0,minute=0,second=0,microsecond=0)+timedelta(days=1)).astimezone(now.tzinfo)
+    close=CENTRAL.localize(local.replace(tzinfo=None,hour=22,minute=0,second=0,microsecond=0)).astimezone(now.tzinfo)
     close=min(close,cycle_end)
     days=max(1,math.ceil((cycle_end-now).total_seconds()/86400))
     monthly_remaining=max(0,monthly_cap-spent_month)

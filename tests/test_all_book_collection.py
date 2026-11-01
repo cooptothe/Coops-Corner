@@ -33,9 +33,7 @@ class AllBookCollection(unittest.TestCase):
             self.assertTrue(all(j.cost==len(j.markets) for j in scopes))
 
     def test_all_countdown_boundaries_and_no_subminute_exchange_polling(self):
-        gates={'main':[(3600,120),(7200,180),(21600,300),(43200,600),(86400,900)],
-               'additional':[(900,60),(1800,120),(3600,300),(7200,600)],
-               'props':[(7200,60),(14400,120),(21600,180),(43200,300),(86400,600)]}
+        gates={'main': [(7200, 60), (10800, 90), (14400, 120), (21600, 180), (28800, 300), (43200, 600), (86400, 900)], 'props': [(10800, 60), (14400, 90), (21600, 120), (28800, 180), (43200, 240), (86400, 300)], 'additional': [(600, 60), (1200, 90), (1800, 120), (2700, 180), (3600, 240), (5400, 480), (7200, 600)]}
         for kind,bands in gates.items():
             lower=1
             for upper,seconds in bands:
