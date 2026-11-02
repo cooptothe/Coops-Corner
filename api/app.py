@@ -206,19 +206,21 @@ def create_app(*, data_mode='fixture', catalog=None, cors_origins=DEFAULT_ORIGIN
 
     @api.get('/api/v1/capabilities', response_model=Envelope[Capabilities], tags=['system'])
     def capabilities():
-        return result(Capabilities(market_keys=list(SUPPORTED_MARKETS), tools=['positive_ev', 'arbitrage', 'low_hold', 'middle'],
-                      books=list(catalog.books), sports=sorted({g.sport_key for g in catalog.games}),
+        current = catalog._current() if hasattr(catalog, '_current') else catalog
+        return {'meta':current.meta(), 'data':Capabilities(market_keys=list(SUPPORTED_MARKETS), tools=['positive_ev', 'arbitrage', 'low_hold', 'middle'],
+                      books=list(current.books), sports=sorted({g.sport_key for g in current.games}),
                       calculator_defaults={'ev_stake': '100', 'back_cover_total_stake': '200', 'back_lay_back_stake': '100',
                                            'middle_leg_stake': '100', 'stake_increment': '0.01'},
-                      unsupported=['live_mode', 'bet_placement', 'tracker', 'bankroll', 'clv', 'sharp_money', 'insiders']))
+                      unsupported=['live_mode', 'bet_placement', 'tracker', 'bankroll', 'clv', 'sharp_money', 'insiders'])}
 
     @api.get('/api/v1/games', response_model=Envelope[Page[Game]], tags=['games'])
     def games(query: Annotated[GameQuery, Query()]):
-        catalog.verify_snapshot(query.snapshot_id)
-        games = [g for g in catalog.games if (query.sport_key is None or query.sport_key == g.sport_key)
+        current = catalog._current() if hasattr(catalog, '_current') else catalog
+        current.verify_snapshot(query.snapshot_id)
+        games = [g for g in current.games if (query.sport_key is None or query.sport_key == g.sport_key)
                  and (query.market_key is None or query.market_key in g.market_keys)
                  and (query.search is None or query.search.casefold() in (g.name + ' ' + g.competition).casefold())]
-        return result(paginate(games, query))
+        return {'meta':current.meta(),'data':paginate(games, query)}
 
     @api.get('/api/v1/games/{game_id}', response_model=Envelope[Game], tags=['games'])
     def game(game_id: str):

@@ -60,15 +60,9 @@ JOIN corner.market_types mt ON mt.id = m.market_type_id AND mt.code = ANY(%(mark
 JOIN corner.scopes sc ON sc.id = m.scope_id AND sc.code = 'full_game'
 JOIN corner.outcomes o ON o.market_id = m.id
 JOIN corner.outcome_sides os ON os.id = o.outcome_side_id
-JOIN LATERAL (
-    -- Filtering a DISTINCT ON partition by its outcome preserves the same trusted
-    -- winner per book. The fence keeps PostgreSQL from scanning the entire ledger
-    -- before narrowing to upcoming exact markets. State/age filters stay outside.
-    SELECT latest.* FROM corner.trusted_current_quotes latest
-    WHERE latest.outcome_id = o.id OFFSET 0
-) q ON true
+JOIN corner.sportsbooks b ON b.active
+JOIN LATERAL corner.trusted_quote_for_stream(o.id, b.id) q ON true
 JOIN corner.quote_states qs ON qs.id = q.quote_state_id AND qs.code = 'active'
-JOIN corner.sportsbooks b ON b.id = q.sportsbook_id AND b.active
 LEFT JOIN corner.participants p ON p.id = o.selected_participant_id
 LEFT JOIN corner.quote_links ql ON ql.outcome_id = q.outcome_id AND ql.sportsbook_id = q.sportsbook_id
 WHERE e.scheduled_start > %(now)s AND q.observed_at >= %(oldest)s AND q.decimal_odds > 1

@@ -421,6 +421,17 @@ export default function Workspace({ view }: { view: View }) {
             <LiveSwitch enabled={showingLive} onChange={setLiveMode} />
           )}
           {!showingLive && <FeedGuide view={view} />}
+          {!showingLive && bootError && data && (
+            <div role="status" className="arb-alert">
+              <span>Updates delayed. Showing the last loaded prices.</span>
+              <button
+                className="button secondary"
+                onClick={() => setReload((v) => v + 1)}
+              >
+                Retry update
+              </button>
+            </div>
+          )}
           {showingLive ? (
             <PremiumLiveFeed
               key={`${view}:${user?.id}`}
@@ -432,7 +443,7 @@ export default function Workspace({ view }: { view: View }) {
                     : "middle"
               }
             />
-          ) : bootError ? (
+          ) : bootError && !data ? (
             <ErrorCard
               message={bootError}
               retry={() => setReload((v) => v + 1)}
