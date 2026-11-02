@@ -286,6 +286,9 @@ def publication_revision(path):
         return None  # Older workers keep the original PostgreSQL fingerprint.
 
 
+QUOTE_SCOPE_BATCH = 256
+
+
 def _scope_key(row):
     point=row.get('point')
     return (row.get('external_id',row.get('source_event_id')),row['book_code'],
@@ -321,11 +324,18 @@ def read_source(conn, *, now, max_age, cache=None):
 
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         rows=[]
-        if scopes is None or scopes:
-            parameters=dict(market_codes=list(MARKET_KEYS),now=now,oldest=oldest)
-            if scopes is not None:parameters['scopes']=json.dumps(scopes,separators=(',',':'))
-            cur.execute(SCOPED_QUOTE_SQL if scopes is not None else QUOTE_SQL,parameters)
+        parameters=dict(market_codes=list(MARKET_KEYS),now=now,oldest=oldest)
+        if scopes is None:
+            cur.execute(QUOTE_SQL,parameters)
             rows=cur.fetchall()
+        else:
+            # PostgreSQL's statement timeout applies to each execution. Keep a
+            # large cold/league-board refresh from becoming one oversized query.
+            # All batches use this caller's same REPEATABLE READ transaction.
+            for offset in range(0,len(scopes),QUOTE_SCOPE_BATCH):
+                parameters['scopes']=json.dumps(scopes[offset:offset+QUOTE_SCOPE_BATCH],separators=(',',':'))
+                cur.execute(SCOPED_QUOTE_SQL,parameters)
+                rows.extend(cur.fetchall())
         rows=retained+rows
         events=sorted({row['event_id'] for row in rows})
         participants=[]

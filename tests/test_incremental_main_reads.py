@@ -51,3 +51,19 @@ class IncrementalMain(unittest.TestCase):
             conn.rows=[quote('a')];read_source(conn,now=NOW,max_age=timedelta(minutes=30),cache=cache)
             revision[1]+=1;scopes.clear()
             self.assertEqual(read_source(conn,now=NOW+timedelta(minutes=31),max_age=timedelta(minutes=30),cache=cache)[0],[])
+
+    def test_large_cold_read_is_bounded_without_dropping_or_duplicating_rows(self):
+        from api.database import QUOTE_SCOPE_BATCH
+        scopes=[scope(str(i)) for i in range(QUOTE_SCOPE_BATCH*3+17)]
+        class Bounded(Connection):
+            def execute(self,sql,params):
+                super().execute(sql,params)
+                if sql==SCOPED_QUOTE_SQL:
+                    self.rows=[quote(item['external_id']) for item in self.calls[-1]]
+        conn=Bounded()
+        with patch('api.database.scheduled_store_path',return_value=Path('ledger')),patch('api.database.current_quote_scopes',return_value=scopes):
+            rows,_=read_source(conn,now=NOW,max_age=timedelta(minutes=30))
+        self.assertEqual(len(conn.calls),4)
+        self.assertTrue(all(len(batch)<=QUOTE_SCOPE_BATCH for batch in conn.calls))
+        self.assertEqual(len(rows),len(scopes))
+        self.assertEqual(len({row['source_event_id'] for row in rows}),len(scopes))
