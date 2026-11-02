@@ -374,7 +374,7 @@ class TrackerStore:
                 raise
         user = {'id': user_id, 'username': username}
         row = self.user_by_id(user_id)
-        if beta_access.enabled() or row.get('beta_cohort')=='family':
+        if beta_access.enabled() or row.get('beta_cohort') in ('friend','family'):
             user.update(role=row['beta_role'], access_kind=row['beta_access_kind'], founder=row['beta_founder'], cohort=row.get('beta_cohort'), friend_rates=row.get('beta_friend_rates'))
         return user
 

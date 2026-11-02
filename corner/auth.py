@@ -143,7 +143,7 @@ def session_user(secret, token, lookup, *, member_access_required=True):
     if member_access_required and not membership['allowed']:
         return None
     user = {'id': row['id'], 'username': row['username'], 'remember': claims.get('rm', True) is not False}
-    if beta_access.enabled() or row.get('beta_cohort')=='family':
+    if beta_access.enabled() or row.get('beta_cohort') in ('friend','family'):
         user.update(role=row.get('beta_role'), access_kind=row.get('beta_access_kind'), founder=row.get('beta_founder', False), cohort=row.get('beta_cohort'), friend_rates=row.get('beta_friend_rates'))
     if beta_access.trials_enabled() or (beta_access.enabled() and row.get('beta_cohort')=='friend') or row.get('beta_cohort')=='family':
         user['membership'] = membership

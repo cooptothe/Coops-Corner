@@ -21,7 +21,8 @@ MARKETS = ('h2h', 'spreads', 'totals')
 
 def premium(user: dict[str, Any] | None) -> bool:
     """Read from the authenticated DB-backed identity, never a request field."""
-    return bool(user and str(user.get('username', '')).casefold() == 'wonya')
+    return bool(user and (str(user.get('username', '')).casefold() == 'wonya'
+                         or user.get('cohort') == 'friend'))
 
 def config() -> dict[str, Any]:
     try:

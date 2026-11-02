@@ -10,7 +10,7 @@ const EXTRA = [
   {
     id: "live",
     title: "Live: Play, Pause and fresh odds",
-    body: "Play shows ESPN-reported games in progress. Pause shows reported halftime, period breaks, intermissions, delays and timeouts. A missing bookmaker price is not a game stoppage. Free game status is checked every 15 seconds while Live is open and may lag actual play. Stale or unmatched statuses are excluded from Play/Pause; use All games to see them. Brief timeouts may be missed. Odds refresh independently every 60 seconds, expire after 90 seconds of source age, and can be unavailable during a break. Premium access is currently limited to wonya.",
+    body: "Play shows ESPN-reported games in progress. Pause shows reported halftime, period breaks, intermissions, delays and timeouts. A missing bookmaker price is not a game stoppage. Free game status is checked every 15 seconds while Live is open and may lag actual play. Stale or unmatched statuses are excluded from Play/Pause; use All games to see them. Brief timeouts may be missed. Odds refresh independently every 60 seconds, expire after 90 seconds of source age, and can be unavailable during a break. Live access is included for friend accounts and the owner.",
   },
   {
     id: "lab",

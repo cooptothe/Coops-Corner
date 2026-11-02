@@ -197,7 +197,7 @@ def create_router(ctx, logins=None, signups=None):
             return reply(403, {'error': 'This account does not have active private beta access. Contact the operator.', 'code': 'access_required'})
         logins.clear(key)
         user = {'id': row['id'], 'username': row['username']}
-        if beta_access.enabled() or row.get('beta_cohort')=='family':
+        if beta_access.enabled() or row.get('beta_cohort') in ('friend','family'):
             user.update(role=row['beta_role'], access_kind=row['beta_access_kind'], founder=row['beta_founder'], cohort=row.get('beta_cohort'), friend_rates=row.get('beta_friend_rates'))
         if beta_access.trials_enabled() or (beta_access.enabled() and row.get('beta_cohort')=='friend') or row.get('beta_cohort')=='family':
             user['membership'] = beta_access.access_status(row)

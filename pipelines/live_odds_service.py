@@ -1,4 +1,4 @@
-"""Premium live API: wonya reads cached data; loopback cron queues worker work."""
+"""Premium live API: entitled owner/friend accounts read cached data; loopback cron queues worker work."""
 from __future__ import annotations
 from datetime import datetime, timezone
 import hmac

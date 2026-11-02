@@ -29,7 +29,7 @@ import "../app/live-feed.css";
 export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
   const { user } = useAuth();
   const gamePanel = useUiBoolean(`live-game-status.${kind}`, true);
-  const premium = user?.username.toLowerCase() === "wonya";
+  const premium = user?.username.toLowerCase() === "wonya" || user?.cohort === "friend";
   const [feed, setFeed] = useState<Feed | null>(null),
     [error, setError] = useState("");
   const [method, setMethod] = useState("current"),
@@ -120,7 +120,7 @@ export default function PremiumLiveFeed({ kind }: { kind: LiveKind }) {
       <section className="live-premium-gate">
         <h2>Live is a Premium feature</h2>
         <p>
-          Premium access is currently limited to wonya. Turn Live off to return
+          Live access is available to eligible Premium accounts. Turn Live off to return
           to pregame.
         </p>
       </section>

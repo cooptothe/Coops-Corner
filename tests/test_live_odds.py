@@ -140,8 +140,12 @@ class LiveRoutes(unittest.TestCase):
     def client(self,user,host='127.0.0.1'):
         app=FastAPI();app.include_router(create_router(Context(user),path=Path('missing-live-db')))
         return TestClient(app,client=(host,40000),base_url='http://127.0.0.1')
-    def test_only_wonya_is_premium_server_side(self):
+    def test_owner_and_database_friend_cohort_are_premium_server_side(self):
         self.assertTrue(premium({'username':'Wonya'}));self.assertFalse(premium({'username':'admin'}))
+        self.assertTrue(premium({'username':'friend-user','cohort':'friend'}))
+        self.assertFalse(premium({'username':'member','cohort':'beta'}))
+        self.assertEqual(self.client({'username':'friend-user','cohort':'friend'}).get('/api/v1/live-stoppages').status_code,200)
+        self.assertEqual(self.client({'username':'other'}).get('/api/v1/live-stoppages?cohort=friend&premium=true').status_code,403)
         self.assertEqual(self.client(None).get('/api/v1/live-stoppages').status_code,401)
         self.assertEqual(self.client({'username':'other'}).get('/api/v1/live-stoppages?username=wonya').status_code,403)
         self.assertEqual(self.client({'username':'wonya'}).get('/api/v1/live-stoppages').status_code,200)
@@ -193,6 +197,9 @@ class LiveSignedEntitlement(unittest.TestCase):
                 self.assertEqual(client.get('/api/v1/live-stoppages').status_code,200)
                 client.cookies.set('corner_session',auth.issue_token('fixture-signing-secret',other['id'],'wonya'))
                 self.assertEqual(client.get('/api/v1/live-stoppages?premium=true&username=wonya').status_code,403)
+                with patch('corner.beta_access.decorate', side_effect=lambda db,row: {**row,'beta_cohort':'friend','beta_role':'member','beta_access_kind':'paid_beta','beta_founder':False,'beta_friend_rates':None}):
+                    self.assertEqual(client.get('/api/v1/live-stoppages').status_code,200)
+                self.assertEqual(client.get('/api/v1/live-stoppages').status_code,403)
                 client.cookies.set('corner_session',auth.issue_token('wrong-secret',owner['id'],'wonya'))
                 self.assertEqual(client.get('/api/v1/live-stoppages').status_code,401)
             finally:store.close()
