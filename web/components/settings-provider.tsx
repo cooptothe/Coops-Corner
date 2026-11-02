@@ -12,6 +12,7 @@ import {
   savePresetRequest,
   saveToolSettings,
 } from "../lib/settings-api";
+import { userTabStorage } from "../lib/user-storage";
 import { SettingsStore } from "../lib/settings-store";
 import { Splash } from "./auth-provider";
 
@@ -36,7 +37,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let live = true;
     loadSettings().then(
-      (data) => live && setStore(new SettingsStore(data, api)),
+      (data) =>
+        live && setStore(new SettingsStore(data, api, null, userTabStorage)),
       () =>
         live &&
         setStore(
@@ -44,6 +46,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             null,
             api,
             "Your saved settings could not be loaded, so changes here are not being saved.",
+            userTabStorage,
           ),
         ),
     );

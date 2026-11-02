@@ -50,3 +50,23 @@ export const userStorage = {
     if (s && owner) s.removeItem(scoped(key));
   },
 };
+
+// sessionStorage is copied on tab duplication, then evolves independently.
+// Scope by account as well, so switching accounts cannot expose another setup.
+export const userTabStorage = {
+  getItem(key: string): string | null {
+    try {
+      return owner && typeof sessionStorage !== "undefined"
+        ? sessionStorage.getItem(scoped(key))
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem(key: string, value: string): void {
+    try {
+      if (owner && typeof sessionStorage !== "undefined")
+        sessionStorage.setItem(scoped(key), value);
+    } catch {}
+  },
+};

@@ -133,3 +133,66 @@ describe("settings store", () => {
     assert.equal(store.get("props"), undefined);
   });
 });
+
+describe("independent tab filter sessions", () => {
+  const storage = () => {
+    const values = new Map<string, string>();
+    return {
+      getItem: (k: string) => values.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        values.set(k, v);
+      },
+    };
+  };
+  it("keeps different filters and active presets across reloads despite shared account saves", () => {
+    const { api } = fakeApi();
+    const a = storage(),
+      b = storage();
+    const initial = { tools: { props: { minEv: "1" } }, presets: {} };
+    const first = new SettingsStore(initial, api, null, a),
+      second = new SettingsStore(initial, api, null, b);
+    assert.deepEqual(second.get("props"), { minEv: "1" });
+    first.put("props", { minEv: "3" });
+    first.setActivePreset("props", "high-edge");
+    second.put("props", { minEv: "0.5" });
+    second.setActivePreset("props", "wide");
+    first.flush();
+    second.flush();
+    const server = { tools: { props: { minEv: "0.5" } }, presets: {} };
+    const reloadedFirst = new SettingsStore(server, api, null, a),
+      reloadedSecond = new SettingsStore(server, api, null, b);
+    assert.deepEqual(reloadedFirst.get("props"), { minEv: "3" });
+    assert.equal(reloadedFirst.activePreset("props"), "high-edge");
+    assert.deepEqual(reloadedSecond.get("props"), { minEv: "0.5" });
+    assert.equal(reloadedSecond.activePreset("props"), "wide");
+    assert.deepEqual(
+      new SettingsStore(server, api, null, storage()).get("props"),
+      { minEv: "0.5" },
+    );
+  });
+  it("pins unchanged tabs and default-only tabs while tolerating unavailable storage", () => {
+    const { api } = fakeApi();
+    const tab = storage();
+    assert.equal(new SettingsStore(null, api, null, tab).get("ev"), undefined);
+    assert.equal(
+      new SettingsStore(
+        { tools: { ev: { sport: "nba" } }, presets: {} },
+        api,
+        null,
+        tab,
+      ).get("ev"),
+      undefined,
+    );
+    const denied = {
+      getItem: () => {
+        throw Error("denied");
+      },
+      setItem: () => {
+        throw Error("denied");
+      },
+    };
+    const fallback = new SettingsStore(null, api, null, denied);
+    assert.doesNotThrow(() => fallback.put("ev", { sport: "nba" }));
+    fallback.flush();
+  });
+});

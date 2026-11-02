@@ -10,8 +10,8 @@ import { canon, type SettingsStore } from "../lib/settings-store";
 import type { Preset, Settings } from "../lib/settings-api";
 import { useSettingsStore } from "./settings-provider";
 
-// A tool's filter state, kept for the signed-in account:
-//  - restored from the account's saved settings when the page opens (so leaving and coming back changes nothing),
+// A tool's filter state, isolated by signed-in account and browser tab:
+//  - restored from this tab first, with account settings as a new-tab default,
 //  - saved a moment after every change,
 //  - with named presets and a reset to the tool's defaults.
 // The page keeps its own useState values; it only describes them as `snapshot` and knows how to `apply` them back.
@@ -297,7 +297,9 @@ export function SettingsBar({ controls }: { controls: ToolSettingsControls }) {
       </div>
       <div className="settings-notes" aria-live="polite">
         {!c.syncError && !error && (
-          <small>Changes save to your account automatically.</small>
+          <small>
+            Filters stay in this tab. Presets are shared across your account.
+          </small>
         )}
         {c.modified && c.active && !error && (
           <small>Changed since “{c.active.name}” was saved.</small>
