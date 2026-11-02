@@ -9,11 +9,11 @@ def main():
     for key,value in dotenv_values('/srv/corner/config/staging.env').items():
         if value is not None:os.environ[key]=value
     import psycopg2
-    from config import DB_CONFIG
     from api.database import read_source
     conn=None;started=time.monotonic()
     try:
-        conn=psycopg2.connect(**DB_CONFIG,connect_timeout=5,options='-c statement_timeout=15000')
+        login={name:os.environ[key] for name,key in {'host':'DB_HOST','port':'DB_PORT','dbname':'DB_NAME','user':'DB_USER','password':'DB_PASSWORD'}.items()}
+        conn=psycopg2.connect(**login,connect_timeout=5,options='-c statement_timeout=15000')
         conn.set_session(readonly=True,isolation_level='REPEATABLE READ')
         rows,participants=read_source(conn,now=datetime.now(timezone.utc),max_age=timedelta(minutes=30))
         print(json.dumps(dict(result='main_quote_read_passed',seconds=round(time.monotonic()-started,3),quote_rows=len(rows),participant_rows=len(participants),provider_calls=0)))

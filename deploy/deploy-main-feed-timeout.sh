@@ -11,7 +11,9 @@ sudo -u postgres .venv-api/bin/python - <<'PY'
 import os,sys,unittest
 os.environ['CORNER_TEST_DATABASE']='1'
 sys.path.insert(0,'tests')
-import config
+import types
+config=types.ModuleType('config')
+sys.modules['config']=config
 config.DB_CONFIG={'host':'/var/run/postgresql','port':5432,'dbname':'corner_staging','user':'postgres'}
 suite=unittest.defaultTestLoader.loadTestsFromName('tests.test_indexed_quote_postgres')
 result=unittest.TextTestRunner(verbosity=1).run(suite)
