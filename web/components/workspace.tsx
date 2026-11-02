@@ -421,17 +421,6 @@ export default function Workspace({ view }: { view: View }) {
             <LiveSwitch enabled={showingLive} onChange={setLiveMode} />
           )}
           {!showingLive && <FeedGuide view={view} />}
-          {!showingLive && bootError && data && (
-            <div role="status" className="arb-alert">
-              <span>Updates delayed. Showing the last loaded prices.</span>
-              <button
-                className="button secondary"
-                onClick={() => setReload((v) => v + 1)}
-              >
-                Retry update
-              </button>
-            </div>
-          )}
           {showingLive ? (
             <PremiumLiveFeed
               key={`${view}:${user?.id}`}
@@ -767,7 +756,19 @@ export default function Workspace({ view }: { view: View }) {
                   ? `${data.meta.data_mode === "database" ? "Newest stored quote" : "Fixture captured"} ${date(data.meta.captured_at)} · Not a live refresh`
                   : "No snapshot loaded"}
             </span>
-            <span>Exact inputs. Transparent calculations.</span>
+            {!showingLive && bootError && data ? (
+              <span role="status">
+                Update delayed ·{" "}
+                <button
+                  className="text-button"
+                  onClick={() => setReload((v) => v + 1)}
+                >
+                  Retry
+                </button>
+              </span>
+            ) : (
+              <span>Exact inputs. Transparent calculations.</span>
+            )}
           </footer>
         </main>
       </div>

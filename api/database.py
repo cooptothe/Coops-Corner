@@ -7,6 +7,9 @@ contract is skipped rather than guessed.
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import logging
+import json
+import sqlite3
+from contextlib import closing
 import os
 import threading
 import time
@@ -67,6 +70,45 @@ LEFT JOIN corner.participants p ON p.id = o.selected_participant_id
 LEFT JOIN corner.quote_links ql ON ql.outcome_id = q.outcome_id AND ql.sportsbook_id = q.sportsbook_id
 WHERE e.scheduled_start > %(now)s AND q.observed_at >= %(oldest)s AND q.decimal_odds > 1
 """
+# Bound PostgreSQL probes to the current scheduler's event/book/market/point
+# inventory, rather than every historical line of every upcoming event.
+SCOPED_QUOTE_SQL = QUOTE_SQL.replace(
+    'SELECT e.id AS event_id,', 'SELECT scope.external_id AS source_event_id, e.id AS event_id,'
+).replace('FROM corner.events e', """FROM jsonb_to_recordset(%(scopes)s::jsonb) AS scope(
+    external_id text, book_code text, market_code text, point numeric, captured_at timestamptz)
+JOIN corner.event_provider_identities epi ON epi.external_id=scope.external_id AND epi.active
+  AND epi.provider_id=(SELECT id FROM corner.providers WHERE code='the_odds_api')
+JOIN corner.events e ON e.id=epi.event_id""").replace(
+    'JOIN corner.sportsbooks b ON b.active', 'JOIN corner.sportsbooks b ON b.active AND b.code=scope.book_code'
+).replace(
+    "WHERE e.scheduled_start >", "WHERE mt.code=scope.market_code AND o.point IS NOT DISTINCT FROM scope.point\n  AND q.observed_at=scope.captured_at AND e.scheduled_start >"
+)
+
+
+def current_quote_scopes(path, now):
+    """Read only current, nonexpired line identities; never fabricate quote data."""
+    stamp=now.timestamp()
+    with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=3)) as db:
+        rows=db.execute("SELECT event_id,book,market,captured_at,payload FROM snapshots WHERE kind IN ('main','additional') AND expires_at>? AND starts_at>? AND source_at>? AND captured_at>?",(stamp,stamp,stamp-1800,stamp-1800))
+        scopes={}
+        reverse={value:key for key,value in MARKET_KEYS.items()}
+        for event,book,market,captured,payload in rows:
+            code=reverse.get(market)
+            if code is None or not supported_book(book):continue
+            for outcome in json.loads(payload).get('market',{}).get('outcomes',[]):
+                point=outcome.get('point')
+                if point is not None:
+                    try:
+                        point=Decimal(str(point))
+                        if not point.is_finite():continue
+                        point=str(point)
+                    except (ValueError,ArithmeticError):continue
+                key=(event,book,code,point)
+                scopes[key]=dict(external_id=event,book_code=book,market_code=code,
+                                 point=point,captured_at=datetime.fromtimestamp(captured,timezone.utc).isoformat())
+        return list(scopes.values())
+
+
 PARTICIPANT_SQL = """
 SELECT ep.event_id, ep.role, p.display_name
 FROM corner.event_participants ep JOIN corner.participants p ON p.id = ep.participant_id
@@ -259,10 +301,12 @@ def read_source(conn, *, now, max_age, cache=None):
         return rows, cache['participants']
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         query=QUOTE_SQL
-        if scheduled_store_path() is not None:
-            query=query.replace('SELECT e.id AS event_id,','SELECT epi.external_id AS source_event_id, e.id AS event_id,')
-            query=query.replace('WHERE e.scheduled_start', "LEFT JOIN corner.event_provider_identities epi ON epi.event_id=e.id AND epi.active AND epi.provider_id=(SELECT id FROM corner.providers WHERE code='the_odds_api')\nWHERE e.scheduled_start")
-        cur.execute(query, dict(market_codes=list(MARKET_KEYS), now=now, oldest=oldest))
+        parameters=dict(market_codes=list(MARKET_KEYS), now=now, oldest=oldest)
+        path=scheduled_store_path()
+        if path is not None:
+            query=SCOPED_QUOTE_SQL
+            parameters['scopes']=json.dumps(current_quote_scopes(path,now),separators=(',',':'))
+        cur.execute(query, parameters)
         rows = cur.fetchall()
         events = sorted({r['event_id'] for r in rows})
         participants = []
