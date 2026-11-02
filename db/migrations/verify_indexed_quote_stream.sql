@@ -18,6 +18,8 @@ BEGIN
       ORDER BY observed_at DESC,id DESC LIMIT 1;
     FOREACH state_name IN ARRAY ARRAY['active','suspended','unavailable'] LOOP
         stamp := stamp + interval '1 second';
+        INSERT INTO corner.quote_states(code,display_name) VALUES(state_name,initcap(state_name))
+          ON CONFLICT(code) DO NOTHING;
         SELECT id INTO STRICT expected_state FROM corner.quote_states WHERE code=state_name;
         INSERT INTO corner.odds_observations
           (provider_payload_id,provider_id,outcome_id,sportsbook_id,quote_state_id,
