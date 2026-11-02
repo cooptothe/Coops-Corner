@@ -165,3 +165,44 @@ test("live links remain available after kickoff, including calculator legs and c
   );
   assert.match(missing, /No FanDuel link/);
 });
+
+test("an open saved calculator retains validated links after the quote disappears or starts", () => {
+  const html = render(
+    <BetLinkButton
+      links={fanduel}
+      bookLabel="FanDuel"
+      startsAt={past}
+      unavailable
+      allowRetained
+    />,
+  );
+  assert.match(html, /href="https:\/\/sportsbook\.fanduel\.com\/addToBetslip/);
+  assert.doesNotMatch(html, /disabled/);
+  const legs = render(
+    <LegLinks
+      startsAt={past}
+      unavailable
+      allowRetained
+      legs={[{ links: fanduel, bookLabel: "FanDuel", label: "Over" }]}
+    />,
+  );
+  assert.match(legs, /Bet on FanDuel/);
+  const invalid = render(
+    <BetLinkButton
+      links={{ outcome: "javascript:alert(1)" }}
+      bookLabel="FanDuel"
+      unavailable
+      allowRetained
+    />,
+  );
+  assert.doesNotMatch(invalid, /href=/);
+  const needsState = render(
+    <BetLinkButton
+      links={betmgm}
+      bookLabel="BetMGM"
+      unavailable
+      allowRetained
+    />,
+  );
+  assert.match(needsState, /Choose your state/);
+});

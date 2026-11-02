@@ -40,6 +40,7 @@ export function BetLinkButton({
   stake,
   startsAt,
   unavailable = false,
+  allowRetained = false,
   compact = false,
   picker = true,
 }: {
@@ -50,6 +51,8 @@ export function BetLinkButton({
   startsAt?: string | null;
   // The latest update dropped this bet.
   unavailable?: boolean;
+  // An open calculator may keep its last validated sportsbook link.
+  allowRetained?: boolean;
   // A small arrow for table rows; renders nothing when there is nothing to open.
   compact?: boolean;
   // Show the state selector here when the link needs a state. Off when the caller shows one for several buttons.
@@ -61,7 +64,9 @@ export function BetLinkButton({
     [links, state, stake],
   );
   const live = useContext(LiveBetLinks);
-  const block = linkBlock(live ? null : startsAt, unavailable);
+  const block = allowRetained
+    ? null
+    : linkBlock(live ? null : startsAt, unavailable);
 
   if (compact) {
     if (block || !resolved.url || !resolved.kind) return null;
@@ -155,6 +160,7 @@ export function LegLinks({
   legs,
   startsAt,
   unavailable = false,
+  allowRetained = false,
 }: {
   legs: {
     links?: QuoteLinks | null;
@@ -164,6 +170,8 @@ export function LegLinks({
   }[];
   startsAt?: string | null;
   unavailable?: boolean;
+  // An open calculator may keep its last validated sportsbook link.
+  allowRetained?: boolean;
 }) {
   const { state } = useBettingPrefs();
   const needsState = legs.some(
@@ -179,6 +187,7 @@ export function LegLinks({
           stake={l.stake}
           startsAt={startsAt}
           unavailable={unavailable}
+          allowRetained={allowRetained}
           picker={false}
         />
       ))}

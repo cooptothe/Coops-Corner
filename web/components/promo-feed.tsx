@@ -849,6 +849,7 @@ function Calculator({
                 ]}
                 startsAt={vm.startsAt}
                 unavailable={shift === "dropped"}
+                allowRetained={shift === "dropped"}
               />
               <PlacedNote state={exposure} />
               <LogBetButton

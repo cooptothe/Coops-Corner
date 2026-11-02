@@ -91,7 +91,7 @@ export function KellyWidget({
   unavailable = false,
 }: {
   onLogged: () => void;
-  // The update that just ran dropped this bet: show it as gone and do not allow logging it.
+  // Keep the open bet actionable using its last saved details after it leaves the feed.
   unavailable?: boolean;
   vm: KellyVm | null;
   bankroll: string;
@@ -167,10 +167,10 @@ export function KellyWidget({
         <>
           {unavailable && (
             <div role="alert" className="arb-alert">
-              <strong>This bet is no longer available.</strong>
+              <strong>No longer in the feed.</strong>
               <span>
-                The latest update dropped it. The numbers below are its last
-                prices.
+                Showing its last saved price. You can still open the sportsbook
+                and record your bet. Confirm the accepted odds there.
               </span>
             </div>
           )}
@@ -257,13 +257,14 @@ export function KellyWidget({
             stake={result ? fixed(result.stake, 2) : undefined}
             startsAt={vm.startsAt}
             unavailable={unavailable}
+            allowRetained={unavailable}
           />
           <PlacedNoteFor leg={vm} />
           <LogBetButton
             placed={placed}
             legs={legs}
             resetKey={vm.id}
-            disabled={!result || unavailable}
+            disabled={!result}
             onLogged={onLogged}
           />
         </>

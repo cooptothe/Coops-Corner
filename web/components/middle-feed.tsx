@@ -157,9 +157,7 @@ function toVm(
     capital,
     best: Number(row.calculation.payoff.maximum_modeled_profit),
     worst: Number(row.minimum_profit),
-    window: ranges
-      .map(([a, b]) => `${a ?? "−∞"}–${b ?? "∞"}`)
-      .join(", "),
+    window: ranges.map(([a, b]) => `${a ?? "−∞"}–${b ?? "∞"}`).join(", "),
     width,
     states: row.calculation.payoff.states.map((s): [string, number] => [
       stateLabel(s.state_id),
@@ -427,6 +425,7 @@ function Calculator({
             }))}
             startsAt={vm.startsAt}
             unavailable={shift === "dropped"}
+            allowRetained={shift === "dropped"}
           />
           <PlacedNote state={exposure} />
           <LogBetButton
