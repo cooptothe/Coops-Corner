@@ -18,6 +18,10 @@ for attempt in $(seq 1 90); do
 done
 [ "$ready" -eq 1 ] || { sudo journalctl -u corner-staging-api -n 25 --no-pager; exit 1; }
 sudo systemctl start corner-live-odds.timer corner-live-odds.service
+if ! timeout 120s .venv-api/bin/python -m pipelines.main_feed_http_probe; then
+  sudo journalctl -u corner-staging-api --since "3 minutes ago" -n 35 --no-pager
+  echo 'Authenticated feed check failed. Share this output; collection remains running.'
+fi
 .venv-api/bin/python -m pipelines.collection_health
 sudo journalctl -u corner-collection.service --since "2 minutes ago" -n 10 --no-pager
 git log -1 --oneline
