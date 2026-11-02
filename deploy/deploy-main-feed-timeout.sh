@@ -6,19 +6,9 @@ cd /srv/corner/app
 .venv-api/bin/python -m unittest tests.test_indexed_quote_lookup tests.test_database_catalog tests.test_performance_paths tests.test_feed_speed
 sudo systemctl stop corner-staging-api
 sudo -u postgres psql -X -p 5432 -d corner_staging -v ON_ERROR_STOP=1 \
-  -f db/migrations/017_corner_indexed_trusted_quote_stream.sql
-sudo -u postgres .venv-api/bin/python - <<'PY'
-import os,sys,unittest
-os.environ['CORNER_TEST_DATABASE']='1'
-sys.path.insert(0,'tests')
-import types
-config=types.ModuleType('config')
-sys.modules['config']=config
-config.DB_CONFIG={'host':'/var/run/postgresql','port':5432,'dbname':'corner_staging','user':'postgres'}
-suite=unittest.defaultTestLoader.loadTestsFromName('tests.test_indexed_quote_postgres')
-result=unittest.TextTestRunner(verbosity=1).run(suite)
-raise SystemExit(0 if result.wasSuccessful() else 1)
-PY
+  < db/migrations/017_corner_indexed_trusted_quote_stream.sql
+sudo -u postgres psql -X -p 5432 -d corner_staging -v ON_ERROR_STOP=1 \
+  < db/migrations/verify_indexed_quote_stream.sql
 timeout 30s .venv-api/bin/python -m pipelines.main_feed_profile
 pnpm --dir web test
 # Idempotent if the previously authorized full-budget policy is already deployed.
