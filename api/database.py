@@ -286,38 +286,64 @@ def publication_revision(path):
         return None  # Older workers keep the original PostgreSQL fingerprint.
 
 
-def read_source(conn, *, now, max_age, cache=None):
-    """The quote and participant rows. `cache` (a dict the caller keeps) holds the last read.
+def _scope_key(row):
+    point=row.get('point')
+    return (row.get('external_id',row.get('source_event_id')),row['book_code'],
+            row['market_code'],None if point is None else _num(point))
 
-    While the fingerprint is unchanged the stored rows are reused: the only inputs that still move are the two time
-    cut-offs, and they only ever remove rows, so they are applied again here instead of re-running the 1.5 s view.
-    """
+
+def read_source(conn, *, now, max_age, cache=None):
+    """Refresh changed scheduler scopes; revalidate time and withdrawals on reuse."""
     import psycopg2.extras
-    oldest = now - max_age
-    mark = publication_revision(scheduled_store_path()) if cache is not None else None
+    oldest=now-max_age
+    path=scheduled_store_path()
+    mark=publication_revision(path) if cache is not None else None
     if mark is None and cache is not None:mark=fingerprint(conn)
-    if mark is not None and cache.get('mark') == mark and time.monotonic() - cache['at'] < SOURCE_MAX_AGE_SECONDS:
-        rows = [r for r in cache['rows'] if r['scheduled_start'] > now and r['observed_at'] >= oldest]
-        return rows, cache['participants']
+    tick=time.monotonic()
+    full_at=min(cache.get('full_at',cache.get('at',0)),cache.get('at',0)) if cache else 0
+    full_due=not cache or tick-full_at>=SOURCE_MAX_AGE_SECONDS
+    if not full_due and mark is not None and cache.get('mark')==mark:
+        rows=[r for r in cache['rows'] if r['scheduled_start']>now and r['observed_at']>=oldest]
+        cache['queried_scopes']=0
+        cache['reused_quotes']=len(rows)
+        return rows,cache['participants']
+
+    scopes=current_quote_scopes(path,now) if path is not None else None
+    retained=[]
+    if scopes is not None and cache is not None and not full_due:
+        signatures=cache.get('scope_signatures',{})
+        current={_scope_key(row):row['captured_at'] for row in scopes}
+        retained=[row for row in cache.get('rows',[]) if
+                  signatures.get(_scope_key(row))==current.get(_scope_key(row))
+                  and _scope_key(row) in current and row['scheduled_start']>now
+                  and row['observed_at']>=oldest]
+        scopes=[row for row in scopes if signatures.get(_scope_key(row))!=row['captured_at']]
+
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        query=QUOTE_SQL
-        parameters=dict(market_codes=list(MARKET_KEYS), now=now, oldest=oldest)
-        path=scheduled_store_path()
-        if path is not None:
-            query=SCOPED_QUOTE_SQL
-            parameters['scopes']=json.dumps(current_quote_scopes(path,now),separators=(',',':'))
-        cur.execute(query, parameters)
-        rows = cur.fetchall()
-        events = sorted({r['event_id'] for r in rows})
-        participants = []
+        rows=[]
+        if scopes is None or scopes:
+            parameters=dict(market_codes=list(MARKET_KEYS),now=now,oldest=oldest)
+            if scopes is not None:parameters['scopes']=json.dumps(scopes,separators=(',',':'))
+            cur.execute(SCOPED_QUOTE_SQL if scopes is not None else QUOTE_SQL,parameters)
+            rows=cur.fetchall()
+        rows=retained+rows
+        events=sorted({row['event_id'] for row in rows})
+        participants=[]
         if events:
-            cur.execute(PARTICIPANT_SQL, dict(events=[str(e) for e in events]))
-            participants = cur.fetchall()
+            cur.execute(PARTICIPANT_SQL,dict(events=[str(e) for e in events]))
+            participants=cur.fetchall()
     if cache is not None:
+        # Only successful quote rows certify a scope. A capture awaiting SQL
+        # publication must be retried after ACK even if its scope is unchanged.
+        signatures={_scope_key(row):row['observed_at'].astimezone(timezone.utc).isoformat() for row in rows
+                    if row.get('source_event_id') is not None}
         cache.clear()
         if mark is not None:
-            cache.update(mark=mark, at=time.monotonic(), rows=rows, participants=participants)
-    return rows, participants
+            cache.update(mark=mark,at=tick,full_at=tick if full_due else full_at,
+                         rows=rows,participants=participants,scope_signatures=signatures,
+                         queried_scopes=len(scopes) if scopes is not None else None,
+                         reused_quotes=len(retained))
+    return rows,participants
 
 
 def load_raw(conn, *, now, max_age, references, targets, cache=None):

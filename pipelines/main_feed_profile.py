@@ -15,8 +15,12 @@ def main():
         login={name:os.environ[key] for name,key in {'host':'DB_HOST','port':'DB_PORT','dbname':'DB_NAME','user':'DB_USER','password':'DB_PASSWORD'}.items()}
         conn=psycopg2.connect(**login,connect_timeout=5,options='-c statement_timeout=15000')
         conn.set_session(readonly=True,isolation_level='REPEATABLE READ')
-        rows,participants=read_source(conn,now=datetime.now(timezone.utc),max_age=timedelta(minutes=30))
-        print(json.dumps(dict(result='main_quote_read_passed',seconds=round(time.monotonic()-started,3),quote_rows=len(rows),participant_rows=len(participants),provider_calls=0)))
+        cache={}
+        for stage in ('cold','warm'):
+            started=time.monotonic()
+            rows,participants=read_source(conn,now=datetime.now(timezone.utc),max_age=timedelta(minutes=30),cache=cache)
+            print(json.dumps(dict(result='main_quote_read_passed',stage=stage,seconds=round(time.monotonic()-started,3),quote_rows=len(rows),participant_rows=len(participants),queried_scopes=cache.get('queried_scopes'),reused_quotes=cache.get('reused_quotes'),provider_calls=0)),flush=True)
+            conn.rollback()
         return 0
     except Exception as error:
         print(json.dumps(dict(result='main_quote_read_failed',error_type=type(error).__name__,sqlstate=getattr(error,'pgcode',None),seconds=round(time.monotonic()-started,3),provider_calls=0)))
