@@ -28,6 +28,23 @@ class LiveProducts(unittest.TestCase):
                 for ref in calc['reference_books']:
                     self.assertTrue(set(ref['quote_ids'])<=quotes.keys())
                 self.assertTrue(calc['devig_comparisons'])
+    def test_tiny_live_edge_is_serialized_as_plain_decimal_for_browser(self):
+        from dataclasses import replace
+        from decimal import Decimal
+        from corner.featured_ev import calculate_featured_ev
+        def tiny(*args, **kwargs):
+            return replace(calculate_featured_ev(*args, **kwargs),
+                           conditional_ev_ratio_on_capital=Decimal('1E-8'))
+        with patch('corner.live_tools.calculate_featured_ev', side_effect=tiny):
+            # Use a distinct event to avoid an earlier cached analysis.
+            source=event(self.books()); source['id']='tiny-edge-regression'
+            items=opportunities(source)
+        rows=[c for c in items if c['kind']=='ev']
+        self.assertTrue(rows)
+        for c in rows:
+            self.assertEqual(c['tool_row']['conditional_ev_ratio'],'0.00000001')
+            self.assertNotIn('E',c['ev_percent'])
+
     def test_middle_adapter_keeps_payoff_states_and_actual_side_lines(self):
         a=block('totals');b=block('totals')
         for o in a['outcomes']:o['point']=200.5

@@ -39,7 +39,7 @@ test("empty props, including a legacy bets-only response, retain safe feed metad
   }
 });
 test("scientific Decimal output is expanded exactly before sorting or formatting", () => {
-  assert.throws(() => compareDecimal("0E-28", "0"), /Invalid decimal/);
+  assert.equal(compareDecimal("0E-28", "0"), 0);
   for (const [value, plain] of [
     ["0E-28", "0"],
     ["1.234567890123456789E-7", "0.0000001234567890123456789"],

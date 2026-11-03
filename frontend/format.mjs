@@ -5,9 +5,14 @@ export const TITLES = {positive_ev:'Positive EV',arbitrage:'Arbitrage',middle:'M
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function parts(value) {
-  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(String(value));
-  if (!match || String(value).length > 120) throw new Error('Invalid decimal value');
-  return {negative:match[1] === '-', digits:BigInt(match[2] + (match[3] || '')), places:(match[3] || '').length};
+  const text = String(value);
+  const match = /^(-?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d{1,3}))?$/.exec(text);
+  if (!match || text.length > 120) throw new Error('Invalid decimal value');
+  let places = (match[3] || '').length - Number(match[4] || 0);
+  if (Math.abs(places) > 120) throw new Error('Invalid decimal value');
+  let digits = BigInt(match[2] + (match[3] || ''));
+  if (places < 0) { digits *= 10n ** BigInt(-places); places = 0; }
+  return {negative:match[1] === '-', digits, places};
 }
 export function shiftDecimal(value, shift) {
   const p = parts(value); let scale = p.places - shift; let digits = p.digits.toString();

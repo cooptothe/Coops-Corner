@@ -48,9 +48,9 @@ def _analyze(encoded: str, devig_method: str) -> list[dict[str, Any]]:
             'id': 'live:'+digest([candidate['kind'],ids]), 'game_id':event['id'],
             'contract_id':calculation.contract_id, 'market_key':candidate['market'],
             'kind':'positive_ev' if candidate['kind']=='ev' else candidate['kind'],
-            'quote_ids':ids,'sportsbook_ids':sorted({o.sportsbook_id for o in offers}),'capital_required':str(capital),
-            'minimum_profit':None if minimum is None else str(minimum),
-            'conditional_ev_ratio':None if ev_ratio is None else str(ev_ratio),
+            'quote_ids':ids,'sportsbook_ids':sorted({o.sportsbook_id for o in offers}),'capital_required':format(capital, 'f'),
+            'minimum_profit':None if minimum is None else format(minimum, 'f'),
+            'conditional_ev_ratio':None if ev_ratio is None else format(ev_ratio, 'f'),
             'oldest_observed_at':datetime.fromtimestamp(candidate['expires_at']-90,timezone.utc).isoformat(),
             'calculation':wire(calculation)}
         needed=set(ids)
@@ -102,9 +102,9 @@ def _analyze(encoded: str, devig_method: str) -> list[dict[str, Any]]:
             except ToolInputError: continue
             if ev.conditional_ev_ratio_on_capital > 0:
                 attach({'kind':'ev','market':key,'line':line,'selection':target.selection_id,
-                    'book':target.sportsbook_id,'decimal_odds':str(target.decimal_odds),
-                    'fair_probability':str(ev.conditional_fair_probability),
-                    'ev_percent':str(ev.conditional_ev_ratio_on_capital*100),'reference_books':list(books),'expires_at':min(source_times.values())+90}, ev, [target], ev.capital_at_risk, ev_ratio=ev.conditional_ev_ratio_on_capital)
+                    'book':target.sportsbook_id,'decimal_odds':format(target.decimal_odds, 'f'),
+                    'fair_probability':format(ev.conditional_fair_probability, 'f'),
+                    'ev_percent':format(ev.conditional_ev_ratio_on_capital*100, 'f'),'reference_books':list(books),'expires_at':min(source_times.values())+90}, ev, [target], ev.capital_at_risk, ev_ratio=ev.conditional_ev_ratio_on_capital)
         if executable and set(o.selection_id for o in executable)==set(selections):
             cover = calculate_back_cover(matched,executable,total_stake=D(100))
             if len({leg.sportsbook_id for leg in cover.legs}) == 1:
@@ -120,7 +120,7 @@ def _analyze(encoded: str, devig_method: str) -> list[dict[str, Any]]:
                 if alternatives: cover=max(alternatives,key=lambda c:c.minimum_decisive_profit)
             if cover.minimum_decisive_profit>0 and len({leg.sportsbook_id for leg in cover.legs})>1:
                 attach({'kind':'arbitrage','market':key,'line':line,
-                    'profit_per_100':str(cover.minimum_decisive_profit),'refund_possible':refund,'expires_at':min(source_times.values())+90,
+                    'profit_per_100':format(cover.minimum_decisive_profit, 'f'),'refund_possible':refund,'expires_at':min(source_times.values())+90,
                     'legs':[{'book':leg.sportsbook_id,'selection':leg.selection_id,'decimal_odds':str(leg.decimal_odds),'stake':str(leg.stake)} for leg in cover.legs]}, cover, cover.legs, cover.total_stake, cover.minimum_modeled_profit)
     for (first,at),(second,bt) in combinations(line_bets,2):
         if (first.contract_id!=second.contract_id or first.side==second.side or first.sportsbook_id==second.sportsbook_id or abs(at-bt)>MAX_SKEW): continue
@@ -131,8 +131,8 @@ def _analyze(encoded: str, devig_method: str) -> list[dict[str, Any]]:
         if middle.double_win_ranges:
             attach({'kind':'middle','market':first.market_key,
                 'window':list(middle.double_win_ranges),'expires_at':min(at,bt)+90,
-                'worst_profit_per_100':str(middle.payoff.minimum_modeled_profit),
-                'best_profit_per_100':str(middle.payoff.maximum_modeled_profit),
+                'worst_profit_per_100':format(middle.payoff.minimum_modeled_profit, 'f'),
+                'best_profit_per_100':format(middle.payoff.maximum_modeled_profit, 'f'),
                 'legs':[{'book':b.sportsbook_id,'selection':b.side,'line':str(b.line),'decimal_odds':str(b.decimal_odds),'stake':str(b.stake)} for b in (first,second)]}, middle, (first,second), first.stake+second.stake, middle.payoff.minimum_modeled_profit)
     for candidate in result:
         candidate.update(availability_verified=False,game_state_verified=False,
