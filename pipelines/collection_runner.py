@@ -118,6 +118,13 @@ class Runner:
             return {'state': 'paused', 'executed': 0}
         if not open_now(now):
             return {'state': 'after_hours', 'executed': 0}
+        if hasattr(self.g,'storage_available') and not self.g.storage_available(self.now()):
+            return {'state':'storage_low','executed':0}
+        if hasattr(self.g,'_binding'):
+            binding=self.g._binding(self.g.db,self.now())
+            from corner.collection_policy import TOTAL,PROTECTED
+            if binding['used']>=TOTAL-PROTECTED:
+                return {'state':'quota_exhausted','executed':0}
         row = self.g.db.execute('SELECT * FROM runner_inventory WHERE id=1').fetchone()
         if row['retry_at'] > now.timestamp():
             return {'state': 'discovery_backoff', 'executed': 0}
@@ -151,6 +158,8 @@ class Runner:
         if self.live_jobs:
             jobs += [job for job in self.live_jobs(self.now(),inventory) if self.job_filter(job)]
             jobs.sort(key=lambda j:j.key)
+        if hasattr(self.g,'configure_deadline_pacing'):
+            self.g.configure_deadline_pacing(jobs,self.owner,self.now())
         # Persist a round-robin cursor so a restart cannot starve later events.
         jobs = [j for j in jobs if j.key > row['cursor']] + [j for j in jobs if j.key <= row['cursor']]
         # Give overdue live scopes a bounded share of each tick, while retaining

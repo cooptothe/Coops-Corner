@@ -43,7 +43,7 @@ class Policy(unittest.TestCase):
         self.assertIn('betonlineag',PROP_STANDARD)
 
     def test_central_boundaries_and_dst(self):
-        for day in ('2026-10-16','2026-11-01','2027-03-14'):
+        for day in ('2026-10-16','2026-11-01','2026-03-08'):
             import pytz
             zone=pytz.timezone('America/Chicago')
             self.assertFalse(open_now(zone.localize(datetime.fromisoformat(day+'T05:59:59'))))
@@ -55,8 +55,11 @@ class Policy(unittest.TestCase):
         with self.assertRaises(ValueError): open_now(datetime(2026,10,16))
 
     def test_props_bands_and_main_floor(self):
-        for seconds, expected in [(900,60),(7200,60),(7201,60),(14400,90),(14401,120),(21600,120),(21601,180),(43200,240),(43201,300)]:
-            for group in ('standard','exchange'):
+        for group,edges in {
+            'standard':[(900,60),(7200,60),(14400,60),(14401,90),(21600,90),(21601,180),(43200,300),(43201,600)],
+            'exchange':[(900,20),(1801,40),(3601,60),(14400,60),(14401,90),(21600,90),(21601,180),(43200,300),(43201,600)]
+        }.items():
+            for seconds,expected in edges:
                 self.assertEqual(interval('props',group,NOW,NOW+timedelta(seconds=seconds)),expected)
         self.assertEqual(interval('main','standard',NOW),900)
         self.assertEqual(interval('main','exchange',NOW),900)

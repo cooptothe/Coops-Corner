@@ -56,7 +56,7 @@ def status(path=STATE):
         if integrity!='ok' or not paused or len(policy)!=1 or len(binding)!=1:
             raise SetupError('Initial ledger must be intact, bound once and paused.')
         version,limits,total,reserve=policy[0]
-        if version!=BUDGET_VERSION or json.loads(limits)!=POOLS or total!=TOTAL or reserve!=PROTECTED:
+        if version!=BUDGET_VERSION or set(json.loads(limits))!=set(POOLS) or sum(json.loads(limits).values())!=TOTAL-PROTECTED or total!=TOTAL or reserve!=PROTECTED:
             raise SetupError('Ledger budget policy differs; stop and review.')
         cycle=db.execute('SELECT starts,ends FROM cycles WHERE id=?',(binding[0][0],)).fetchone()
         paid=db.execute('SELECT count(*) FROM dispatches').fetchone()[0]

@@ -1,0 +1,120 @@
+{
+  "as_of_utc": "2026-11-04T20:00:00Z",
+  "spending_deadline_utc": "2026-11-21T06:00:00Z",
+  "provider_cycle_end_utc": "2026-12-01T00:00:00Z",
+  "used": 755877,
+  "remaining": 14244123,
+  "initial_pool_limits": {
+    "main": 5500000,
+    "props": 9500000,
+    "metadata": 0,
+    "history": 0
+  },
+  "protected_reserve": 0,
+  "remaining_regular_hours": 298,
+  "target_credits_per_regular_hour": 47799.07,
+  "target_credits_per_full_day": 860383,
+  "planned_total_by_deadline": 15000000,
+  "planned_post_deadline_holdback": 0,
+  "maximum_modeled_future_demand": {
+    "main": 1462236,
+    "props": 18797520
+  },
+  "daily_maximum_demand": {
+    "2026-11-04": {
+      "props": 540480,
+      "main": 41946
+    },
+    "2026-11-05": {
+      "props": 805920,
+      "main": 114270
+    },
+    "2026-11-07": {
+      "props": 2711840,
+      "main": 144720
+    },
+    "2026-11-08": {
+      "props": 1317680,
+      "main": 93564
+    },
+    "2026-11-09": {
+      "props": 742800,
+      "main": 70422
+    },
+    "2026-11-11": {
+      "props": 964800,
+      "main": 72510
+    },
+    "2026-11-12": {
+      "props": 749760,
+      "main": 78774
+    },
+    "2026-11-14": {
+      "props": 1584400,
+      "main": 71814
+    },
+    "2026-11-15": {
+      "props": 1145840,
+      "main": 69552
+    },
+    "2026-11-16": {
+      "props": 729360,
+      "main": 70422
+    },
+    "2026-11-18": {
+      "props": 944000,
+      "main": 64158
+    },
+    "2026-11-19": {
+      "props": 856000,
+      "main": 98088
+    },
+    "2026-11-06": {
+      "props": 1668560,
+      "main": 138456
+    },
+    "2026-11-10": {
+      "props": 785520,
+      "main": 69552
+    },
+    "2026-11-13": {
+      "props": 840720,
+      "main": 69552
+    },
+    "2026-11-17": {
+      "props": 868320,
+      "main": 68856
+    },
+    "2026-11-20": {
+      "props": 1541520,
+      "main": 125580
+    }
+  },
+  "remaining_event_counts": {
+    "nfl": 30,
+    "ncaaf": 107,
+    "nba": 128,
+    "ncaab": 917,
+    "wncaab": 892,
+    "nhl": 112,
+    "mls": 15,
+    "epl": 10,
+    "laliga": 11,
+    "bundesliga": 10,
+    "seriea": 10,
+    "ligue1": 10,
+    "ucl": 7
+  },
+  "schedule_queries": 420,
+  "schedule_errors": 0,
+  "schedule_sha256": "d3cc2342602dbc96edde282c3365fc70bedbeee24bf1f615429d453a977283c4",
+  "constraints": [
+    "Capacity is an upper-demand scenario: every listed prop market and both book blocks charged on every source-floor request.",
+    "Actual returned-market costs are learned from verified charge headers, and all request ceilings remain reserved before HTTP.",
+    "Core model is 6am\u2013midnight Central. Overnight tennis/soccer and live/additional are not required to make the modeled demand exceed remaining quota.",
+    "The runtime reports source_capacity_limited when its currently eligible slate cannot productively use the hourly target at source floors; future schedule demand is not proof of real coverage.",
+    "Pool splits rebalance with audit records without decreasing accounted charges/reservations or changing the global 15M limit.",
+    "No budget is retained for Nov 21\u201330; the actual provider cycle and all old accounting remain intact."
+  ],
+  "provider_calls": 0
+}

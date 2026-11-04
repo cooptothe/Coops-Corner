@@ -14,8 +14,8 @@ from corner.collection_policy import CENTRAL, STANDARD, EXCHANGE, Job, aware, op
 
 CONFIG = Path('/srv/corner/config/live-odds.json')
 REQUEST = Path('/srv/corner/config/live-queue/request.json')
-MONTHLY_CAP = 3_000_000  # Sub-limit WITHIN the existing main pool; never additional credits.
-DAILY_CAP = 150_000
+MONTHLY_CAP = 15_000_000  # Shared deadline governor and hard main/global reservations are authoritative.
+DAILY_CAP = 15_000_000
 FRESH_SECONDS = 90
 MARKETS = ('h2h', 'spreads', 'totals')
 
@@ -49,9 +49,11 @@ def jobs(now: datetime, inventory: dict[str, Any]) -> list[Job]:
     # /events includes in-play events. Time alone is a candidate, NOT proof of play.
     sports = {e['sport_key'] for e in [*inventory.get('events', []), *inventory.get('live_events', [])]
               if supported(e['sport_key']) and now-timedelta(hours=12) <= parse(e['commence_time']) <= now}
+    from corner.collection_policy import job_allowed
     return [Job('live', sport, group, books, MARKETS)
             for sport in sorted(sports)
-            for group, books in (('standard', STANDARD), ('exchange', EXCHANGE))]
+            for group, books in (('standard', STANDARD), ('exchange', EXCHANGE))
+            if job_allowed(Job('live',sport,group,books,MARKETS),now)]
 
 def store(db: sqlite3.Connection, job: Job, payload: Any, now: datetime) -> None:
     """Called inside the existing quota settlement transaction, no pregame writes."""

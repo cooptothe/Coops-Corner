@@ -10,7 +10,7 @@ import time
 
 import requests
 
-from corner.collection_policy import SPORTS, aware, open_now, parse, supported
+from corner.collection_policy import SPORTS, aware, open_now, job_allowed, parse, supported
 from corner.credit_governor import Refused, RequestNotSent
 
 BASE='https://api.the-odds-api.com/v4/sports'
@@ -93,14 +93,15 @@ class Provider:
 
     def _odds_once(self,governor,job,token,owner):
         job.validate();now=self.gate()
+        if not job_allowed(job,now): raise Refused('Outside permitted job window')
         if not SAFE.fullmatch(job.sport) or job.event_id and not SAFE.fullmatch(job.event_id):
             raise Refused('Invalid provider path identity')
         if job.group=='exchange' and not self.exchange_verified and not self.budgeted_pregame:
             raise Refused('Exchange acquisition requires explicit budgeted-profile approval')
         if self.budgeted_pregame:
-            from corner.collection_policy import interval
-            if job.kind != 'live' and interval(job.kind, job.group, now, parse(job.starts_at) if job.starts_at else None) < 60:
-                raise Refused('Budgeted pregame cadence cannot be faster than 60 seconds')
+            from corner.collection_policy import interval, provider_floor
+            if job.kind != 'live' and interval(job.kind, job.group, now, parse(job.starts_at) if job.starts_at else None) < provider_floor(job.kind, job.group):
+                raise Refused('Budgeted pregame cadence cannot be faster than the provider floor')
         # Reservations are one dispatch only, not a reusable permit.
         with governor.transaction() as db:
             governor._fence(db,owner,now.timestamp())

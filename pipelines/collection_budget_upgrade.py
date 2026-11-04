@@ -20,15 +20,24 @@ def upgrade(g,now,quota,identity):
         row=db.execute('SELECT b.*,p.version,p.limits_json,p.total,p.protected FROM quota_bindings b JOIN cycles c ON c.id=b.cycle_id JOIN quota_policy p ON p.cycle_id=b.cycle_id WHERE c.starts<=? AND c.ends>?',(now.timestamp(),now.timestamp())).fetchone()
         if not row or row['key_hash']!=identity:raise Refused('Current binding and unchanged credential required')
         if db.execute("SELECT 1 FROM attempts WHERE state!='settled' OR actual IS NULL UNION ALL SELECT 1 FROM quota_inventory WHERE state!='settled' OR actual IS NULL").fetchone():raise Refused('Resolve uncertain requests before policy upgrade')
-        if row['version']==BUDGET_VERSION:
-            if json.loads(row['limits_json'])!=POOLS or row['protected']!=PROTECTED:raise Refused('Unexpected existing policy')
-            return row['cycle_id']
-        if row['version']!='pregame-lab-history-100k-v1' or json.loads(row['limits_json'])!=OLD_POOLS or row['total']!=TOTAL or row['protected']!=1500000:raise Refused('Reviewed prior policy required')
+        prior=json.loads(row['limits_json'])
         used=quota['provider_used'];remaining=quota['provider_remaining']
         amounts=g.accounted(db,row['cycle_id'])
-        if (type(used) is not int or type(remaining) is not int or used<row['used'] or used+remaining!=TOTAL or remaining<=0 or sum(amounts.values())!=used or any(v>POOLS[k] for k,v in amounts.items())):raise Refused('Fresh quota must match preserved accounting and new pool limits')
-        db.execute('UPDATE quota_policy SET version=?,limits_json=?,protected=? WHERE cycle_id=?',(BUDGET_VERSION,json.dumps(POOLS,sort_keys=True),PROTECTED,row['cycle_id']))
-        g._audit(db,now,'full-budget-policy-approved','Owner explicitly requested all credits available; no rollover savings or protected holdback',{'cycle':row['cycle_id'],'old_limits':OLD_POOLS,'new_limits':POOLS,'old_protected':1500000,'new_protected':PROTECTED,'verified_used':used})
+        if (type(used) is not int or type(remaining) is not int or used<row['used'] or used+remaining!=TOTAL or remaining<=0 or sum(amounts.values())!=used
+            or any(type(v) is not int or v<0 for v in amounts.values())):
+            raise Refused('Fresh quota must match preserved accounting; free discovery/history allocations must have no spend')
+        if row['version']==BUDGET_VERSION:
+            g.pool_limits(db,row['cycle_id'])
+            return row['cycle_id']
+        valid_old=(row['version']=='pregame-lab-history-100k-v1' and prior==OLD_POOLS and row['protected']==1500000)
+        valid_full=(row['version']=='full-quota-main-props-live-v2' and prior=={'main':7500000,'props':7400000,'metadata':100000,'history':0} and row['protected']==0)
+        if not (valid_old or valid_full) or row['total']!=TOTAL:
+            raise Refused('Reviewed prior policy required')
+        other=amounts.get('metadata',0)+amounts.get('history',0)
+        main=min(max(POOLS['main'],amounts.get('main',0)),TOTAL-other-amounts.get('props',0))
+        limits={'main':main,'props':TOTAL-other-main,'metadata':amounts.get('metadata',0),'history':amounts.get('history',0)}
+        db.execute('UPDATE quota_policy SET version=?,limits_json=?,protected=? WHERE cycle_id=?',(BUDGET_VERSION,json.dumps(limits,sort_keys=True),PROTECTED,row['cycle_id']))
+        g._audit(db,now,'full-budget-policy-approved','Owner requested all usable quota by Nov 20; no post-deadline holdback',{'cycle':row['cycle_id'],'old_limits':prior,'new_limits':limits,'old_protected':row['protected'],'new_protected':PROTECTED,'verified_used':used})
         return row['cycle_id']
 
 def main():
@@ -48,7 +57,7 @@ def main():
         with maintenance_lock(exclusive=True):
             quota=onboarding.verify_key(values['ODDS_API_KEY']);now=datetime.now(timezone.utc)
             g=LiveGovernor(STATE);cycle=upgrade(g,now,quota,key_identity(values['ODDS_API_KEY']))
-            print(json.dumps(dict(result='full_quota_policy_ready',cycle_id=cycle,pools=POOLS,protected_reserve=PROTECTED,paid_odds_calls=0,accounting_preserved=True)))
+            print(json.dumps(dict(result='full_quota_policy_ready',cycle_id=cycle,pools=g.pool_limits(g.db,cycle),protected_reserve=PROTECTED,paid_odds_calls=0,accounting_preserved=True)))
         return 0
     except Exception as error:
         print(json.dumps(dict(result='refused',reason=str(error) if isinstance(error,Refused) else 'Budget upgrade preflight failed',error_type=type(error).__name__,paid_odds_calls=0)))

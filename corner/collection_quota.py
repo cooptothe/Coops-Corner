@@ -35,6 +35,8 @@ class LiveGovernor(Governor):
             raise ValueError('Live quota cannot use simulation state')
         super().__init__(path)
         self.db.executescript('''
+          CREATE TABLE IF NOT EXISTS deadline_pacing_state(id INTEGER PRIMARY KEY CHECK(id=1),payload TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS deadline_charge_samples(job_key TEXT PRIMARY KEY,actual REAL NOT NULL,reserved REAL NOT NULL,updated REAL NOT NULL);
           CREATE TABLE IF NOT EXISTS collection_quarantine(
             job_key TEXT PRIMARY KEY REFERENCES jobs(key), token TEXT NOT NULL,
             created REAL NOT NULL, code TEXT NOT NULL, detail TEXT NOT NULL);
@@ -57,7 +59,74 @@ class LiveGovernor(Governor):
             evidence TEXT NOT NULL, detail TEXT NOT NULL);
         ''')
 
+    def storage_available(self,now):
+        import shutil
+        prior=getattr(self,'_storage_check',None)
+        if prior and 0<=now.timestamp()-prior[0]<10:return prior[1]
+        try:available=shutil.disk_usage(self.path.parent).free>=1024**3
+        except OSError:available=False
+        self._storage_check=(now.timestamp(),available)
+        return available
+
+    def pool_limits(self,db,cycle):
+        row=db.execute('SELECT version,limits_json,total,protected FROM quota_policy WHERE cycle_id=?',(cycle,)).fetchone()
+        if row is None:return POOLS  # Unbound test/offline ledgers cannot authorize HTTP.
+        limits=json.loads(row[1])
+        if (row[0]!=BUDGET_VERSION or row[2]!=TOTAL or row[3]!=PROTECTED or set(limits)!=set(POOLS)
+            or any(type(v) is not int or v<0 for v in limits.values()) or sum(limits.values())!=TOTAL-PROTECTED
+            ):
+            raise Refused('Invalid managed budget policy; no automatic reset')
+        return limits
+
+    def configure_deadline_pacing(self,jobs,owner,now):
+        from corner.deadline_pacing import active,plan,forecast_day_weights
+        if not active(now):return
+        from datetime import datetime,timezone
+        from corner.collection_policy import job_allowed
+        jobs=[j for j in jobs if job_allowed(j,now)]
+        all_keys=frozenset(j.key for j in jobs)
+        prior=getattr(self,'_deadline_pacing',{})
+        if 0<=now.timestamp()-prior.get('checked_at',0)<60 and getattr(self,'_deadline_all_keys',None)==all_keys:return
+        excluded={row[0] for row in self.db.execute('SELECT job_key FROM collection_quarantine')}
+        excluded.update(row[0] for row in self.db.execute('SELECT job_key FROM collection_retry_cooldowns WHERE retry_after>?',(now.timestamp(),)))
+        jobs=[j for j in jobs if j.key not in excluded]
+        with self.transaction() as db:
+            self._fence(db,owner,now.timestamp())
+            binding=self._binding(db,now);cycle=binding['cycle_id']
+            end=db.execute('SELECT ends FROM cycles WHERE id=?',(cycle,)).fetchone()[0]
+            amounts=self.accounted(db,cycle);remaining=max(0,TOTAL-PROTECTED-sum(amounts.values()))
+            from corner.collection_policy import CENTRAL,additional_limits
+            day=now.astimezone(CENTRAL).date().isoformat()
+            known={(row[0],row[1]) for row in db.execute('SELECT sport,event_id FROM additional_events WHERE day=?',(day,))}
+            event_limit,credit_limit=additional_limits(now,datetime.fromtimestamp(end,timezone.utc))
+            spent=db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0) FROM attempts a JOIN additional_attempts x ON x.token=a.token WHERE x.day=?',(day,)).fetchone()[0]
+            candidates=sorted({(j.starts_at,j.sport,j.event_id) for j in jobs if j.kind=='additional' and (j.sport,j.event_id) not in known})
+            admitted=known|{(sport,event) for _,sport,event in candidates[:max(0,event_limit-len(known))]}
+            jobs=[j for j in jobs if j.kind!='additional' or ((j.sport,j.event_id) in admitted and spent+j.cost<=credit_limit)]
+            samples={row['job_key']:dict(row) for row in db.execute('SELECT * FROM deadline_charge_samples WHERE updated>?',(now.timestamp()-86400,))}
+            if not hasattr(self,'_deadline_day_weights'):self._deadline_day_weights=forecast_day_weights()
+            pacing=plan(now,datetime.fromtimestamp(end,timezone.utc),jobs,remaining,samples,self._deadline_day_weights)
+            old=self.pool_limits(db,cycle);rates=pacing['pool_rates'];demand=sum(rates.values())
+            if demand and remaining:
+                main=int(remaining*rates['main']/demand)
+                minimum={p:max((j.cost for j in jobs if j.pool==p),default=0) for p in ('main','props')}
+                if remaining>=sum(minimum.values()):
+                    main=max(minimum['main'],min(remaining-minimum['props'],main))
+                limits={'main':amounts.get('main',0)+main,'props':amounts.get('props',0)+remaining-main,'metadata':amounts.get('metadata',0),'history':amounts.get('history',0)}
+                # Already-spent and outstanding reservations are included in amounts.
+                if any(abs(limits[k]-old[k])>=25000 for k in limits) or any(old[j.pool]-amounts.get(j.pool,0)<j.cost for j in jobs):
+                    db.execute('UPDATE quota_policy SET limits_json=? WHERE cycle_id=?',(json.dumps(limits,sort_keys=True),cycle))
+                    self._audit(db,now,'deadline-pool-transfer','Owner authorized using all usable quota by Nov 20',{'old':old,'new':limits,'accounted':amounts})
+            pacing['pool_limits']=self.pool_limits(db,cycle)
+            db.execute('INSERT INTO deadline_pacing_state VALUES(1,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload',(json.dumps(pacing,separators=(',',':')),))
+        self._deadline_pacing=pacing
+        self._deadline_all_keys=all_keys
+
     def configure_live_pacing(self,inventory,owner,now):
+        from corner.deadline_pacing import active
+        if active(now):
+            self._live_pacing={}
+            return
         from corner.live_pacing import plan
         from corner.live_odds import MONTHLY_CAP,DAILY_CAP
         from corner.collection_policy import CENTRAL
@@ -70,7 +139,7 @@ class LiveGovernor(Governor):
         day=now.astimezone(CENTRAL).date().isoformat()
         spent=self.db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0),coalesce(sum(CASE WHEN l.day=? THEN coalesce(a.actual,a.reserved) ELSE 0 END),0) FROM attempts a JOIN live_attempts l ON l.token=a.token WHERE a.cycle_id=?',(day,binding['cycle_id'])).fetchone()
         amounts=self.accounted(self.db,binding['cycle_id'])
-        available=min(POOLS['main']-amounts.get('main',0),TOTAL-PROTECTED-sum(amounts.values()))
+        available=min(self.pool_limits(self.db,binding['cycle_id'])['main']-amounts.get('main',0),TOTAL-PROTECTED-sum(amounts.values()))
         pacing=plan(now,datetime.fromtimestamp(end,timezone.utc),inventory,spent_month=spent[0],spent_today=spent[1],monthly_cap=MONTHLY_CAP,daily_cap=DAILY_CAP,available_main=available)
         with self.transaction() as db:
             self._fence(db,owner,now.timestamp())
@@ -78,12 +147,16 @@ class LiveGovernor(Governor):
         self._live_pacing=pacing
 
     def period(self,job,now):
+        from corner.deadline_pacing import active
+        if active(now):return getattr(self,'_deadline_pacing',{}).get('interval_seconds',{}).get(job.key,86400)
         if job.kind=='live':
             if getattr(self,'_live_pacing',None):return self._live_pacing['interval_seconds'][job.group]
             return 60 # fail conservative until the worker computes its live budget plan
         return super().period(job,now)
 
     def ready(self, job, now):
+        from corner.deadline_pacing import active
+        if active(now) and (job.key not in getattr(self,'_deadline_pacing',{}).get('interval_seconds',{}) or getattr(self,'_deadline_pacing',{}).get('remaining',0)<job.cost):return False
         if job.kind=='live' and getattr(self,'_live_pacing',{}).get('remaining_today_paced',job.cost)<job.cost:
             return False
         if self.db.execute('SELECT 1 FROM collection_retry_cooldowns WHERE job_key=? AND retry_after>?',(job.key,now.timestamp())).fetchone():
@@ -93,6 +166,10 @@ class LiveGovernor(Governor):
         return super().ready(job, now)
 
     def claim(self, job, owner, now):
+        if not self.storage_available(now):raise Refused('Low storage: no new paid request authorized')
+        from corner.deadline_pacing import active
+        if active(now) and (job.key not in getattr(self,'_deadline_pacing',{}).get('interval_seconds',{}) or getattr(self,'_deadline_pacing',{}).get('remaining',0)<job.cost):
+            raise Refused('Fresh deadline pacing required before purchases')
         if job.kind=='live' and getattr(self,'_live_pacing',{}).get('remaining_today_paced',job.cost)<job.cost:
             raise Refused('Live pacing allowance is exhausted; existing pool and reserve remain protected')
         if self.db.execute('SELECT 1 FROM collection_retry_cooldowns WHERE job_key=? AND retry_after>?',(job.key,now.timestamp())).fetchone():
@@ -152,8 +229,9 @@ class LiveGovernor(Governor):
         if row is None:
             raise Refused('No bound provider billing cycle')
         policy=db.execute('SELECT version,limits_json,total,protected FROM quota_policy WHERE cycle_id=?',(row['cycle_id'],)).fetchone()
-        if not policy or policy[0]!=BUDGET_VERSION or json.loads(policy[1])!=POOLS or policy[2]!=TOTAL or policy[3]!=PROTECTED:
+        if not policy or policy[0]!=BUDGET_VERSION or policy[2]!=TOTAL or policy[3]!=PROTECTED:
             raise Refused('Budget policy missing or changed; explicit review required, never reset the cycle')
+        self.pool_limits(db,row['cycle_id'])
         return row
 
     def authorize(self, owner, now, key_hash, *, inventory=False):
@@ -172,8 +250,6 @@ class LiveGovernor(Governor):
             if sum(amounts.values()) >= TOTAL - PROTECTED or TOTAL - row['used'] <= PROTECTED:
                 raise Refused('Protected reserve reached')
             if inventory:
-                if amounts.get('metadata', 0) >= POOLS['metadata']:
-                    raise Refused('Metadata pool exhausted')
                 token = secrets.token_hex(24)
                 db.execute("INSERT INTO quota_inventory VALUES(?,?,?,?, 'inflight',NULL)",
                            (token, row['cycle_id'], owner, now.timestamp()))
@@ -184,7 +260,7 @@ class LiveGovernor(Governor):
         used, remaining, actual = quota_headers(headers)
         if used != row['used'] + actual:
             raise Refused('Provider quota drift; no automatic baseline adjustment')
-        if remaining <= PROTECTED:
+        if remaining < PROTECTED:
             raise Refused('Provider protected reserve reached')
         db.execute('UPDATE quota_bindings SET used=?,checked=? WHERE cycle_id=?',
                    (used, now.timestamp(), row['cycle_id']))
@@ -240,6 +316,9 @@ class LiveGovernor(Governor):
                 reason = str(error)
                 db.execute('UPDATE controls SET paused=? WHERE id=1', (reason,))
             actual = quota_headers(headers)[2] if not reason else None
+            if actual is not None:
+                db.execute('INSERT INTO deadline_charge_samples VALUES(?,?,?,?) ON CONFLICT(job_key) DO UPDATE SET actual=actual*0.9+excluded.actual,reserved=reserved*0.9+excluded.reserved,updated=excluded.updated',
+                           (job.key,actual,job.cost,now.timestamp()))
             self._audit(db, now, 'odds-response', 'provider response',
                         {'token': token, 'reason': reason, 'actual': actual,
                          'http_status': status, 'charge_verified': not bool(reason)})
@@ -313,7 +392,7 @@ class LiveGovernor(Governor):
             if used < binding['used']:
                 raise Refused('Quota went backwards; verify billing cycle, never reset automatically')
             old_offsets = json.loads(binding['offsets'])
-            if set(offsets) != set(POOLS) or any(type(v) is not int or v < old_offsets[k] or v > POOLS[k] for k, v in offsets.items()):
+            if set(offsets) != set(POOLS) or any(type(v) is not int or v < old_offsets[k] or v > self.pool_limits(db,binding['cycle_id'])[k] for k, v in offsets.items()):
                 raise Refused('External usage allocations cannot decrease or exceed pool limits')
             changed = []
             for table, values in (('attempts', settlements), ('quota_inventory', inventory)):
@@ -330,7 +409,17 @@ class LiveGovernor(Governor):
             db.execute('UPDATE quota_bindings SET offsets=?,used=?,checked=? WHERE cycle_id=?',
                        (json.dumps(offsets), used, now.timestamp(), binding['cycle_id']))
             amounts = self.accounted(db, binding['cycle_id'])
-            if sum(amounts.values()) != used or any(v > POOLS[k] for k, v in amounts.items()):
+            limits=self.pool_limits(db,binding['cycle_id'])
+            # Explicit reconciliation can retain an unexpected verified inventory
+            # charge without creating a paid metadata allowance or resetting use.
+            for pool in ('metadata','history'):
+                extra=max(0,amounts.get(pool,0)-limits[pool])
+                for donor in ('main','props'):
+                    moved=min(extra,max(0,limits[donor]-amounts.get(donor,0)))
+                    limits[donor]-=moved;limits[pool]+=moved;extra-=moved
+                if extra:raise Refused('No allocation headroom for verified inventory charge')
+            db.execute('UPDATE quota_policy SET limits_json=? WHERE cycle_id=?',(json.dumps(limits,sort_keys=True),binding['cycle_id']))
+            if sum(amounts.values()) != used or any(v > limits[k] for k, v in amounts.items()):
                 raise Refused('Ledger/pool allocation does not match verified provider usage')
             self._audit(db, now, 'reconcile', evidence,
                         {'cycle': binding['cycle_id'], 'used': used, 'offsets': offsets,
@@ -349,7 +438,7 @@ class LiveGovernor(Governor):
             if db.execute("SELECT 1 FROM attempts WHERE state IN ('unknown','inflight')").fetchone() or db.execute("SELECT 1 FROM quota_inventory WHERE state IN ('unknown','inflight')").fetchone():
                 raise Refused('Unresolved requests prohibit resume')
             amounts = self.accounted(db, row['cycle_id'])
-            if sum(amounts.values()) != row['used'] or row['used'] >= TOTAL - PROTECTED or any(v > POOLS[k] for k, v in amounts.items()):
+            if sum(amounts.values()) != row['used'] or row['used'] >= TOTAL - PROTECTED or any(v > self.pool_limits(db,row['cycle_id'])[k] for k, v in amounts.items()):
                 raise Refused('Quota reconciliation or reserve check failed')
             # Do not replay missed ticks or invent a successful capture.
             db.execute("UPDATE jobs SET state='idle' WHERE state='blocked'")

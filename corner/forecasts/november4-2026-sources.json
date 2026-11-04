@@ -1,0 +1,39 @@
+{
+  "checked_at": "2026-11-04T20:02:02.777806+00:00",
+  "queries": 420,
+  "errors": [],
+  "leagues": {
+    "nfl": "football/nfl",
+    "ncaaf": "football/college-football",
+    "nba": "basketball/nba",
+    "ncaab": "basketball/mens-college-basketball",
+    "wncaab": "basketball/womens-college-basketball",
+    "wnba": "basketball/wnba",
+    "mlb": "baseball/mlb",
+    "nhl": "hockey/nhl",
+    "mls": "soccer/usa.1",
+    "epl": "soccer/eng.1",
+    "laliga": "soccer/esp.1",
+    "bundesliga": "soccer/ger.1",
+    "seriea": "soccer/ita.1",
+    "ligue1": "soccer/fra.1",
+    "ucl": "soccer/uefa.champions"
+  },
+  "counts": {
+    "nfl": 58,
+    "ncaaf": 148,
+    "nba": 204,
+    "ncaab": 1497,
+    "wncaab": 1447,
+    "wnba": 0,
+    "mlb": 0,
+    "nhl": 198,
+    "mls": 15,
+    "epl": 31,
+    "laliga": 30,
+    "bundesliga": 27,
+    "seriea": 30,
+    "ligue1": 27,
+    "ucl": 27
+  }
+}

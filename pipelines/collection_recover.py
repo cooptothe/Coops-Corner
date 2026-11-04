@@ -50,7 +50,7 @@ def repair_missing_settled_charge(g, now, quota, *, accept_single_delta=False):
                 raise Refused('Saved response charge contradicts the proposed settlement')
         after = dict(before)
         after[row['pool']] += actual-row['reserved']
-        if sum(after.values()) != used or any(p not in POOLS or v>POOLS[p] for p,v in after.items()):
+        if sum(after.values()) != used or any(p not in POOLS or v>g.pool_limits(db,binding['cycle_id'])[p] for p,v in after.items()):
             raise Refused('Restored settlement must match quota and every pool limit')
         db.execute("UPDATE attempts SET actual=? WHERE token=? AND state='settled' AND actual IS NULL", (actual,row['token']))
         g._audit(db,now,'settled-charge-restored','Exclusive-key fresh provider total identifies the sole missing settlement',

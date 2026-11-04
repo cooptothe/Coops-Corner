@@ -7,7 +7,7 @@ from tests.test_collection_adapters import event, NOW
 
 class RevisedScheduleTests(unittest.TestCase):
     def test_exact_bands(self):
-        for seconds, expected in [(1,60),(7200,60),(7201,60),(14400,90),(14401,120),(21600,120),(21601,180),(43201,300)]:
+        for seconds, expected in [(1,60),(7200,60),(7201,60),(14400,60),(14401,90),(21600,90),(21601,180),(43201,600)]:
             self.assertEqual(interval('props','standard',NOW,NOW+timedelta(seconds=seconds)),expected)
         self.assertEqual(interval('main','standard',NOW),900)
         self.assertEqual(interval('additional','standard',NOW),60)

@@ -11,7 +11,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 
-from corner.collection_policy import CENTRAL, POOLS, TOTAL, PROTECTED, aware, interval, open_now, parse, snapshot_max_age, additional_limits
+from corner.collection_policy import CENTRAL, POOLS, TOTAL, PROTECTED, aware, interval, open_now, job_allowed, parse, snapshot_max_age, additional_limits
 
 
 class Refused(ValueError):
@@ -131,12 +131,15 @@ class Governor:
                 raise Refused('Unresolved request; lease must expire conservatively')
             db.execute('UPDATE lease SET until_at=0 WHERE id=1 AND owner=?',(owner,))
 
+    def pool_limits(self,db,cycle):
+        return POOLS
+
     def period(self,job,now):
         return interval(job.kind,job.group,now,parse(job.starts_at) if job.starts_at else None)
 
     def claim(self,job,owner,now):
         job.validate();now=aware(now);stamp=now.timestamp()
-        if not open_now(now): raise Refused('After Hours: no collection')
+        if not job_allowed(job,now): raise Refused('Outside permitted collection window')
         if job.starts_at and not now < parse(job.starts_at): raise Refused('Event started')
         if job.starts_at and parse(job.starts_at)>now+timedelta(hours=24): raise Refused('Event outside 24-hour horizon')
         period=self.period(job,now)
@@ -171,7 +174,7 @@ class Governor:
                 day_used = db.execute('SELECT coalesce(sum(coalesce(a.actual,a.reserved)),0) FROM attempts a JOIN live_attempts l ON l.token=a.token WHERE a.cycle_id=? AND l.day=?',(cycle[0],day)).fetchone()[0]
                 if month_used+job.cost>MONTHLY_CAP or day_used+job.cost>DAILY_CAP: raise Refused('Premium live sub-limit')
             sums=self.accounted(db,cycle[0])
-            if sums.get(job.pool,0)+job.cost>POOLS[job.pool]: raise Refused('Pool limit')
+            if sums.get(job.pool,0)+job.cost>self.pool_limits(db,cycle[0])[job.pool]: raise Refused('Pool limit')
             if sum(sums.values())+job.cost>TOTAL-PROTECTED: raise Refused('Protected reserve')
             token=secrets.token_hex(24)
             db.execute("INSERT INTO jobs(key,next_due,state,last_started) VALUES(?,?,'inflight',?) ON CONFLICT(key) DO UPDATE SET next_due=excluded.next_due,state='inflight',last_started=excluded.last_started,last_error=''",(job.key,stamp+period,stamp))
@@ -185,7 +188,7 @@ class Governor:
     def ready(self,job,now):
         job.validate()
         now=aware(now)
-        if not open_now(now) or job.starts_at and parse(job.starts_at)<=now: return False
+        if not job_allowed(job,now) or job.starts_at and parse(job.starts_at)<=now: return False
         period=self.period(job,now)
         row=self.db.execute('SELECT * FROM jobs WHERE key=?',(job.key,)).fetchone()
         return not row or row['state']=='idle' and row['last_started']+period<=now.timestamp()
@@ -321,7 +324,7 @@ class Governor:
         cycles=[]
         for cycle in self.db.execute('SELECT * FROM cycles ORDER BY starts'):
             amounts=self.accounted(self.db,cycle['id'])
-            cycles.append({'id':cycle['id'],'accounted':amounts,'remaining_pools':{k:v-amounts.get(k,0) for k,v in POOLS.items()}})
+            cycles.append({'id':cycle['id'],'accounted':amounts,'remaining_pools':{k:v-amounts.get(k,0) for k,v in self.pool_limits(self.db,cycle['id']).items()}})
         return {'cycles':cycles,'paused':self.db.execute('SELECT paused FROM controls WHERE id=1').fetchone()[0],
                 'unknown_attempts':self.db.execute("SELECT count(*) FROM attempts WHERE state='unknown'").fetchone()[0],
                 'snapshot_count':self.db.execute('SELECT count(*) FROM snapshots').fetchone()[0]}

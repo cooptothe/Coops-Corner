@@ -41,7 +41,7 @@ class PacingTests(unittest.TestCase):
 
     def test_main_and_prop_intervals_are_unchanged(self):
         self.assertEqual(interval('main','standard',NOW,NOW+timedelta(hours=1)),60)
-        self.assertEqual(interval('props','exchange',NOW,NOW+timedelta(hours=1)),60)
+        self.assertEqual(interval('props','exchange',NOW,NOW+timedelta(hours=1)),40)
 
 class LiveLedgerPacing(unittest.TestCase):
     setUp=fixture.LiveTests.setUp

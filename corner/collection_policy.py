@@ -18,15 +18,15 @@ EXCHANGE = ('novig','betfair_ex_uk','prophetx','kalshi','betopenly','polymarket_
 PROP_EXCHANGE = tuple(book for book in EXCHANGE if not book.startswith('betfair_ex_'))
 ALL_BOOKS = STANDARD + EXCHANGE
 ALL_BOOKS_PROFILE = 'all-books-pregame-v1'
-CADENCE_VERSION = 'november-budgeted-countdown-v2'
+CADENCE_VERSION = 'nov20-deadline-countdown-v4'
 PROP_STANDARD = BASE_STANDARD + ('williamhill_us','fanatics','betonlineag','bovada')
 SPORTS = ('americanfootball_nfl','americanfootball_ncaaf','basketball_nba','basketball_ncaab',
           'baseball_mlb','icehockey_nhl','soccer_usa_mls','soccer_epl','soccer_spain_la_liga',
           'soccer_germany_bundesliga','soccer_italy_serie_a','soccer_france_ligue_one',
           'soccer_uefa_champs_league','basketball_wnba','basketball_wncaab',
           'tennis_atp','tennis_wta','mma_mixed_martial_arts')
-BUDGET_VERSION = 'full-quota-main-props-live-v2'
-POOLS = {'main':7_500_000, 'props':7_400_000, 'metadata':100_000, 'history':0}
+BUDGET_VERSION = 'nov20-shared-quota-v3'
+POOLS = {'main':5_500_000, 'props':9_500_000, 'metadata':0, 'history':0}
 TOTAL = 15_000_000
 PROTECTED = 0
 TRANSIENT_HTTP_STATUSES = frozenset({408, 425, 429, 500, 502, 503, 504})
@@ -45,7 +45,21 @@ def parse(value):
 
 
 def open_now(now):
-    return 6 <= aware(now).astimezone(CENTRAL).hour < 22
+    now=aware(now)
+    from corner.deadline_pacing import START,END
+    if START<=now<END:return True  # Free discovery stays available overnight.
+    if now>=END:return False  # No implicit spending beyond the owner's deadline.
+    return 6 <= now.astimezone(CENTRAL).hour < 22
+
+
+def job_allowed(job,now):
+    now=aware(now)
+    if not open_now(now):return False
+    from corner.deadline_pacing import active
+    if not active(now) or now.astimezone(CENTRAL).hour>=6:return True
+    if not job.sport.startswith(('tennis_','soccer_')):return False
+    if job.kind=='live':return True
+    return bool(job.starts_at and now<parse(job.starts_at)<=now+timedelta(hours=2))
 
 
 def supported(sport):
@@ -55,9 +69,22 @@ def supported(sport):
 # Upper seconds until start, then minimum seconds between requests.
 COUNTDOWN_BANDS = {
     'main': ((7200, 60), (10800, 90), (14400, 120), (21600, 180), (28800, 300), (43200, 600), (86400, 900)),
-    'props': ((10800, 60), (14400, 90), (21600, 120), (28800, 180), (43200, 240), (86400, 300)),
+    'props': ((14400, 60), (21600, 90), (28800, 180), (43200, 300), (86400, 600)),
     'additional': ((600, 60), (1200, 90), (1800, 120), (2700, 180), (3600, 240), (5400, 480), (7200, 600)),
 }
+# Exchanges have their own provider update cycle. Additional-market admission
+# keeps its reviewed shared bands and daily credit ceiling.
+EXCHANGE_COUNTDOWN_BANDS = {
+    'main': ((21600,20),(28800,60),(43200,120),(86400,300)),
+    'props': ((1800,20),(3600,40),(14400,60),(21600,90),(28800,180),(43200,300),(86400,600)),
+}
+
+
+def provider_floor(kind, group):
+    if kind == 'live': return 10 if group == 'exchange' else 40
+    return 20 if group == 'exchange' else 60
+
+
 # Upper bound includes a possible immediate poll at every band transition.
 ADDITIONAL_POLLS_PER_GROUP = sum(
     math.ceil((upper-(COUNTDOWN_BANDS['additional'][i-1][0] if i else 0))/period)+1
@@ -67,15 +94,15 @@ ADDITIONAL_POLLS_PER_GROUP = sum(
 def interval(kind, group, now, starts=None):
     """Provider-aligned bands; unknown main starts use a quiet 15-minute board poll."""
     remaining = (aware(starts)-aware(now)).total_seconds() if starts is not None else None
-    if kind == 'live': return 40 if group == 'standard' else 10
+    if kind == 'live': return provider_floor(kind, group)
     if remaining is None:
         if kind == 'main': return 900
         if kind == 'additional': return 60
         raise ValueError('Upcoming event start required')
     if kind == 'props' and remaining <= 0:
         raise ValueError('Upcoming event start required')
-    bands = COUNTDOWN_BANDS[kind]
-    return next((period for upper,period in bands if remaining <= upper), bands[-1][1])
+    bands = EXCHANGE_COUNTDOWN_BANDS.get(kind, COUNTDOWN_BANDS[kind]) if group == 'exchange' else COUNTDOWN_BANDS[kind]
+    return max(provider_floor(kind, group), next((period for upper,period in bands if remaining <= upper), bands[-1][1]))
 
 
 def additional_limits(cycle_start, cycle_end):
@@ -153,7 +180,9 @@ def plan(now, active_keys, events, *, additional=False):
         if now < start <= now + timedelta(hours=24):
             sport = event['sport_key']
             league_starts[sport] = min(start, league_starts.get(sport, start))
+    from corner.deadline_pacing import active as deadline_active
     for sport in active:
+        if deadline_active(now) and sport not in league_starts:continue
         for group,books in (('standard',STANDARD),('exchange',EXCHANGE)):
             jobs.append(Job('main',sport,group,books,('h2h','spreads','totals'),
                             starts_at=league_starts[sport].isoformat() if sport in league_starts else ''))
@@ -174,7 +203,7 @@ def plan(now, active_keys, events, *, additional=False):
         keys=tuple(m.key for m in FAMILIES[family(sport)])
         for group,books in (('standard',PROP_STANDARD),('exchange',PROP_EXCHANGE)):
             jobs.append(Job('props',sport,group,books,keys,event['id'],event['commence_time']))
-    return jobs
+    return [job for job in jobs if job_allowed(job,now)]
 
 
 def snapshot_max_age(kind, group):

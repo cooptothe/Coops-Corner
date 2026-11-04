@@ -31,12 +31,12 @@ class OptimizedCadence(unittest.TestCase):
     def test_standard_floors_and_distant_bands(self):
         now=datetime(2026,11,15,16,tzinfo=timezone.utc)
         for group in ('standard','exchange'):
-            for remaining, expected in [(1,60),(7200,60),(7201,60),(14401,120),(21601,180),(43201,300)]:
+            edges=[(1,20),(1801,40),(3601,60),(14401,90),(21601,180),(43201,600)] if group=='exchange' else [(1,60),(14401,90),(21601,180),(43201,600)]
+            for remaining,expected in edges:
                 self.assertEqual(interval('props',group,now,now+timedelta(seconds=remaining)),expected)
             for remaining, expected in [(1,60),(900,90),(901,90),(1801,180),(3601,480)]:
                 self.assertEqual(interval('additional',group,now,now+timedelta(seconds=remaining)),expected)
             self.assertEqual(interval('main',group,now),900)
-
 
     def test_daily_caps_refuse_extra_events_and_credit_reservations(self):
         now=datetime(2026,11,15,16,tzinfo=timezone.utc)

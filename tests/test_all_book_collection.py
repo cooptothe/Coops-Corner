@@ -32,16 +32,17 @@ class AllBookCollection(unittest.TestCase):
             self.assertEqual({b for j in scopes for b in j.books},expected-{'betfair_ex_uk'} if kind=='props' else expected)
             self.assertTrue(all(j.cost==len(j.markets) for j in scopes))
 
-    def test_all_countdown_boundaries_and_no_subminute_exchange_polling(self):
-        gates={'main': [(7200, 60), (10800, 90), (14400, 120), (21600, 180), (28800, 300), (43200, 600), (86400, 900)], 'props': [(10800, 60), (14400, 90), (21600, 120), (28800, 180), (43200, 240), (86400, 300)], 'additional': [(600, 60), (1200, 90), (1800, 120), (2700, 180), (3600, 240), (5400, 480), (7200, 600)]}
-        for kind,bands in gates.items():
-            lower=1
-            for upper,seconds in bands:
-                for remaining in (lower,upper):
-                    for group in ('standard','exchange'):
+    def test_provider_aligned_group_boundaries(self):
+        from corner.collection_policy import COUNTDOWN_BANDS, EXCHANGE_COUNTDOWN_BANDS
+        for group in ('standard','exchange'):
+            for kind, standard in COUNTDOWN_BANDS.items():
+                bands=EXCHANGE_COUNTDOWN_BANDS.get(kind,standard) if group=='exchange' else standard
+                lower=1
+                for upper,seconds in bands:
+                    for remaining in (lower,upper):
                         self.assertEqual(interval(kind,group,NOW,NOW+timedelta(seconds=remaining)),seconds)
-                        self.assertGreaterEqual(seconds,60)
-                lower=upper+1
+                        self.assertGreaterEqual(seconds,20 if group=='exchange' else 60)
+                    lower=upper+1
 
     def test_budgeted_exchange_dispatch_requires_approval_and_keeps_ledger(self):
         with tempfile.TemporaryDirectory() as folder:
