@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Corner disk growth every fifteen minutes
+
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=15min
+AccuracySec=30s
+Unit=corner-storage.service
+
+[Install]
+WantedBy=timers.target

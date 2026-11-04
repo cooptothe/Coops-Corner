@@ -60,13 +60,28 @@ class LiveGovernor(Governor):
         ''')
 
     def storage_available(self,now):
-        import shutil
+        import os,shutil
         prior=getattr(self,'_storage_check',None)
         if prior and 0<=now.timestamp()-prior[0]<10:return prior[1]
-        try:available=shutil.disk_usage(self.path.parent).free>=1024**3
-        except OSError:available=False
+        try:
+            disk=shutil.disk_usage(self.path.parent)
+            limit=float(os.environ.get('CORNER_STORAGE_TARGET_PERCENT','100'))
+            available=0<limit<=100 and disk.free>=1024**3
+            if limit<100:available=available and disk.used/disk.total*100<limit
+        except (OSError,ValueError):available=False
         self._storage_check=(now.timestamp(),available)
         return available
+
+    def status_pool_limits(self,db,cycle):
+        row=db.execute('SELECT version,limits_json,total,protected FROM quota_policy WHERE cycle_id=?',(cycle,)).fetchone()
+        if row is None:return {}
+        if row[0]==BUDGET_VERSION:return self.pool_limits(db,cycle)
+        if row[0] not in ('full-quota-main-props-live-v2','pregame-lab-history-100k-v1'):
+            raise Refused('Unknown archived policy in status report')
+        limits=json.loads(row[1])
+        if set(limits)!=set(POOLS) or any(type(v) is not int or v<0 for v in limits.values()) or sum(limits.values())+row[3]!=row[2]:
+            raise Refused('Invalid archived policy in status report')
+        return limits  # Display only: authorization still requires current version.
 
     def pool_limits(self,db,cycle):
         row=db.execute('SELECT version,limits_json,total,protected FROM quota_policy WHERE cycle_id=?',(cycle,)).fetchone()

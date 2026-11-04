@@ -50,6 +50,7 @@ class Governor:
           state TEXT NOT NULL CHECK(state IN ('inflight','settled','unknown')),
           owner TEXT NOT NULL, started REAL NOT NULL, finished REAL,
           CHECK(actual IS NULL OR actual>=0));
+        CREATE INDEX IF NOT EXISTS collection_unknown_attempts ON attempts(token) WHERE state='unknown';
         CREATE TABLE IF NOT EXISTS snapshots (
           kind TEXT NOT NULL, sport TEXT NOT NULL, event_id TEXT NOT NULL,
           book TEXT NOT NULL, market TEXT NOT NULL, starts_at REAL NOT NULL,
@@ -130,6 +131,9 @@ class Governor:
             if db.execute("SELECT 1 FROM attempts WHERE owner=? AND state='inflight'",(owner,)).fetchone():
                 raise Refused('Unresolved request; lease must expire conservatively')
             db.execute('UPDATE lease SET until_at=0 WHERE id=1 AND owner=?',(owner,))
+
+    def status_pool_limits(self,db,cycle):
+        return self.pool_limits(db,cycle)
 
     def pool_limits(self,db,cycle):
         return POOLS
@@ -324,7 +328,7 @@ class Governor:
         cycles=[]
         for cycle in self.db.execute('SELECT * FROM cycles ORDER BY starts'):
             amounts=self.accounted(self.db,cycle['id'])
-            cycles.append({'id':cycle['id'],'accounted':amounts,'remaining_pools':{k:v-amounts.get(k,0) for k,v in self.pool_limits(self.db,cycle['id']).items()}})
+            cycles.append({'id':cycle['id'],'accounted':amounts,'remaining_pools':{k:v-amounts.get(k,0) for k,v in self.status_pool_limits(self.db,cycle['id']).items()}})
         return {'cycles':cycles,'paused':self.db.execute('SELECT paused FROM controls WHERE id=1').fetchone()[0],
                 'unknown_attempts':self.db.execute("SELECT count(*) FROM attempts WHERE state='unknown'").fetchone()[0],
                 'snapshot_count':self.db.execute('SELECT count(*) FROM snapshots').fetchone()[0]}

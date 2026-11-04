@@ -138,6 +138,21 @@ class DeadlineLedger(unittest.TestCase):
         self.assertEqual(sum(self.g.accounted(self.g.db,'nov').values()),TOTAL)
         with self.assertRaises(Refused):self.g.claim(j,'worker',NOW+timedelta(days=1))
 
+    def test_archived_october_policy_cannot_block_november_worker(self):
+        from pipelines.collection_runner import Runner
+        self.g.configure_cycle('oct',parse('2026-10-01T00:00:00Z'),parse('2026-11-01T00:00:00Z'))
+        self.g.db.execute('INSERT INTO quota_policy VALUES(?,?,?,?,?)',('oct','full-quota-main-props-live-v2',json.dumps({'main':7500000,'props':7400000,'metadata':100000,'history':0}),TOTAL,0))
+        runner=Runner(self.g,lambda:{'active_sport_keys':[],'events':[],'discovered_at':NOW.isoformat()},None,clock=lambda:NOW,owner='worker')
+        result=runner.tick()
+        self.assertEqual(result['executed'],0)
+        self.assertNotEqual(result['state'],'paused')
+        status=self.g.status()
+        archived=next(c for c in status['cycles'] if c['id']=='oct')
+        self.assertEqual(archived['remaining_pools']['main'],7500000)
+        # Current-cycle validation must still reject an old policy version.
+        self.g.db.execute("UPDATE quota_policy SET version='full-quota-main-props-live-v2' WHERE cycle_id='nov'")
+        with self.assertRaises(Refused):self.g._binding(self.g.db,NOW)
+
     def test_v2_migration_is_idempotent_and_preserves_cycle(self):
         self.g.release('worker')
         prior={'main':7500000,'props':7400000,'metadata':100000,'history':0}
@@ -147,3 +162,10 @@ class DeadlineLedger(unittest.TestCase):
         self.assertEqual(upgrade(self.g,NOW,quota,'a'*64),'nov')
         self.assertEqual(self.g.pool_limits(self.g.db,'nov'),POOLS)
         self.assertEqual(self.g.db.execute("SELECT count(*) FROM quota_audit WHERE action='full-budget-policy-approved'").fetchone()[0],1)
+
+    def test_storage_target_blocks_paid_calls_at_fifty_percent(self):
+        from types import SimpleNamespace
+        self.g.configure_deadline_pacing(jobs(),'worker',NOW)
+        with patch.dict('os.environ',{'CORNER_STORAGE_TARGET_PERCENT':'50'}), patch('shutil.disk_usage',return_value=SimpleNamespace(free=10*1024**3,used=50,total=100)):
+            with self.assertRaisesRegex(Refused,'Low storage'):self.g.claim(jobs()[0],'worker',NOW)
+        self.assertEqual(self.g.db.execute('SELECT count(*) FROM attempts').fetchone()[0],0)

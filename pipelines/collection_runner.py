@@ -58,7 +58,7 @@ class Runner:
         now = self.now()
         if not self.g.acquire(self.owner, now):
             return {'state': 'another_worker', 'executed': 0}
-        if self.g.status()['unknown_attempts']:
+        if self.g.db.execute("SELECT 1 FROM attempts WHERE state='unknown' LIMIT 1").fetchone():
             self.pause('Uncertain collection request; operator review required')
         # Publication retries buy no odds. A failing writer stops new purchases.
         published = 0
@@ -114,7 +114,7 @@ class Runner:
                 return {'state': 'publication_failed', 'executed': 0,
                         'error_type': type(error).__name__,
                         'sqlstate': getattr(error, 'pgcode', None)}
-        if self.g.status()['paused']:
+        if self.g.db.execute('SELECT paused FROM controls WHERE id=1').fetchone()[0]:
             return {'state': 'paused', 'executed': 0}
         if not open_now(now):
             return {'state': 'after_hours', 'executed': 0}
