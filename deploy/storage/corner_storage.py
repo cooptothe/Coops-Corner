@@ -87,8 +87,14 @@ def compact(state,tracker,receipts,now):
     try:
         with contextlib.closing(sqlite3.connect(tmp,isolation_level=None,uri=True)) as db:
             db.execute('PRAGMA journal_mode=DELETE');db.execute('PRAGMA synchronous=FULL')
+            phase='schema';phase_started=time.monotonic();last_report=phase_started
             def enough_space():
-                return int(shutil.disk_usage(state.parent).free<256*1024**2)
+                nonlocal last_report
+                free=shutil.disk_usage(state.parent).free
+                if time.monotonic()-last_report>=10:
+                    emit('ledger_progress',phase=phase,elapsed_seconds=int(time.monotonic()-phase_started),free_bytes=free)
+                    last_report=time.monotonic()
+                return int(free<256*1024**2)
             db.set_progress_handler(enough_space,100000)
             db.execute('PRAGMA temp_store=FILE');db.execute('PRAGMA cache_size=-32768')
             db.execute('ATTACH DATABASE ? AS src',(state.resolve().as_uri()+'?mode=ro',))
@@ -102,14 +108,16 @@ def compact(state,tracker,receipts,now):
             db.executemany('INSERT INTO protected VALUES(?,?)',sorted(pairs))
             db.execute('CREATE TEMP TABLE keep_clv(row_id INTEGER PRIMARY KEY)')
             if 'clv_scopes' in tables:
-                # Latest future scope is sufficient for current pricing. Logged
-                # event/market history remains available for CLV and research.
-                db.execute('INSERT INTO keep_clv SELECT s.rowid FROM src.clv_scopes s JOIN (SELECT kind,sport,event_id,book,market,max(captured_at) AS captured_at FROM src.clv_scopes WHERE starts_at>=? GROUP BY kind,sport,event_id,book,market) n USING(kind,sport,event_id,book,market,captured_at)',(now-6*3600,))
-                for event,market in pairs:
-                    sql="INSERT OR IGNORE INTO keep_clv SELECT rowid FROM src.clv_scopes WHERE event_id=?"
-                    args=[event]
-                    if market!='*':sql+=' AND market=?';args.append(market)
-                    db.execute(sql,args)
+                # Snapshots already identify the latest current capture. Probe
+                # the complete CLV primary key instead of grouping all history.
+                phase='current_scope_probes';emit('ledger_selection',phase=phase)
+                db.execute("INSERT OR IGNORE INTO keep_clv SELECT c.rowid FROM src.snapshots AS s CROSS JOIN src.clv_scopes AS c WHERE s.starts_at>=? AND c.kind=s.kind AND c.sport=s.sport AND c.event_id=s.event_id AND c.book=s.book AND c.market=s.market AND c.captured_at=s.captured_at",(now-6*3600,))
+                # A single covering-index pass reads only identity metadata,
+                # never the 62 GiB payload table once per logged event.
+                phase='logged_history_index_scan';emit('ledger_selection',phase=phase)
+                retain="INSERT OR IGNORE INTO keep_clv SELECT c.rowid FROM src.clv_scopes AS c WHERE EXISTS(SELECT 1 FROM protected p WHERE p.event_id=c.event_id AND (p.market='*' OR p.market=c.market))"
+                emit('ledger_selection_plan',plan=[row[3] for row in db.execute('EXPLAIN QUERY PLAN '+retain)])
+                db.execute(retain)
             conditions={
                 'clv_scopes':'rowid IN (SELECT row_id FROM keep_clv)',
                 'snapshots':'starts_at>='+repr(now-6*3600)+' OR EXISTS(SELECT 1 FROM protected p WHERE p.event_id=snapshots.event_id AND (p.market=\'*\' OR p.market=snapshots.market))',
@@ -120,7 +128,7 @@ def compact(state,tracker,receipts,now):
             db.execute('BEGIN')
             counts={}
             for name in tables:
-                emit('ledger_copy_table',table=name)
+                phase='copy_'+name;emit('ledger_copy_table',table=name)
                 where=' WHERE '+conditions[name] if name in conditions else ''
                 db.execute('INSERT INTO main.'+quote(name)+' SELECT * FROM src.'+quote(name)+where+' ORDER BY '+stable_order(db,name,'src'))
                 counts[name]=db.execute('SELECT count(*) FROM main.'+quote(name)).fetchone()[0]
@@ -128,10 +136,12 @@ def compact(state,tracker,receipts,now):
                 db.execute('DELETE FROM main.sqlite_sequence')
                 db.execute('INSERT INTO main.sqlite_sequence SELECT * FROM src.sqlite_sequence')
             db.execute('COMMIT')
+            phase='rebuild_indexes';emit('ledger_selection',phase=phase)
             for kind,_,sql in schema:
                 if kind!='table':db.execute(sql)
             db.execute('PRAGMA user_version='+str(db.execute('PRAGMA src.user_version').fetchone()[0]))
             db.execute('PRAGMA application_id='+str(db.execute('PRAGMA src.application_id').fetchone()[0]))
+            phase='verify_candidate';emit('ledger_selection',phase=phase)
             if db.execute('PRAGMA integrity_check').fetchone()[0]!='ok' or db.execute('PRAGMA foreign_key_check').fetchone():
                 raise RuntimeError('Replacement integrity/FK verification failed')
             # Compare every unfiltered table exactly, including all financial

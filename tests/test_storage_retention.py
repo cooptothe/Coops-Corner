@@ -44,7 +44,7 @@ class StorageRetentionTests(unittest.TestCase):
             for event,start,captured in [('logged',50,1),('logged',50,2),('old',-50000,1),('future',200,20),('future',200,10)]:
                 row=('props','nba',event,'fanduel','player_points',start,captured,captured,captured+30,'unchanged')
                 db.execute('INSERT INTO clv_scopes VALUES(?,?,?,?,?,?,?,?,?,?)',row)
-                db.execute('INSERT INTO snapshots VALUES(?,?,?,?,?,?,?,?,?,?)',row)
+                if event!='future' or captured==20:db.execute('INSERT INTO snapshots VALUES(?,?,?,?,?,?,?,?,?,?)',row)
             db.execute('INSERT INTO runner_inventory VALUES(1,?)',('inventory',))
 
     def test_compaction_preserves_accounting_logged_history_and_latest_prices(self):
@@ -65,6 +65,13 @@ class StorageRetentionTests(unittest.TestCase):
         before=self.state.stat().st_size
         storage.compact(self.state,self.tracker,self.root/'receipts',100)
         self.assertLess(self.state.stat().st_size,before/2)
+
+    def test_selection_scans_a_covering_index_once_instead_of_payload_per_bet(self):
+        with storage.ro(self.state) as db:
+            db.execute('CREATE TEMP TABLE protected(event_id TEXT,market TEXT,PRIMARY KEY(event_id,market))')
+            query="SELECT c.rowid FROM clv_scopes AS c WHERE EXISTS(SELECT 1 FROM protected p WHERE p.event_id=c.event_id AND (p.market='*' OR p.market=c.market))"
+            plan=[row[3] for row in db.execute('EXPLAIN QUERY PLAN '+query)]
+            self.assertTrue(any('COVERING INDEX' in step for step in plan),plan)
 
     def test_foreign_key_failure_leaves_original_ledger_unchanged(self):
         with connect(self.state) as db:
