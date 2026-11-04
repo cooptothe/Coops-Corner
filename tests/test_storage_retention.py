@@ -23,9 +23,9 @@ class StorageRetentionTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.state=self.root/'ledger.sqlite3';self.tracker=self.root/'accounts.sqlite3'
         with connect(self.tracker) as db:
-            db.executescript('CREATE TABLE users(id TEXT); CREATE TABLE cash(id TEXT,amount INTEGER); CREATE TABLE bets(id TEXT,ref TEXT,parlay_legs TEXT);')
+            db.executescript('CREATE TABLE users(id TEXT); CREATE TABLE cash(id TEXT,amount INTEGER); CREATE TABLE bets(id TEXT,ref TEXT,parlay_legs TEXT,starts_at TEXT);')
             db.execute('INSERT INTO users VALUES(?)',('owner',));db.execute('INSERT INTO cash VALUES(?,?)',('deposit',100))
-            db.execute('INSERT INTO bets VALUES(?,?,?)',('logged',json.dumps({'game_id':'prop:logged','prop_market':'player_points'}),'[]'))
+            db.execute('INSERT INTO bets VALUES(?,?,?,?)',('logged',json.dumps({'game_id':'prop:logged','prop_market':'player_points'}),'[]','1970-01-01T00:00:50+00:00'))
         with connect(self.state) as db:
             db.executescript('''CREATE TABLE controls(id INTEGER PRIMARY KEY,paused TEXT);
             CREATE TABLE attempts(token TEXT PRIMARY KEY,state TEXT,reserved INTEGER,actual INTEGER);
@@ -44,7 +44,7 @@ class StorageRetentionTests(unittest.TestCase):
             for event,start,captured in [('logged',50,1),('logged',50,2),('old',-50000,1),('future',200,20),('future',200,10)]:
                 row=('props','nba',event,'fanduel','player_points',start,captured,captured,captured+30,'unchanged')
                 db.execute('INSERT INTO clv_scopes VALUES(?,?,?,?,?,?,?,?,?,?)',row)
-                if event!='future' or captured==20:db.execute('INSERT INTO snapshots VALUES(?,?,?,?,?,?,?,?,?,?)',row)
+                if (event!='future' or captured==20) and (event!='logged' or captured==2):db.execute('INSERT INTO snapshots VALUES(?,?,?,?,?,?,?,?,?,?)',row)
             db.execute('INSERT INTO runner_inventory VALUES(1,?)',('inventory',))
 
     def test_compaction_preserves_accounting_logged_history_and_latest_prices(self):
@@ -53,7 +53,7 @@ class StorageRetentionTests(unittest.TestCase):
         storage.compact(self.state,self.tracker,self.root/'receipts',100)
         with storage.ro(self.state) as db:
             self.assertEqual(before,{t:storage.logical_hash(db,t) for t in before})
-            self.assertEqual(db.execute('SELECT event_id,captured_at FROM clv_scopes ORDER BY event_id,captured_at').fetchall(),[('future',20),('logged',1),('logged',2)])
+            self.assertEqual(db.execute('SELECT event_id,captured_at FROM clv_scopes ORDER BY event_id,captured_at').fetchall(),[('future',20),('logged',2)])
             self.assertEqual(db.execute('SELECT count(*) FROM publication_outbox').fetchone()[0],33)
             self.assertEqual(db.execute("SELECT count(*) FROM publication_outbox WHERE published_at IS NULL").fetchone()[0],1)
             self.assertEqual(db.execute('SELECT seq FROM sqlite_sequence WHERE name=\'audit\'').fetchone()[0],100)
@@ -66,12 +66,30 @@ class StorageRetentionTests(unittest.TestCase):
         storage.compact(self.state,self.tracker,self.root/'receipts',100)
         self.assertLess(self.state.stat().st_size,before/2)
 
-    def test_selection_scans_a_covering_index_once_instead_of_payload_per_bet(self):
+    def test_logged_matchup_history_is_discarded_except_closing_capture(self):
+        with connect(self.state) as db:
+            db.execute("UPDATE clv_scopes SET payload=? WHERE event_id='logged' AND captured_at=1",('obsolete logged matchup history'*100000,))
+        before=self.state.stat().st_size
+        storage.compact(self.state,self.tracker,self.root/'receipts',100)
+        self.assertLess(self.state.stat().st_size,before/2)
         with storage.ro(self.state) as db:
-            db.execute('CREATE TEMP TABLE protected(event_id TEXT,market TEXT,PRIMARY KEY(event_id,market))')
-            query="SELECT c.rowid FROM clv_scopes AS c WHERE EXISTS(SELECT 1 FROM protected p WHERE p.event_id=c.event_id AND (p.market='*' OR p.market=c.market))"
-            plan=[row[3] for row in db.execute('EXPLAIN QUERY PLAN '+query)]
-            self.assertTrue(any('COVERING INDEX' in step for step in plan),plan)
+            self.assertEqual(db.execute("SELECT captured_at FROM clv_scopes WHERE event_id='logged'").fetchall(),[(2,)])
+
+    def test_parlay_closes_use_each_legs_start_and_retain_multiple_cutoffs(self):
+        with connect(self.tracker) as db:
+            db.execute('UPDATE bets SET parlay_legs=?',(json.dumps([{'ref':{'game_id':'logged','prop_market':'player_points'},'starts_at':'1970-01-01T00:00:01+00:00'}]),))
+        storage.compact(self.state,self.tracker,self.root/'receipts',100)
+        with storage.ro(self.state) as db:
+            self.assertEqual(db.execute("SELECT captured_at FROM clv_scopes WHERE event_id='logged' ORDER BY captured_at").fetchall(),[(1,),(2,)])
+
+    def test_minimal_copy_space_check_preserves_original_before_large_write(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        before=self.state.read_bytes()
+        with patch.object(storage.shutil,'disk_usage',return_value=SimpleNamespace(free=300*1024**2)):
+            with self.assertRaisesRegex(RuntimeError,'Insufficient space for minimal closing'):
+                storage.compact(self.state,self.tracker,self.root/'receipts',100)
+        self.assertEqual(before,self.state.read_bytes())
 
     def test_foreign_key_failure_leaves_original_ledger_unchanged(self):
         with connect(self.state) as db:

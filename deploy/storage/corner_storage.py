@@ -63,6 +63,39 @@ def logged_refs(tracker):
             count+=1
     return ids,pairs,count
 
+def closing_targets(tracker):
+    """Only retained, logged props need historical scopes; a close per book suffices."""
+    from datetime import datetime,timezone
+    targets=set()
+    def visit(ref,start):
+        if not isinstance(ref,dict):return
+        stamp=ref.get('starts_at') or start
+        game=ref.get('game_id');market=ref.get('prop_market')
+        if game and market and stamp:
+            cutoff=datetime.fromisoformat(stamp.replace('Z','+00:00'))
+            if cutoff.tzinfo is None:cutoff=cutoff.replace(tzinfo=timezone.utc)
+            targets.add((game.removeprefix('prop:'),market,cutoff.timestamp()))
+        if isinstance(ref.get('ref'),dict):visit(ref['ref'],stamp)
+    with ro(tracker) as db:
+        for ref,children,start in db.execute('SELECT ref,parlay_legs,starts_at FROM bets'):
+            visit(json.loads(ref or '{}'),start)
+            for leg in json.loads(children or '[]'):visit(leg,leg.get('starts_at') or start)
+    return targets
+
+def select_closing_scopes(db):
+    # The composite primary-key index covers the whole selection. Never read
+    # each historical payload just to find one closing capture per book.
+    required={'kind','sport','event_id','book','market','captured_at'}
+    candidates=[]
+    for row in db.execute('PRAGMA src.index_list(clv_scopes)').fetchall():
+        columns={c[2] for c in db.execute('PRAGMA src.index_info('+quote(row[1])+')')}
+        if required<=columns:candidates.append(row[1])
+    if not candidates:raise RuntimeError('Covering CLV identity index required; original retained')
+    select="SELECT c.kind,c.sport,c.event_id,c.book,c.market,t.starts_at,max(c.captured_at) AS captured_at FROM src.clv_scopes AS c INDEXED BY "+quote(candidates[0])+" CROSS JOIN closing_targets AS t WHERE c.kind='props' AND c.event_id=t.event_id AND c.market=t.market AND c.captured_at<=t.starts_at GROUP BY c.kind,c.sport,c.event_id,c.book,c.market,t.starts_at"
+    emit('ledger_selection_plan',plan=[row[3] for row in db.execute('EXPLAIN QUERY PLAN '+select)])
+    db.execute('CREATE TEMP TABLE closing_latest AS '+select)
+    db.execute("INSERT OR IGNORE INTO keep_clv SELECT c.rowid FROM closing_latest AS t CROSS JOIN src.clv_scopes AS c WHERE c.kind=t.kind AND c.sport=t.sport AND c.event_id=t.event_id AND c.book=t.book AND c.market=t.market AND c.captured_at=t.captured_at")
+
 def compact(state,tracker,receipts,now):
     """Build and verify a smaller replacement; original is untouched until rename."""
     regular(state);regular(tracker)
@@ -106,21 +139,21 @@ def compact(state,tracker,receipts,now):
                 if kind=='table':db.execute(sql)
             db.execute('CREATE TEMP TABLE protected(event_id TEXT,market TEXT,PRIMARY KEY(event_id,market))')
             db.executemany('INSERT INTO protected VALUES(?,?)',sorted(pairs))
+            db.execute('CREATE TEMP TABLE closing_targets(event_id TEXT,market TEXT,starts_at REAL,PRIMARY KEY(event_id,market,starts_at))')
+            db.executemany('INSERT INTO closing_targets VALUES(?,?,?)',sorted(closing_targets(tracker)))
             db.execute('CREATE TEMP TABLE keep_clv(row_id INTEGER PRIMARY KEY)')
             if 'clv_scopes' in tables:
                 # Snapshots already identify the latest current capture. Probe
                 # the complete CLV primary key instead of grouping all history.
                 phase='current_scope_probes';emit('ledger_selection',phase=phase)
                 db.execute("INSERT OR IGNORE INTO keep_clv SELECT c.rowid FROM src.snapshots AS s CROSS JOIN src.clv_scopes AS c WHERE s.starts_at>=? AND c.kind=s.kind AND c.sport=s.sport AND c.event_id=s.event_id AND c.book=s.book AND c.market=s.market AND c.captured_at=s.captured_at",(now-6*3600,))
-                # A single covering-index pass reads only identity metadata,
-                # never the 62 GiB payload table once per logged event.
-                phase='logged_history_index_scan';emit('ledger_selection',phase=phase)
-                retain="INSERT OR IGNORE INTO keep_clv SELECT c.rowid FROM src.clv_scopes AS c WHERE EXISTS(SELECT 1 FROM protected p WHERE p.event_id=c.event_id AND (p.market='*' OR p.market=c.market))"
-                emit('ledger_selection_plan',plan=[row[3] for row in db.execute('EXPLAIN QUERY PLAN '+retain)])
-                db.execute(retain)
+                phase='logged_closing_price_selection';emit('ledger_selection',phase=phase)
+                select_closing_scopes(db)
+                retained=db.execute('SELECT count(*) FROM keep_clv').fetchone()[0]
+                emit('closing_scopes_selected',scopes=retained,logged_bets=bets)
             conditions={
                 'clv_scopes':'rowid IN (SELECT row_id FROM keep_clv)',
-                'snapshots':'starts_at>='+repr(now-6*3600)+' OR EXISTS(SELECT 1 FROM protected p WHERE p.event_id=snapshots.event_id AND (p.market=\'*\' OR p.market=snapshots.market))',
+                'snapshots':'starts_at>='+repr(now-6*3600),
                 'publication_outbox':'published_at IS NULL OR token IN (SELECT token FROM src.publication_outbox WHERE published_at IS NOT NULL ORDER BY published_at DESC LIMIT 32)',
                 'live_captures':'captured>='+repr(now-300),
                 'runner_inventory':'1=1',
@@ -130,6 +163,11 @@ def compact(state,tracker,receipts,now):
             for name in tables:
                 phase='copy_'+name;emit('ledger_copy_table',table=name)
                 where=' WHERE '+conditions[name] if name in conditions else ''
+                if name=='clv_scopes':
+                    payload=db.execute('SELECT coalesce(sum(length(CAST(payload AS BLOB))),0) FROM src.clv_scopes'+where).fetchone()[0]
+                    required_bytes=int(payload*1.3)+512*1024**2
+                    emit('closing_copy_space_check',payload_bytes=payload,required_free_bytes=required_bytes,free_bytes=shutil.disk_usage(state.parent).free)
+                    if required_bytes>shutil.disk_usage(state.parent).free:raise RuntimeError('Insufficient space for minimal closing records; original ledger retained')
                 db.execute('INSERT INTO main.'+quote(name)+' SELECT * FROM src.'+quote(name)+where+' ORDER BY '+stable_order(db,name,'src'))
                 counts[name]=db.execute('SELECT count(*) FROM main.'+quote(name)).fetchone()[0]
             if db.execute("SELECT 1 FROM src.sqlite_master WHERE name='sqlite_sequence'").fetchone():
@@ -205,7 +243,11 @@ INSERT INTO storage_logged
 SELECT e.id FROM corner.events e WHERE e.id::text IN (SELECT value FROM jsonb_array_elements_text('__IDS__'::jsonb))
 UNION SELECT event_id FROM corner.event_provider_identities WHERE external_id IN (SELECT value FROM jsonb_array_elements_text('__IDS__'::jsonb));
 CREATE TEMP TABLE storage_keep_obs(id uuid PRIMARY KEY) ON COMMIT DROP;
-INSERT INTO storage_keep_obs SELECT ob.id FROM corner.odds_observations ob JOIN corner.outcomes o ON o.id=ob.outcome_id JOIN corner.markets m ON m.id=o.market_id JOIN storage_logged p ON p.id=m.event_id;
+CREATE TEMP TABLE storage_logged_streams ON COMMIT DROP AS SELECT DISTINCT ob.outcome_id,ob.sportsbook_id,e.scheduled_start FROM storage_logged p JOIN corner.events e ON e.id=p.id JOIN corner.markets m ON m.event_id=e.id JOIN corner.outcomes o ON o.market_id=m.id JOIN corner.odds_observations ob ON ob.outcome_id=o.id;
+INSERT INTO storage_keep_obs SELECT q.id FROM storage_logged_streams s CROSS JOIN LATERAL (
+ SELECT ob.id FROM corner.odds_observations ob WHERE ob.outcome_id=s.outcome_id AND ob.sportsbook_id=s.sportsbook_id AND ob.observed_at<=s.scheduled_start
+ AND (NOT EXISTS(SELECT 1 FROM corner.observation_dispositions d WHERE d.observation_id=ob.id) OR (SELECT dt.code FROM corner.observation_dispositions d JOIN corner.disposition_types dt ON dt.id=d.disposition_type_id WHERE d.observation_id=ob.id ORDER BY d.decided_at DESC,d.id DESC LIMIT 1)='reinstated')
+ ORDER BY ob.observed_at DESC,ob.id DESC LIMIT 1) q ON CONFLICT DO NOTHING;
 CREATE TEMP TABLE storage_streams ON COMMIT DROP AS SELECT DISTINCT ob.outcome_id,ob.sportsbook_id FROM corner.odds_observations ob JOIN corner.outcomes o ON o.id=ob.outcome_id JOIN corner.markets m ON m.id=o.market_id JOIN corner.events e ON e.id=m.event_id WHERE e.scheduled_start>=now()-interval '6 hours';
 CREATE TEMP TABLE storage_expected_winners ON COMMIT DROP AS SELECT s.outcome_id,s.sportsbook_id,q.observation_id FROM storage_streams s CROSS JOIN LATERAL corner.trusted_quote_for_stream(s.outcome_id,s.sportsbook_id) q;
 INSERT INTO storage_keep_obs SELECT observation_id FROM storage_expected_winners ON CONFLICT DO NOTHING;

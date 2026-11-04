@@ -12,7 +12,9 @@ written by unrelated system processes.
 
 All accounts, cash movements, logged bets, results, CLV, financial ledger tables,
 unknown/inflight reservations, audits, pending publications and completed backups
-are preserved. Logged event/market history is retained. Unlogged old odds and
+are preserved. Only the latest pre-start closing capture per reference book/market is retained
+for a logged bet (including each parlay leg). Whole matchup histories are discarded.
+Logged bet records, stored results and CLV remain unchanged. Unlogged old odds and
 superseded captures are removed. Current prices, pending captures, Lab data,
 application files and keys remain. A small verified account safety copy and a
 ledger verification receipt are saved privately under backups/storage-account-checkpoints.
