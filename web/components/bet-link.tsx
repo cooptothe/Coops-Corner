@@ -1,4 +1,5 @@
 "use client";
+import { SportsbookLink } from "./bet-display";
 import { Icon } from "./icon";
 import { createContext, useContext, useMemo } from "react";
 import {
@@ -72,19 +73,20 @@ export function BetLinkButton({
     if (block || !resolved.url || !resolved.kind) return null;
     const label = linkLabel(resolved.kind, bookLabel);
     return (
-      <a
+      <SportsbookLink
+        book={bookLabel}
         className="bet-link-compact"
         href={resolved.url}
         target="_blank"
         rel="noopener noreferrer"
         referrerPolicy="no-referrer"
-        aria-label={`${label} (opens in a new tab)`}
+        aria-label={`${label} (opens in a new tab or configured display window)`}
         title={`${label}. Check the price there before you bet.`}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
         <Icon name="external" />
-      </a>
+      </SportsbookLink>
     );
   }
 
@@ -128,7 +130,8 @@ export function BetLinkButton({
     );
   return (
     <div className="bet-link">
-      <a
+      <SportsbookLink
+        book={bookLabel}
         className="button bet-link-btn"
         href={resolved.url}
         target="_blank"
@@ -139,8 +142,11 @@ export function BetLinkButton({
         <span aria-hidden="true">
           <Icon name="external" />
         </span>
-        <span className="sr-only"> (opens in a new tab)</span>
-      </a>
+        <span className="sr-only">
+          {" "}
+          (opens in a new tab or configured display window)
+        </span>
+      </SportsbookLink>
       <small className="kelly-note">
         {resolved.kind === "betslip"
           ? "Adds the selection to the bet slip"

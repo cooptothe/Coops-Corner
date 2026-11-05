@@ -10,6 +10,7 @@ import {
 } from "../lib/auth-api";
 import { UserMenu, useAuth } from "./auth-provider";
 import { StatePicker } from "./bet-link";
+import { BetDisplaySettings } from "./bet-display";
 import BetaMembership from "./beta-membership";
 
 export default function AccountPage() {
@@ -79,6 +80,7 @@ export default function AccountPage() {
       </header>
       <PersonalNav current="account" />
       <BetaMembership />
+      <BetDisplaySettings />
       <section className="trk-card account-card" aria-labelledby="state-title">
         <h3 id="state-title">Betting state</h3>
         <p className="trk-muted">Choose your state for sportsbook links.</p>

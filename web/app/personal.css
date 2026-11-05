@@ -25,3 +25,25 @@
     padding: 20px 14px;
   }
 }
+
+/* Device-local sportsbook window placement settings. */
+.bet-display-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+.bet-display-books {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 1rem;
+  padding-top: 1rem;
+}
+.bet-display-books .field,
+.account-card .field {
+  min-width: 0;
+}
+.bet-display-books select {
+  width: 100%;
+  max-width: 100%;
+}

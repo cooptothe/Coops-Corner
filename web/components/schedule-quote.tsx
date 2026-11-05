@@ -1,4 +1,5 @@
 "use client";
+import { SportsbookLink } from "./bet-display";
 import { Icon } from "./icon";
 import { american, point as signed } from "../../frontend/format.mjs";
 import { linkBlock, linkLabel, resolveLink } from "../lib/bet-links";
@@ -50,20 +51,21 @@ export function ScheduleQuote({
   );
   if (!started && resolved.url && resolved.kind)
     return (
-      <a
+      <SportsbookLink
+        book={price.bookId}
         className="sched-quote sched-market-link"
         href={resolved.url}
         target="_blank"
         rel="noopener noreferrer"
         referrerPolicy="no-referrer"
-        aria-label={`${label}. ${linkLabel(resolved.kind, book)} (opens in a new tab)`}
+        aria-label={`${label}. ${linkLabel(resolved.kind, book)} (opens in a new tab or configured display window)`}
         title={`${linkLabel(resolved.kind, book)}. Check the price there before you bet.`}
       >
         {content}
         <span className="sched-link-arrow" aria-hidden="true">
           <Icon name="external" />
         </span>
-      </a>
+      </SportsbookLink>
     );
   return (
     <>

@@ -30,7 +30,7 @@ const EXTRA = [
   {
     id: "links",
     title: "Sportsbook links and account settings",
-    body: "Links open the exact betslip when supplied, otherwise the market or event. Choose your betting state in Account for state-specific books. The sportsbook controls location checks, limits, acceptance and final odds. Live links remain available after kickoff when a fresh live quote has a valid provider URL. Missing links are not invented.",
+    body: "Links open the exact betslip when supplied, otherwise the market or event. Choose your betting state in Account for state-specific books. The sportsbook controls location checks, limits, acceptance and final odds. Live links remain available after kickoff when a fresh live quote has a valid provider URL. Missing links are not invented. For multiple monitors, open Account → One-click bet displays, connect displays and grant window-management permission, then choose a default monitor and optional sportsbook overrides. The setup stays with your account in this browser on this computer; it does not sync monitor coordinates to other devices. Display placement requires a supported desktop browser such as Chrome or Edge, HTTPS, and popups allowed for this site. A missing display, denied permission or blocked popup falls back to a normal link. Ctrl/Cmd-click and middle-click keep their usual behavior. Opening a sportsbook never places a wager.",
   },
   {
     id: "bankroll",

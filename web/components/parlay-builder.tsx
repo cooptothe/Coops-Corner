@@ -1,4 +1,5 @@
 "use client";
+import { SportsbookLink } from "./bet-display";
 import { Icon } from "./icon";
 import {
   createContext,
@@ -480,7 +481,8 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
             </p>
           )}
           {destination.url ? (
-            <a
+            <SportsbookLink
+              book={draft.book}
               className="button"
               href={destination.url}
               target="_blank"
@@ -489,7 +491,7 @@ export function ParlayProvider({ children }: { children: ReactNode }) {
             >
               {destination.combined ? "Open slip on" : "Open"}{" "}
               {bookDisplayName(draft.book)} <Icon name="external" />
-            </a>
+            </SportsbookLink>
           ) : (
             <button className="button" disabled>
               Sportsbook link unavailable
