@@ -13,6 +13,8 @@ import time
 import uuid
 
 BASE=Path('/srv/corner')
+CANDIDATE_INTEGRITY_SQL='PRAGMA main.integrity_check'
+CANDIDATE_FOREIGN_KEY_SQL='PRAGMA main.foreign_key_check'
 TOKEN=re.compile(r'[a-f0-9]{48}\Z')
 UNITS=('corner-collection-recovery.timer','corner-collection-recovery.service',
        'corner-live-odds.timer','corner-live-odds.service','corner-collection.service',
@@ -180,7 +182,7 @@ def compact(state,tracker,receipts,now):
             db.execute('PRAGMA user_version='+str(db.execute('PRAGMA src.user_version').fetchone()[0]))
             db.execute('PRAGMA application_id='+str(db.execute('PRAGMA src.application_id').fetchone()[0]))
             phase='verify_candidate';emit('ledger_selection',phase=phase)
-            if db.execute('PRAGMA integrity_check').fetchone()[0]!='ok' or db.execute('PRAGMA foreign_key_check').fetchone():
+            if db.execute(CANDIDATE_INTEGRITY_SQL).fetchone()[0]!='ok' or db.execute(CANDIDATE_FOREIGN_KEY_SQL).fetchone():
                 raise RuntimeError('Replacement integrity/FK verification failed')
             # Compare every unfiltered table exactly, including all financial
             # records, unknown attempts, controls, policy, offsets and audits.

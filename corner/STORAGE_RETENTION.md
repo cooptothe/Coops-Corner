@@ -31,3 +31,8 @@ The final VPS disk percentage is verified by the deployment script.
 
 The collector fix also prevents archived October policy records from blocking
 November startup. Current-cycle purchase authorization remains strict.
+
+Verification explicitly checks `main.integrity_check` and `main.foreign_key_check`:
+an unqualified SQLite integrity check also scans attached databases and would
+re-read the entire discarded history. Exact financial-table comparison remains
+separate and reads both copies of every preserved table.

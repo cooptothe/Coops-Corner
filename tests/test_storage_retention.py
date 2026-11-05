@@ -91,6 +91,20 @@ class StorageRetentionTests(unittest.TestCase):
                 storage.compact(self.state,self.tracker,self.root/'receipts',100)
         self.assertEqual(before,self.state.read_bytes())
 
+    def test_integrity_verification_does_not_scan_attached_old_ledger(self):
+        with connect(':memory:') as db:
+            db.execute('CREATE TABLE candidate(id INTEGER PRIMARY KEY)')
+            db.execute("ATTACH DATABASE ':memory:' AS src")
+            db.execute('CREATE TABLE src.old_history(id INTEGER PRIMARY KEY,payload TEXT)')
+            # Unqualified integrity_check visits every attached database. The
+            # production check must visit only the compact main candidate.
+            original=[row for row in db.execute('EXPLAIN PRAGMA integrity_check') if row[1]=='Transaction']
+            self.assertIn(2,{row[2] for row in original})
+            plan=list(db.execute('EXPLAIN '+storage.CANDIDATE_INTEGRITY_SQL))
+            self.assertEqual({row[2] for row in plan if row[1]=='Transaction'},{0})
+            self.assertEqual(db.execute(storage.CANDIDATE_INTEGRITY_SQL).fetchone()[0],'ok')
+            self.assertEqual(storage.CANDIDATE_FOREIGN_KEY_SQL,'PRAGMA main.foreign_key_check')
+
     def test_foreign_key_failure_leaves_original_ledger_unchanged(self):
         with connect(self.state) as db:
             db.execute('CREATE TABLE retained_reference(token TEXT REFERENCES publication_outbox(token))')
