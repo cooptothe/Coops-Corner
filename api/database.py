@@ -48,7 +48,13 @@ SPORT_LABELS = {
 
 
 def _label(code, name):
-    return SPORT_LABELS.get(SPORT_KEYS.get(code, code), name)
+    key = SPORT_KEYS.get(code, code)
+    for candidate in (name, key):
+        if isinstance(candidate, str) and candidate.startswith(('tennis_atp_', 'tennis_wta_')):
+            _, tour, *words = candidate.split('_')
+            title = ' '.join(word.upper() if word in ('us', 'uk', 'atp', 'wta', 'itf') else word.capitalize() for word in words if word)
+            return f'{tour.upper()} {title}'
+    return SPORT_LABELS.get(key, name)
 
 QUOTE_SQL = """
 SELECT e.id AS event_id, c.code AS competition_code, c.display_name AS competition_name, e.scheduled_start,

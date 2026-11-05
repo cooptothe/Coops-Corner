@@ -1,5 +1,6 @@
 // Pure money and performance math for the tracker. Everything is whole cents, derived from the ledger
 // (bets + cash entries); nothing here is stored, so edits and deletes can never leave totals stale.
+import { sport as sportLabel } from "../../frontend/format.mjs";
 import type { CashEntry, TrackerBet, TrackerState } from "./tracker-api";
 
 export const VAULT = "vault";
@@ -130,6 +131,7 @@ export const STRATEGY_LABEL: Record<string, string> = {
 export const LEAGUE_KEYS = Object.keys(LEAGUE_LABELS);
 export function leagueLabel(sportKey: string): string {
   if (!sportKey) return "Other";
+  if (/^tennis_(atp|wta)_/.test(sportKey)) return sportLabel(sportKey);
   return (
     LEAGUE_LABELS[sportKey] ??
     sportKey

@@ -63,4 +63,7 @@ test("league labels use NFL, NHL and MLB rather than provider IDs", () => {
   assert.equal(sport("americanfootball_nfl"), "NFL");
   assert.equal(sport("icehockey_nhl"), "NHL");
   assert.equal(sport("baseball_mlb"), "MLB");
+  assert.equal(sport("tennis_atp_paris_masters"), "ATP Paris Masters");
+  assert.equal(sport("tennis_wta_pan_pacific_open"), "WTA Pan Pacific Open");
+  assert.equal(sport("tennis_atp_us_open"), "ATP US Open");
 });
