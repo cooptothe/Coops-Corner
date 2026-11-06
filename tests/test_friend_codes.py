@@ -45,7 +45,7 @@ class FriendCodes(unittest.TestCase):
     def test_expired_revoked_and_implicit_unbound_codes_are_denied(self):
         codes=self.codes(2)
         self.tx(beta.revoke,self.owner,codes[0][0])
-        self.store._db.execute('UPDATE beta_invites SET expires_at=0 WHERE id=?',(codes[1][0],))
+        self.store._db.execute('UPDATE beta_invites SET expires_at=0,non_expiring=0 WHERE id=?',(codes[1][0],))
         for index,(_,code) in enumerate(codes):
             with self.assertRaises(TrackerError):self.store.create_user('Denied'+str(index),'denied'+str(index),'hash',code)
         with self.assertRaises(TrackerError):self.tx(beta.issue,self.owner,'',access_kind='preview',cohort='beta',evidence='test')

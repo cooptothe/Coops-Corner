@@ -109,10 +109,11 @@ def main():
                 print(f'Invitation ID: {issued_invite[0]}\nInvitation code (shown once): {issued_invite[1]}\nPrivate link: {issued_invite[2]}')
             for index,(invite_id,code) in enumerate(friend_codes,1):
                 expires=db.execute('SELECT expires_at FROM beta_invites WHERE id=?',(invite_id,)).fetchone()[0]
-                try:
-                    label=datetime.fromtimestamp(expires,ZoneInfo('America/Chicago')).strftime('%b %d, %Y %I:%M %p Central')
-                except ZoneInfoNotFoundError:
-                    label=datetime.fromtimestamp(expires,timezone.utc).strftime('%b %d, %Y %I:%M %p UTC')
+                permanent=db.execute('SELECT non_expiring FROM beta_invites WHERE id=?',(invite_id,)).fetchone()[0]
+                if permanent:label='Never (until claimed or revoked)'
+                else:
+                    try:label=datetime.fromtimestamp(expires,ZoneInfo('America/Chicago')).strftime('%b %d, %Y %I:%M %p Central')
+                    except ZoneInfoNotFoundError:label=datetime.fromtimestamp(expires,timezone.utc).strftime('%b %d, %Y %I:%M %p UTC')
                 label_pool='Brother' if args.command=='family-codes' else 'Beta' if args.command=='beta-codes' else 'Friend'
                 print(f'{label_pool} {index} | ID: {invite_id} | Expires: {label}\nCode (shown once): {code}\nPrivate link: https://coopscorner.tech/invite#{code}')
             if friend_codes:print('Each code reserves one place in its own pool and works once with a new chosen username. Store privately and share one code per recipient.')

@@ -20,7 +20,7 @@ def main():
             import time
             # Gather secrets before the write transaction; never hold a database lock at a prompt.
             pool='friend' if args.action=='friends' else 'beta'
-            count=store._db.execute("SELECT count(*) FROM beta_invites i WHERE cohort=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>? AND NOT EXISTS(SELECT 1 FROM beta_family_invites f WHERE f.invite_id=i.id)",(pool,time.time())).fetchone()[0]
+            count=store._db.execute("SELECT count(*) FROM beta_invites i WHERE cohort=? AND revoked=0 AND redeemed_by IS NULL AND (non_expiring=1 OR expires_at>?) AND NOT EXISTS(SELECT 1 FROM beta_family_invites f WHERE f.invite_id=i.id)",(pool,time.time())).fetchone()[0]
             if count:
                 print(f'{count} live {pool} invitations already reserve places. Enter each saved code privately; no new places will be created.')
                 friend_tokens=[getpass(f'Existing {pool} code {i+1}/{count} (hidden): ') for i in range(count)]

@@ -68,7 +68,7 @@ class PrivateBeta(unittest.TestCase):
         self.tx(beta.revoke,self.owner['id'],ident)
         with self.assertRaises(TrackerError): self.store.create_user('Alice','alice','h',token)
         ident,token=self.invite('alice')
-        self.store._db.execute('UPDATE beta_invites SET expires_at=0 WHERE id=?',(ident,))
+        self.store._db.execute('UPDATE beta_invites SET expires_at=0,non_expiring=0 WHERE id=?',(ident,))
         with self.assertRaises(TrackerError): self.store.create_user('Alice','alice','h',token)
         self.assertEqual(beta.occupied(self.store._db),0)
 

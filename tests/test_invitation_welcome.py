@@ -73,9 +73,43 @@ class Welcome(unittest.TestCase):
         self.assertEqual(beta.occupied(self.store._db,cohort='friend'),5)
         self.assertEqual(self.store._db.execute('SELECT count(*) FROM beta_invitation_pages').fetchone()[0],5)
 
-    def test_expired_and_revoked(self):
+    def test_new_code_survives_old_expiry_and_remains_single_use(self):
         ident,code=self.code()
         self.store._db.execute('UPDATE beta_invites SET expires_at=0 WHERE id=?',(ident,))
+        self.assertIsNone(welcome.offer(self.store._db,code)['expires_at'])
+        self.agreement(code)
+        user=self.store.create_user('Chosen','chosen','hash',code)
+        with self.assertRaises(TrackerError):welcome.offer(self.store._db,code)
+        self.assertTrue(welcome.offer(self.store._db,code,user)['claimed'])
+
+    def test_legacy_migration_restores_only_unused_nonrevoked_codes_and_same_hashes(self):
+        ident,code=self.code()
+        second,other=self.tx(beta.issue,self.owner,'other',access_kind='preview',cohort='friend',evidence='legacy')
+        self.tx(beta.revoke,self.owner,second)
+        before=self.store._db.execute('SELECT token_hash FROM beta_invites WHERE id=?',(ident,)).fetchone()[0]
+        self.store._db.execute('ALTER TABLE beta_invites DROP COLUMN non_expiring')
+        self.store._db.execute('UPDATE beta_invites SET expires_at=0')
+        beta.initialize(self.store._db)
+        self.assertIsNone(welcome.offer(self.store._db,code)['expires_at'])
+        self.assertEqual(before,self.store._db.execute('SELECT token_hash FROM beta_invites WHERE id=?',(ident,)).fetchone()[0])
+        with self.assertRaises(TrackerError):welcome.offer(self.store._db,other)
+
+    def test_restored_old_reservations_do_not_block_free_seats_or_bypass_member_cap(self):
+        _,code=self.code()
+        extras=[]
+        for i in range(beta.FRIEND_LIMIT):
+            token='FRIEND-legacy-'+str(i)+'x'*32;extras.append(token)
+            self.store._db.execute("INSERT INTO beta_invites(id,token_hash,username_key,expires_at,access_kind,evidence,created_at,cohort,non_expiring) VALUES(?,?,?,?,?,?,?,?,?)",('legacy'+str(i),beta.digest(token),'',0,'preview','legacy fixture',0,'friend',1))
+        self.assertGreater(beta.occupied(self.store._db,cohort='friend'),beta.FRIEND_LIMIT)
+        self.agreement(code)
+        self.store.create_user('Chosen','chosen','hash',code)
+        for i,token in enumerate(extras[:-1]):self.store.create_user('Friend'+str(i),'friend'+str(i),'hash',token)
+        with self.assertRaises(TrackerError):self.store.create_user('Overflow','overflow','hash',extras[-1])
+        self.assertEqual(self.store._db.execute("SELECT count(*) FROM beta_members WHERE role='member' AND cohort='friend'").fetchone()[0],beta.FRIEND_LIMIT)
+
+    def test_expired_and_revoked(self):
+        ident,code=self.code()
+        self.store._db.execute('UPDATE beta_invites SET expires_at=0,non_expiring=0 WHERE id=?',(ident,))
         with self.assertRaises(TrackerError):welcome.offer(self.store._db,code)
         with self.assertRaises(TrackerError):self.tx(welcome.feedback,code,dict(category='bug',title='t',message='m'),None)
 

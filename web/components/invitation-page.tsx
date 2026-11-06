@@ -279,9 +279,9 @@ export default function InvitationPage() {
                 </button>
               </div>
               <p className="family-muted">
-                Claim before{" "}
-                {new Date(offer.expires_at * 1000).toLocaleString()}. This is
-                the code’s expiry, not your access end date.
+                {offer.expires_at == null
+                  ? "This invitation does not expire. It can be claimed once."
+                  : `Claim before ${new Date(offer.expires_at * 1000).toLocaleString()}. This is the code’s expiry, not your access end date.`}
                 {offer.username &&
                   ` Use the invited username: ${offer.username}.`}
               </p>
@@ -452,8 +452,8 @@ export default function InvitationPage() {
                   "Yes. Open the site in Safari, tap Share, then Add to Home Screen. You can also use it in the browser.",
                 ],
                 [
-                  "I forgot my password or my code expired.",
-                  "Contact admin@coopscorner.tech for help. Never send your password, wallet seed phrase or private keys. Your host can review an expired or revoked invitation.",
+                  "I forgot my password or my invitation is unavailable.",
+                  "Contact admin@coopscorner.tech for help. Never send your password, wallet seed phrase or private keys. Invitation links do not expire. Your host can review whether a code was already claimed or revoked.",
                 ],
                 [
                   "How do I report a problem?",

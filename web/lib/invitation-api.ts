@@ -4,7 +4,7 @@ export type InvitationOffer = {
   claimed: boolean;
   version: string;
   terms_version: string;
-  expires_at: number;
+  expires_at: number | null;
   username: string;
   trial_available: boolean;
   title: string;

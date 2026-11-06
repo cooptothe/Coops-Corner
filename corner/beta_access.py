@@ -2,7 +2,7 @@
 
 Invites reserve one of ten beta places, five friend places, or two permanent family places.
 Suspension retains its place; explicit
-closure releases it. Only hashed, expiring invite codes persist in the account database. Open codes bind to the first successful signup; explicitly named legacy invitations retain their identity restriction.
+closure releases it. Only hashed invite codes persist in the account database. Open codes bind to the first successful signup; explicitly named legacy invitations retain their identity restriction.
 An operator issues paid invites only after independently verifying the receipt.
 """
 import hashlib
@@ -97,6 +97,10 @@ def initialize(db):
             standard_usd_cents INTEGER NOT NULL CHECK(standard_usd_cents=2500),
             live_usd_cents INTEGER NOT NULL CHECK(live_usd_cents=5000),
             granted_at REAL NOT NULL, evidence TEXT NOT NULL)''')
+        if 'non_expiring' not in {row[1] for row in db.execute('PRAGMA table_info(beta_invites)')}:
+            db.execute('ALTER TABLE beta_invites ADD COLUMN non_expiring INTEGER NOT NULL DEFAULT 0 CHECK(non_expiring IN (0,1))')
+            restored=db.execute('UPDATE beta_invites SET non_expiring=1 WHERE revoked=0 AND redeemed_by IS NULL').rowcount
+            audit(db,'server_operator','non_expiring_invitation_policy','unclaimed',f'{restored} unused non-revoked codes preserved; claimed/revoked codes unchanged')
         db.execute('CREATE INDEX IF NOT EXISTS beta_member_pool ON beta_members(cohort,role,state)')
         db.execute('CREATE INDEX IF NOT EXISTS beta_invite_pool ON beta_invites(cohort,revoked,expires_at)')
         db.execute('COMMIT')
@@ -115,10 +119,10 @@ def occupied(db, now=None, *, cohort='beta'):
     now = time.time() if now is None else now
     if cohort=='family':
         members=db.execute("SELECT count(*) FROM beta_members m JOIN beta_family_members f ON f.user_id=m.user_id WHERE m.role='member' AND m.state!='closed'").fetchone()[0]
-        invites=db.execute('SELECT count(*) FROM beta_invites i JOIN beta_family_invites f ON f.invite_id=i.id WHERE i.revoked=0 AND i.redeemed_by IS NULL AND i.expires_at>?',(now,)).fetchone()[0]
+        invites=db.execute('SELECT count(*) FROM beta_invites i JOIN beta_family_invites f ON f.invite_id=i.id WHERE i.revoked=0 AND i.redeemed_by IS NULL AND (i.non_expiring=1 OR i.expires_at>?)',(now,)).fetchone()[0]
         return members+invites
     members = db.execute("SELECT count(*) FROM beta_members m WHERE role='member' AND state!='closed' AND cohort=? AND NOT EXISTS(SELECT 1 FROM beta_family_members f WHERE f.user_id=m.user_id)", (cohort,)).fetchone()[0]
-    invites = db.execute('SELECT count(*) FROM beta_invites i WHERE revoked=0 AND redeemed_by IS NULL AND expires_at>? AND cohort=? AND NOT EXISTS(SELECT 1 FROM beta_family_invites f WHERE f.invite_id=i.id)', (now,'friend' if cohort=='family' else cohort)).fetchone()[0]
+    invites = db.execute('SELECT count(*) FROM beta_invites i WHERE revoked=0 AND redeemed_by IS NULL AND (non_expiring=1 OR expires_at>?) AND cohort=? AND NOT EXISTS(SELECT 1 FROM beta_family_invites f WHERE f.invite_id=i.id)', (now,'friend' if cohort=='family' else cohort)).fetchone()[0]
     return members + invites
 
 
@@ -147,7 +151,12 @@ def friend_rates(db, user_id, evidence):
 
 def capacity(db, cohort, *, redeem=False):
     count=occupied(db,cohort=cohort)
-    full = count>COHORT_LIMITS[cohort] if redeem else count>=COHORT_LIMITS[cohort]
+    if redeem:
+        if cohort=='family':
+            count=db.execute("SELECT count(*) FROM beta_members m JOIN beta_family_members f ON f.user_id=m.user_id WHERE m.role='member' AND m.state!='closed'").fetchone()[0]
+        else:
+            count=db.execute("SELECT count(*) FROM beta_members m WHERE role='member' AND state!='closed' AND cohort=? AND NOT EXISTS(SELECT 1 FROM beta_family_members f WHERE f.user_id=m.user_id)",(cohort,)).fetchone()[0]
+    full = count>=COHORT_LIMITS[cohort]
     if full:
         fail(f"All {COHORT_LIMITS[cohort]} {cohort} places are active or reserved.", 'beta_full',409)
 
@@ -237,9 +246,9 @@ def enroll(db, user_id, username_key, token):
         fail('A valid private beta invitation is required.', 'invite_required')
     invite = db.execute('SELECT * FROM beta_invites WHERE token_hash=?', (digest(token),)).fetchone()
     now = time.time()
-    if (not invite or invite['revoked'] or invite['redeemed_by'] or invite['expires_at'] <= now
+    if (not invite or invite['revoked'] or invite['redeemed_by'] or (not invite['non_expiring'] and invite['expires_at'] <= now)
             or invite['username_key'] not in ('',username_key)):
-        fail('This invitation is invalid, expired, or belongs to another username.', 'invalid_invite')
+        fail('This invitation is unavailable or belongs to another username.', 'invalid_invite')
     from corner.invitation_welcome import require_acceptance
     require_acceptance(db,invite)
     cohort=invite_cohort(db,invite)
@@ -282,6 +291,7 @@ def bootstrap(db, username_key):
 
 
 def issue(db, actor, username_key, *, hours=48, access_kind, evidence, cohort='beta', unbound=False):
+    # hours is retained for older CLI callers; non_expiring controls redemption.
     validate_cohort(cohort,access_kind)
     require_operator(db, actor)
     if not isinstance(username_key,str) or (unbound and username_key!='') or (not unbound and not username_key):
@@ -292,13 +302,14 @@ def issue(db, actor, username_key, *, hours=48, access_kind, evidence, cohort='b
         fail('Record paid receipt verification or an explicit preview reason.', status=400)
     if db.execute('SELECT 1 FROM users WHERE username_key=?', (username_key,)).fetchone():
         fail('That username exists; grant the existing account explicitly.', status=409)
-    if username_key and db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>?', (username_key, time.time())).fetchone():
+    if username_key and db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND (non_expiring=1 OR expires_at>?)', (username_key, time.time())).fetchone():
         fail('This username already has a live invitation.', status=409)
     capacity(db,cohort)
     token = (('FAMILY-' if cohort=='family' else 'FRIEND-' if cohort=='friend' else 'BETA-') if unbound else '') + secrets.token_urlsafe(32)
     invite_id = secrets.token_hex(12)
     db.execute('INSERT INTO beta_invites(id,token_hash,username_key,expires_at,access_kind,evidence,created_at,cohort) VALUES(?,?,?,?,?,?,?,?)',
                (invite_id, digest(token), username_key, time.time()+hours*3600, access_kind, evidence.strip(), time.time(),'friend' if cohort=='family' else cohort))
+    db.execute('UPDATE beta_invites SET non_expiring=1 WHERE id=?',(invite_id,))
     if cohort=='family':db.execute('INSERT INTO beta_family_invites VALUES(?)',(invite_id,))
     audit(db,actor,'issue_invite',invite_id,access_kind+':'+cohort+(':unbound' if unbound else ''))
     return invite_id, token
@@ -315,7 +326,7 @@ def grant(db, actor, username_key, access_kind, evidence, *, cohort='beta'):
     if db.execute('SELECT 1 FROM beta_members WHERE user_id=?', (user[0],)).fetchone():
         fail('Account already enrolled; use the state command.', status=409)
     capacity(db,cohort)
-    if db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND expires_at>?',(username_key,time.time())).fetchone():
+    if db.execute('SELECT 1 FROM beta_invites WHERE username_key=? AND revoked=0 AND redeemed_by IS NULL AND (non_expiring=1 OR expires_at>?)',(username_key,time.time())).fetchone():
         fail('Resolve the existing invitation before granting access.',status=409)
     db.execute('INSERT INTO beta_members(user_id,role,state,founder,access_kind,evidence,created_at,cohort) VALUES(?,?,?,?,?,?,?,?)',
                (user[0],'member','active',int(access_kind=='paid_beta'),access_kind,evidence.strip(),time.time(),'friend' if cohort=='family' else cohort))

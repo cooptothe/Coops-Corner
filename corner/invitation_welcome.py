@@ -11,7 +11,7 @@ def lookup(db, token, *, claimed=False):
     if not isinstance(token,str) or not TOKEN.fullmatch(token):
         beta.fail('This invitation is unavailable. Ask your host for a new link.',status=404)
     row=db.execute('SELECT * FROM beta_invites WHERE token_hash=?',(beta.digest(token),)).fetchone()
-    if not row or row['revoked'] or (not claimed and (row['redeemed_by'] or row['expires_at']<=time.time())):
+    if not row or row['revoked'] or (not claimed and (row['redeemed_by'] or (not row['non_expiring'] and row['expires_at']<=time.time()))):
         beta.fail('This invitation is unavailable. Ask your host for a new link.',status=404)
     return row
 
@@ -19,7 +19,7 @@ def offer(db, token, user=None):
     row=lookup(db,token,claimed=True)
     if row['redeemed_by']:
         if not user or user['id']!=row['redeemed_by']:beta.fail('Sign in to the account that claimed this invitation.',status=401)
-    elif row['expires_at']<=time.time():beta.fail('Invitation expired.',status=404)
+    elif (not row['non_expiring'] and row['expires_at']<=time.time()):beta.fail('Invitation expired.',status=404)
     cohort=beta.invite_cohort(db,row)
     family=cohort=='family'
     if not family and time.time()>=beta_terms.BETA_END:
@@ -28,7 +28,7 @@ def offer(db, token, user=None):
     paid=row['access_kind']=='paid_beta'
     trial_available=beta_terms.trial_available(time.time())
     return dict(cohort=cohort,claimed=bool(row['redeemed_by']),paid=paid,version=VERSION,terms_version=beta_terms.VERSION,
-        expires_at=row['expires_at'],username=row['username_key'],trial_available=trial_available,
+        expires_at=None if row['non_expiring'] else row['expires_at'],username=row['username_key'],trial_available=trial_available,
         title='A brother at the table' if family else 'The inner circle' if friend else 'The founding table',
         access=('Permanent complimentary access to all available tools, including standard and live when available. No trial or payment required.' if family else 'Complimentary beta access through November 20, 2026.' if friend else
                 'Your verified paid beta access runs through November 20, 2026.' if paid else
@@ -65,7 +65,7 @@ def feedback(db, token, body, user):
     if row['redeemed_by']:
         if not user or user['id']!=row['redeemed_by']:
             beta.fail('Sign in to the account that claimed this invitation.',status=401)
-    elif row['expires_at']<=time.time():beta.fail('Invitation expired.',status=404)
+    elif (not row['non_expiring'] and row['expires_at']<=time.time()):beta.fail('Invitation expired.',status=404)
     category=body.get('category')
     if category not in ('bug','feature','data','question','other'):beta.fail('Choose a feedback type.',status=400)
     values=[]
